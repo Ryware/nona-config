@@ -1,0 +1,51 @@
+using MediatR;
+using Nona.Application.Admin.Environments.DTOs;
+using Nona.Application.Common.Interfaces;
+using Nona.Domain.Entities;
+using Nona.Domain.Interfaces;
+
+namespace Nona.Application.Admin.Environments.Commands;
+
+public record CreateEnvironmentRequest(string Name);
+public record CreateEnvironmentCommand(string ProjectId, string Name) : IRequest<CreateEnvironmentResult>;
+
+public record CreateEnvironmentResult(bool Success, EnvironmentDto? Environment, string? Error);
+
+public class CreateEnvironmentCommandHandler(
+    IProjectRepository projectRepository,
+    IEnvironmentRepository environmentRepository,
+    IProjectAccessService projectAccessService,
+    IDateTime dateTime) : IRequestHandler<CreateEnvironmentCommand, CreateEnvironmentResult>
+{
+    public async Task<CreateEnvironmentResult> Handle(CreateEnvironmentCommand request, CancellationToken cancellationToken)
+    {
+        if (!await projectRepository.ExistsAsync(request.ProjectId, cancellationToken))
+            return new CreateEnvironmentResult(false, null, "Project not found");
+
+        if (!await projectAccessService.HasAdminAccessAsync(request.ProjectId, cancellationToken))
+            return new CreateEnvironmentResult(false, null, "Access denied");
+
+        if (await environmentRepository.ExistsAsync(request.ProjectId, request.Name, cancellationToken))
+            return new CreateEnvironmentResult(false, null, "Environment already exists");
+
+
+        var now = dateTime.NowUtc;
+        var environment = new ProjectEnvironment
+        {
+            Name = request.Name,
+            Project = request.ProjectId,
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+
+        await environmentRepository.AddAsync(environment, cancellationToken);
+
+        var dto = new EnvironmentDto(
+            environment.Name,
+            environment.Project,
+            environment.CreatedAt,
+            environment.UpdatedAt);
+
+        return new CreateEnvironmentResult(true, dto, null);
+    }
+}

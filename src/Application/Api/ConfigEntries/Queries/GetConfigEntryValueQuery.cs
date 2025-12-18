@@ -1,0 +1,43 @@
+using MediatR;
+using Nona.Application.Common.Interfaces;
+using Nona.Domain.Interfaces;
+
+namespace Nona.Application.Api.ConfigEntries.Queries;
+
+public record GetConfigEntryValueQuery(string EnvironmentId, string Key) : IRequest<GetConfigEntryValueResult>;
+
+public record GetConfigEntryValueResult(bool Success, string? Value, string? ContentType, string? Error);
+
+public class GetConfigEntryValueQueryHandler(
+    IProjectRepository projectRepository,
+    IEnvironmentRepository environmentRepository,
+    IConfigEntryRepository configEntryRepository,
+    IApiKeyService apiKeyService)
+    : IRequestHandler<GetConfigEntryValueQuery, GetConfigEntryValueResult>
+{
+    public async Task<GetConfigEntryValueResult> Handle(GetConfigEntryValueQuery request, CancellationToken cancellationToken)
+    {
+        var apiKey = apiKeyService.GetCurrentApiKey();
+        if (string.IsNullOrEmpty(apiKey))
+            return new GetConfigEntryValueResult(false, null, null, "API key is required");
+
+        var lookupResult = await projectRepository.GetByApiKeyAsync(apiKey, cancellationToken);
+        if (lookupResult is null)
+            return new GetConfigEntryValueResult(false, null, null, "Invalid API key");
+
+        var (project, apiKeyScope) = lookupResult;
+
+        if (!await environmentRepository.ExistsAsync(project.Name, request.EnvironmentId, cancellationToken))
+            return new GetConfigEntryValueResult(false, null, null, "Environment not found");
+
+        var configEntry = await configEntryRepository.GetAsync(project.Name, request.EnvironmentId, request.Key, cancellationToken);
+        if (configEntry is null)
+            return new GetConfigEntryValueResult(false, null, null, "Config entry not found");
+
+        // Check if the API key scope has access to this config entry
+        if (!configEntry.Scope.HasFlag(apiKeyScope))
+            return new GetConfigEntryValueResult(false, null, null, "Config entry not found");
+
+        return new GetConfigEntryValueResult(true, configEntry.Value, configEntry.ContentType, null);
+    }
+}
