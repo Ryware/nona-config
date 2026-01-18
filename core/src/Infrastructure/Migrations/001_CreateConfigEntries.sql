@@ -1,0 +1,11 @@
+CREATE TABLE IF NOT EXISTS ConfigEntries (
+    Project TEXT NOT NULL COLLATE NOCASE,
+    Environment TEXT NOT NULL COLLATE NOCASE,
+    Key TEXT NOT NULL COLLATE NOCASE,
+    Value TEXT NOT NULL,
+    ContentType TEXT NOT NULL DEFAULT 'string',
+    Scope INTEGER NOT NULL DEFAULT 3,
+    CreatedAt TEXT NOT NULL,
+    UpdatedAt TEXT NOT NULL,
+    PRIMARY KEY (Project, Environment, Key)
+);
