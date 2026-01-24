@@ -9,11 +9,6 @@ public class UpdateUserRequestValidator : AbstractValidator<UpdateUserRequest>
 
     public UpdateUserRequestValidator()
     {
-        RuleFor(x => x.Password)
-            .MinimumLength(8)
-            .WithMessage("Password must be at least 8 characters")
-            .When(x => x.Password is not null);
-
         RuleFor(x => x.Role)
             .Must(role => role is null || ValidRoles.Contains(role.ToLowerInvariant()))
             .When(x => x.Role is not null)

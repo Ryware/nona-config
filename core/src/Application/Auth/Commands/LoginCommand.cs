@@ -5,7 +5,7 @@ using Nona.Domain.Interfaces;
 
 namespace Nona.Application.Auth.Commands;
 
-public record LoginCommand(string Username, string Password) : IRequest<LoginResult>;
+public record LoginCommand(string Email, string Password) : IRequest<LoginResult>;
 
 public record LoginResult(bool Success, LoginResponse? Response, string? Error);
 
@@ -13,7 +13,7 @@ public class LoginCommandHandler(IUserRepository userRepository, IJwtTokenServic
 {
     public async Task<LoginResult> Handle(LoginCommand request, CancellationToken cancellationToken)
     {
-        var user = await userRepository.GetAsync(request.Username, cancellationToken);
+        var user = await userRepository.GetAsync(request.Email, cancellationToken);
 
         if (user is null)
             return new LoginResult(false, null, "Invalid username or password");
@@ -26,7 +26,7 @@ public class LoginCommandHandler(IUserRepository userRepository, IJwtTokenServic
 
         var response = new LoginResponse(
             token,
-            user.Username,
+            user.Email,
             user.Role.ToString().ToLowerInvariant(),
             expiresAt);
 

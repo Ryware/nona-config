@@ -8,8 +8,8 @@ using Nona.Domain.Interfaces;
 
 namespace Nona.Application.Admin.Users.Commands;
 
-public record UpdateUserRequest(string? Password, string? Role, string? Scope);
-public record UpdateUserCommand(string Username, string? Password, string? Role, string? Scope) : IRequest<UpdateUserResult>;
+public record UpdateUserRequest(string? Role, string? Scope);
+public record UpdateUserCommand(string Username, string? Role, string? Scope) : IRequest<UpdateUserResult>;
 public record UpdateUserResult(bool Success, UserDto? User, string? Error);
 
 public class UpdateUserCommandHandler(IUserRepository userRepository, IProjectMemberRepository projectMemberRepository, IDateTime dateTime) : IRequestHandler<UpdateUserCommand, UpdateUserResult>
@@ -28,12 +28,6 @@ public class UpdateUserCommandHandler(IUserRepository userRepository, IProjectMe
         if (scope is null && request.Scope is not null)
             return new UpdateUserResult(false, null, "Invalid scope. Must be 'client', 'server', or 'all'");
 
-        if (request.Password is not null)
-        {
-            var (hash, salt) = HashPassword(request.Password);
-            user.PasswordHash = hash;
-            user.PasswordSalt = salt;
-        }
 
         if (role is not null)
             user.Role = role.Value;
@@ -45,11 +39,11 @@ public class UpdateUserCommandHandler(IUserRepository userRepository, IProjectMe
 
         await userRepository.UpdateAsync(user, cancellationToken);
 
-        var members = await projectMemberRepository.ListByUserAsync(user.Username, cancellationToken);
+        var members = await projectMemberRepository.ListByUserAsync(user.Email, cancellationToken);
         var projects = members.Select(m => new ProjectAccessDto(m.ProjectName, m.Role.ToApiString())).ToList();
 
         var dto = new UserDto(
-            user.Username,
+            user.Email,
             user.Role.ToApiString(),
             user.Scope.ToApiString(),
             projects,

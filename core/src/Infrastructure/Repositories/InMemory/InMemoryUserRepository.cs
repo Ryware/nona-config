@@ -8,9 +8,9 @@ public class InMemoryUserRepository : IUserRepository
 {
     private readonly ConcurrentDictionary<string, User> _users = new(StringComparer.OrdinalIgnoreCase);
 
-    public Task<User?> GetAsync(string username, CancellationToken ct = default)
+    public Task<User?> GetAsync(string email, CancellationToken ct = default)
     {
-        _users.TryGetValue(username, out var user);
+        _users.TryGetValue(email, out var user);
         return Task.FromResult(user);
     }
 
@@ -20,14 +20,9 @@ public class InMemoryUserRepository : IUserRepository
         return Task.FromResult<IReadOnlyList<User>>(users);
     }
 
-    public Task<bool> ExistsAsync(string username, CancellationToken ct = default)
+    public Task<bool> ExistsAsync(string email, CancellationToken ct = default)
     {
-        return Task.FromResult(_users.ContainsKey(username));
-    }
-
-    public Task<bool> ExistsByEmailAsync(string email, CancellationToken ct = default)
-    {
-        return Task.FromResult(_users.Values.Any(u => u.Username.Equals(email, StringComparison.OrdinalIgnoreCase)));
+        return Task.FromResult(_users.ContainsKey(email));
     }
 
     public Task<bool> ExistsAnyAsync(CancellationToken ct = default)
@@ -37,19 +32,19 @@ public class InMemoryUserRepository : IUserRepository
 
     public Task AddAsync(User user, CancellationToken ct = default)
     {
-        _users.TryAdd(user.Username, user);
+        _users.TryAdd(user.Email, user);
         return Task.CompletedTask;
     }
 
 
     public Task UpdateAsync(User user, CancellationToken ct = default)
     {
-        _users[user.Username] = user;
+        _users[user.Email] = user;
         return Task.CompletedTask;
     }
 
-    public Task<bool> DeleteAsync(string username, CancellationToken ct = default)
+    public Task<bool> DeleteAsync(string email, CancellationToken ct = default)
     {
-        return Task.FromResult(_users.TryRemove(username, out _));
+        return Task.FromResult(_users.TryRemove(email, out _));
     }
 }

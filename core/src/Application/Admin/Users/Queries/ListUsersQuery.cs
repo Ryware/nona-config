@@ -16,11 +16,11 @@ public class ListUsersQueryHandler(IUserRepository userRepository, IProjectMembe
 
         foreach (var user in users)
         {
-            var members = await projectMemberRepository.ListByUserAsync(user.Username, cancellationToken);
+            var members = await projectMemberRepository.ListByUserAsync(user.Email, cancellationToken);
             var projects = members.Select(m => new ProjectAccessDto(m.ProjectName, m.Role.ToApiString())).ToList();
 
             result.Add(new UserDto(
-                user.Username,
+                user.Email,
                 user.Role.ToApiString(),
                 user.Scope.ToApiString(),
                 projects,

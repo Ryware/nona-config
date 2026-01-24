@@ -18,11 +18,11 @@ public class GetUserQueryHandler(IUserRepository userRepository, IProjectMemberR
         if (user is null)
             return new GetUserResult(false, null, "User not found");
 
-        var members = await projectMemberRepository.ListByUserAsync(user.Username, cancellationToken);
+        var members = await projectMemberRepository.ListByUserAsync(user.Email, cancellationToken);
         var projects = members.Select(m => new ProjectAccessDto(m.ProjectName, m.Role.ToApiString())).ToList();
 
         var dto = new UserDto(
-            user.Username,
+            user.Email,
             user.Role.ToApiString(),
             user.Scope.ToApiString(),
             projects,

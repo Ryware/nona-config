@@ -18,7 +18,7 @@ public class AuthController(IMediator mediator) : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(new LoginCommand(request.Username, request.Password), cancellationToken);
+        var result = await mediator.Send(new LoginCommand(request.Email, request.Password), cancellationToken);
 
         if (!result.Success)
             return Unauthorized(new { error = result.Error });

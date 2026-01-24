@@ -20,9 +20,9 @@ public class JwtTokenService(IConfiguration configuration) : IJwtTokenService
 
         var claims = new Dictionary<string, object>
         {
-            [JwtRegisteredClaimNames.Sub] = user.Username,
+            [JwtRegisteredClaimNames.Sub] = user.Email,
             [JwtRegisteredClaimNames.Jti] = Guid.NewGuid().ToString(),
-            [ClaimTypes.Name] = user.Username,
+            [ClaimTypes.Name] = user.Email,
             [ClaimTypes.Role] = user.Role.ToString()
         };
 
@@ -30,8 +30,8 @@ public class JwtTokenService(IConfiguration configuration) : IJwtTokenService
         {
             Subject = new ClaimsIdentity(
             [
-                new Claim(JwtRegisteredClaimNames.Sub, user.Username),
-                new Claim(ClaimTypes.Name, user.Username),
+                new Claim(JwtRegisteredClaimNames.Sub, user.Email),
+                new Claim(ClaimTypes.Name, user.Email),
                 new Claim(ClaimTypes.Role, user.Role.ToString())
             ]),
             Expires = DateTime.UtcNow.AddHours(24),

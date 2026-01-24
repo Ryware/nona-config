@@ -7,7 +7,7 @@ using Nona.Domain.Interfaces;
 
 namespace Nona.Application.Auth.Commands;
 
-public record class RegisterCommand(string Username, string Email, string Password) : IRequest<RegisterResult>;
+public record class RegisterCommand(string Email, string Password) : IRequest<RegisterResult>;
 
 public record RegisterResult(bool Success, LoginResponse? Response, string? Error);
 
@@ -28,7 +28,6 @@ internal class RegisterCommandHandler(IMediator mediator, IUserRepository userRe
 
         await userRepository.AddAsync(new User
         {
-            Username = request.Username,
             Email = request.Email,
             Role = UserRole.Admin,
             Scope = KeyScope.All,
@@ -38,7 +37,7 @@ internal class RegisterCommandHandler(IMediator mediator, IUserRepository userRe
             UpdatedAt = now
         }, cancellationToken);
 
-        var loginResult = await mediator.Send(new LoginCommand(request.Username, request.Password), cancellationToken);
+        var loginResult = await mediator.Send(new LoginCommand(request.Email, request.Password), cancellationToken);
         return new RegisterResult(true, loginResult.Response, null);
     }
 }

@@ -1,18 +1,21 @@
 using MediatR;
+using Microsoft.AspNetCore.WebUtilities;
+using Nona.Application.Admin.Common;
 using Nona.Application.Admin.Users.DTOs;
 using Nona.Application.Common;
 using Nona.Application.Common.Interfaces;
 using Nona.Domain.Entities;
 using Nona.Domain.Enums;
 using Nona.Domain.Interfaces;
+using System.Security.Cryptography;
 
 namespace Nona.Application.Admin.Users.Commands;
 
-public record CreateUserRequest(string Username, string Email, string Password, string? Role, string? Scope);
-public record CreateUserCommand(string Username, string Email, string Password, string? Role, string? Scope) : IRequest<CreateUserResult>;
+public record CreateUserRequest(string Username, string Email, string? Role, string? Scope);
+public record CreateUserCommand(string Username, string Email, string? Role, string? Scope) : IRequest<CreateUserResult>;
 public record CreateUserResult(bool Success, UserDto? User, string? Error);
 
-public class CreateUserCommandHandler(IUserRepository userRepository, IDateTime dateTime, IPasswordHasher passwordHasher) : IRequestHandler<CreateUserCommand, CreateUserResult>
+public class CreateUserCommandHandler(IUserRepository userRepository, IDateTime dateTime) : IRequestHandler<CreateUserCommand, CreateUserResult>
 {
     public async Task<CreateUserResult> Handle(CreateUserCommand request, CancellationToken cancellationToken)
     {
@@ -29,16 +32,13 @@ public class CreateUserCommandHandler(IUserRepository userRepository, IDateTime 
         if (scope is null && request.Scope is not null)
             return new CreateUserResult(false, null, "Invalid scope. Must be 'client', 'server', or 'all'");
 
-
-        var (hash, salt) = passwordHasher.HashPassword(request.Password);
         var now = dateTime.NowUtc;
 
+        var resetPasswordToken = TokenHelper.Generate();
         var user = new User
         {
-            Username = request.Username,
             Email = request.Email,
-            PasswordHash = hash,
-            PasswordSalt = salt,
+            PasswordResetToken = TokenHelper.Hash(resetPasswordToken),
             Role = role ?? UserRole.User,
             Scope = scope ?? KeyScope.All,
             CreatedAt = now,
@@ -48,12 +48,13 @@ public class CreateUserCommandHandler(IUserRepository userRepository, IDateTime 
         await userRepository.AddAsync(user, cancellationToken);
 
         var dto = new UserDto(
-            user.Username,
+            user.Email,
             user.Role.ToApiString(),
             user.Scope.ToApiString(),
             [],
             user.CreatedAt,
-            user.UpdatedAt);
+            user.UpdatedAt,
+            resetPasswordToken);
 
         return new CreateUserResult(true, dto, null);
     }
@@ -84,4 +85,6 @@ public class CreateUserCommandHandler(IUserRepository userRepository, IDateTime 
             _ => null
         };
     }
+
+
 }

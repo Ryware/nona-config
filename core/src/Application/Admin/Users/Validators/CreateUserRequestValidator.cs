@@ -15,12 +15,6 @@ public class CreateUserRequestValidator : AbstractValidator<CreateUserRequest>
             .Matches(@"^[a-zA-Z0-9-_]+$")
             .WithMessage("Username must be alphanumeric with hyphens and underscores only");
 
-        RuleFor(x => x.Password)
-            .NotEmpty()
-            .WithMessage("Password is required")
-            .MinimumLength(8)
-            .WithMessage("Password must be at least 8 characters");
-
         RuleFor(x => x.Role)
             .Must(role => role is null || ValidRoles.Contains(role.ToLowerInvariant()))
             .When(x => x.Role is not null)
