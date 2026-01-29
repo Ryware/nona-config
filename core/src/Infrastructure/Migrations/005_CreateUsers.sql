@@ -1,0 +1,10 @@
+CREATE TABLE IF NOT EXISTS Users (
+    Email TEXT NOT NULL PRIMARY KEY COLLATE NOCASE,
+    PasswordHash TEXT,
+    PasswordSalt TEXT,
+    Role INTEGER NOT NULL DEFAULT 0,
+    Scope INTEGER NOT NULL DEFAULT 3,
+    CreatedAt TEXT NOT NULL,
+    UpdatedAt TEXT NOT NULL,
+    PasswordResetToken TEXT
+);

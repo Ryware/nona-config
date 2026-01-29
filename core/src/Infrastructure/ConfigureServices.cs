@@ -60,11 +60,9 @@ public static class ConfigureServices
 
         // SQLite repositories
         services.AddSingleton<IConfigEntryRepository, SqliteConfigEntryRepository>();
-        
-        // Keep in-memory for others until they're implemented
-        services.AddSingleton<IUserRepository, InMemoryUserRepository>();
-        services.AddSingleton<IProjectRepository, InMemoryProjectRepository>();
-        services.AddSingleton<IEnvironmentRepository, InMemoryEnvironmentRepository>();
-        services.AddSingleton<IProjectMemberRepository, InMemoryProjectMemberRepository>();
+        services.AddSingleton<IUserRepository, SqliteUserRepository>();
+        services.AddSingleton<IProjectRepository, SqliteProjectRepository>();
+        services.AddSingleton<IEnvironmentRepository, SqliteEnvironmentRepository>();
+        services.AddSingleton<IProjectMemberRepository, SqliteProjectMemberRepository>();
     }
 }
