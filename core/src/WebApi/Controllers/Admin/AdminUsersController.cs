@@ -18,7 +18,7 @@ public class AdminUsersController(IMediator mediator) : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request, CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(new CreateUserCommand(request.Username, request.Email, request.Password, request.Role, request.Scope), cancellationToken);
+        var result = await mediator.Send(new CreateUserCommand(request.Username, request.Email, request.Role, request.Scope), cancellationToken);
 
         if (!result.Success)
         {
@@ -58,7 +58,7 @@ public class AdminUsersController(IMediator mediator) : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> UpdateUser(string username, [FromBody] UpdateUserRequest request, CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(new UpdateUserCommand(username, request.Password, request.Role, request.Scope), cancellationToken);
+        var result = await mediator.Send(new UpdateUserCommand(username, request.Role, request.Scope), cancellationToken);
 
         if (!result.Success)
         {
