@@ -70,4 +70,9 @@ public class InMemoryConfigEntryRepository : IConfigEntryRepository
         }
         return Task.CompletedTask;
     }
+
+    public Task<int> CountAsync(CancellationToken ct = default)
+    {
+        return Task.FromResult(_entries.Count);
+    }
 }

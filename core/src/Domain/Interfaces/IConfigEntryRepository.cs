@@ -23,4 +23,5 @@ public interface IConfigEntryRepository
     Task DeleteAsync(string projectName, string environmentName, string key, CancellationToken ct = default);
 
     Task DeleteManyAsync(string projectName, string environmentName, IEnumerable<string> keys, CancellationToken ct = default);
+    Task<int> CountAsync(CancellationToken ct = default);
 }

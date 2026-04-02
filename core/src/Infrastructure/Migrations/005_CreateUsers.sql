@@ -1,9 +1,11 @@
 CREATE TABLE IF NOT EXISTS Users (
     Email TEXT NOT NULL PRIMARY KEY COLLATE NOCASE,
+    Name TEXT NOT NULL DEFAULT '',
     PasswordHash TEXT,
     PasswordSalt TEXT,
     Role INTEGER NOT NULL DEFAULT 0,
     Scope INTEGER NOT NULL DEFAULT 3,
+    IsAdmin INTEGER NOT NULL DEFAULT 0,
     CreatedAt TEXT NOT NULL,
     UpdatedAt TEXT NOT NULL,
     PasswordResetToken TEXT

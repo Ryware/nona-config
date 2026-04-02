@@ -139,7 +139,7 @@ public class SqliteProjectMemberRepository : IProjectMemberRepository
     private class ProjectMemberDto
     {
         public string Username { get; set; } = string.Empty;
-        public string ProjectName { get; set; } = string.Empty;
+        public string ProjectId { get; set; } = string.Empty;
         public int Role { get; set; }
         public string CreatedAt { get; set; } = string.Empty;
 
@@ -148,7 +148,7 @@ public class SqliteProjectMemberRepository : IProjectMemberRepository
             return new ProjectMember
             {
                 Username = Username,
-                ProjectName = ProjectName,
+                ProjectId = ProjectId,
                 Role = (ProjectRole)Role,
                 CreatedAt = DateTime.Parse(CreatedAt)
             };
@@ -159,7 +159,7 @@ public class SqliteProjectMemberRepository : IProjectMemberRepository
             return new ProjectMemberDto
             {
                 Username = member.Username,
-                ProjectName = member.ProjectName,
+                ProjectId = member.ProjectId,
                 Role = (int)member.Role,
                 CreatedAt = member.CreatedAt.ToString("O")
             };

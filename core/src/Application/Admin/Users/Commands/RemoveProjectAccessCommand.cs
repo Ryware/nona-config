@@ -3,7 +3,7 @@ using Nona.Domain.Interfaces;
 
 namespace Nona.Application.Admin.Users.Commands;
 
-public record RemoveProjectAccessCommand(string Username, string ProjectName) : IRequest<RemoveProjectAccessResult>;
+public record RemoveProjectAccessCommand(long UserId, string ProjectId) : IRequest<RemoveProjectAccessResult>;
 public record RemoveProjectAccessResult(bool Success, string? Error);
 
 public class RemoveProjectAccessCommandHandler(
@@ -12,13 +12,14 @@ public class RemoveProjectAccessCommandHandler(
 {
     public async Task<RemoveProjectAccessResult> Handle(RemoveProjectAccessCommand request, CancellationToken cancellationToken)
     {
-        if (!await userRepository.ExistsAsync(request.Username, cancellationToken))
+        var user = await userRepository.GetByIdAsync(request.UserId, cancellationToken);
+        if (user is null)
             return new RemoveProjectAccessResult(false, "User not found");
 
-        if (!await projectMemberRepository.ExistsAsync(request.Username, request.ProjectName, cancellationToken))
+        if (!await projectMemberRepository.ExistsAsync(user.Email, request.ProjectId, cancellationToken))
             return new RemoveProjectAccessResult(false, "Project access not found");
 
-        await projectMemberRepository.DeleteAsync(request.Username, request.ProjectName, cancellationToken);
+        await projectMemberRepository.DeleteAsync(user.Email, request.ProjectId, cancellationToken);
 
         return new RemoveProjectAccessResult(true, null);
     }

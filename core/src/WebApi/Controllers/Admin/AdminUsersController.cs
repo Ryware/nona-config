@@ -18,7 +18,7 @@ public class AdminUsersController(IMediator mediator) : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request, CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(new CreateUserCommand(request.Username, request.Email, request.Role, request.Scope), cancellationToken);
+        var result = await mediator.Send(new CreateUserCommand(request.Name, request.Email, request.Role, request.Scope), cancellationToken);
 
         if (!result.Success)
         {
@@ -27,7 +27,7 @@ public class AdminUsersController(IMediator mediator) : ControllerBase
                 : BadRequest(new { error = result.Error });
         }
 
-        return CreatedAtAction(nameof(GetUser), new { username = request.Username }, result.User);
+        return CreatedAtAction(nameof(GetUser), new { id = result.User!.Id }, result.User);
     }
 
     [HttpGet]
@@ -39,12 +39,12 @@ public class AdminUsersController(IMediator mediator) : ControllerBase
         return Ok(users);
     }
 
-    [HttpGet("{username}")]
+    [HttpGet("{id:long}")]
     [ProducesResponseType(typeof(UserDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetUser(string username, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetUser(long id, CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(new GetUserQuery(username), cancellationToken);
+        var result = await mediator.Send(new GetUserQuery(id), cancellationToken);
 
         if (!result.Success)
             return NotFound(new { error = result.Error });
@@ -52,13 +52,13 @@ public class AdminUsersController(IMediator mediator) : ControllerBase
         return Ok(result.User);
     }
 
-    [HttpPut("{username}")]
+    [HttpPut("{id:long}")]
     [ProducesResponseType(typeof(UserDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> UpdateUser(string username, [FromBody] UpdateUserRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> UpdateUser(long id, [FromBody] UpdateUserRequest request, CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(new UpdateUserCommand(username, request.Role, request.Scope), cancellationToken);
+        var result = await mediator.Send(new UpdateUserCommand(id, request.Name, request.Role, request.Scope), cancellationToken);
 
         if (!result.Success)
         {
@@ -70,12 +70,12 @@ public class AdminUsersController(IMediator mediator) : ControllerBase
         return Ok(result.User);
     }
 
-    [HttpDelete("{username}")]
+    [HttpDelete("{id:long}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> DeleteUser(string username, CancellationToken cancellationToken)
+    public async Task<IActionResult> DeleteUser(long id, CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(new DeleteUserCommand(username), cancellationToken);
+        var result = await mediator.Send(new DeleteUserCommand(id), cancellationToken);
 
         if (!result.Success)
             return NotFound(new { error = result.Error });
@@ -83,12 +83,12 @@ public class AdminUsersController(IMediator mediator) : ControllerBase
         return NoContent();
     }
 
-    [HttpGet("{username}/projects")]
+    [HttpGet("{id:long}/projects")]
     [ProducesResponseType(typeof(IReadOnlyList<ProjectAccessDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetUserProjects(string username, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetUserProjects(long id, CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(new GetUserProjectsQuery(username), cancellationToken);
+        var result = await mediator.Send(new GetUserProjectsQuery(id), cancellationToken);
 
         if (!result.Success)
             return NotFound(new { error = result.Error });
@@ -96,13 +96,13 @@ public class AdminUsersController(IMediator mediator) : ControllerBase
         return Ok(result.Projects);
     }
 
-    [HttpPut("{username}/projects/{projectName}")]
+    [HttpPut("{id:long}/projects/{projectName}")]
     [ProducesResponseType(typeof(ProjectAccessDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> SetProjectAccess(string username, string projectName, [FromBody] ProjectAccessRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> SetProjectAccess(long id, string projectName, [FromBody] ProjectAccessRequest request, CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(new SetProjectAccessCommand(username, projectName, request.Role), cancellationToken);
+        var result = await mediator.Send(new SetProjectAccessCommand(id, projectName, request.Role), cancellationToken);
 
         if (!result.Success)
         {
@@ -116,12 +116,12 @@ public class AdminUsersController(IMediator mediator) : ControllerBase
         return Ok(result.ProjectAccess);
     }
 
-    [HttpDelete("{username}/projects/{projectName}")]
+    [HttpDelete("{id:long}/projects/{projectName}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> RemoveProjectAccess(string username, string projectName, CancellationToken cancellationToken)
+    public async Task<IActionResult> RemoveProjectAccess(long id, string projectName, CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(new RemoveProjectAccessCommand(username, projectName), cancellationToken);
+        var result = await mediator.Send(new RemoveProjectAccessCommand(id, projectName), cancellationToken);
 
         if (!result.Success)
             return NotFound(new { error = result.Error });

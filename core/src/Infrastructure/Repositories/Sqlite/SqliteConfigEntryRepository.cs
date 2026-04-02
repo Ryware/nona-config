@@ -159,6 +159,15 @@ public class SqliteConfigEntryRepository : IConfigEntryRepository
         }
     }
 
+    public async Task<int> CountAsync(CancellationToken ct = default)
+    {
+        var connection = await _dbContext.GetConnectionAsync(ct);
+
+        var sql = @"SELECT COUNT(*) FROM ConfigEntries";
+
+        return await connection.QueryFirstAsync<int>(sql);
+    }
+
     // DTO for database mapping
     private class ConfigEntryDto
     {

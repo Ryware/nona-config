@@ -15,15 +15,15 @@ public static class EnumExtensions
 
     public static string ToApiString(this UserRole role) => role switch
     {
-        UserRole.User => "user",
-        UserRole.Admin => "admin",
+        UserRole.Viewer => "viwer",
+        UserRole.Editor => "editor",
         _ => role.ToString().ToLowerInvariant()
     };
 
     public static string ToApiString(this ProjectRole role) => role switch
     {
-        ProjectRole.User => "user",
-        ProjectRole.Admin => "admin",
+        ProjectRole.Viewer => "viewer",
+        ProjectRole.Editor => "editor",
         _ => role.ToString().ToLowerInvariant()
     };
 }

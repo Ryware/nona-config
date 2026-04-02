@@ -9,11 +9,9 @@ public class CreateUserRequestValidator : AbstractValidator<CreateUserRequest>
 
     public CreateUserRequestValidator()
     {
-        RuleFor(x => x.Username)
+        RuleFor(x => x.Name)
             .NotEmpty()
-            .WithMessage("Username is required")
-            .Matches(@"^[a-zA-Z0-9-_]+$")
-            .WithMessage("Username must be alphanumeric with hyphens and underscores only");
+            .WithMessage("Name is required");
 
         RuleFor(x => x.Role)
             .Must(role => role is null || ValidRoles.Contains(role.ToLowerInvariant()))

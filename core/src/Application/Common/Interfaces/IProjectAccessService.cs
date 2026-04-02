@@ -37,6 +37,6 @@ public class ProjectAccessService(
             return false;
 
         var member = await projectMemberRepository.GetAsync(username, projectName, ct);
-        return member?.Role == ProjectRole.Admin;
+        return member?.Role == ProjectRole.Editor;
     }
 }

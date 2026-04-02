@@ -27,7 +27,7 @@ public class InMemoryProjectMemberRepository : IProjectMemberRepository
     public Task<IReadOnlyList<ProjectMember>> ListByProjectAsync(string projectName, CancellationToken ct = default)
     {
         var members = _members.Values
-            .Where(m => m.ProjectName.Equals(projectName, StringComparison.OrdinalIgnoreCase))
+            .Where(m => m.ProjectId.Equals(projectName, StringComparison.OrdinalIgnoreCase))
             .ToList();
         return Task.FromResult<IReadOnlyList<ProjectMember>>(members);
     }
@@ -39,13 +39,13 @@ public class InMemoryProjectMemberRepository : IProjectMemberRepository
 
     public Task AddAsync(ProjectMember member, CancellationToken ct = default)
     {
-        _members.TryAdd(GetKey(member.Username, member.ProjectName), member);
+        _members.TryAdd(GetKey(member.Username, member.ProjectId), member);
         return Task.CompletedTask;
     }
 
     public Task UpdateAsync(ProjectMember member, CancellationToken ct = default)
     {
-        _members[GetKey(member.Username, member.ProjectName)] = member;
+        _members[GetKey(member.Username, member.ProjectId)] = member;
         return Task.CompletedTask;
     }
 

@@ -23,7 +23,8 @@ public class JwtTokenService(IConfiguration configuration) : IJwtTokenService
             [JwtRegisteredClaimNames.Sub] = user.Email,
             [JwtRegisteredClaimNames.Jti] = Guid.NewGuid().ToString(),
             [ClaimTypes.Name] = user.Email,
-            [ClaimTypes.Role] = user.Role.ToString()
+            [ClaimTypes.Role] = user.Role.ToString(),
+            ["isAdmin"] = user.IsAdmin.ToString().ToLowerInvariant()
         };
 
         var tokenDescriptor = new SecurityTokenDescriptor
@@ -32,7 +33,8 @@ public class JwtTokenService(IConfiguration configuration) : IJwtTokenService
             [
                 new Claim(JwtRegisteredClaimNames.Sub, user.Email),
                 new Claim(ClaimTypes.Name, user.Email),
-                new Claim(ClaimTypes.Role, user.Role.ToString())
+                new Claim(ClaimTypes.Role, user.Role.ToString()),
+                new Claim("isAdmin", user.IsAdmin.ToString().ToLowerInvariant())
             ]),
             Expires = DateTime.UtcNow.AddHours(24),
             Issuer = issuer,

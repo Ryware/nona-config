@@ -121,7 +121,7 @@ public class ProjectAccessServiceTests
         currentUserService.IsAdmin.Returns(false);
         currentUserService.Username.Returns(Username);
         projectMemberRepository.GetAsync(Username, ProjectName, Arg.Any<CancellationToken>())
-            .Returns(new ProjectMember { Username = Username, ProjectName = ProjectName, Role = ProjectRole.Admin });
+            .Returns(new ProjectMember { Username = Username, ProjectId = ProjectName, Role = ProjectRole.Editor });
 
         var service = new ProjectAccessService(currentUserService, projectMemberRepository);
 
@@ -142,7 +142,7 @@ public class ProjectAccessServiceTests
         currentUserService.IsAdmin.Returns(false);
         currentUserService.Username.Returns(Username);
         projectMemberRepository.GetAsync(Username, ProjectName, Arg.Any<CancellationToken>())
-            .Returns(new ProjectMember { Username = Username, ProjectName = ProjectName, Role = ProjectRole.User });
+            .Returns(new ProjectMember { Username = Username, ProjectId = ProjectName, Role = ProjectRole.Viewer });
 
         var service = new ProjectAccessService(currentUserService, projectMemberRepository);
 

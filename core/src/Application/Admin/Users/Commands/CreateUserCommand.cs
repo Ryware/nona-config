@@ -1,5 +1,4 @@
 using MediatR;
-using Microsoft.AspNetCore.WebUtilities;
 using Nona.Application.Admin.Common;
 using Nona.Application.Admin.Users.DTOs;
 using Nona.Application.Common;
@@ -7,19 +6,18 @@ using Nona.Application.Common.Interfaces;
 using Nona.Domain.Entities;
 using Nona.Domain.Enums;
 using Nona.Domain.Interfaces;
-using System.Security.Cryptography;
 
 namespace Nona.Application.Admin.Users.Commands;
 
-public record CreateUserRequest(string Username, string Email, string? Role, string? Scope);
-public record CreateUserCommand(string Username, string Email, string? Role, string? Scope) : IRequest<CreateUserResult>;
+public record CreateUserRequest(string Name, string Email, string? Role, string? Scope);
+public record CreateUserCommand(string Name, string Email, string? Role, string? Scope) : IRequest<CreateUserResult>;
 public record CreateUserResult(bool Success, UserDto? User, string? Error);
 
 public class CreateUserCommandHandler(IUserRepository userRepository, IDateTime dateTime) : IRequestHandler<CreateUserCommand, CreateUserResult>
 {
     public async Task<CreateUserResult> Handle(CreateUserCommand request, CancellationToken cancellationToken)
     {
-        if (await userRepository.ExistsAsync(request.Username, cancellationToken))
+        if (await userRepository.ExistsAsync(request.Email, cancellationToken))
             return new CreateUserResult(false, null, "User already exists");
 
 
@@ -39,7 +37,8 @@ public class CreateUserCommandHandler(IUserRepository userRepository, IDateTime 
         {
             Email = request.Email,
             PasswordResetToken = TokenHelper.Hash(resetPasswordToken),
-            Role = role ?? UserRole.User,
+            Name = request.Name,
+            Role = role ?? UserRole.Viewer,
             Scope = scope ?? KeyScope.All,
             CreatedAt = now,
             UpdatedAt = now
@@ -48,9 +47,12 @@ public class CreateUserCommandHandler(IUserRepository userRepository, IDateTime 
         await userRepository.AddAsync(user, cancellationToken);
 
         var dto = new UserDto(
+            user.Id,
             user.Email,
+            user.Name,
             user.Role.ToApiString(),
             user.Scope.ToApiString(),
+            user.IsAdmin,
             [],
             user.CreatedAt,
             user.UpdatedAt,
@@ -66,8 +68,8 @@ public class CreateUserCommandHandler(IUserRepository userRepository, IDateTime 
 
         return role.ToLowerInvariant() switch
         {
-            "user" => UserRole.User,
-            "admin" => UserRole.Admin,
+            "viewer" => UserRole.Viewer,
+            "editor" => UserRole.Editor,
             _ => null
         };
     }

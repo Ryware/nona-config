@@ -29,7 +29,9 @@ internal class RegisterCommandHandler(IMediator mediator, IUserRepository userRe
         await userRepository.AddAsync(new User
         {
             Email = request.Email,
-            Role = UserRole.Admin,
+            Name = request.Email,
+            IsAdmin = true,
+            Role = UserRole.Viewer,
             Scope = KeyScope.All,
             PasswordHash = hash,
             PasswordSalt = salt,

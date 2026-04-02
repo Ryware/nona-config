@@ -8,6 +8,7 @@ namespace Nona.Infrastructure.Repositories.InMemory;
 public class InMemoryProjectRepository : IProjectRepository
 {
     private readonly ConcurrentDictionary<string, Project> _projects = new(StringComparer.OrdinalIgnoreCase);
+    private long _nextId = 1;
 
     public Task<Project?> GetByNameAsync(string name, CancellationToken ct = default)
     {
@@ -42,6 +43,8 @@ public class InMemoryProjectRepository : IProjectRepository
 
     public Task AddAsync(Project project, CancellationToken ct = default)
     {
+        if (project.Id == 0)
+            project.Id = Interlocked.Increment(ref _nextId);
         _projects.TryAdd(project.Name, project);
         return Task.CompletedTask;
     }
@@ -56,5 +59,10 @@ public class InMemoryProjectRepository : IProjectRepository
     {
         _projects.TryRemove(name, out _);
         return Task.CompletedTask;
+    }
+
+    public Task<int> CountAsync(CancellationToken ct = default)
+    {
+        return Task.FromResult(_projects.Count);
     }
 }

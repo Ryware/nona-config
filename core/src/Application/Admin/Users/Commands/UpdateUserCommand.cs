@@ -8,21 +8,21 @@ using Nona.Domain.Interfaces;
 
 namespace Nona.Application.Admin.Users.Commands;
 
-public record UpdateUserRequest(string? Role, string? Scope);
-public record UpdateUserCommand(string Username, string? Role, string? Scope) : IRequest<UpdateUserResult>;
+public record UpdateUserRequest(string Name, string? Role, string? Scope);
+public record UpdateUserCommand(long Id, string Name, string? Role, string? Scope) : IRequest<UpdateUserResult>;
 public record UpdateUserResult(bool Success, UserDto? User, string? Error);
 
 public class UpdateUserCommandHandler(IUserRepository userRepository, IProjectMemberRepository projectMemberRepository, IDateTime dateTime) : IRequestHandler<UpdateUserCommand, UpdateUserResult>
 {
     public async Task<UpdateUserResult> Handle(UpdateUserCommand request, CancellationToken cancellationToken)
     {
-        var user = await userRepository.GetAsync(request.Username, cancellationToken);
+        var user = await userRepository.GetByIdAsync(request.Id, cancellationToken);
         if (user is null)
             return new UpdateUserResult(false, null, "User not found");
 
         var role = ParseRole(request.Role);
         if (role is null && request.Role is not null)
-            return new UpdateUserResult(false, null, "Invalid role. Must be 'user' or 'admin'");
+            return new UpdateUserResult(false, null, "Invalid role. Must be 'viewer' or 'editor'");
 
         var scope = ParseScope(request.Scope);
         if (scope is null && request.Scope is not null)
@@ -32,6 +32,9 @@ public class UpdateUserCommandHandler(IUserRepository userRepository, IProjectMe
         if (role is not null)
             user.Role = role.Value;
 
+        if (request.Name != user.Name && request.Name is not null)
+            user.Name = request.Name;
+
         if (scope is not null)
             user.Scope = scope.Value;
 
@@ -40,12 +43,15 @@ public class UpdateUserCommandHandler(IUserRepository userRepository, IProjectMe
         await userRepository.UpdateAsync(user, cancellationToken);
 
         var members = await projectMemberRepository.ListByUserAsync(user.Email, cancellationToken);
-        var projects = members.Select(m => new ProjectAccessDto(m.ProjectName, m.Role.ToApiString())).ToList();
+        var projects = members.Select(m => new ProjectAccessDto(m.ProjectId, m.Role.ToApiString())).ToList();
 
         var dto = new UserDto(
+            user.Id,
             user.Email,
+            user.Name,
             user.Role.ToApiString(),
             user.Scope.ToApiString(),
+            user.IsAdmin,
             projects,
             user.CreatedAt,
             user.UpdatedAt);
@@ -60,8 +66,8 @@ public class UpdateUserCommandHandler(IUserRepository userRepository, IProjectMe
 
         return role.ToLowerInvariant() switch
         {
-            "user" => UserRole.User,
-            "admin" => UserRole.Admin,
+            "viewer" => UserRole.Viewer,
+            "editor" => UserRole.Editor,
             _ => null
         };
     }
@@ -78,14 +84,5 @@ public class UpdateUserCommandHandler(IUserRepository userRepository, IProjectMe
             "all" => KeyScope.All,
             _ => null
         };
-    }
-
-    private static (string hash, string salt) HashPassword(string password)
-    {
-        var salt = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
-        var hash = Convert.ToBase64String(
-            System.Security.Cryptography.SHA256.HashData(
-                System.Text.Encoding.UTF8.GetBytes(password + salt)));
-        return (hash, salt);
     }
 }

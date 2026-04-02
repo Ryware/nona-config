@@ -55,7 +55,7 @@ public class ListProjectsQueryTests
 
         var userProjects = new List<ProjectMember>
         {
-            new() { Username = username, ProjectName = assignedProjectName, Role = ProjectRole.Admin }
+            new() { Username = username, ProjectId = assignedProjectName, Role = ProjectRole.Editor }
         };
         fixture.ProjectMemberRepository.ListByUserAsync(username, Arg.Any<CancellationToken>()).Returns(userProjects);
 
@@ -93,7 +93,7 @@ public class ListProjectsQueryTests
 
         var userProjects = new List<ProjectMember>
         {
-            new() { Username = username, ProjectName = assignedProjectName, Role = ProjectRole.User }
+            new() { Username = username, ProjectId = assignedProjectName, Role = ProjectRole.Viewer }
         };
         fixture.ProjectMemberRepository.ListByUserAsync(username, Arg.Any<CancellationToken>()).Returns(userProjects);
 
@@ -131,8 +131,8 @@ public class ListProjectsQueryTests
 
         var userProjects = new List<ProjectMember>
         {
-            new() { Username = username, ProjectName = "project1", Role = ProjectRole.Admin },
-            new() { Username = username, ProjectName = "project3", Role = ProjectRole.User }
+            new() { Username = username, ProjectId = "project1", Role = ProjectRole.Editor },
+            new() { Username = username, ProjectId = "project3", Role = ProjectRole.Viewer }
         };
         fixture.ProjectMemberRepository.ListByUserAsync(username, Arg.Any<CancellationToken>()).Returns(userProjects);
 

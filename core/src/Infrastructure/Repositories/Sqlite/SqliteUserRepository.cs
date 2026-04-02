@@ -19,7 +19,7 @@ public class SqliteUserRepository : IUserRepository
         var connection = await _dbContext.GetConnectionAsync(ct);
 
         var sql = @"
-            SELECT Email, PasswordHash, PasswordSalt, Role, Scope, CreatedAt, UpdatedAt, PasswordResetToken
+            SELECT rowid AS Id, Email, Name, PasswordHash, PasswordSalt, Role, Scope, IsAdmin, CreatedAt, UpdatedAt, PasswordResetToken
             FROM Users
             WHERE Email = @Email COLLATE NOCASE
             LIMIT 1";
@@ -34,13 +34,28 @@ public class SqliteUserRepository : IUserRepository
         var connection = await _dbContext.GetConnectionAsync(ct);
 
         var sql = @"
-            SELECT Email, PasswordHash, PasswordSalt, Role, Scope, CreatedAt, UpdatedAt, PasswordResetToken
+            SELECT rowid AS Id, Email, Name, PasswordHash, PasswordSalt, Role, Scope, IsAdmin, CreatedAt, UpdatedAt, PasswordResetToken
             FROM Users
             ORDER BY Email";
 
         var results = await connection.QueryAsync<UserDto>(sql);
 
         return results.Select(dto => dto.ToEntity()).ToList();
+    }
+
+    public async Task<User?> GetByIdAsync(long id, CancellationToken ct = default)
+    {
+        var connection = await _dbContext.GetConnectionAsync(ct);
+
+        var sql = @"
+            SELECT rowid AS Id, Email, Name, PasswordHash, PasswordSalt, Role, Scope, IsAdmin, CreatedAt, UpdatedAt, PasswordResetToken
+            FROM Users
+            WHERE rowid = @Id
+            LIMIT 1";
+
+        var result = await connection.QueryFirstOrDefaultAsync<UserDto>(sql, new { Id = id });
+
+        return result?.ToEntity();
     }
 
     public async Task<bool> ExistsAsync(string email, CancellationToken ct = default)
@@ -73,10 +88,13 @@ public class SqliteUserRepository : IUserRepository
         var connection = await _dbContext.GetConnectionAsync(ct);
 
         var sql = @"
-            INSERT INTO Users (Email, PasswordHash, PasswordSalt, Role, Scope, CreatedAt, UpdatedAt, PasswordResetToken)
-            VALUES (@Email, @PasswordHash, @PasswordSalt, @Role, @Scope, @CreatedAt, @UpdatedAt, @PasswordResetToken)";
+            INSERT INTO Users (Email, Name, PasswordHash, PasswordSalt, Role, Scope, IsAdmin, CreatedAt, UpdatedAt, PasswordResetToken)
+            VALUES (@Email, @Name, @PasswordHash, @PasswordSalt, @Role, @Scope, @IsAdmin, @CreatedAt, @UpdatedAt, @PasswordResetToken)";
 
         await connection.ExecuteAsync(sql, UserDto.FromEntity(user));
+
+        var id = await connection.ExecuteScalarAsync<long>("SELECT last_insert_rowid();");
+        user.Id = id;
     }
 
     public async Task UpdateAsync(User user, CancellationToken ct = default)
@@ -87,8 +105,10 @@ public class SqliteUserRepository : IUserRepository
             UPDATE Users
             SET PasswordHash = @PasswordHash,
                 PasswordSalt = @PasswordSalt,
+                Name = @Name,
                 Role = @Role,
                 Scope = @Scope,
+                IsAdmin = @IsAdmin,
                 UpdatedAt = @UpdatedAt,
                 PasswordResetToken = @PasswordResetToken
             WHERE Email = @Email COLLATE NOCASE";
@@ -109,13 +129,25 @@ public class SqliteUserRepository : IUserRepository
         return rowsAffected > 0;
     }
 
+    public async Task<int> CountAsync(CancellationToken ct = default)
+    {
+        var connection = await _dbContext.GetConnectionAsync(ct);
+
+        var sql = @"SELECT COUNT(*) FROM Users";
+
+        return await connection.QueryFirstAsync<int>(sql);
+    }
+
     private class UserDto
     {
+        public long Id { get; set; }
         public string Email { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
         public string? PasswordHash { get; set; }
         public string? PasswordSalt { get; set; }
         public int Role { get; set; }
         public int Scope { get; set; }
+        public bool IsAdmin { get; set; }
         public string CreatedAt { get; set; } = string.Empty;
         public string UpdatedAt { get; set; } = string.Empty;
         public string? PasswordResetToken { get; set; }
@@ -124,11 +156,14 @@ public class SqliteUserRepository : IUserRepository
         {
             return new User
             {
+                Id = Id,
                 Email = Email,
+                Name = Name,
                 PasswordHash = PasswordHash,
                 PasswordSalt = PasswordSalt,
                 Role = (UserRole)Role,
                 Scope = (KeyScope)Scope,
+                IsAdmin = IsAdmin,
                 CreatedAt = DateTime.Parse(CreatedAt),
                 UpdatedAt = DateTime.Parse(UpdatedAt),
                 PasswordResetToken = PasswordResetToken
@@ -139,11 +174,14 @@ public class SqliteUserRepository : IUserRepository
         {
             return new UserDto
             {
+                Id = user.Id,
                 Email = user.Email,
+                Name = user.Name,
                 PasswordHash = user.PasswordHash,
                 PasswordSalt = user.PasswordSalt,
                 Role = (int)user.Role,
                 Scope = (int)user.Scope,
+                IsAdmin = user.IsAdmin,
                 CreatedAt = user.CreatedAt.ToString("O"),
                 UpdatedAt = user.UpdatedAt.ToString("O"),
                 PasswordResetToken = user.PasswordResetToken

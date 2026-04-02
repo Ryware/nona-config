@@ -15,11 +15,12 @@ public interface IProjectRepository
 
     Task<bool> ExistsAsync(string name, CancellationToken ct = default);
 
-
     Task AddAsync(Project project, CancellationToken ct = default);
 
     Task UpdateAsync(Project project, CancellationToken ct = default);
 
-
     Task DeleteAsync(string name, CancellationToken ct = default);
+
+    Task<int> CountAsync(CancellationToken ct = default);
+
 }

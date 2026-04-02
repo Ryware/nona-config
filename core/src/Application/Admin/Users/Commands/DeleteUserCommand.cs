@@ -3,7 +3,7 @@ using Nona.Domain.Interfaces;
 
 namespace Nona.Application.Admin.Users.Commands;
 
-public record DeleteUserCommand(string Username) : IRequest<DeleteUserResult>;
+public record DeleteUserCommand(long Id) : IRequest<DeleteUserResult>;
 
 public record DeleteUserResult(bool Success, string? Error);
 
@@ -11,11 +11,12 @@ public class DeleteUserCommandHandler(IUserRepository userRepository, IProjectMe
 {
     public async Task<DeleteUserResult> Handle(DeleteUserCommand request, CancellationToken cancellationToken)
     {
-        if (!await userRepository.ExistsAsync(request.Username, cancellationToken))
+        var user = await userRepository.GetByIdAsync(request.Id, cancellationToken);
+        if (user is null)
             return new DeleteUserResult(false, "User not found");
 
-        await projectMemberRepository.DeleteByUserAsync(request.Username, cancellationToken);
-        await userRepository.DeleteAsync(request.Username, cancellationToken);
+        await projectMemberRepository.DeleteByUserAsync(user.Email, cancellationToken);
+        await userRepository.DeleteAsync(user.Email, cancellationToken);
 
         return new DeleteUserResult(true, null);
     }

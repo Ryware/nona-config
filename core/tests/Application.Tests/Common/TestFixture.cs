@@ -37,7 +37,7 @@ public class TestFixture
         ProjectAccessService.HasAdminAccessAsync(projectName, Arg.Any<CancellationToken>()).Returns(true);
         ProjectMemberRepository.ExistsAsync(username, projectName, Arg.Any<CancellationToken>()).Returns(true);
         ProjectMemberRepository.GetAsync(username, projectName, Arg.Any<CancellationToken>())
-            .Returns(new ProjectMember { Username = username, ProjectName = projectName, Role = ProjectRole.Admin });
+            .Returns(new ProjectMember { Username = username, ProjectId = projectName, Role = ProjectRole.Editor });
     }
 
     public void SetupAsProjectUser(string username, string projectName)
@@ -48,7 +48,7 @@ public class TestFixture
         ProjectAccessService.HasAdminAccessAsync(projectName, Arg.Any<CancellationToken>()).Returns(false);
         ProjectMemberRepository.ExistsAsync(username, projectName, Arg.Any<CancellationToken>()).Returns(true);
         ProjectMemberRepository.GetAsync(username, projectName, Arg.Any<CancellationToken>())
-            .Returns(new ProjectMember { Username = username, ProjectName = projectName, Role = ProjectRole.User });
+            .Returns(new ProjectMember { Username = username, ProjectId = projectName, Role = ProjectRole.Viewer });
     }
 
     public void SetupAsUserWithNoProjectAccess(string username, string projectName)

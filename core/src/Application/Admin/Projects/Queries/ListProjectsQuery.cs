@@ -20,7 +20,9 @@ public class ListProjectsQueryHandler(
         if (currentUserService.IsAdmin)
         {
             return projects.Select(p => new ProjectDto(
+                p.Id,
                 p.Name,
+                p.UrlSlug,
                 p.ServerApiKey,
                 p.ClientApiKey,
                 p.Environments,
@@ -31,15 +33,17 @@ public class ListProjectsQueryHandler(
         // Non-admin users only see projects they have access to
         var username = currentUserService.Username;
         if (string.IsNullOrEmpty(username))
-            return [];
+            return Array.Empty<ProjectDto>();
 
         var userProjects = await projectMemberRepository.ListByUserAsync(username, cancellationToken);
-        var accessibleProjectNames = userProjects.Select(m => m.ProjectName).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var accessibleProjectNames = userProjects.Select(m => m.ProjectId).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         return projects
             .Where(p => accessibleProjectNames.Contains(p.Name))
             .Select(p => new ProjectDto(
+                p.Id,
                 p.Name,
+                p.UrlSlug,
                 p.ServerApiKey,
                 p.ClientApiKey,
                 p.Environments,

@@ -8,5 +8,5 @@ public class CurrentUserService(IHttpContextAccessor httpContextAccessor) : ICur
 {
     public string? Username => httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.Name);
 
-    public bool IsAdmin => httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.Role) == UserRole.Admin.ToString();
+    public bool IsAdmin => httpContextAccessor.HttpContext?.User?.FindFirstValue("isAdmin") == "true";
 }

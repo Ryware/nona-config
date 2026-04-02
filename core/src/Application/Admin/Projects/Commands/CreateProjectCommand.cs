@@ -28,9 +28,26 @@ public class CreateProjectCommandHandler(
 
 
         var now = dateTime.NowUtc;
+
+        // Generate a URL-friendly slug and ensure it's unique within this database/zone.
+        var baseSlug = GenerateSlug(request.Name);
+        var finalSlug = baseSlug;
+        if (!string.IsNullOrEmpty(baseSlug))
+        {
+            var existing = await projectRepository.ListAsync(cancellationToken);
+            var used = existing.Select(p => p.UrlSlug).Where(s => !string.IsNullOrEmpty(s)).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var attempt = 2;
+            while (used.Contains(finalSlug))
+            {
+                finalSlug = $"{baseSlug}-{attempt}";
+                attempt++;
+            }
+        }
+
         var project = new Project
         {
             Name = request.Name,
+            UrlSlug = finalSlug,
             ServerApiKey = GenerateApiKey(),
             ClientApiKey = GenerateApiKey(),
             CreatedAt = now,
@@ -40,7 +57,9 @@ public class CreateProjectCommandHandler(
         await projectRepository.AddAsync(project, cancellationToken);
 
         var dto = new ProjectDto(
+            project.Id,
             project.Name,
+            project.UrlSlug,
             project.ServerApiKey,
             project.ClientApiKey,
             project.Environments,
@@ -53,5 +72,24 @@ public class CreateProjectCommandHandler(
     private static string GenerateApiKey()
     {
         return Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
+    }
+
+    private static string GenerateSlug(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return string.Empty;
+
+        var slug = name.Trim().ToLowerInvariant();
+        // replace spaces and invalid chars with hyphens
+        var sb = new System.Text.StringBuilder();
+        foreach (var c in slug)
+        {
+            if (char.IsLetterOrDigit(c)) sb.Append(c);
+            else if (char.IsWhiteSpace(c) || c == '-' || c == '_') sb.Append('-');
+        }
+
+        // collapse multiple hyphens
+        var result = System.Text.RegularExpressions.Regex.Replace(sb.ToString(), "-+", "-").Trim('-');
+        return result;
     }
 }

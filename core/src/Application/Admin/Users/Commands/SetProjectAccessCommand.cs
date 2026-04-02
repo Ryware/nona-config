@@ -7,7 +7,7 @@ using Nona.Domain.Interfaces;
 namespace Nona.Application.Admin.Users.Commands;
 
 public record ProjectAccessRequest(string Role);
-public record SetProjectAccessCommand(string Username, string ProjectName, string Role) : IRequest<SetProjectAccessResult>;
+public record SetProjectAccessCommand(long UserId, string ProjectId, string Role) : IRequest<SetProjectAccessResult>;
 public record SetProjectAccessResult(bool Success, ProjectAccessDto? ProjectAccess, string? Error);
 
 public class SetProjectAccessCommandHandler(
@@ -17,39 +17,35 @@ public class SetProjectAccessCommandHandler(
 {
     public async Task<SetProjectAccessResult> Handle(SetProjectAccessCommand request, CancellationToken cancellationToken)
     {
-        var user = await userRepository.GetAsync(request.Username, cancellationToken);
+        var user = await userRepository.GetByIdAsync(request.UserId, cancellationToken);
         if (user is null)
             return new SetProjectAccessResult(false, null, "User not found");
 
-        if (user.Role == UserRole.Admin)
-            return new SetProjectAccessResult(false, null, "Cannot assign project access to admin users. Admin users have full access to all projects.");
-
-        if (!await projectRepository.ExistsAsync(request.ProjectName, cancellationToken))
+        if (!await projectRepository.ExistsAsync(request.ProjectId, cancellationToken))
             return new SetProjectAccessResult(false, null, "Project not found");
 
         var role = ParseProjectRole(request.Role);
         if (role is null)
-            return new SetProjectAccessResult(false, null, "Invalid role. Must be 'viewer' or 'admin'");
+            return new SetProjectAccessResult(false, null, "Invalid role. Must be 'viewer' or 'editor'");
 
-        var existingMember = await projectMemberRepository.GetAsync(request.Username, request.ProjectName, cancellationToken);
+        var existingMember = await projectMemberRepository.GetAsync(user.Email, request.ProjectId, cancellationToken);
 
         if (existingMember is not null)
         {
-            // Update existing - need to create new since ProjectMember has init-only Role
-            await projectMemberRepository.DeleteAsync(request.Username, request.ProjectName, cancellationToken);
+            await projectMemberRepository.DeleteAsync(user.Email, request.ProjectId, cancellationToken);
         }
 
         var member = new ProjectMember
         {
-            Username = request.Username,
-            ProjectName = request.ProjectName,
+            Username = user.Email,
+            ProjectId = request.ProjectId,
             Role = role.Value,
             CreatedAt = DateTime.UtcNow
         };
 
         await projectMemberRepository.AddAsync(member, cancellationToken);
 
-        var dto = new ProjectAccessDto(member.ProjectName, member.Role.ToApiString());
+        var dto = new ProjectAccessDto(member.ProjectId, member.Role.ToApiString());
         return new SetProjectAccessResult(true, dto, null);
     }
 
@@ -60,8 +56,8 @@ public class SetProjectAccessCommandHandler(
 
         return role.ToLowerInvariant() switch
         {
-            "viewer" => ProjectRole.User,
-            "admin" => ProjectRole.Admin,
+            "viewer" => ProjectRole.Viewer,
+            "editor" => ProjectRole.Editor,
             _ => null
         };
     }

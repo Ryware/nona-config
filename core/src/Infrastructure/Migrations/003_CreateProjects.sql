@@ -1,5 +1,6 @@
 CREATE TABLE IF NOT EXISTS Projects (
-    Name TEXT NOT NULL PRIMARY KEY COLLATE NOCASE,
+    Name TEXT NOT NULL COLLATE NOCASE,
+    UrlSlug TEXT,
     ServerApiKey TEXT,
     ClientApiKey TEXT,
     CreatedAt TEXT NOT NULL,
