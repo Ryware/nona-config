@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.Extensions.Configuration;
 using Nona.Application.Admin.Projects.DTOs;
 using Nona.Application.Common.Interfaces;
 using Nona.Domain.Entities;
@@ -15,6 +16,8 @@ public record CreateProjectResult(bool Success, ProjectDto? Project, string? Err
 public class CreateProjectCommandHandler(
     IProjectRepository projectRepository,
     ICurrentUserService currentUserService,
+    IEnvironmentRepository environmentRepository,
+    IConfiguration configuration,
     IDateTime dateTime) : IRequestHandler<CreateProjectCommand, CreateProjectResult>
 {
     public async Task<CreateProjectResult> Handle(CreateProjectCommand request, CancellationToken cancellationToken)
@@ -55,6 +58,18 @@ public class CreateProjectCommandHandler(
         };
 
         await projectRepository.AddAsync(project, cancellationToken);
+
+        var defaultEnvironments = configuration.GetSection("Defaults:Environment").Get<string[]>() ?? [];
+        foreach (var env in defaultEnvironments)
+        {
+            await environmentRepository.AddAsync(new ProjectEnvironment
+            {
+                Name = env,
+                Project = project.Name,
+                CreatedAt = now,
+                UpdatedAt = now
+            }, cancellationToken);
+        }
 
         var dto = new ProjectDto(
             project.Id,

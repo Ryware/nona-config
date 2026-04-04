@@ -23,7 +23,7 @@ public class CreateUserCommandHandler(IUserRepository userRepository, IDateTime 
 
         var role = ParseRole(request.Role);
         if (role is null && request.Role is not null)
-            return new CreateUserResult(false, null, "Invalid role. Must be 'user' or 'admin'");
+            return new CreateUserResult(false, null, "Invalid role. Must be 'viewer' or 'editor'");
 
 
         var scope = ParseScope(request.Scope);

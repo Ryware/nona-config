@@ -6,7 +6,7 @@ using Nona.Domain.Interfaces;
 
 namespace Nona.Application.Admin.ConfigEntries.Queries;
 
-public record GetConfigEntryQuery(string ProjectId, string EnvironmentId, string Key) : IRequest<GetConfigEntryResult>;
+public record GetConfigEntryQuery(string ProjectId, string EnvironmentName, string Key) : IRequest<GetConfigEntryResult>;
 
 public record GetConfigEntryResult(bool Success, ConfigEntryDto? ConfigEntry, string? Error);
 
@@ -25,10 +25,10 @@ public class GetConfigEntryQueryHandler(
         if (!await projectAccessService.HasAccessAsync(request.ProjectId, cancellationToken))
             return new GetConfigEntryResult(false, null, "Access denied");
 
-        if (!await environmentRepository.ExistsAsync(request.ProjectId, request.EnvironmentId, cancellationToken))
+        if (!await environmentRepository.ExistsAsync(request.ProjectId, request.EnvironmentName, cancellationToken))
             return new GetConfigEntryResult(false, null, "Environment not found");
 
-        var configEntry = await configEntryRepository.GetAsync(request.ProjectId, request.EnvironmentId, request.Key, cancellationToken);
+        var configEntry = await configEntryRepository.GetAsync(request.ProjectId, request.EnvironmentName, request.Key, cancellationToken);
         if (configEntry is null)
             return new GetConfigEntryResult(false, null, "Config entry not found");
 

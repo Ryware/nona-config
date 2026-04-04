@@ -9,7 +9,7 @@ using Nona.Domain.Interfaces;
 namespace Nona.Application.Admin.ConfigEntries.Commands;
 
 public record UpsertConfigEntryRequest(string Value, string? ContentType, string? Scope);
-public record UpsertConfigEntryCommand(string ProjectId, string EnvironmentId, string Key, string Value, string? ContentType, string? Scope) : IRequest<UpsertConfigEntryResult>;
+public record UpsertConfigEntryCommand(string ProjectId, string EnvironmentName, string Key, string Value, string? ContentType, string? Scope) : IRequest<UpsertConfigEntryResult>;
 
 public record UpsertConfigEntryResult(bool Success, ConfigEntryDto? ConfigEntry, string? Error);
 
@@ -29,7 +29,7 @@ public class UpsertConfigEntryCommandHandler(
         if (!await projectAccessService.HasAccessAsync(request.ProjectId, cancellationToken))
             return new UpsertConfigEntryResult(false, null, "Access denied");
 
-        if (!await environmentRepository.ExistsAsync(request.ProjectId, request.EnvironmentId, cancellationToken))
+        if (!await environmentRepository.ExistsAsync(request.ProjectId, request.EnvironmentName, cancellationToken))
             return new UpsertConfigEntryResult(false, null, "Environment not found");
 
         var scope = ParseScope(request.Scope);
@@ -37,7 +37,7 @@ public class UpsertConfigEntryCommandHandler(
             return new UpsertConfigEntryResult(false, null, "Invalid scope. Must be 'client', 'server', or 'all'");
 
         var now = dateTime.NowUtc;
-        var existingEntry = await configEntryRepository.GetAsync(request.ProjectId, request.EnvironmentId, request.Key, cancellationToken);
+        var existingEntry = await configEntryRepository.GetAsync(request.ProjectId, request.EnvironmentName, request.Key, cancellationToken);
 
         ConfigEntry entry;
         if (existingEntry is not null)
@@ -54,7 +54,7 @@ public class UpsertConfigEntryCommandHandler(
             entry = new ConfigEntry
             {
                 Project = request.ProjectId,
-                Environment = request.EnvironmentId,
+                Environment = request.EnvironmentName,
                 Key = request.Key,
                 Value = request.Value,
                 ContentType = request.ContentType ?? "string",

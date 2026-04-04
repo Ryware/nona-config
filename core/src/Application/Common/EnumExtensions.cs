@@ -15,7 +15,7 @@ public static class EnumExtensions
 
     public static string ToApiString(this UserRole role) => role switch
     {
-        UserRole.Viewer => "viwer",
+        UserRole.Viewer => "viewer",
         UserRole.Editor => "editor",
         _ => role.ToString().ToLowerInvariant()
     };
