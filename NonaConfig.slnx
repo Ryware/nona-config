@@ -3,9 +3,12 @@
     <Project Path="core/src/Application/Application.csproj" />
     <Project Path="core/src/Domain/Domain.csproj" />
     <Project Path="core/src/Infrastructure/Infrastructure.csproj" />
+    <Project Path="core/src/Libsql/Libsql.csproj" />
     <Project Path="core/src/WebApi/WebApi.csproj" />
   </Folder>
   <Folder Name="/core/tests/">
     <Project Path="core/tests/Application.Tests/Application.Tests.csproj" />
+    <Project Path="core/tests/Libsql.Tests/Libsql.Tests.csproj" />
+    <Project Path="core/tests/Infrastructure.Tests/Infrastructure.Tests.csproj" />
   </Folder>
 </Solution>

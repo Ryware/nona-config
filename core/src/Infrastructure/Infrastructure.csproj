@@ -10,13 +10,15 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\Application\Application.csproj" />
+		<ProjectReference Include="..\Libsql\Libsql.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
 		<PackageReference Include="Dapper" Version="2.1.35" />
+		<PackageReference Include="Microsoft.Extensions.Http" Version="10.0.0" />
 		<PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.0" />
-		<PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" Version="8.7.0" />
+		<PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" Version="8.14.0" />
 	</ItemGroup>
 
 	<ItemGroup>

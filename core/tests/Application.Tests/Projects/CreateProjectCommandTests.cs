@@ -19,6 +19,8 @@ public class CreateProjectCommandTests
         var handler = new CreateProjectCommandHandler(
             fixture.ProjectRepository,
             fixture.CurrentUserService,
+            fixture.EnvironmentRepository,
+            fixture.Configuration,
             fixture.DateTime);
 
         var command = new CreateProjectCommand(ProjectName);
@@ -43,6 +45,8 @@ public class CreateProjectCommandTests
         var handler = new CreateProjectCommandHandler(
             fixture.ProjectRepository,
             fixture.CurrentUserService,
+            fixture.EnvironmentRepository,
+            fixture.Configuration,
             fixture.DateTime);
 
         var command = new CreateProjectCommand(ProjectName);
@@ -68,6 +72,8 @@ public class CreateProjectCommandTests
         var handler = new CreateProjectCommandHandler(
             fixture.ProjectRepository,
             fixture.CurrentUserService,
+            fixture.EnvironmentRepository,
+            fixture.Configuration,
             fixture.DateTime);
 
         var command = new CreateProjectCommand(ProjectName);
@@ -91,6 +97,8 @@ public class CreateProjectCommandTests
         var handler = new CreateProjectCommandHandler(
             fixture.ProjectRepository,
             fixture.CurrentUserService,
+            fixture.EnvironmentRepository,
+            fixture.Configuration,
             fixture.DateTime);
 
         var command = new CreateProjectCommand(ProjectName);

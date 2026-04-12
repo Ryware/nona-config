@@ -1,0 +1,11 @@
+**/bin/
+**/obj/
+.git
+.github
+.idea
+.vs
+TestResults
+manual-e2e-artifacts
+manual-backend.log
+manual-backend.err.log
+core/tests

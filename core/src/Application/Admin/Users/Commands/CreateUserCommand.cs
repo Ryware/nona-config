@@ -13,7 +13,10 @@ public record CreateUserRequest(string Name, string Email, string? Role, string?
 public record CreateUserCommand(string Name, string Email, string? Role, string? Scope) : IRequest<CreateUserResult>;
 public record CreateUserResult(bool Success, UserDto? User, string? Error);
 
-public class CreateUserCommandHandler(IUserRepository userRepository, IDateTime dateTime) : IRequestHandler<CreateUserCommand, CreateUserResult>
+public class CreateUserCommandHandler(
+    IUserRepository userRepository,
+    IDateTime dateTime,
+    IAuditLogService? auditLogService = null) : IRequestHandler<CreateUserCommand, CreateUserResult>
 {
     public async Task<CreateUserResult> Handle(CreateUserCommand request, CancellationToken cancellationToken)
     {
@@ -45,6 +48,14 @@ public class CreateUserCommandHandler(IUserRepository userRepository, IDateTime 
         };
 
         await userRepository.AddAsync(user, cancellationToken);
+
+        if (auditLogService is not null)
+        {
+            await auditLogService.WriteAsync(
+                "Invited User",
+                user.Email,
+                cancellationToken: cancellationToken);
+        }
 
         var dto = new UserDto(
             user.Id,

@@ -15,7 +15,8 @@ public class DeleteProjectCommandHandler(
     IEnvironmentRepository environmentRepository,
     IConfigEntryRepository configEntryRepository,
     IProjectMemberRepository projectMemberRepository,
-    ICurrentUserService currentUserService)
+    ICurrentUserService currentUserService,
+    IAuditLogService? auditLogService = null)
     : IRequestHandler<DeleteProjectCommand, DeleteProjectResult>
 {
     public async Task<DeleteProjectResult> Handle(DeleteProjectCommand request, CancellationToken cancellationToken)
@@ -37,6 +38,15 @@ public class DeleteProjectCommandHandler(
         await projectMemberRepository.DeleteByProjectAsync(projectName, cancellationToken);
 
         await projectRepository.DeleteAsync(projectName, cancellationToken);
+
+        if (auditLogService is not null)
+        {
+            await auditLogService.WriteAsync(
+                "Deleted Project",
+                projectName,
+                project: projectName,
+                cancellationToken: cancellationToken);
+        }
 
         return new DeleteProjectResult(true, null);
     }

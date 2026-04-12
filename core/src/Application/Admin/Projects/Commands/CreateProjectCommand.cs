@@ -18,7 +18,8 @@ public class CreateProjectCommandHandler(
     ICurrentUserService currentUserService,
     IEnvironmentRepository environmentRepository,
     IConfiguration configuration,
-    IDateTime dateTime) : IRequestHandler<CreateProjectCommand, CreateProjectResult>
+    IDateTime dateTime,
+    IAuditLogService? auditLogService = null) : IRequestHandler<CreateProjectCommand, CreateProjectResult>
 {
     public async Task<CreateProjectResult> Handle(CreateProjectCommand request, CancellationToken cancellationToken)
     {
@@ -69,6 +70,15 @@ public class CreateProjectCommandHandler(
                 CreatedAt = now,
                 UpdatedAt = now
             }, cancellationToken);
+        }
+
+        if (auditLogService is not null)
+        {
+            await auditLogService.WriteAsync(
+                "Created Project",
+                project.Name,
+                project: project.Name,
+                cancellationToken: cancellationToken);
         }
 
         var dto = new ProjectDto(
