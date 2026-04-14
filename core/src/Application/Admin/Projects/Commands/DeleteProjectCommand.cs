@@ -1,8 +1,7 @@
 using MediatR;
 using Nona.Application.Common.Interfaces;
-using Nona.Domain.Interfaces;
 using Nona.Domain.Entities;
-using System.Linq;
+using Nona.Domain.Interfaces;
 
 namespace Nona.Application.Admin.Projects.Commands;
 

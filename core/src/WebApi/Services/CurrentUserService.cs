@@ -1,5 +1,4 @@
 using Nona.Application.Common.Interfaces;
-using Nona.Domain.Entities;
 using System.Security.Claims;
 
 namespace Nona.WebApi.Services;

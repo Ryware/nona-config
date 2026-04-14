@@ -135,9 +135,9 @@ public class SqliteProjectRepository : IProjectRepository
 
     private class ProjectDto
     {
-            public long Id { get; set; }
+        public long Id { get; set; }
         public string Name { get; set; } = string.Empty;
-            public string? UrlSlug { get; set; }
+        public string? UrlSlug { get; set; }
         public string? ServerApiKey { get; set; }
         public string? ClientApiKey { get; set; }
         public string CreatedAt { get; set; } = string.Empty;
@@ -147,9 +147,9 @@ public class SqliteProjectRepository : IProjectRepository
         {
             return new Project
             {
-                    Id = Id,
+                Id = Id,
                 Name = Name,
-                    UrlSlug = UrlSlug,
+                UrlSlug = UrlSlug,
                 ServerApiKey = ServerApiKey,
                 ClientApiKey = ClientApiKey,
                 CreatedAt = DateTime.Parse(CreatedAt),
@@ -161,9 +161,9 @@ public class SqliteProjectRepository : IProjectRepository
         {
             return new ProjectDto
             {
-                    Id = project.Id,
+                Id = project.Id,
                 Name = project.Name,
-                    UrlSlug = project.UrlSlug,
+                UrlSlug = project.UrlSlug,
                 ServerApiKey = project.ServerApiKey,
                 ClientApiKey = project.ClientApiKey,
                 CreatedAt = project.CreatedAt.ToString("O"),

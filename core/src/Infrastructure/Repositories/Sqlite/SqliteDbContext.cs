@@ -20,7 +20,7 @@ public class SqliteDbContext : IDisposable
 
         _connection = new SqliteConnection(_connectionString);
         await _connection.OpenAsync(ct);
-        
+
         return _connection;
     }
 

@@ -4,10 +4,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Nona.Domain.Interfaces;
-using Nona.Libsql;
 using Nona.Infrastructure.Repositories.InMemory;
 using Nona.Infrastructure.Repositories.Libsql;
 using Nona.Infrastructure.Repositories.Sqlite;
+using Nona.Libsql;
 using System.Net.Http.Headers;
 
 namespace Nona.Infrastructure;
@@ -59,7 +59,7 @@ public static class ConfigureServices
 
     private static void ConfigureSqlitePersistence(IServiceCollection services, IConfiguration configuration)
     {
-        var connectionString = configuration.GetConnectionString("Sqlite") 
+        var connectionString = configuration.GetConnectionString("Sqlite")
             ?? "Data Source=nona-config.db";
 
         // Register the database context as a singleton

@@ -1,5 +1,3 @@
-using Nona.Application.Common.Interfaces;
-
 namespace Nona.Infrastructure.Services;
 
 public class PasswordHasher : IPasswordHasher

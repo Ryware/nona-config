@@ -1,5 +1,4 @@
 ﻿global using FluentValidation;
-using AutoMapper;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Nona.Application.Common.Interfaces;

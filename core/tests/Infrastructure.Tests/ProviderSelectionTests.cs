@@ -1,9 +1,9 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Nona.Libsql;
 using Nona.Domain.Interfaces;
 using Nona.Infrastructure.Repositories.Libsql;
 using Nona.Infrastructure.Repositories.Sqlite;
+using Nona.Libsql;
 
 namespace Nona.Infrastructure.Tests;
 

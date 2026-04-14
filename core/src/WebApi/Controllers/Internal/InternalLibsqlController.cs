@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Nona.Libsql;
 using System.Globalization;
-using System.Text;
 using System.Text.Json;
 
 namespace Nona.WebApi.Controllers.Internal;
