@@ -1,16 +1,19 @@
 <Solution>
+  <Folder Name="/core/" />
   <Folder Name="/core/src/">
     <Project Path="core/src/Application/Application.csproj" />
     <Project Path="core/src/Domain/Domain.csproj" />
-    <Project Path="core/src/FirebaseRemoteConfigMigrator/FirebaseRemoteConfigMigrator.csproj" />
     <Project Path="core/src/Infrastructure/Infrastructure.csproj" />
     <Project Path="core/src/Libsql/Libsql.csproj" />
     <Project Path="core/src/WebApi/WebApi.csproj" />
   </Folder>
   <Folder Name="/core/tests/">
     <Project Path="core/tests/Application.Tests/Application.Tests.csproj" />
-    <Project Path="core/tests/FirebaseRemoteConfigMigrator.Tests/FirebaseRemoteConfigMigrator.Tests.csproj" />
-    <Project Path="core/tests/Libsql.Tests/Libsql.Tests.csproj" />
     <Project Path="core/tests/Infrastructure.Tests/Infrastructure.Tests.csproj" />
+    <Project Path="core/tests/Libsql.Tests/Libsql.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Migrator/">
+    <Project Path="migrator/FirebaseRemoteConfigMigrator.Tests/FirebaseRemoteConfigMigrator.Tests.csproj" />
+    <Project Path="migrator/FirebaseRemoteConfigMigrator/FirebaseRemoteConfigMigrator.csproj" />
   </Folder>
 </Solution>

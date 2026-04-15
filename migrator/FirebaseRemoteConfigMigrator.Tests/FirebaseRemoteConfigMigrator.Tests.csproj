@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\FirebaseRemoteConfigMigrator\FirebaseRemoteConfigMigrator.csproj" />
+    <ProjectReference Include="..\FirebaseRemoteConfigMigrator\FirebaseRemoteConfigMigrator.csproj" />
   </ItemGroup>
 
 </Project>
