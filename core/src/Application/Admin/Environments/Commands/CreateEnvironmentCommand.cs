@@ -15,7 +15,8 @@ public class CreateEnvironmentCommandHandler(
     IProjectRepository projectRepository,
     IEnvironmentRepository environmentRepository,
     IProjectAccessService projectAccessService,
-    IDateTime dateTime) : IRequestHandler<CreateEnvironmentCommand, CreateEnvironmentResult>
+    IDateTime dateTime,
+    IAuditLogService? auditLogService = null) : IRequestHandler<CreateEnvironmentCommand, CreateEnvironmentResult>
 {
     public async Task<CreateEnvironmentResult> Handle(CreateEnvironmentCommand request, CancellationToken cancellationToken)
     {
@@ -39,6 +40,16 @@ public class CreateEnvironmentCommandHandler(
         };
 
         await environmentRepository.AddAsync(environment, cancellationToken);
+
+        if (auditLogService is not null)
+        {
+            await auditLogService.WriteAsync(
+                "Created Environment",
+                environment.Name,
+                project: environment.Project,
+                environment: environment.Name,
+                cancellationToken: cancellationToken);
+        }
 
         var dto = new EnvironmentDto(
             environment.Name,

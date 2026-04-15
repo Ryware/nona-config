@@ -34,7 +34,12 @@ public class PermissionMatrixTests
             .Returns(new List<Project> { new() { Name = ProjectName } });
 
         // Create
-        var createHandler = new CreateProjectCommandHandler(fixture.ProjectRepository, fixture.CurrentUserService, fixture.DateTime);
+        var createHandler = new CreateProjectCommandHandler(
+            fixture.ProjectRepository,
+            fixture.CurrentUserService,
+            fixture.EnvironmentRepository,
+            fixture.Configuration,
+            fixture.DateTime);
         var createResult = await createHandler.Handle(new CreateProjectCommand(ProjectName), CancellationToken.None);
         await Assert.That(createResult.Success).IsTrue();
 
@@ -120,7 +125,12 @@ public class PermissionMatrixTests
         fixture.SetupProjectExists(ProjectName, exists: false);
 
         // Create - should fail
-        var createHandler = new CreateProjectCommandHandler(fixture.ProjectRepository, fixture.CurrentUserService, fixture.DateTime);
+        var createHandler = new CreateProjectCommandHandler(
+            fixture.ProjectRepository,
+            fixture.CurrentUserService,
+            fixture.EnvironmentRepository,
+            fixture.Configuration,
+            fixture.DateTime);
         var createResult = await createHandler.Handle(new CreateProjectCommand(ProjectName), CancellationToken.None);
         await Assert.That(createResult.Success).IsFalse();
 
@@ -201,7 +211,12 @@ public class PermissionMatrixTests
         fixture.SetupProjectExists(ProjectName, exists: false);
 
         // Create - should fail
-        var createHandler = new CreateProjectCommandHandler(fixture.ProjectRepository, fixture.CurrentUserService, fixture.DateTime);
+        var createHandler = new CreateProjectCommandHandler(
+            fixture.ProjectRepository,
+            fixture.CurrentUserService,
+            fixture.EnvironmentRepository,
+            fixture.Configuration,
+            fixture.DateTime);
         var createResult = await createHandler.Handle(new CreateProjectCommand(ProjectName), CancellationToken.None);
         await Assert.That(createResult.Success).IsFalse();
 

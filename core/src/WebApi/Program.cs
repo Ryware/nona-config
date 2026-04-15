@@ -52,7 +52,7 @@ public partial class Program
 
     private static void ConfigureWebPipeline(WebApplication app)
     {
-        app.MapOpenApi();        app.MapScalarApiReference(o =>
+        app.MapOpenApi(); app.MapScalarApiReference(o =>
         {
             o.WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient)
                 .WithTheme(ScalarTheme.Moon)

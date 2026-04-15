@@ -11,11 +11,11 @@ public class SqliteDatabaseInitializer : IHostedService
     public SqliteDatabaseInitializer(SqliteDbContext dbContext)
     {
         _dbContext = dbContext;
-        
+
         // Get migrations folder path relative to the application
         var basePath = AppDomain.CurrentDomain.BaseDirectory;
         _migrationsFolder = Path.Combine(basePath, "Migrations");
-        
+
         // If not found, try relative to source (for development)
         if (!Directory.Exists(_migrationsFolder))
         {

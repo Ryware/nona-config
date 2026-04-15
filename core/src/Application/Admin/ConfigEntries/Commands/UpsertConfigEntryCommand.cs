@@ -18,7 +18,8 @@ public class UpsertConfigEntryCommandHandler(
     IEnvironmentRepository environmentRepository,
     IConfigEntryRepository configEntryRepository,
     IProjectAccessService projectAccessService,
-    IDateTime dateTime)
+    IDateTime dateTime,
+    IAuditLogService? auditLogService = null)
     : IRequestHandler<UpsertConfigEntryCommand, UpsertConfigEntryResult>
 {
     public async Task<UpsertConfigEntryResult> Handle(UpsertConfigEntryCommand request, CancellationToken cancellationToken)
@@ -38,6 +39,7 @@ public class UpsertConfigEntryCommandHandler(
 
         var now = dateTime.NowUtc;
         var existingEntry = await configEntryRepository.GetAsync(request.ProjectId, request.EnvironmentName, request.Key, cancellationToken);
+        var action = existingEntry is null ? "Created Key" : "Updated Key";
 
         ConfigEntry entry;
         if (existingEntry is not null)
@@ -63,6 +65,16 @@ public class UpsertConfigEntryCommandHandler(
                 UpdatedAt = now
             };
             await configEntryRepository.AddAsync(entry, cancellationToken);
+        }
+
+        if (auditLogService is not null)
+        {
+            await auditLogService.WriteAsync(
+                action,
+                entry.Key,
+                project: entry.Project,
+                environment: entry.Environment,
+                cancellationToken: cancellationToken);
         }
 
         var dto = new ConfigEntryDto(

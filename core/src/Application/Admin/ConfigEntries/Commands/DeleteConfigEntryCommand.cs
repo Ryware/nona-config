@@ -12,7 +12,8 @@ public class DeleteConfigEntryCommandHandler(
     IProjectRepository projectRepository,
     IEnvironmentRepository environmentRepository,
     IConfigEntryRepository configEntryRepository,
-    IProjectAccessService projectAccessService)
+    IProjectAccessService projectAccessService,
+    IAuditLogService? auditLogService = null)
     : IRequestHandler<DeleteConfigEntryCommand, DeleteConfigEntryResult>
 {
     public async Task<DeleteConfigEntryResult> Handle(DeleteConfigEntryCommand request, CancellationToken cancellationToken)
@@ -32,6 +33,16 @@ public class DeleteConfigEntryCommandHandler(
 
 
         await configEntryRepository.DeleteAsync(request.ProjectId, request.EnvironmentId, request.Key, cancellationToken);
+
+        if (auditLogService is not null)
+        {
+            await auditLogService.WriteAsync(
+                "Deleted Key",
+                request.Key,
+                project: request.ProjectId,
+                environment: request.EnvironmentId,
+                cancellationToken: cancellationToken);
+        }
 
         return new DeleteConfigEntryResult(true, null);
     }

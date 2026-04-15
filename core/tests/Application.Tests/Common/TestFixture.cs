@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Nona.Application.Common.Interfaces;
 using Nona.Domain.Entities;
 using Nona.Domain.Interfaces;
@@ -15,10 +16,17 @@ public class TestFixture
     public ICurrentUserService CurrentUserService { get; } = Substitute.For<ICurrentUserService>();
     public IProjectAccessService ProjectAccessService { get; } = Substitute.For<IProjectAccessService>();
     public IDateTime DateTime { get; } = Substitute.For<IDateTime>();
+    public IConfiguration Configuration { get; }
 
     public TestFixture()
     {
         DateTime.NowUtc.Returns(System.DateTime.UtcNow);
+        Configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Defaults:Environment:0"] = "Production"
+            })
+            .Build();
     }
 
     public void SetupAsSystemAdmin(string username = "admin")

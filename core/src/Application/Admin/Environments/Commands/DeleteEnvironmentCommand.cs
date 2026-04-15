@@ -12,7 +12,8 @@ public class DeleteEnvironmentCommandHandler(
     IProjectRepository projectRepository,
     IEnvironmentRepository environmentRepository,
     IConfigEntryRepository configEntryRepository,
-    IProjectAccessService projectAccessService) : IRequestHandler<DeleteEnvironmentCommand, DeleteEnvironmentResult>
+    IProjectAccessService projectAccessService,
+    IAuditLogService? auditLogService = null) : IRequestHandler<DeleteEnvironmentCommand, DeleteEnvironmentResult>
 {
     public async Task<DeleteEnvironmentResult> Handle(DeleteEnvironmentCommand request, CancellationToken cancellationToken)
     {
@@ -28,6 +29,16 @@ public class DeleteEnvironmentCommandHandler(
         await DeleteEnvironmentConfigEntries(request, cancellationToken);
 
         await environmentRepository.DeleteAsync(request.ProjectId, request.EnvironmentId, cancellationToken);
+
+        if (auditLogService is not null)
+        {
+            await auditLogService.WriteAsync(
+                "Deleted Environment",
+                request.EnvironmentId,
+                project: request.ProjectId,
+                environment: request.EnvironmentId,
+                cancellationToken: cancellationToken);
+        }
 
         return new DeleteEnvironmentResult(true, null);
     }

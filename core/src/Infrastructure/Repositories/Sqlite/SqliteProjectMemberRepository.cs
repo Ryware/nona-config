@@ -18,7 +18,7 @@ public class SqliteProjectMemberRepository : IProjectMemberRepository
         var connection = await _dbContext.GetConnectionAsync(ct);
 
         var sql = @"
-            SELECT Username, ProjectName, Role, CreatedAt
+            SELECT Username, ProjectName AS ProjectId, Role, CreatedAt
             FROM ProjectMembers
             WHERE Username = @Username COLLATE NOCASE
               AND ProjectName = @ProjectName COLLATE NOCASE
@@ -36,7 +36,7 @@ public class SqliteProjectMemberRepository : IProjectMemberRepository
         var connection = await _dbContext.GetConnectionAsync(ct);
 
         var sql = @"
-            SELECT Username, ProjectName, Role, CreatedAt
+            SELECT Username, ProjectName AS ProjectId, Role, CreatedAt
             FROM ProjectMembers
             WHERE Username = @Username COLLATE NOCASE
             ORDER BY ProjectName";
@@ -51,7 +51,7 @@ public class SqliteProjectMemberRepository : IProjectMemberRepository
         var connection = await _dbContext.GetConnectionAsync(ct);
 
         var sql = @"
-            SELECT Username, ProjectName, Role, CreatedAt
+            SELECT Username, ProjectName AS ProjectId, Role, CreatedAt
             FROM ProjectMembers
             WHERE ProjectName = @ProjectName COLLATE NOCASE
             ORDER BY Username";
@@ -84,7 +84,7 @@ public class SqliteProjectMemberRepository : IProjectMemberRepository
 
         var sql = @"
             INSERT INTO ProjectMembers (Username, ProjectName, Role, CreatedAt)
-            VALUES (@Username, @ProjectName, @Role, @CreatedAt)";
+            VALUES (@Username, @ProjectId, @Role, @CreatedAt)";
 
         await connection.ExecuteAsync(sql, ProjectMemberDto.FromEntity(member));
     }
@@ -97,7 +97,7 @@ public class SqliteProjectMemberRepository : IProjectMemberRepository
             UPDATE ProjectMembers
             SET Role = @Role
             WHERE Username = @Username COLLATE NOCASE
-              AND ProjectName = @ProjectName COLLATE NOCASE";
+              AND ProjectName = @ProjectId COLLATE NOCASE";
 
         await connection.ExecuteAsync(sql, ProjectMemberDto.FromEntity(member));
     }

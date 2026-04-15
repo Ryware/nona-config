@@ -40,7 +40,7 @@ public class SqliteMigrationRunner
 
             // Read and execute the SQL script
             var sql = await File.ReadAllTextAsync(migrationFile, ct);
-            
+
             using var transaction = connection.BeginTransaction();
             try
             {
@@ -51,7 +51,7 @@ public class SqliteMigrationRunner
 
                 // Record the migration
                 await RecordMigrationAsync(connection, migrationName, transaction, ct);
-                
+
                 await transaction.CommitAsync(ct);
                 Console.WriteLine($"? Applied {migrationName}");
             }
@@ -82,11 +82,11 @@ public class SqliteMigrationRunner
     private async Task<bool> IsMigrationAppliedAsync(SqliteConnection connection, string migrationName, CancellationToken ct)
     {
         var sql = "SELECT COUNT(1) FROM __MigrationsHistory WHERE MigrationId = @MigrationId";
-        
+
         using var command = connection.CreateCommand();
         command.CommandText = sql;
         command.Parameters.AddWithValue("@MigrationId", migrationName);
-        
+
         var count = Convert.ToInt32(await command.ExecuteScalarAsync(ct));
         return count > 0;
     }
@@ -94,13 +94,13 @@ public class SqliteMigrationRunner
     private async Task RecordMigrationAsync(SqliteConnection connection, string migrationName, SqliteTransaction transaction, CancellationToken ct)
     {
         var sql = "INSERT INTO __MigrationsHistory (MigrationId, AppliedAt) VALUES (@MigrationId, @AppliedAt)";
-        
+
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
         command.CommandText = sql;
         command.Parameters.AddWithValue("@MigrationId", migrationName);
         command.Parameters.AddWithValue("@AppliedAt", DateTime.UtcNow.ToString("O"));
-        
+
         await command.ExecuteNonQueryAsync(ct);
     }
 }
