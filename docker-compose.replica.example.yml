@@ -7,19 +7,22 @@ services:
     restart: unless-stopped
     ports:
       - "8081:8080"
-    environment: &backend-common-env
+      - "9080:9080"
+    environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://0.0.0.0:8080
       Storage__Type: Libsql
-      Storage__Libsql__AuthToken: dev-replica-secret-change-me
       Storage__Libsql__TimeoutSeconds: 30
-      Storage__Libsql__EnableLocalReplica: "true"
+      Storage__Libsql__ManagedPrimary__Enabled: "true"
+      Storage__Libsql__ManagedPrimary__ExecutablePath: /usr/local/bin/sqld
+      Storage__Libsql__ManagedPrimary__DatabasePath: /var/lib/nona/primary/primary.db
+      Storage__Libsql__ManagedPrimary__WorkingDirectory: /var/lib/nona/primary
+      Storage__Libsql__ManagedPrimary__HttpListenAddress: 0.0.0.0:9080
+      Storage__Libsql__ManagedPrimary__LocalConnectUrl: http://127.0.0.1:9080
       Jwt__Key: dev-only-change-this-key-to-a-long-random-string-1234567890
       Jwt__Issuer: nona-dev
       Jwt__Audience: nona-dev
       Defaults__Environment__0: Production
-      Storage__Libsql__LocalReplicaRole: Primary
-      Storage__Libsql__LocalReplicaPath: /var/lib/nona/primary.db
     volumes:
       - nona-primary-data:/var/lib/nona
 
@@ -34,10 +37,18 @@ services:
     ports:
       - "8082:8080"
     environment:
-      <<: *backend-common-env
-      ConnectionStrings__Libsql: http://nona-backend-primary:8080/internal/libsql
-      Storage__Libsql__LocalReplicaRole: Replica
-      Storage__Libsql__LocalReplicaPath: /var/lib/nona/replica.db
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://0.0.0.0:8080
+      Storage__Type: Libsql
+      Storage__Libsql__TimeoutSeconds: 30
+      ConnectionStrings__Libsql: http://nona-backend-primary:9080
+      Storage__Libsql__EnableLocalReplica: "true"
+      Storage__Libsql__LocalReplicaSyncIntervalSeconds: "1"
+      Storage__Libsql__LocalReplicaPath: /var/lib/nona/replica/replica.db
+      Jwt__Key: dev-only-change-this-key-to-a-long-random-string-1234567890
+      Jwt__Issuer: nona-dev
+      Jwt__Audience: nona-dev
+      Defaults__Environment__0: Production
     volumes:
       - nona-replica-data:/var/lib/nona
 

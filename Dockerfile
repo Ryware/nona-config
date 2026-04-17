@@ -18,15 +18,24 @@ RUN dotnet publish core/src/WebApi/WebApi.csproj \
     /p:UseAppHost=false
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+ARG LIBSQL_SERVER_VERSION=0.24.32
 WORKDIR /app
 
-RUN mkdir -p /var/lib/nona
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl xz-utils \
+    && rm -rf /var/lib/apt/lists/* \
+    && curl --proto '=https' --tlsv1.2 -LsSf -o /tmp/libsql-server.tar.xz "https://github.com/tursodatabase/libsql/releases/download/libsql-server-v${LIBSQL_SERVER_VERSION}/libsql-server-x86_64-unknown-linux-gnu.tar.xz" \
+    && mkdir -p /tmp/libsql-server \
+    && tar -xJf /tmp/libsql-server.tar.xz -C /tmp/libsql-server \
+    && install /tmp/libsql-server/libsql-server-x86_64-unknown-linux-gnu/sqld /usr/local/bin/sqld \
+    && rm -rf /tmp/libsql-server /tmp/libsql-server.tar.xz \
+    && mkdir -p /var/lib/nona
 
 COPY --from=build /app/publish/ ./
 
 EXPOSE 8080
+EXPOSE 9080
 
 ENV ASPNETCORE_URLS=http://0.0.0.0:8080
 
 ENTRYPOINT ["dotnet", "Nona.WebApi.dll"]
-

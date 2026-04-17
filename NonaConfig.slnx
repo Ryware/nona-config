@@ -10,5 +10,6 @@
     <Project Path="core/tests/Application.Tests/Application.Tests.csproj" />
     <Project Path="core/tests/Libsql.Tests/Libsql.Tests.csproj" />
     <Project Path="core/tests/Infrastructure.Tests/Infrastructure.Tests.csproj" />
+    <Project Path="core/tests/StorageBenchmarks/StorageBenchmarks.csproj" />
   </Folder>
 </Solution>
