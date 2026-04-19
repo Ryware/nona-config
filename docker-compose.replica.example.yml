@@ -17,6 +17,9 @@ services:
       Jwt__Key: dev-only-change-this-key-to-a-long-random-string-1234567890
       Jwt__Issuer: nona-dev
       Jwt__Audience: nona-dev
+      Sso__Google__ClientId: sso-google-client-id
+      Sso__Microsoft__ClientId: sso-microsoft-client-id
+      Sso__Microsoft__TenantId: sso-microsoft-tenant-id
       Defaults__Environment__0: Production
       Storage__Libsql__LocalReplicaRole: Primary
       Storage__Libsql__LocalReplicaPath: /var/lib/nona/primary.db

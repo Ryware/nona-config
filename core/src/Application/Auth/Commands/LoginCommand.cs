@@ -7,7 +7,7 @@ namespace Nona.Application.Auth.Commands;
 
 public record LoginCommand(string Email, string Password) : IRequest<LoginResult>;
 
-public record LoginResult(bool Success, LoginResponse? Response, string? Error);
+public record LoginResult(bool Success, LoginResponse? Response, string? Error, string? ErrorCode = null);
 
 public class LoginCommandHandler(IUserRepository userRepository, IJwtTokenService jwtTokenService, IPasswordHasher passwordHasher) : IRequestHandler<LoginCommand, LoginResult>
 {

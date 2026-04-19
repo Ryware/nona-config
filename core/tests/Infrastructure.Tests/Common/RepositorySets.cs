@@ -16,6 +16,7 @@ internal interface IRepositorySet : IAsyncDisposable
     IProjectRepository Projects { get; }
     IEnvironmentRepository Environments { get; }
     IUserRepository Users { get; }
+    IExternalIdentityRepository ExternalIdentities { get; }
     IProjectMemberRepository ProjectMembers { get; }
 }
 
@@ -93,6 +94,7 @@ internal sealed class SqliteRepositorySet : IRepositorySet
         Projects = new SqliteProjectRepository(dbContext);
         Environments = new SqliteEnvironmentRepository(dbContext);
         Users = new SqliteUserRepository(dbContext);
+        ExternalIdentities = new SqliteExternalIdentityRepository(dbContext);
         ProjectMembers = new SqliteProjectMemberRepository(dbContext);
     }
 
@@ -100,6 +102,7 @@ internal sealed class SqliteRepositorySet : IRepositorySet
     public IProjectRepository Projects { get; }
     public IEnvironmentRepository Environments { get; }
     public IUserRepository Users { get; }
+    public IExternalIdentityRepository ExternalIdentities { get; }
     public IProjectMemberRepository ProjectMembers { get; }
 
     public static async Task<SqliteRepositorySet> CreateAsync()
@@ -129,6 +132,7 @@ internal sealed class LibsqlRepositorySet : IRepositorySet
         Projects = new LibsqlProjectRepository(client);
         Environments = new LibsqlEnvironmentRepository(client);
         Users = new LibsqlUserRepository(client);
+        ExternalIdentities = new LibsqlExternalIdentityRepository(client);
         ProjectMembers = new LibsqlProjectMemberRepository(client);
     }
 
@@ -138,6 +142,7 @@ internal sealed class LibsqlRepositorySet : IRepositorySet
     public IProjectRepository Projects { get; }
     public IEnvironmentRepository Environments { get; }
     public IUserRepository Users { get; }
+    public IExternalIdentityRepository ExternalIdentities { get; }
     public IProjectMemberRepository ProjectMembers { get; }
 
     public static async Task<LibsqlRepositorySet> CreateAsync()

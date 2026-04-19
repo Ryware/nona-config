@@ -376,6 +376,9 @@ public class MirroredLocalLibsqlTopologyTests
                 ["Storage__Type"] = "Libsql",
                 ["Storage__Libsql__AuthToken"] = "dev-token",
                 ["Storage__Libsql__EnableLocalReplica"] = "true",
+                ["Jwt__Key"] = "mirrored-local-tests-signing-key-1234567890",
+                ["Jwt__Issuer"] = "mirrored-local-tests",
+                ["Jwt__Audience"] = "mirrored-local-tests",
                 ["Storage__Libsql__LocalReplicaPath"] = replicaPath,
                 ["Storage__Libsql__LocalReplicaRole"] = "Primary"
             });
@@ -403,6 +406,9 @@ public class MirroredLocalLibsqlTopologyTests
                 ["ConnectionStrings__Libsql"] = $"http://127.0.0.1:{primaryPort}/internal/libsql",
                 ["Storage__Libsql__AuthToken"] = "dev-token",
                 ["Storage__Libsql__EnableLocalReplica"] = "true",
+                ["Jwt__Key"] = "mirrored-local-tests-signing-key-1234567890",
+                ["Jwt__Issuer"] = "mirrored-local-tests",
+                ["Jwt__Audience"] = "mirrored-local-tests",
                 ["Storage__Libsql__LocalReplicaPath"] = replicaPath,
                 ["Storage__Libsql__LocalReplicaRole"] = "Replica"
             });

@@ -1,4 +1,5 @@
-﻿global using Nona.Application.Common.Interfaces;
+global using Nona.Application.Common.Interfaces;
+global using Nona.Infrastructure.Authentication;
 global using Nona.Infrastructure.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,11 +17,23 @@ public static class ConfigureServices
 {
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
     {
+        services.AddHttpClient("SsoJwks", client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(15);
+        });
+
+        services.AddOptions<SsoOptions>()
+            .Configure(options => ConfigureSsoOptions(options, configuration));
+
         services.AddSingleton<IGuidGenerator, GuidGeneratorService>();
         services.AddSingleton<IDateTime, DateTimeService>();
         services.AddSingleton<IRandom, RandomService>();
         services.AddSingleton<IJwtTokenService, JwtTokenService>();
         services.AddSingleton<IPasswordHasher, PasswordHasher>();
+        services.AddSingleton<JwksSigningKeyCache>();
+        services.AddSingleton<ISsoTokenValidator, GoogleSsoTokenValidator>();
+        services.AddSingleton<ISsoTokenValidator, MicrosoftSsoTokenValidator>();
+        services.AddSingleton<ISsoPublicConfigurationProvider, SsoPublicConfigurationProvider>();
         services.AddScoped<IAuditLogService, AuditLogService>();
 
         ConfigurePersistence(services, configuration);
@@ -48,9 +61,9 @@ public static class ConfigureServices
 
     private static void ConfigureInMemoryPersistence(IServiceCollection services)
     {
-        // In-memory repositories
         services.AddSingleton<IAuditLogRepository, InMemoryAuditLogRepository>();
         services.AddSingleton<IUserRepository, InMemoryUserRepository>();
+        services.AddSingleton<IExternalIdentityRepository, InMemoryExternalIdentityRepository>();
         services.AddSingleton<IProjectRepository, InMemoryProjectRepository>();
         services.AddSingleton<IEnvironmentRepository, InMemoryEnvironmentRepository>();
         services.AddSingleton<IConfigEntryRepository, InMemoryConfigEntryRepository>();
@@ -62,16 +75,13 @@ public static class ConfigureServices
         var connectionString = configuration.GetConnectionString("Sqlite")
             ?? "Data Source=nona-config.db";
 
-        // Register the database context as a singleton
         services.AddSingleton(sp => new SqliteDbContext(connectionString));
-
-        // Initialize database on startup
         services.AddHostedService<SqliteDatabaseInitializer>();
 
-        // SQLite repositories
         services.AddSingleton<IAuditLogRepository, SqliteAuditLogRepository>();
         services.AddSingleton<IConfigEntryRepository, SqliteConfigEntryRepository>();
         services.AddSingleton<IUserRepository, SqliteUserRepository>();
+        services.AddSingleton<IExternalIdentityRepository, SqliteExternalIdentityRepository>();
         services.AddSingleton<IProjectRepository, SqliteProjectRepository>();
         services.AddSingleton<IEnvironmentRepository, SqliteEnvironmentRepository>();
         services.AddSingleton<IProjectMemberRepository, SqliteProjectMemberRepository>();
@@ -137,9 +147,37 @@ public static class ConfigureServices
         services.AddSingleton<IAuditLogRepository, LibsqlAuditLogRepository>();
         services.AddSingleton<IConfigEntryRepository, LibsqlConfigEntryRepository>();
         services.AddSingleton<IUserRepository, LibsqlUserRepository>();
+        services.AddSingleton<IExternalIdentityRepository, LibsqlExternalIdentityRepository>();
         services.AddSingleton<IProjectRepository, LibsqlProjectRepository>();
         services.AddSingleton<IEnvironmentRepository, LibsqlEnvironmentRepository>();
         services.AddSingleton<IProjectMemberRepository, LibsqlProjectMemberRepository>();
+    }
+
+    private static void ConfigureSsoOptions(SsoOptions options, IConfiguration configuration)
+    {
+        options.Google.ClientId = configuration["Sso:Google:ClientId"]
+            ?? string.Empty;
+        options.Google.JwksUri = configuration["Sso:Google:JwksUri"]
+            ?? options.Google.JwksUri;
+
+        var googleIssuers = configuration.GetSection("Sso:Google:Issuers").Get<string[]>();
+        if (googleIssuers is { Length: > 0 })
+        {
+            options.Google.Issuers = googleIssuers.ToList();
+        }
+
+        options.Microsoft.ClientId = configuration["Sso:Microsoft:ClientId"]
+            ?? string.Empty;
+        options.Microsoft.TenantId = configuration["Sso:Microsoft:TenantId"]
+            ?? "common";
+        options.Microsoft.JwksUri = configuration["Sso:Microsoft:JwksUri"]
+            ?? options.Microsoft.JwksUri;
+
+        var microsoftIssuers = configuration.GetSection("Sso:Microsoft:Issuers").Get<string[]>();
+        if (microsoftIssuers is { Length: > 0 })
+        {
+            options.Microsoft.Issuers = microsoftIssuers.ToList();
+        }
     }
 
     private static bool RequiresRemotePeer(LibsqlOptions options)

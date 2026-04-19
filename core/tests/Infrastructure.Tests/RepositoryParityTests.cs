@@ -32,6 +32,18 @@ public class RepositoryParityTests
     }
 
     [Test]
+    public async Task ExternalIdentityRepositories_ReturnIdenticalResults()
+    {
+        await using var sqlite = await SqliteRepositorySet.CreateAsync();
+        await using var libsql = await LibsqlRepositorySet.CreateAsync();
+
+        var sqliteSnapshot = await ExerciseExternalIdentityRepositoryAsync(sqlite.ExternalIdentities);
+        var libsqlSnapshot = await ExerciseExternalIdentityRepositoryAsync(libsql.ExternalIdentities);
+
+        await SnapshotAssert.EqualAsync(sqliteSnapshot, libsqlSnapshot);
+    }
+
+    [Test]
     public async Task EnvironmentRepositories_ReturnIdenticalResults()
     {
         await using var sqlite = await SqliteRepositorySet.CreateAsync();
@@ -239,6 +251,45 @@ public class RepositoryParityTests
             exists,
             await repository.ExistsAsync("alpha", "production"),
             (await repository.ListByProjectAsync("alpha")).Select(Normalize).ToList());
+    }
+
+    private static async Task<ExternalIdentityRepositorySnapshot> ExerciseExternalIdentityRepositoryAsync(IExternalIdentityRepository repository)
+    {
+        var createdAt = new DateTime(2025, 2, 3, 9, 0, 0, DateTimeKind.Utc);
+        var updatedAt = new DateTime(2025, 2, 4, 10, 0, 0, DateTimeKind.Utc);
+        var lastLoginAt = new DateTime(2025, 2, 5, 11, 0, 0, DateTimeKind.Utc);
+
+        var emptyList = await repository.ListAsync();
+        var missing = await repository.GetAsync("google", "https://issuer.example", "missing");
+
+        var identity = new ExternalIdentity
+        {
+            Provider = "google",
+            Issuer = "https://issuer.example",
+            Subject = "subject-1",
+            UserEmail = "user@example.com",
+            CreatedAt = createdAt,
+            UpdatedAt = createdAt,
+            LastLoginAt = null
+        };
+
+        await repository.AddAsync(identity);
+
+        identity.UserEmail = "USER@example.com";
+        identity.UpdatedAt = updatedAt;
+        identity.LastLoginAt = lastLoginAt;
+        await repository.UpdateAsync(identity);
+
+        var byCompositeKey = await repository.GetAsync("GOOGLE", "https://issuer.example", "SUBJECT-1");
+        var byUser = await repository.ListByUserEmailAsync("user@example.com");
+
+        return new ExternalIdentityRepositorySnapshot(
+            emptyList.Count,
+            missing is null,
+            identity.Id,
+            Normalize(byCompositeKey),
+            byUser.Select(Normalize).ToList(),
+            await repository.CountAsync());
     }
 
     private static async Task<ConfigEntryRepositorySnapshot> ExerciseConfigEntryRepositoryAsync(IConfigEntryRepository repository)
@@ -468,8 +519,14 @@ public class RepositoryParityTests
     private static ProjectMemberShape? Normalize(ProjectMember? member)
         => member is null ? null : new ProjectMemberShape(member.Username, member.ProjectId, member.Role, member.CreatedAt);
 
+    private static ExternalIdentityShape? Normalize(ExternalIdentity? identity)
+        => identity is null
+            ? null
+            : new ExternalIdentityShape(identity.Id, identity.Provider, identity.Issuer, identity.Subject, identity.UserEmail, identity.CreatedAt, identity.UpdatedAt, identity.LastLoginAt);
+
     private sealed record ProjectRepositorySnapshot(int EmptyListCount, bool MissingProjectWasNull, bool MissingApiKeyWasNull, long AssignedId, ProjectShape? ByName, ApiKeyLookupShape? ServerLookup, ApiKeyLookupShape? ClientLookup, List<ProjectShape?> ListedProjects, bool Exists, int CountBeforeDelete, int CountAfterDelete, bool MissingAfterDelete);
     private sealed record UserRepositorySnapshot(int EmptyListCount, bool ExistsAnyBefore, long AssignedId, UserShape? ByEmail, UserShape? ById, List<UserShape?> ListedUsers, bool Exists, bool ExistsAnyAfterAdd, int CountBeforeDelete, bool Deleted, bool DeleteMissing, bool ExistsAnyAfterDelete, int CountAfterDelete);
+    private sealed record ExternalIdentityRepositorySnapshot(int EmptyListCount, bool MissingWasNull, long AssignedId, ExternalIdentityShape? ByCompositeKey, List<ExternalIdentityShape?> ByUser, int Count);
     private sealed record EnvironmentRepositorySnapshot(int EmptyListCount, bool MissingWasNull, EnvironmentShape? DevelopmentEnvironment, List<EnvironmentShape?> ListedEnvironments, bool Exists, bool ExistsAfterDelete, List<EnvironmentShape?> RemainingEnvironments);
     private sealed record ConfigEntryRepositorySnapshot(int EmptyListCount, bool MissingWasNull, ConfigEntryShape? EntryByKey, List<ConfigEntryShape?> ListedEntries, List<ConfigEntryShape?> ListedByProject, bool Exists, int CountBeforeDelete, int CountAfterDelete, int RemainingByProjectCount);
     private sealed record ProjectMemberRepositorySnapshot(int EmptyByUserCount, int EmptyByProjectCount, bool MissingWasNull, ProjectMemberShape? MemberByCompositeKey, List<ProjectMemberShape?> MembersByUser, List<ProjectMemberShape?> MembersByProject, bool Exists, int RemainingByUserCount, int RemainingSharedProjectCount);
@@ -477,6 +534,7 @@ public class RepositoryParityTests
     private sealed record ProjectShape(long Id, string Name, string? UrlSlug, string? ServerApiKey, string? ClientApiKey, DateTime CreatedAt, DateTime UpdatedAt);
     private sealed record ApiKeyLookupShape(ProjectShape Project, KeyScope Scope);
     private sealed record UserShape(long Id, string Email, string Name, string? PasswordHash, string? PasswordSalt, UserRole Role, KeyScope Scope, bool IsAdmin, DateTime CreatedAt, DateTime UpdatedAt, string? PasswordResetToken);
+    private sealed record ExternalIdentityShape(long Id, string Provider, string Issuer, string Subject, string UserEmail, DateTime CreatedAt, DateTime UpdatedAt, DateTime? LastLoginAt);
     private sealed record EnvironmentShape(string Name, string Project, DateTime CreatedAt, DateTime UpdatedAt);
     private sealed record ConfigEntryShape(string Project, string Environment, string Key, string Value, string ContentType, KeyScope Scope, DateTime CreatedAt, DateTime UpdatedAt);
     private sealed record ProjectMemberShape(string Username, string ProjectId, ProjectRole Role, DateTime CreatedAt);
