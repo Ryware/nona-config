@@ -3,6 +3,35 @@ namespace Nona.Libsql.Tests;
 public class LibsqlDatabaseClientTests
 {
     [Test]
+    public async Task Constructor_CreatesLocalReplicaDirectory_WhenEmbeddedReplicaEnabled()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"nona-libsql-replica-dir-{Guid.NewGuid():N}");
+        var replicaPath = Path.Combine(root, "nested", "replica.db");
+
+        try
+        {
+            using var client = new NelknetLibsqlDatabaseClient(Microsoft.Extensions.Options.Options.Create(new LibsqlOptions
+            {
+                DataSource = "http://primary.test",
+                AuthToken = "token",
+                EnableLocalReplica = true,
+                LocalReplicaPath = replicaPath,
+                LocalReplicaSyncIntervalSeconds = 1,
+                TimeoutSeconds = 30
+            }));
+
+            await Assert.That(Directory.Exists(Path.GetDirectoryName(replicaPath))).IsTrue();
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
+
+    [Test]
     public async Task ExecuteAsync_PersistsAndReadsRows_AgainstLocalFile()
     {
         var databasePath = Path.Combine(Path.GetTempPath(), $"nona-libsql-local-{Guid.NewGuid():N}.db");

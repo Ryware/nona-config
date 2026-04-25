@@ -159,7 +159,11 @@ public sealed class ManagedLibsqlPrimaryHostedService : IHostedService, IDisposa
 
             try
             {
-                using var client = new NelknetLibsqlDatabaseClient(connectUrl, commandTimeoutSeconds: 5);
+                using var client = new NelknetLibsqlDatabaseClient(Options.Create(new LibsqlOptions
+                {
+                    DataSource = connectUrl,
+                    TimeoutSeconds = 5
+                }));
                 var result = await client.ExecuteAsync("SELECT 1 AS Value", ct: startupCts.Token);
                 if (result.Rows.Count == 1 && result.Rows[0].GetInt32("Value") == 1)
                 {
@@ -175,7 +179,14 @@ public sealed class ManagedLibsqlPrimaryHostedService : IHostedService, IDisposa
                 lastError = ex;
             }
 
-            await Task.Delay(250, startupCts.Token);
+            try
+            {
+                await Task.Delay(250, startupCts.Token);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                break;
+            }
         }
 
         throw new TimeoutException(

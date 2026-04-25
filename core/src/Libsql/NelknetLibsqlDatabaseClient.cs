@@ -7,28 +7,37 @@ namespace Nona.Libsql;
 
 public sealed class NelknetLibsqlDatabaseClient : ILibsqlDatabaseClient, IDisposable
 {
-    private readonly string _connectionString;
+    private readonly string _readConnectionString;
+    private readonly string _writeConnectionString;
     private readonly int _commandTimeoutSeconds;
     private readonly SemaphoreSlim _gate = new(1, 1);
 
-    private LibSQLConnection? _connection;
+    private LibSQLConnection? _readConnection;
+    private LibSQLConnection? _writeConnection;
     private bool _disposed;
 
     public NelknetLibsqlDatabaseClient(Microsoft.Extensions.Options.IOptions<LibsqlOptions> options)
-        : this(CreateConnectionString(options.Value), options.Value.TimeoutSeconds)
+        : this(CreateConnectionStrings(options.Value), options.Value.TimeoutSeconds)
     {
     }
 
     public NelknetLibsqlDatabaseClient(string connectionString, int commandTimeoutSeconds = 30)
+        : this(new LibsqlConnectionStrings(connectionString, connectionString), commandTimeoutSeconds)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
+    }
+
+    private NelknetLibsqlDatabaseClient(LibsqlConnectionStrings connectionStrings, int commandTimeoutSeconds)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(connectionStrings.ReadConnectionString);
+        ArgumentException.ThrowIfNullOrWhiteSpace(connectionStrings.WriteConnectionString);
 
         if (commandTimeoutSeconds <= 0)
         {
             throw new ArgumentOutOfRangeException(nameof(commandTimeoutSeconds), "Timeout must be greater than zero.");
         }
 
-        _connectionString = connectionString;
+        _readConnectionString = connectionStrings.ReadConnectionString;
+        _writeConnectionString = connectionStrings.WriteConnectionString;
         _commandTimeoutSeconds = commandTimeoutSeconds;
     }
 
@@ -39,12 +48,12 @@ public sealed class NelknetLibsqlDatabaseClient : ILibsqlDatabaseClient, IDispos
         await _gate.WaitAsync(ct);
         try
         {
-            var connection = EnsureConnectionOpen();
+            var connection = EnsureConnectionOpen(GetConnectionTarget(sql));
             return await ExecuteStatementAsync(connection, new LibsqlStatement(sql, parameters), transaction: null, ct);
         }
         catch (Exception ex) when (ex is not LibsqlException and not OperationCanceledException)
         {
-            ResetConnectionIfClosed();
+            ResetClosedConnections();
             throw new LibsqlException($"libSQL execution failed: {ex.Message}", ex);
         }
         finally
@@ -68,7 +77,10 @@ public sealed class NelknetLibsqlDatabaseClient : ILibsqlDatabaseClient, IDispos
         await _gate.WaitAsync(ct);
         try
         {
-            var connection = EnsureConnectionOpen();
+            var target = batch.Any(statement => GetConnectionTarget(statement.Sql) == LibsqlConnectionTarget.Write)
+                ? LibsqlConnectionTarget.Write
+                : LibsqlConnectionTarget.Read;
+            var connection = EnsureConnectionOpen(target);
             using var transaction = connection.BeginTransaction();
             var results = new List<LibsqlQueryResult>(batch.Count);
 
@@ -82,7 +94,7 @@ public sealed class NelknetLibsqlDatabaseClient : ILibsqlDatabaseClient, IDispos
         }
         catch (Exception ex) when (ex is not LibsqlException and not OperationCanceledException)
         {
-            ResetConnectionIfClosed();
+            ResetClosedConnections();
             throw new LibsqlException($"libSQL batch execution failed: {ex.Message}", ex);
         }
         finally
@@ -99,12 +111,19 @@ public sealed class NelknetLibsqlDatabaseClient : ILibsqlDatabaseClient, IDispos
         }
 
         _disposed = true;
-        _connection?.Dispose();
+        _readConnection?.Dispose();
+        if (!ReferenceEquals(_writeConnection, _readConnection))
+        {
+            _writeConnection?.Dispose();
+        }
+
         _gate.Dispose();
     }
 
-    private static string CreateConnectionString(LibsqlOptions options)
+    private static LibsqlConnectionStrings CreateConnectionStrings(LibsqlOptions options)
     {
+        var writeConnectionString = CreateDirectConnectionString(options.DataSource, options.AuthToken);
+
         if (options.EnableLocalReplica)
         {
             if (string.IsNullOrWhiteSpace(options.LocalReplicaPath))
@@ -114,7 +133,7 @@ public sealed class NelknetLibsqlDatabaseClient : ILibsqlDatabaseClient, IDispos
 
             var builder = new LibSQLConnectionStringBuilder
             {
-                DataSource = ResolveLocalPath(options.LocalReplicaPath),
+                DataSource = ResolveLocalReplicaPath(options.LocalReplicaPath),
                 SyncUrl = NormalizeDataSource(options.DataSource),
                 SyncInterval = checked((int)Math.Round(options.LocalReplicaSyncIntervalSeconds * 1000d, MidpointRounding.AwayFromZero)),
                 ReadYourWrites = true
@@ -126,47 +145,77 @@ public sealed class NelknetLibsqlDatabaseClient : ILibsqlDatabaseClient, IDispos
                 builder.SyncAuthToken = options.AuthToken;
             }
 
-            return builder.ConnectionString;
+            return new LibsqlConnectionStrings(builder.ConnectionString, writeConnectionString);
         }
 
-        var remoteBuilder = new LibSQLConnectionStringBuilder
-        {
-            DataSource = NormalizeDataSource(options.DataSource)
-        };
-
-        if (!string.IsNullOrWhiteSpace(options.AuthToken))
-        {
-            remoteBuilder.AuthToken = options.AuthToken;
-        }
-
-        return remoteBuilder.ConnectionString;
+        return new LibsqlConnectionStrings(writeConnectionString, writeConnectionString);
     }
 
-    private LibSQLConnection EnsureConnectionOpen()
+    private static string CreateDirectConnectionString(string dataSource, string authToken)
+    {
+        var builder = new LibSQLConnectionStringBuilder
+        {
+            DataSource = NormalizeDataSource(dataSource)
+        };
+
+        if (!string.IsNullOrWhiteSpace(authToken))
+        {
+            builder.AuthToken = authToken;
+        }
+
+        return builder.ConnectionString;
+    }
+
+    private LibSQLConnection EnsureConnectionOpen(LibsqlConnectionTarget target)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        if (_connection is not null && _connection.State == ConnectionState.Open)
+        var connection = target == LibsqlConnectionTarget.Read
+            ? _readConnection
+            : _writeConnection;
+
+        if (connection is not null && connection.State == ConnectionState.Open)
         {
-            return _connection;
+            return connection;
         }
 
-        _connection?.Dispose();
-        _connection = new LibSQLConnection(_connectionString);
-        _connection.Open();
-        return _connection;
+        connection?.Dispose();
+        connection = new LibSQLConnection(target == LibsqlConnectionTarget.Read
+            ? _readConnectionString
+            : _writeConnectionString);
+        connection.Open();
+
+        if (target == LibsqlConnectionTarget.Read)
+        {
+            _readConnection = connection;
+        }
+        else
+        {
+            _writeConnection = connection;
+        }
+
+        return connection;
     }
 
-    private void ResetConnectionIfClosed()
+    private void ResetClosedConnections()
     {
-        if (_connection is null || _connection.State == ConnectionState.Open)
+        ResetClosedConnection(ref _readConnection);
+        ResetClosedConnection(ref _writeConnection);
+    }
+
+    private static void ResetClosedConnection(ref LibSQLConnection? connection)
+    {
+        if (connection is null || connection.State == ConnectionState.Open)
         {
             return;
         }
 
-        _connection.Dispose();
-        _connection = null;
+        connection.Dispose();
+        connection = null;
     }
+
+    private static LibsqlConnectionTarget GetConnectionTarget(string sql)
+        => LibsqlCommandHelpers.IsQuery(sql) ? LibsqlConnectionTarget.Read : LibsqlConnectionTarget.Write;
 
     private async Task<LibsqlQueryResult> ExecuteStatementAsync(
         LibSQLConnection connection,
@@ -179,7 +228,7 @@ public sealed class NelknetLibsqlDatabaseClient : ILibsqlDatabaseClient, IDispos
         command.CommandTimeout = _commandTimeoutSeconds;
         command.CommandText = LibsqlCommandHelpers.BindParameters(command, statement.Sql, statement.Parameters);
 
-        if (LibsqlCommandHelpers.IsQuery(statement.Sql))
+        if (LibsqlCommandHelpers.ReturnsRows(statement.Sql))
         {
             using var reader = await command.ExecuteReaderAsync(ct);
             return await ReadQueryResultAsync(reader, ct);
@@ -245,5 +294,25 @@ public sealed class NelknetLibsqlDatabaseClient : ILibsqlDatabaseClient, IDispos
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         return Path.IsPathRooted(path) ? path : Path.GetFullPath(path);
+    }
+
+    private static string ResolveLocalReplicaPath(string path)
+    {
+        var resolvedPath = ResolveLocalPath(path);
+        var directory = Path.GetDirectoryName(resolvedPath);
+        if (!string.IsNullOrWhiteSpace(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
+        return resolvedPath;
+    }
+
+    private readonly record struct LibsqlConnectionStrings(string ReadConnectionString, string WriteConnectionString);
+
+    private enum LibsqlConnectionTarget
+    {
+        Read,
+        Write
     }
 }

@@ -19,6 +19,7 @@ services:
       Storage__Libsql__ManagedPrimary__WorkingDirectory: /var/lib/nona/primary
       Storage__Libsql__ManagedPrimary__HttpListenAddress: 0.0.0.0:9080
       Storage__Libsql__ManagedPrimary__LocalConnectUrl: http://127.0.0.1:9080
+      Storage__Libsql__ManagedPrimary__StartTimeoutSeconds: "120"
       Jwt__Key: dev-only-change-this-key-to-a-long-random-string-1234567890
       Jwt__Issuer: nona-dev
       Jwt__Audience: nona-dev
@@ -41,6 +42,7 @@ services:
       ASPNETCORE_URLS: http://0.0.0.0:8080
       Storage__Type: Libsql
       Storage__Libsql__TimeoutSeconds: 30
+      Storage__Libsql__AuthToken: dev-local-replica-token
       ConnectionStrings__Libsql: http://nona-backend-primary:9080
       Storage__Libsql__EnableLocalReplica: "true"
       Storage__Libsql__LocalReplicaSyncIntervalSeconds: "1"

@@ -8,6 +8,7 @@ namespace Nona.Libsql;
 internal static class LibsqlCommandHelpers
 {
     private static readonly Regex ParameterPattern = new(@"[@:$][A-Za-z_][A-Za-z0-9_]*", RegexOptions.Compiled);
+    private static readonly Regex ReturningPattern = new(@"\bRETURNING\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     public static IEnumerable<KeyValuePair<string, object?>> EnumerateParameters(object? parameters)
     {
@@ -122,6 +123,11 @@ internal static class LibsqlCommandHelpers
     {
         var keyword = GetLeadingKeyword(sql);
         return keyword is "SELECT" or "PRAGMA" or "WITH";
+    }
+
+    public static bool ReturnsRows(string sql)
+    {
+        return IsQuery(sql) || ReturningPattern.IsMatch(sql);
     }
 
     public static bool IsInsertStatement(string sql)
