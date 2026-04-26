@@ -1,0 +1,31 @@
+services:
+  nona:
+    image: nona-combined:dev
+    build:
+      context: ..
+      dockerfile: NonaBackend/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "18080:8080"
+      - "19081:9080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://0.0.0.0:8080
+      Storage__Type: Libsql
+      Storage__Libsql__TimeoutSeconds: 30
+      Storage__Libsql__ManagedPrimary__Enabled: "true"
+      Storage__Libsql__ManagedPrimary__ExecutablePath: /usr/local/bin/sqld
+      Storage__Libsql__ManagedPrimary__DatabasePath: /var/lib/nona/standalone/nona.db
+      Storage__Libsql__ManagedPrimary__WorkingDirectory: /var/lib/nona/standalone
+      Storage__Libsql__ManagedPrimary__HttpListenAddress: 0.0.0.0:9080
+      Storage__Libsql__ManagedPrimary__LocalConnectUrl: http://127.0.0.1:9080
+      Storage__Libsql__ManagedPrimary__StartTimeoutSeconds: "120"
+      Jwt__Key: dev-only-change-this-key-to-a-long-random-string-1234567890
+      Jwt__Issuer: nona-dev
+      Jwt__Audience: nona-dev
+      Defaults__Environment__0: Production
+    volumes:
+      - nona-data:/var/lib/nona
+
+volumes:
+  nona-data:

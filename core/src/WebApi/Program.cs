@@ -44,7 +44,6 @@ public partial class Program
                   .WriteTo.Console(outputTemplate: $$"""{Timestamp:u} {Timestamp:ffffff} {Level:u3} {Message:l}{NewLine}{Exception}"""));
 
 
-        // builder.Services.AddApiAuthenticationServices(builder.Configuration);
         builder.Services.AddInfrastructureServices(builder.Configuration);
         builder.Services.AddApplicationServices(builder.Configuration);
         builder.Services.AddApiServices(builder.Configuration);
@@ -59,19 +58,20 @@ public partial class Program
                 .WithTitle("Nona config API");
         });
 
-        // Use specific CORS policy for frontend (development)
         if (app.Environment.IsDevelopment())
         {
             app.UseCors("AllowFrontend");
         }
         else
         {
-            // Production: configure as needed
             app.UseCors(x => x.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
         }
 
+        app.UseDefaultFiles();
+        app.UseStaticFiles();
         app.UseAuthentication();
         app.UseAuthorization();
         app.MapControllers();
+        app.MapFallbackToFile("index.html");
     }
 }
