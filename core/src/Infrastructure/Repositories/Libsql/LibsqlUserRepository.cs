@@ -18,7 +18,7 @@ public sealed class LibsqlUserRepository : IUserRepository
     {
         var result = await _client.ExecuteAsync(
             """
-            SELECT rowid AS Id, Email, Name, PasswordHash, PasswordSalt, Role, Scope, IsAdmin, CreatedAt, UpdatedAt, PasswordResetToken
+            SELECT rowid AS Id, Email, Name, PasswordHash, PasswordSalt, Role, Scope, IsAdmin, CreatedAt, UpdatedAt, PasswordResetToken, InviteTokenHash
             FROM Users
             WHERE Email = @Email COLLATE NOCASE
             LIMIT 1
@@ -33,7 +33,7 @@ public sealed class LibsqlUserRepository : IUserRepository
     {
         var result = await _client.ExecuteAsync(
             """
-            SELECT rowid AS Id, Email, Name, PasswordHash, PasswordSalt, Role, Scope, IsAdmin, CreatedAt, UpdatedAt, PasswordResetToken
+            SELECT rowid AS Id, Email, Name, PasswordHash, PasswordSalt, Role, Scope, IsAdmin, CreatedAt, UpdatedAt, PasswordResetToken, InviteTokenHash
             FROM Users
             ORDER BY Email
             """,
@@ -46,12 +46,27 @@ public sealed class LibsqlUserRepository : IUserRepository
     {
         var result = await _client.ExecuteAsync(
             """
-            SELECT rowid AS Id, Email, Name, PasswordHash, PasswordSalt, Role, Scope, IsAdmin, CreatedAt, UpdatedAt, PasswordResetToken
+            SELECT rowid AS Id, Email, Name, PasswordHash, PasswordSalt, Role, Scope, IsAdmin, CreatedAt, UpdatedAt, PasswordResetToken, InviteTokenHash
             FROM Users
             WHERE rowid = @Id
             LIMIT 1
             """,
             new { Id = id },
+            ct);
+
+        return result.Rows.Count == 0 ? null : Map(result.Rows[0]);
+    }
+
+    public async Task<User?> GetByInviteTokenHashAsync(string inviteTokenHash, CancellationToken ct = default)
+    {
+        var result = await _client.ExecuteAsync(
+            """
+            SELECT rowid AS Id, Email, Name, PasswordHash, PasswordSalt, Role, Scope, IsAdmin, CreatedAt, UpdatedAt, PasswordResetToken, InviteTokenHash
+            FROM Users
+            WHERE InviteTokenHash = @InviteTokenHash
+            LIMIT 1
+            """,
+            new { InviteTokenHash = inviteTokenHash },
             ct);
 
         return result.Rows.Count == 0 ? null : Map(result.Rows[0]);
@@ -81,8 +96,8 @@ public sealed class LibsqlUserRepository : IUserRepository
     {
         var result = await _client.ExecuteAsync(
             """
-            INSERT INTO Users (Email, Name, PasswordHash, PasswordSalt, Role, Scope, IsAdmin, CreatedAt, UpdatedAt, PasswordResetToken)
-            VALUES (@Email, @Name, @PasswordHash, @PasswordSalt, @Role, @Scope, @IsAdmin, @CreatedAt, @UpdatedAt, @PasswordResetToken)
+            INSERT INTO Users (Email, Name, PasswordHash, PasswordSalt, Role, Scope, IsAdmin, CreatedAt, UpdatedAt, PasswordResetToken, InviteTokenHash)
+            VALUES (@Email, @Name, @PasswordHash, @PasswordSalt, @Role, @Scope, @IsAdmin, @CreatedAt, @UpdatedAt, @PasswordResetToken, @InviteTokenHash)
             """,
             ToParameters(user),
             ct);
@@ -102,7 +117,8 @@ public sealed class LibsqlUserRepository : IUserRepository
                 Scope = @Scope,
                 IsAdmin = @IsAdmin,
                 UpdatedAt = @UpdatedAt,
-                PasswordResetToken = @PasswordResetToken
+                PasswordResetToken = @PasswordResetToken,
+                InviteTokenHash = @InviteTokenHash
             WHERE Email = @Email COLLATE NOCASE
             """,
             ToParameters(user),
@@ -142,7 +158,8 @@ public sealed class LibsqlUserRepository : IUserRepository
             IsAdmin = row.GetBoolean("IsAdmin"),
             CreatedAt = DateTime.Parse(row.GetString("CreatedAt")),
             UpdatedAt = DateTime.Parse(row.GetString("UpdatedAt")),
-            PasswordResetToken = row.GetNullableString("PasswordResetToken")
+            PasswordResetToken = row.GetNullableString("PasswordResetToken"),
+            InviteTokenHash = row.GetNullableString("InviteTokenHash")
         };
     }
 
@@ -159,7 +176,8 @@ public sealed class LibsqlUserRepository : IUserRepository
             user.IsAdmin,
             CreatedAt = user.CreatedAt.ToString("O"),
             UpdatedAt = user.UpdatedAt.ToString("O"),
-            user.PasswordResetToken
+            user.PasswordResetToken,
+            user.InviteTokenHash
         };
     }
 }

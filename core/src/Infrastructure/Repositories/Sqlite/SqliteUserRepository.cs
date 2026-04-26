@@ -19,7 +19,7 @@ public class SqliteUserRepository : IUserRepository
         var connection = await _dbContext.GetConnectionAsync(ct);
 
         var sql = @"
-            SELECT rowid AS Id, Email, Name, PasswordHash, PasswordSalt, Role, Scope, IsAdmin, CreatedAt, UpdatedAt, PasswordResetToken
+            SELECT rowid AS Id, Email, Name, PasswordHash, PasswordSalt, Role, Scope, IsAdmin, CreatedAt, UpdatedAt, PasswordResetToken, InviteTokenHash
             FROM Users
             WHERE Email = @Email COLLATE NOCASE
             LIMIT 1";
@@ -34,7 +34,7 @@ public class SqliteUserRepository : IUserRepository
         var connection = await _dbContext.GetConnectionAsync(ct);
 
         var sql = @"
-            SELECT rowid AS Id, Email, Name, PasswordHash, PasswordSalt, Role, Scope, IsAdmin, CreatedAt, UpdatedAt, PasswordResetToken
+            SELECT rowid AS Id, Email, Name, PasswordHash, PasswordSalt, Role, Scope, IsAdmin, CreatedAt, UpdatedAt, PasswordResetToken, InviteTokenHash
             FROM Users
             ORDER BY Email";
 
@@ -48,12 +48,27 @@ public class SqliteUserRepository : IUserRepository
         var connection = await _dbContext.GetConnectionAsync(ct);
 
         var sql = @"
-            SELECT rowid AS Id, Email, Name, PasswordHash, PasswordSalt, Role, Scope, IsAdmin, CreatedAt, UpdatedAt, PasswordResetToken
+            SELECT rowid AS Id, Email, Name, PasswordHash, PasswordSalt, Role, Scope, IsAdmin, CreatedAt, UpdatedAt, PasswordResetToken, InviteTokenHash
             FROM Users
             WHERE rowid = @Id
             LIMIT 1";
 
         var result = await connection.QueryFirstOrDefaultAsync<UserDto>(sql, new { Id = id });
+
+        return result?.ToEntity();
+    }
+
+    public async Task<User?> GetByInviteTokenHashAsync(string inviteTokenHash, CancellationToken ct = default)
+    {
+        var connection = await _dbContext.GetConnectionAsync(ct);
+
+        var sql = @"
+            SELECT rowid AS Id, Email, Name, PasswordHash, PasswordSalt, Role, Scope, IsAdmin, CreatedAt, UpdatedAt, PasswordResetToken, InviteTokenHash
+            FROM Users
+            WHERE InviteTokenHash = @InviteTokenHash
+            LIMIT 1";
+
+        var result = await connection.QueryFirstOrDefaultAsync<UserDto>(sql, new { InviteTokenHash = inviteTokenHash });
 
         return result?.ToEntity();
     }
@@ -88,8 +103,8 @@ public class SqliteUserRepository : IUserRepository
         var connection = await _dbContext.GetConnectionAsync(ct);
 
         var sql = @"
-            INSERT INTO Users (Email, Name, PasswordHash, PasswordSalt, Role, Scope, IsAdmin, CreatedAt, UpdatedAt, PasswordResetToken)
-            VALUES (@Email, @Name, @PasswordHash, @PasswordSalt, @Role, @Scope, @IsAdmin, @CreatedAt, @UpdatedAt, @PasswordResetToken)";
+            INSERT INTO Users (Email, Name, PasswordHash, PasswordSalt, Role, Scope, IsAdmin, CreatedAt, UpdatedAt, PasswordResetToken, InviteTokenHash)
+            VALUES (@Email, @Name, @PasswordHash, @PasswordSalt, @Role, @Scope, @IsAdmin, @CreatedAt, @UpdatedAt, @PasswordResetToken, @InviteTokenHash)";
 
         await connection.ExecuteAsync(sql, UserDto.FromEntity(user));
 
@@ -110,7 +125,8 @@ public class SqliteUserRepository : IUserRepository
                 Scope = @Scope,
                 IsAdmin = @IsAdmin,
                 UpdatedAt = @UpdatedAt,
-                PasswordResetToken = @PasswordResetToken
+                PasswordResetToken = @PasswordResetToken,
+                InviteTokenHash = @InviteTokenHash
             WHERE Email = @Email COLLATE NOCASE";
 
         await connection.ExecuteAsync(sql, UserDto.FromEntity(user));
@@ -151,6 +167,7 @@ public class SqliteUserRepository : IUserRepository
         public string CreatedAt { get; set; } = string.Empty;
         public string UpdatedAt { get; set; } = string.Empty;
         public string? PasswordResetToken { get; set; }
+        public string? InviteTokenHash { get; set; }
 
         public User ToEntity()
         {
@@ -166,7 +183,8 @@ public class SqliteUserRepository : IUserRepository
                 IsAdmin = IsAdmin,
                 CreatedAt = DateTime.Parse(CreatedAt),
                 UpdatedAt = DateTime.Parse(UpdatedAt),
-                PasswordResetToken = PasswordResetToken
+                PasswordResetToken = PasswordResetToken,
+                InviteTokenHash = InviteTokenHash
             };
         }
 
@@ -184,7 +202,8 @@ public class SqliteUserRepository : IUserRepository
                 IsAdmin = user.IsAdmin,
                 CreatedAt = user.CreatedAt.ToString("O"),
                 UpdatedAt = user.UpdatedAt.ToString("O"),
-                PasswordResetToken = user.PasswordResetToken
+                PasswordResetToken = user.PasswordResetToken,
+                InviteTokenHash = user.InviteTokenHash
             };
         }
     }

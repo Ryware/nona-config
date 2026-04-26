@@ -91,7 +91,8 @@ public class SsoApiTests
                 new { name = "Microsoft User", email = "ms@example.com" },
                 adminToken))
             {
-                await Assert.That(createUser.RootElement.GetProperty("email").GetString()).IsEqualTo("ms@example.com");
+                await Assert.That(createUser.RootElement.GetProperty("user").GetProperty("email").GetString()).IsEqualTo("ms@example.com");
+                await Assert.That(createUser.RootElement.GetProperty("invitationToken").GetString()).IsNotNull();
             }
 
             var googleToken = signingKey.CreateToken(
@@ -213,6 +214,250 @@ public class SsoApiTests
             if (!success)
             {
                 Console.WriteLine($"SSO API test artifacts kept at: {artifactsRoot}");
+            }
+            else
+            {
+                try
+                {
+                    Directory.Delete(artifactsRoot, recursive: true);
+                }
+                catch
+                {
+                }
+            }
+        }
+    }
+
+    [Test]
+    public async Task InvitationEndpoints_CompleteOnce_AndSupportPasswordOrSso()
+    {
+        var artifactsRoot = Path.Combine(Path.GetTempPath(), $"nona-invite-api-test-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(artifactsRoot);
+
+        var success = false;
+        ManagedProcess? backend = null;
+        await using var signingKey = new SigningKeyFixture();
+        await using var jwksServer = await LocalJwksServer.StartAsync(signingKey.CreateJwksDocument());
+
+        var port = GetFreeTcpPort();
+        var sqlitePath = Path.Combine(artifactsRoot, "nona-invite-api.db");
+
+        try
+        {
+            await RunProcessCheckedAsync(
+                "build",
+                "dotnet",
+                $"build \"{TestPaths.ResolveWebApiProject()}\"",
+                TestPaths.ResolveRepoRoot(),
+                artifactsRoot,
+                TimeSpan.FromMinutes(5));
+
+            backend = StartProcess(
+                "backend",
+                "dotnet",
+                $"\"{TestPaths.ResolveWebApiOutputAssembly()}\"",
+                TestPaths.ResolveWebApiWorkingDirectory(),
+                new Dictionary<string, string?>
+                {
+                    ["ASPNETCORE_ENVIRONMENT"] = "Development",
+                    ["ASPNETCORE_URLS"] = $"http://127.0.0.1:{port}",
+                    ["Storage__Type"] = "Sqlite",
+                    ["ConnectionStrings__Sqlite"] = $"Data Source={sqlitePath}",
+                    ["Jwt__Key"] = "invite-api-tests-signing-key-1234567890",
+                    ["Jwt__Issuer"] = "invite-api-tests",
+                    ["Jwt__Audience"] = "invite-api-tests",
+                    ["Sso__Google__ClientId"] = "google-client-id",
+                    ["Sso__Microsoft__ClientId"] = "microsoft-client-id",
+                    ["Sso__Microsoft__TenantId"] = "allowed-tenant",
+                    ["Sso__Google__JwksUri"] = jwksServer.GoogleJwksUrl,
+                    ["Sso__Google__Issuers__0"] = "https://accounts.google.com",
+                    ["Sso__Microsoft__JwksUri"] = jwksServer.MicrosoftJwksUrl
+                });
+
+            await WaitForBackendHealthyAsync(backend, port, artifactsRoot);
+
+            using var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+            var baseUrl = $"http://127.0.0.1:{port}";
+
+            using var register = await SendJsonAsync(
+                httpClient,
+                HttpMethod.Post,
+                $"{baseUrl}/auth/register",
+                new { email = "admin@example.com", password = "Password123!" });
+            var adminToken = register.RootElement.GetProperty("response").GetProperty("token").GetString()
+                ?? throw new InvalidOperationException("Register response did not include a token.");
+
+            string passwordInviteToken;
+            using (var createUser = await SendJsonAsync(
+                httpClient,
+                HttpMethod.Post,
+                $"{baseUrl}/admin/users",
+                new { name = "Password Invitee", email = "password-invite@example.com" },
+                adminToken))
+            {
+                passwordInviteToken = createUser.RootElement.GetProperty("invitationToken").GetString()
+                    ?? throw new InvalidOperationException("Create user response did not include an invitation token.");
+            }
+
+            using (var invitation = await SendJsonAsync(
+                httpClient,
+                HttpMethod.Get,
+                $"{baseUrl}/auth/invitations/{passwordInviteToken}"))
+            {
+                await Assert.That(invitation.RootElement.GetProperty("email").GetString()).IsEqualTo("password-invite@example.com");
+            }
+
+            var mismatchedGoogleToken = signingKey.CreateToken(
+                issuer: "https://accounts.google.com",
+                audience: "google-client-id",
+                claims:
+                [
+                    new Claim("sub", "google-mismatch"),
+                    new Claim("email", "wrong@example.com"),
+                    new Claim("name", "Wrong User"),
+                    new Claim("email_verified", "true")
+                ]);
+
+            using (var mismatchResponse = await SendRawAsync(
+                httpClient,
+                HttpMethod.Post,
+                $"{baseUrl}/auth/invitations/{passwordInviteToken}/sso/google",
+                body: new { idToken = mismatchedGoogleToken }))
+            {
+                await Assert.That(mismatchResponse.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
+                using var body = await ParseJsonAsync(mismatchResponse);
+                await Assert.That(body.RootElement.GetProperty("errorCode").GetString()).IsEqualTo("invitation_sso_email_mismatch");
+            }
+
+            using (var passwordComplete = await SendJsonAsync(
+                httpClient,
+                HttpMethod.Post,
+                $"{baseUrl}/auth/invitations/{passwordInviteToken}/password",
+                new { newPassword = "Password123!" }))
+            {
+                await Assert.That(passwordComplete.RootElement.GetProperty("token").GetString()).IsNotNull();
+            }
+
+            using (var consumedInvite = await SendRawAsync(
+                httpClient,
+                HttpMethod.Get,
+                $"{baseUrl}/auth/invitations/{passwordInviteToken}"))
+            {
+                await Assert.That(consumedInvite.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
+                using var body = await ParseJsonAsync(consumedInvite);
+                await Assert.That(body.RootElement.GetProperty("errorCode").GetString()).IsEqualTo("invitation_invalid_or_used");
+            }
+
+            using (var passwordLogin = await SendJsonAsync(
+                httpClient,
+                HttpMethod.Post,
+                $"{baseUrl}/auth/login",
+                new { email = "password-invite@example.com", password = "Password123!" }))
+            {
+                await Assert.That(passwordLogin.RootElement.GetProperty("token").GetString()).IsNotNull();
+            }
+
+            string ssoInviteToken;
+            using (var createUser = await SendJsonAsync(
+                httpClient,
+                HttpMethod.Post,
+                $"{baseUrl}/admin/users",
+                new { name = "SSO Invitee", email = "sso-invite@example.com" },
+                adminToken))
+            {
+                ssoInviteToken = createUser.RootElement.GetProperty("invitationToken").GetString()
+                    ?? throw new InvalidOperationException("Create user response did not include an invitation token.");
+            }
+
+            var matchingGoogleToken = signingKey.CreateToken(
+                issuer: "https://accounts.google.com",
+                audience: "google-client-id",
+                claims:
+                [
+                    new Claim("sub", "google-sso-invite"),
+                    new Claim("email", "sso-invite@example.com"),
+                    new Claim("name", "SSO Invitee"),
+                    new Claim("email_verified", "true")
+                ]);
+
+            using (var ssoComplete = await SendJsonAsync(
+                httpClient,
+                HttpMethod.Post,
+                $"{baseUrl}/auth/invitations/{ssoInviteToken}/sso/google",
+                new { idToken = matchingGoogleToken }))
+            {
+                await Assert.That(ssoComplete.RootElement.GetProperty("token").GetString()).IsNotNull();
+            }
+
+            using (var consumedInvite = await SendRawAsync(
+                httpClient,
+                HttpMethod.Get,
+                $"{baseUrl}/auth/invitations/{ssoInviteToken}"))
+            {
+                await Assert.That(consumedInvite.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
+            }
+
+            using (var passwordFailure = await SendRawAsync(
+                httpClient,
+                HttpMethod.Post,
+                $"{baseUrl}/auth/login",
+                body: new { email = "sso-invite@example.com", password = "Password123!" }))
+            {
+                await Assert.That(passwordFailure.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
+            }
+
+            string normalSsoInviteToken;
+            using (var createUser = await SendJsonAsync(
+                httpClient,
+                HttpMethod.Post,
+                $"{baseUrl}/admin/users",
+                new { name = "Normal SSO Invitee", email = "normal-sso@example.com" },
+                adminToken))
+            {
+                normalSsoInviteToken = createUser.RootElement.GetProperty("invitationToken").GetString()
+                    ?? throw new InvalidOperationException("Create user response did not include an invitation token.");
+            }
+
+            var normalSsoToken = signingKey.CreateToken(
+                issuer: "https://accounts.google.com",
+                audience: "google-client-id",
+                claims:
+                [
+                    new Claim("sub", "google-normal-sso"),
+                    new Claim("email", "normal-sso@example.com"),
+                    new Claim("name", "Normal SSO Invitee"),
+                    new Claim("email_verified", "true")
+                ]);
+
+            using (var normalSsoLogin = await SendJsonAsync(
+                httpClient,
+                HttpMethod.Post,
+                $"{baseUrl}/auth/sso/google",
+                new { idToken = normalSsoToken }))
+            {
+                await Assert.That(normalSsoLogin.RootElement.GetProperty("token").GetString()).IsNotNull();
+            }
+
+            using (var consumedInvite = await SendRawAsync(
+                httpClient,
+                HttpMethod.Get,
+                $"{baseUrl}/auth/invitations/{normalSsoInviteToken}"))
+            {
+                await Assert.That(consumedInvite.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
+            }
+
+            success = true;
+        }
+        finally
+        {
+            if (backend is not null)
+            {
+                await backend.DisposeAsync();
+            }
+
+            if (!success)
+            {
+                Console.WriteLine($"Invite API test artifacts kept at: {artifactsRoot}");
             }
             else
             {

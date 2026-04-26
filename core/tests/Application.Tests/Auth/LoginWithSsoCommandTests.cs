@@ -94,7 +94,7 @@ public class LoginWithSsoCommandTests
 
         await Assert.That(result.Success).IsFalse();
         await Assert.That(result.Error).IsEqualTo("Authentication failed");
-        await Assert.That(result.ErrorCode).IsEqualTo("sso_user_not_registered");
+        await Assert.That(result.ErrorCode).IsEqualTo(AuthErrorCodes.SsoUserNotRegistered);
         await _externalIdentityRepository.DidNotReceive().AddAsync(Arg.Any<ExternalIdentity>(), Arg.Any<CancellationToken>());
     }
 
@@ -131,6 +131,29 @@ public class LoginWithSsoCommandTests
         await Assert.That(result.Error).IsEqualTo("Authentication failed");
         await Assert.That(result.ErrorCode).IsNull();
         await _externalIdentityRepository.DidNotReceive().AddAsync(Arg.Any<ExternalIdentity>(), Arg.Any<CancellationToken>());
+    }
+
+    [Test]
+    public async Task ClearsPendingInvite_WhenSsoLoginSucceeds()
+    {
+        var user = CreateUser("invitee@example.com");
+        user.InviteTokenHash = "pending-invite-hash";
+
+        _validator.ValidateAsync("valid-token", Arg.Any<CancellationToken>())
+            .Returns(SsoTokenValidationResult.Succeeded(CreateIdentity(email: user.Email, subject: "subject-789")));
+        _externalIdentityRepository.GetAsync(SsoProviders.Google, "https://accounts.google.com", "subject-789", Arg.Any<CancellationToken>())
+            .Returns((ExternalIdentity?)null);
+        _externalIdentityRepository.ListByUserEmailAsync(user.Email, Arg.Any<CancellationToken>())
+            .Returns(Array.Empty<ExternalIdentity>());
+        _userRepository.GetAsync(user.Email, Arg.Any<CancellationToken>()).Returns(user);
+
+        var handler = CreateHandler();
+        var result = await handler.Handle(new LoginWithSsoCommand(SsoProviders.Google, "valid-token"), CancellationToken.None);
+
+        await Assert.That(result.Success).IsTrue();
+        await _userRepository.Received(1).UpdateAsync(Arg.Is<User>(candidate =>
+            candidate.Email == user.Email &&
+            candidate.InviteTokenHash == null), Arg.Any<CancellationToken>());
     }
 
     private LoginWithSsoCommandHandler CreateHandler()

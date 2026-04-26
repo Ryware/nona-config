@@ -21,6 +21,13 @@ public class InMemoryUserRepository : IUserRepository
         return Task.FromResult(user);
     }
 
+    public Task<User?> GetByInviteTokenHashAsync(string inviteTokenHash, CancellationToken ct = default)
+    {
+        var user = _users.Values.FirstOrDefault(candidate =>
+            string.Equals(candidate.InviteTokenHash, inviteTokenHash, StringComparison.Ordinal));
+        return Task.FromResult(user);
+    }
+
     public Task<IReadOnlyList<User>> ListAsync(CancellationToken ct = default)
     {
         var users = _users.Values.ToList();
