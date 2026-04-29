@@ -2,7 +2,7 @@ services:
   nona-backend-primary:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     image: nona-backend:dev
     restart: unless-stopped
     ports:
@@ -31,7 +31,7 @@ services:
     image: nona-backend:dev
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     restart: unless-stopped
     depends_on:
       - nona-backend-primary

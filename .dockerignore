@@ -1,6 +1,7 @@
 **/bin/
 **/obj/
 .git
+**/.git
 .github
 .idea
 .vs
@@ -9,3 +10,5 @@ manual-e2e-artifacts
 manual-backend.log
 manual-backend.err.log
 core/tests
+frontend/node_modules
+frontend/dist
