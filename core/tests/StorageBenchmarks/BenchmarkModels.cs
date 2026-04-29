@@ -35,6 +35,7 @@ internal sealed record BenchmarkEnvironmentContext(
     string RepoRoot,
     string OutputDirectory,
     string SeedDatabasePath,
+    string SqliteDatabasePath,
     string LibsqlLocalDatabasePath,
     string LibsqlReplicaLocalPath,
     string MigrationsDirectory,

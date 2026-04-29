@@ -24,6 +24,10 @@ internal static class StorageBenchmarkApp
 
             var environment = await PrepareEnvironmentAsync(options, outputDirectory, cancellationSource.Token);
 
+            await using var sqlite = new SqliteBenchmarkDatabase(
+                "sqlite",
+                environment.SqliteDatabasePath);
+
             await using var libsqlLocal = new LibsqlBenchmarkDatabase(
                 "libsql-local",
                 SqlStatementFactory.CreateLocalClient(environment.LibsqlLocalDatabasePath));
@@ -49,6 +53,7 @@ internal static class StorageBenchmarkApp
 
             try
             {
+                await sqlite.InitializeAsync(cancellationSource.Token);
                 await libsqlLocal.InitializeAsync(cancellationSource.Token);
                 if (libsqlReplica is not null)
                 {
@@ -64,7 +69,7 @@ internal static class StorageBenchmarkApp
                 var latencySamples = new List<LatencySample>();
                 var errorSamples = new List<ErrorSample>();
 
-                foreach (var provider in EnumerateProviders(libsqlLocal, libsqlReplica, libsqlPrimary))
+                foreach (var provider in EnumerateProviders(sqlite, libsqlLocal, libsqlReplica, libsqlPrimary))
                 {
                     foreach (var scenario in scenarios)
                     {
@@ -133,12 +138,14 @@ internal static class StorageBenchmarkApp
         Directory.CreateDirectory(benchmarkDataDirectory);
 
         var seedDatabasePath = Path.Combine(benchmarkDataDirectory, "seed-base.db");
+        var sqliteDatabasePath = Path.Combine(benchmarkDataDirectory, "sqlite.db");
         var libsqlLocalDatabasePath = Path.Combine(benchmarkDataDirectory, "libsql-local.db");
         var libsqlReplicaLocalPath = Path.Combine(benchmarkDataDirectory, "libsql-replica-local.db");
         var migrationsDirectory = Path.Combine(repoRoot, "core", "src", "Infrastructure", "Migrations");
 
         Console.WriteLine("Creating seeded local libsql database.");
         await DatabaseSeeder.CreateSeedDatabaseAsync(seedDatabasePath, migrationsDirectory, cancellationToken);
+        DatabaseSeeder.CopySeedDatabase(seedDatabasePath, sqliteDatabasePath);
         DatabaseSeeder.CopySeedDatabase(seedDatabasePath, libsqlLocalDatabasePath);
 
         if (File.Exists(libsqlReplicaLocalPath))
@@ -157,6 +164,7 @@ internal static class StorageBenchmarkApp
             repoRoot,
             outputDirectory,
             seedDatabasePath,
+            sqliteDatabasePath,
             libsqlLocalDatabasePath,
             libsqlReplicaLocalPath,
             migrationsDirectory,
@@ -401,10 +409,12 @@ internal static class StorageBenchmarkApp
     }
 
     private static IEnumerable<IBenchmarkDatabase> EnumerateProviders(
+        IBenchmarkDatabase sqlite,
         IBenchmarkDatabase libsqlLocal,
         IBenchmarkDatabase? libsqlReplica,
         IBenchmarkDatabase? libsqlPrimary)
     {
+        yield return sqlite;
         yield return libsqlLocal;
         if (libsqlReplica is not null)
         {
