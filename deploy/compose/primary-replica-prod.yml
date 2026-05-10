@@ -1,26 +1,12 @@
 services:
   nona-primary:
-    image: nona-combined:dev
-    build:
-      context: ${NONA_BUILD_CONTEXT:-../../..}
-      dockerfile: NonaBackend/Dockerfile
+    image: rywaredev/nona:latest
     restart: unless-stopped
     ports:
       - "${NONA_PRIMARY_API_PORT:-18081}:8080"
       - "${NONA_PRIMARY_LIBSQL_PORT:-19080}:9080"
       - "${NONA_PRIMARY_GRPC_PORT:-15001}:5001"
     environment:
-      ASPNETCORE_ENVIRONMENT: Production
-      ASPNETCORE_URLS: http://0.0.0.0:8080
-      Storage__Type: Libsql
-      Storage__Libsql__TimeoutSeconds: "30"
-      Storage__Libsql__ManagedPrimary__Enabled: "true"
-      Storage__Libsql__ManagedPrimary__ExecutablePath: /usr/local/bin/sqld
-      Storage__Libsql__ManagedPrimary__DatabasePath: /var/lib/nona/primary/primary.db
-      Storage__Libsql__ManagedPrimary__WorkingDirectory: /var/lib/nona/primary
-      Storage__Libsql__ManagedPrimary__HttpListenAddress: 0.0.0.0:9080
-      Storage__Libsql__ManagedPrimary__LocalConnectUrl: http://127.0.0.1:9080
-      Storage__Libsql__ManagedPrimary__StartTimeoutSeconds: "120"
       Storage__Libsql__ManagedPrimary__ExtraArgs__0: --grpc-listen-addr
       Storage__Libsql__ManagedPrimary__ExtraArgs__1: 0.0.0.0:5001
       Storage__Libsql__ManagedPrimary__ExtraArgs__2: --http-self-url
@@ -30,16 +16,15 @@ services:
       Storage__Libsql__ManagedPrimary__ExtraArgs__6: --max-concurrent-requests
       Storage__Libsql__ManagedPrimary__ExtraArgs__7: "2048"
       Storage__Libsql__ManagedPrimary__ExtraArgs__8: --connection-creation-timeout-sec
-      Storage__Libsql__ManagedPrimary__ExtraArgs__9: "30"
+      Storage__Libsql__ManagedPrimary__ExtraArgs__9: "10"
       Jwt__Key: ${NONA_JWT_KEY:?set NONA_JWT_KEY}
       Jwt__Issuer: ${NONA_JWT_ISSUER:-nona}
       Jwt__Audience: ${NONA_JWT_AUDIENCE:-nona}
-      Defaults__Environment__0: ${NONA_DEFAULT_ENVIRONMENT:-Production}
     volumes:
       - nona-primary-data:/var/lib/nona
 
   nona-replica:
-    image: nona-combined:dev
+    image: rywaredev/nona:latest
     build:
       context: ${NONA_BUILD_CONTEXT:-../../..}
       dockerfile: NonaBackend/Dockerfile
@@ -50,17 +35,7 @@ services:
       - "${NONA_REPLICA_API_PORT:-18082}:8080"
       - "${NONA_REPLICA_LIBSQL_PORT:-19082}:9080"
     environment:
-      ASPNETCORE_ENVIRONMENT: Production
-      ASPNETCORE_URLS: http://0.0.0.0:8080
-      Storage__Type: Libsql
-      Storage__Libsql__TimeoutSeconds: "30"
-      Storage__Libsql__ManagedPrimary__Enabled: "true"
-      Storage__Libsql__ManagedPrimary__ExecutablePath: /usr/local/bin/sqld
-      Storage__Libsql__ManagedPrimary__DatabasePath: /var/lib/nona/replica/replica.db
-      Storage__Libsql__ManagedPrimary__WorkingDirectory: /var/lib/nona/replica
-      Storage__Libsql__ManagedPrimary__HttpListenAddress: 0.0.0.0:9080
-      Storage__Libsql__ManagedPrimary__LocalConnectUrl: http://127.0.0.1:9080
-      Storage__Libsql__ManagedPrimary__StartTimeoutSeconds: "120"
+
       Storage__Libsql__ManagedPrimary__ExtraArgs__0: --primary-grpc-url
       Storage__Libsql__ManagedPrimary__ExtraArgs__1: http://nona-primary:5001
       Storage__Libsql__ManagedPrimary__ExtraArgs__2: --http-self-url
@@ -70,11 +45,10 @@ services:
       Storage__Libsql__ManagedPrimary__ExtraArgs__6: --max-concurrent-requests
       Storage__Libsql__ManagedPrimary__ExtraArgs__7: "2048"
       Storage__Libsql__ManagedPrimary__ExtraArgs__8: --connection-creation-timeout-sec
-      Storage__Libsql__ManagedPrimary__ExtraArgs__9: "30"
+      Storage__Libsql__ManagedPrimary__ExtraArgs__9: "10"
       Jwt__Key: ${NONA_JWT_KEY:?set NONA_JWT_KEY}
       Jwt__Issuer: ${NONA_JWT_ISSUER:-nona}
       Jwt__Audience: ${NONA_JWT_AUDIENCE:-nona}
-      Defaults__Environment__0: ${NONA_DEFAULT_ENVIRONMENT:-Production}
     volumes:
       - nona-replica-data:/var/lib/nona
 
