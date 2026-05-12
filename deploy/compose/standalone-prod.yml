@@ -4,11 +4,10 @@ services:
     restart: unless-stopped
     ports:
       - "${NONA_API_PORT:-18080}:8080"
-      - "${NONA_LIBSQL_PORT:-19080}:9080"
-    environment:
-      Jwt__Key: ${NONA_JWT_KEY:?set NONA_JWT_KEY}
-      Jwt__Issuer: ${NONA_JWT_ISSUER:-nona}
-      Jwt__Audience: ${NONA_JWT_AUDIENCE:-nona}
+    # environment:
+    #   Jwt__Key: ${NONA_JWT_KEY:?set NONA_JWT_KEY}
+    #   Jwt__Issuer: ${NONA_JWT_ISSUER:-nona}
+    #   Jwt__Audience: ${NONA_JWT_AUDIENCE:-nona}
     volumes:
       - nona-data:/var/lib/nona
 

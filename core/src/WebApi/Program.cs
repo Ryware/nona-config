@@ -1,5 +1,6 @@
 using Nona.Application;
 using Nona.Infrastructure;
+using Nona.Infrastructure.Configuration;
 using Nona.WebApi;
 using Scalar.AspNetCore;
 using Serilog;
@@ -10,6 +11,7 @@ public partial class Program
     {
         var builder = WebApplication.CreateBuilder(args);
         builder.Configuration.AddUserSecrets(typeof(Program).Assembly);
+        PersistentJwtConfiguration.Apply(builder.Configuration);
         builder.Configuration.AddEnvironmentVariables();
 
         ConfigureServices(builder);

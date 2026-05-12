@@ -19,9 +19,9 @@ services:
       Storage__Libsql__ManagedPrimary__ExtraArgs__7: "2048"
       Storage__Libsql__ManagedPrimary__ExtraArgs__8: --connection-creation-timeout-sec
       Storage__Libsql__ManagedPrimary__ExtraArgs__9: "10"
-      Jwt__Key: ${NONA_JWT_KEY:?set NONA_JWT_KEY}
-      Jwt__Issuer: ${NONA_JWT_ISSUER:-nona}
-      Jwt__Audience: ${NONA_JWT_AUDIENCE:-nona}
+      # Jwt__Key: ${NONA_JWT_KEY:?set NONA_JWT_KEY}
+      # Jwt__Issuer: ${NONA_JWT_ISSUER:-nona}
+      # Jwt__Audience: ${NONA_JWT_AUDIENCE:-nona}
     volumes:
       - nona-primary-data:/var/lib/nona
 
@@ -47,9 +47,9 @@ services:
       Storage__Libsql__ManagedPrimary__ExtraArgs__7: "2048"
       Storage__Libsql__ManagedPrimary__ExtraArgs__8: --connection-creation-timeout-sec
       Storage__Libsql__ManagedPrimary__ExtraArgs__9: "10"
-      Jwt__Key: ${NONA_JWT_KEY:?set NONA_JWT_KEY}
-      Jwt__Issuer: ${NONA_JWT_ISSUER:-nona}
-      Jwt__Audience: ${NONA_JWT_AUDIENCE:-nona}
+      # Jwt__Key: ${NONA_JWT_KEY:?set NONA_JWT_KEY}
+      # Jwt__Issuer: ${NONA_JWT_ISSUER:-nona}
+      # Jwt__Audience: ${NONA_JWT_AUDIENCE:-nona}
     volumes:
       - nona-replica-data:/var/lib/nona
 
