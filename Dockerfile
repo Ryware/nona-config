@@ -57,12 +57,9 @@ RUN apt-get update \
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled-extra AS runtime
 WORKDIR /app
 
-WORKDIR /var/lib/nona
-WORKDIR /app
-
 COPY --from=libsql /usr/local/bin/sqld /usr/local/bin/sqld
 COPY --from=libsql /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
-COPY --from=build --chown=1654:1654 /empty-nona/ /var/lib/nona/
+COPY --from=build --chown=1654:1654 /empty-nona /var/lib/nona
 COPY --from=build /app/publish/ ./
 
 EXPOSE 8080
