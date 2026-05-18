@@ -1,0 +1,224 @@
+using Microsoft.Extensions.Configuration;
+using System.Security.Cryptography;
+using System.Text.Json;
+
+namespace Nona.Infrastructure.Configuration;
+
+public static class PersistentJwtConfiguration
+{
+    private const string GeneratedFileName = "jwt.generated.json";
+    private const string DefaultIssuer = "nona";
+    private const string DefaultAudience = "nona";
+
+    private static readonly string[] RequiredConfigurationKeys =
+    [
+        "Jwt:Key",
+        "Jwt:Issuer",
+        "Jwt:Audience"
+    ];
+
+    private static readonly string[] RequiredEnvironmentVariables =
+    [
+        "Jwt__Key",
+        "Jwt__Issuer",
+        "Jwt__Audience"
+    ];
+
+    public static void Apply(ConfigurationManager configuration)
+    {
+        ArgumentNullException.ThrowIfNull(configuration);
+
+        var generatedConfigPath = ResolveGeneratedConfigPath(configuration);
+
+        if (HasCompleteJwtEnvironmentOverride())
+        {
+            DeleteGeneratedConfig(generatedConfigPath);
+            return;
+        }
+
+        if (HasCompleteJwtConfiguration(configuration))
+        {
+            return;
+        }
+
+        var generatedSettings = ReadOrCreateGeneratedSettings(generatedConfigPath);
+        configuration.AddInMemoryCollection(CreateMissingConfigurationValues(configuration, generatedSettings));
+    }
+
+    private static bool HasCompleteJwtEnvironmentOverride()
+    {
+        return RequiredEnvironmentVariables.All(name =>
+            !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(name)));
+    }
+
+    private static bool HasCompleteJwtConfiguration(IConfiguration configuration)
+    {
+        return RequiredConfigurationKeys.All(key => !string.IsNullOrWhiteSpace(configuration[key]));
+    }
+
+    private static IReadOnlyDictionary<string, string?> CreateMissingConfigurationValues(
+        IConfiguration configuration,
+        JwtSettings settings)
+    {
+        var values = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+
+        AddIfMissing(values, configuration, "Jwt:Key", settings.Key);
+        AddIfMissing(values, configuration, "Jwt:Issuer", settings.Issuer);
+        AddIfMissing(values, configuration, "Jwt:Audience", settings.Audience);
+
+        return values;
+    }
+
+    private static void AddIfMissing(
+        IDictionary<string, string?> values,
+        IConfiguration configuration,
+        string key,
+        string value)
+    {
+        if (string.IsNullOrWhiteSpace(configuration[key]))
+        {
+            values[key] = value;
+        }
+    }
+
+    private static JwtSettings ReadOrCreateGeneratedSettings(string generatedConfigPath)
+    {
+        if (TryReadGeneratedSettings(generatedConfigPath, out var settings))
+        {
+            return settings;
+        }
+
+        settings = new JwtSettings(
+            Key: Convert.ToBase64String(RandomNumberGenerator.GetBytes(64)),
+            Issuer: DefaultIssuer,
+            Audience: DefaultAudience);
+
+        if (!File.Exists(generatedConfigPath))
+        {
+            if (TryWriteGeneratedSettings(generatedConfigPath, settings, overwrite: false))
+            {
+                return settings;
+            }
+
+            if (TryReadGeneratedSettings(generatedConfigPath, out var existingSettings))
+            {
+                return existingSettings;
+            }
+        }
+
+        WriteGeneratedSettings(generatedConfigPath, settings);
+        return settings;
+    }
+
+    private static bool TryReadGeneratedSettings(string generatedConfigPath, out JwtSettings settings)
+    {
+        settings = default;
+
+        if (!File.Exists(generatedConfigPath))
+        {
+            return false;
+        }
+
+        try
+        {
+            using var stream = File.OpenRead(generatedConfigPath);
+            var persisted = JsonSerializer.Deserialize<PersistedJwtConfiguration>(stream);
+
+            if (persisted is null || !IsComplete(persisted.Jwt))
+            {
+                return false;
+            }
+
+            settings = persisted.Jwt;
+            return true;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    private static void WriteGeneratedSettings(string generatedConfigPath, JwtSettings settings)
+    {
+        _ = TryWriteGeneratedSettings(generatedConfigPath, settings, overwrite: true);
+    }
+
+    private static bool TryWriteGeneratedSettings(string generatedConfigPath, JwtSettings settings, bool overwrite)
+    {
+        var directory = Path.GetDirectoryName(generatedConfigPath);
+        if (!string.IsNullOrWhiteSpace(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
+        var json = JsonSerializer.Serialize(
+            new PersistedJwtConfiguration(settings),
+            new JsonSerializerOptions { WriteIndented = true });
+
+        var temporaryPath = $"{generatedConfigPath}.{Guid.NewGuid():N}.tmp";
+        File.WriteAllText(temporaryPath, json);
+        try
+        {
+            File.Move(temporaryPath, generatedConfigPath, overwrite);
+            return true;
+        }
+        catch (IOException) when (!overwrite && File.Exists(generatedConfigPath))
+        {
+            File.Delete(temporaryPath);
+            return false;
+        }
+        catch
+        {
+            if (File.Exists(temporaryPath))
+            {
+                File.Delete(temporaryPath);
+            }
+
+            throw;
+        }
+    }
+
+    private static void DeleteGeneratedConfig(string generatedConfigPath)
+    {
+        if (File.Exists(generatedConfigPath))
+        {
+            File.Delete(generatedConfigPath);
+        }
+    }
+
+    private static bool IsComplete(JwtSettings settings)
+    {
+        return !string.IsNullOrWhiteSpace(settings.Key)
+            && !string.IsNullOrWhiteSpace(settings.Issuer)
+            && !string.IsNullOrWhiteSpace(settings.Audience);
+    }
+
+    private static string ResolveGeneratedConfigPath(IConfiguration configuration)
+    {
+        var databasePath = configuration["Storage:Libsql:ManagedPrimary:DatabasePath"];
+        if (string.IsNullOrWhiteSpace(databasePath))
+        {
+            throw new InvalidOperationException(
+                "Storage:Libsql:ManagedPrimary:DatabasePath must be configured to persist generated JWT settings.");
+        }
+
+        return Path.Combine(GetDirectoryName(ResolvePath(databasePath)), GeneratedFileName);
+    }
+
+    private static string ResolvePath(string path)
+    {
+        return Path.IsPathRooted(path) ? path : Path.GetFullPath(path);
+    }
+
+    private static string GetDirectoryName(string path)
+    {
+        var directory = Path.GetDirectoryName(path);
+        return string.IsNullOrWhiteSpace(directory)
+            ? Directory.GetCurrentDirectory()
+            : directory;
+    }
+
+    private sealed record PersistedJwtConfiguration(JwtSettings Jwt);
+
+    private readonly record struct JwtSettings(string Key, string Issuer, string Audience);
+}

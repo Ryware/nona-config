@@ -1,4 +1,3 @@
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Nona.Libsql;
@@ -7,19 +6,16 @@ namespace Nona.Infrastructure.Services;
 
 public sealed class LibsqlDatabaseInitializer : IHostedService
 {
-    private readonly LibsqlHttpDatabaseClient _client;
-    private readonly IServiceProvider _serviceProvider;
-    private readonly LibsqlOptions _options;
+    private readonly ILibsqlDatabaseClient _client;
     private readonly string _migrationsFolder;
+    private readonly bool _skipMigrations;
 
     public LibsqlDatabaseInitializer(
-        LibsqlHttpDatabaseClient client,
-        IServiceProvider serviceProvider,
+        ILibsqlDatabaseClient client,
         IOptions<LibsqlOptions> options)
     {
         _client = client;
-        _serviceProvider = serviceProvider;
-        _options = options.Value;
+        _skipMigrations = options.Value.EnableLocalReplica;
 
         var basePath = AppDomain.CurrentDomain.BaseDirectory;
         _migrationsFolder = Path.Combine(basePath, "Migrations");
@@ -33,22 +29,15 @@ public sealed class LibsqlDatabaseInitializer : IHostedService
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
+        if (_skipMigrations)
+        {
+            return;
+        }
+
         if (!Directory.Exists(_migrationsFolder))
         {
             Console.WriteLine($"Migrations folder not found at: {_migrationsFolder}");
             Console.WriteLine("Skipping libSQL migrations.");
-            return;
-        }
-
-        var mirroredClient = _serviceProvider.GetService<LibsqlMirroredLocalDatabaseClient>();
-        if (_options.EnableLocalReplica)
-        {
-            if (mirroredClient is null)
-            {
-                throw new InvalidOperationException("Local replica mode is enabled, but the mirrored libSQL client was not registered.");
-            }
-
-            await mirroredClient.InitializeAsync(cancellationToken);
             return;
         }
 

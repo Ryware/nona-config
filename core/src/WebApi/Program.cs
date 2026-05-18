@@ -1,5 +1,6 @@
 using Nona.Application;
 using Nona.Infrastructure;
+using Nona.Infrastructure.Configuration;
 using Nona.WebApi;
 using Scalar.AspNetCore;
 using Serilog;
@@ -10,6 +11,7 @@ public partial class Program
     {
         var builder = WebApplication.CreateBuilder(args);
         builder.Configuration.AddUserSecrets(typeof(Program).Assembly);
+        PersistentJwtConfiguration.Apply(builder.Configuration);
         builder.Configuration.AddEnvironmentVariables();
 
         ConfigureServices(builder);
@@ -44,7 +46,6 @@ public partial class Program
                   .WriteTo.Console(outputTemplate: $$"""{Timestamp:u} {Timestamp:ffffff} {Level:u3} {Message:l}{NewLine}{Exception}"""));
 
 
-        // builder.Services.AddApiAuthenticationServices(builder.Configuration);
         builder.Services.AddInfrastructureServices(builder.Configuration);
         builder.Services.AddApplicationServices(builder.Configuration);
         builder.Services.AddApiServices(builder.Configuration);
@@ -59,19 +60,13 @@ public partial class Program
                 .WithTitle("Nona config API");
         });
 
-        // Use specific CORS policy for frontend (development)
-        if (app.Environment.IsDevelopment())
-        {
-            app.UseCors("AllowFrontend");
-        }
-        else
-        {
-            // Production: configure as needed
-            app.UseCors(x => x.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
-        }
+        app.UseCors(x => x.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
 
+        app.UseDefaultFiles();
+        app.UseStaticFiles();
         app.UseAuthentication();
         app.UseAuthorization();
         app.MapControllers();
+        app.MapFallbackToFile("index.html");
     }
 }

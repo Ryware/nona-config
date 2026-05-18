@@ -18,7 +18,7 @@ public class LoginCommandHandler(IUserRepository userRepository, IJwtTokenServic
         if (user is null)
             return new LoginResult(false, null, "Invalid username or password");
 
-        if (!passwordHasher.VerifyPassword(request.Password, user.PasswordHash))
+        if (string.IsNullOrEmpty(user.PasswordHash) || !passwordHasher.VerifyPassword(request.Password, user.PasswordHash))
             return new LoginResult(false, null, "Invalid username or password");
 
         var token = jwtTokenService.GenerateToken(user);

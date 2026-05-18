@@ -8,6 +8,7 @@ public class LibsqlMigrationRunnerTests
     public async Task RunMigrationsAsync_AppliesEachScriptOnce()
     {
         var migrationsFolder = Path.Combine(Path.GetTempPath(), $"nona-libsql-migrations-{Guid.NewGuid():N}");
+        var databasePath = Path.Combine(Path.GetTempPath(), $"nona-libsql-migration-db-{Guid.NewGuid():N}.db");
         Directory.CreateDirectory(migrationsFolder);
 
         try
@@ -15,7 +16,6 @@ public class LibsqlMigrationRunnerTests
             await File.WriteAllTextAsync(
                 Path.Combine(migrationsFolder, "001_CreateWrapperItems.sql"),
                 """
-                -- Create the wrapper test table.
                 CREATE TABLE IF NOT EXISTS WrapperItems (
                     Id INTEGER PRIMARY KEY AUTOINCREMENT,
                     Name TEXT NOT NULL
@@ -25,14 +25,11 @@ public class LibsqlMigrationRunnerTests
             await File.WriteAllTextAsync(
                 Path.Combine(migrationsFolder, "002_SeedWrapperItems.sql"),
                 """
-                /* Seed data with a semicolon inside a string to exercise script splitting. */
                 INSERT INTO WrapperItems (Name) VALUES ('alpha');
                 INSERT INTO WrapperItems (Name) VALUES ('beta;still-beta');
                 """);
 
-            using var handler = new FakeLibsqlMessageHandler();
-            using var httpClient = CreateHttpClient(handler);
-            var client = new LibsqlHttpDatabaseClient(httpClient);
+            using var client = new NelknetLibsqlDatabaseClient($"Data Source={databasePath}");
             var runner = new LibsqlMigrationRunner(client, migrationsFolder);
 
             await runner.RunMigrationsAsync();
@@ -55,15 +52,53 @@ public class LibsqlMigrationRunnerTests
             catch
             {
             }
+
+            try
+            {
+                if (File.Exists(databasePath))
+                {
+                    File.Delete(databasePath);
+                }
+            }
+            catch
+            {
+            }
         }
     }
 
-    private static HttpClient CreateHttpClient(HttpMessageHandler handler)
+    [Test]
+    public async Task RunMigrationsAsync_AppliesRepoMigrations_ToLocalLibsqlFile()
     {
-        return new HttpClient(handler, disposeHandler: false)
+        var databasePath = Path.Combine(Path.GetTempPath(), $"nona-libsql-repo-migrations-{Guid.NewGuid():N}.db");
+
+        try
         {
-            BaseAddress = new Uri("https://integration.test/"),
-            Timeout = TimeSpan.FromSeconds(30)
-        };
+            using var client = new NelknetLibsqlDatabaseClient($"Data Source={databasePath}");
+            var runner = new LibsqlMigrationRunner(client, TestPaths.ResolveMigrationsFolder());
+
+            await runner.RunMigrationsAsync();
+
+            var projectsTable = await client.ExecuteAsync(
+                """
+                SELECT COUNT(1) AS Count
+                FROM sqlite_master
+                WHERE type = 'table' AND name = 'Projects'
+                """);
+
+            await Assert.That(projectsTable.Rows[0].GetInt32("Count")).IsEqualTo(1);
+        }
+        finally
+        {
+            try
+            {
+                if (File.Exists(databasePath))
+                {
+                    File.Delete(databasePath);
+                }
+            }
+            catch
+            {
+            }
+        }
     }
 }
