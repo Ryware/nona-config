@@ -60,14 +60,7 @@ public partial class Program
                 .WithTitle("Nona config API");
         });
 
-        if (app.Environment.IsDevelopment())
-        {
-            app.UseCors("AllowFrontend");
-        }
-        else
-        {
-            app.UseCors(x => x.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
-        }
+        app.UseCors(x => x.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
 
         app.UseDefaultFiles();
         app.UseStaticFiles();

@@ -33,7 +33,6 @@ public class CreateProjectCommandHandler(
 
         var now = dateTime.NowUtc;
 
-        // Generate a URL-friendly slug and ensure it's unique within this database/zone.
         var baseSlug = GenerateSlug(request.Name);
         var finalSlug = baseSlug;
         if (!string.IsNullOrEmpty(baseSlug))
