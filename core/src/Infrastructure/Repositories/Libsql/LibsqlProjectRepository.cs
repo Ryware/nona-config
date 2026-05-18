@@ -94,11 +94,12 @@ public sealed class LibsqlProjectRepository : IProjectRepository
             """
             INSERT INTO Projects (Name, UrlSlug, ServerApiKey, ClientApiKey, CreatedAt, UpdatedAt)
             VALUES (@Name, @UrlSlug, @ServerApiKey, @ClientApiKey, @CreatedAt, @UpdatedAt)
+            RETURNING rowid AS Id
             """,
             ToParameters(project),
             ct);
 
-        project.Id = result.LastInsertRowId ?? 0;
+        project.Id = result.Rows.Count > 0 ? result.Rows[0].GetInt64("Id") : result.LastInsertRowId ?? 0;
     }
 
     public async Task UpdateAsync(Project project, CancellationToken ct = default)

@@ -239,6 +239,7 @@ ClientBin/
 *.pfx
 *.publishsettings
 orleans.codegen.cs
+jwt.generated.json
 
 # Including strong name files can present a security risk
 # (https://github.com/github/gitignore/pull/2483#issue-259490424)
@@ -361,3 +362,4 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+core/src/WebApi/nona-config.db

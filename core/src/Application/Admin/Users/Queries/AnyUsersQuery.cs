@@ -11,6 +11,6 @@ internal class AnyUsersQueryHandler(IUserRepository userRepository) : IRequestHa
     {
         var usersExist = await userRepository.ExistsAnyAsync(cancellationToken);
 
-        return usersExist == false;
+        return !usersExist;
     }
 }

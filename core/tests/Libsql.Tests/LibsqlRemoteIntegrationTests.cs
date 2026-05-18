@@ -1,4 +1,4 @@
-using System.Net.Http.Headers;
+using Microsoft.Extensions.Options;
 
 namespace Nona.Libsql.Tests;
 
@@ -9,16 +9,13 @@ public class LibsqlRemoteIntegrationTests
     [Test]
     public async Task RemoteLibsql_WrapperCrud_WorksWhenCredentialsProvided()
     {
-        var url = Environment.GetEnvironmentVariable("NONA_LIBSQL_TEST_URL");
-        var authToken = Environment.GetEnvironmentVariable("NONA_LIBSQL_TEST_AUTH_TOKEN");
-
-        if (string.IsNullOrWhiteSpace(url) || string.IsNullOrWhiteSpace(authToken))
+        var (url, authToken) = GetRemoteCredentials();
+        if (string.IsNullOrWhiteSpace(url))
         {
             return;
         }
 
-        using var httpClient = CreateHttpClient(url, authToken);
-        var client = new LibsqlHttpDatabaseClient(httpClient);
+        using var client = CreateDirectClient(url, authToken);
         var id = Guid.NewGuid().ToString("N")[..16];
 
         await EnsureSmokeTableAsync(client);
@@ -81,60 +78,75 @@ public class LibsqlRemoteIntegrationTests
     }
 
     [Test]
-    public async Task RemoteLibsql_TwoClients_ObserveSharedState_WhenCredentialsProvided()
+    public async Task RemoteLibsql_EmbeddedReplica_ObservesRemoteWrites_WhenCredentialsProvided()
     {
-        var url = Environment.GetEnvironmentVariable("NONA_LIBSQL_TEST_URL");
-        var authToken = Environment.GetEnvironmentVariable("NONA_LIBSQL_TEST_AUTH_TOKEN");
-
-        if (string.IsNullOrWhiteSpace(url) || string.IsNullOrWhiteSpace(authToken))
+        var (url, authToken) = GetRemoteCredentials();
+        if (string.IsNullOrWhiteSpace(url))
         {
             return;
         }
 
-        using var httpClientA = CreateHttpClient(url, authToken);
-        using var httpClientB = CreateHttpClient(url, authToken);
+        var replicaPath = Path.Combine(Path.GetTempPath(), $"nona-libsql-embedded-{Guid.NewGuid():N}.db");
+        using var directClient = CreateDirectClient(url, authToken);
+        using var replicaClient = new NelknetLibsqlDatabaseClient(Options.Create(new LibsqlOptions
+        {
+            DataSource = url,
+            AuthToken = authToken ?? string.Empty,
+            EnableLocalReplica = true,
+            LocalReplicaPath = replicaPath,
+            LocalReplicaSyncIntervalSeconds = 0.2,
+            TimeoutSeconds = 30
+        }));
 
-        var clientA = new LibsqlHttpDatabaseClient(httpClientA);
-        var clientB = new LibsqlHttpDatabaseClient(httpClientB);
         var id = Guid.NewGuid().ToString("N")[..16];
-
-        await EnsureSmokeTableAsync(clientA);
+        await EnsureSmokeTableAsync(directClient);
 
         try
         {
-            await clientA.ExecuteAsync(
+            await directClient.ExecuteAsync(
                 $"INSERT INTO {WrapperSmokeTable} (Id, Value, UpdatedAt) VALUES (@Id, @Value, @UpdatedAt)",
                 new
                 {
                     Id = id,
-                    Value = "shared-remote-value",
+                    Value = "embedded-value",
                     UpdatedAt = DateTime.UtcNow.ToString("O")
                 });
 
-            var readFromClientB = await clientB.ExecuteAsync(
-                $"SELECT Value FROM {WrapperSmokeTable} WHERE Id = @Id",
-                new { Id = id });
+            var deadline = DateTime.UtcNow.AddSeconds(10);
+            while (DateTime.UtcNow < deadline)
+            {
+                var stored = await replicaClient.ExecuteAsync(
+                    $"SELECT Value FROM {WrapperSmokeTable} WHERE Id = @Id",
+                    new { Id = id });
 
-            await Assert.That(readFromClientB.Rows.Count).IsEqualTo(1);
-            await Assert.That(readFromClientB.Rows[0].GetString("Value")).IsEqualTo("shared-remote-value");
+                if (stored.Rows.Count == 1 && stored.Rows[0].GetString("Value") == "embedded-value")
+                {
+                    return;
+                }
 
-            await clientB.ExecuteAsync(
-                $"DELETE FROM {WrapperSmokeTable} WHERE Id = @Id",
-                new { Id = id });
+                await Task.Delay(200);
+            }
 
-            var readAgainFromClientA = await clientA.ExecuteAsync(
-                $"SELECT COUNT(1) AS Count FROM {WrapperSmokeTable} WHERE Id = @Id",
-                new { Id = id });
-
-            await Assert.That(readAgainFromClientA.Rows[0].GetInt32("Count")).IsEqualTo(0);
+            throw new TimeoutException("Embedded replica did not observe remote write before deadline.");
         }
         finally
         {
             try
             {
-                await clientA.ExecuteAsync(
+                await directClient.ExecuteAsync(
                     $"DELETE FROM {WrapperSmokeTable} WHERE Id = @Id",
                     new { Id = id });
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                if (File.Exists(replicaPath))
+                {
+                    File.Delete(replicaPath);
+                }
             }
             catch
             {
@@ -142,7 +154,7 @@ public class LibsqlRemoteIntegrationTests
         }
     }
 
-    private static async Task EnsureSmokeTableAsync(LibsqlHttpDatabaseClient client)
+    private static async Task EnsureSmokeTableAsync(ILibsqlDatabaseClient client)
     {
         await client.ExecuteAsync(
             $"""
@@ -154,14 +166,20 @@ public class LibsqlRemoteIntegrationTests
             """);
     }
 
-    private static HttpClient CreateHttpClient(string url, string authToken)
+    private static NelknetLibsqlDatabaseClient CreateDirectClient(string url, string? authToken)
     {
-        var httpClient = new HttpClient
+        return new NelknetLibsqlDatabaseClient(Options.Create(new LibsqlOptions
         {
-            BaseAddress = new Uri($"{LibsqlHttpDatabaseClient.NormalizeBaseUrl(url)}/"),
-            Timeout = TimeSpan.FromSeconds(30)
-        };
-        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authToken);
-        return httpClient;
+            DataSource = url,
+            AuthToken = authToken ?? string.Empty,
+            TimeoutSeconds = 30
+        }));
+    }
+
+    private static (string? Url, string? AuthToken) GetRemoteCredentials()
+    {
+        return (
+            Environment.GetEnvironmentVariable("NONA_LIBSQL_TEST_URL"),
+            Environment.GetEnvironmentVariable("NONA_LIBSQL_TEST_AUTH_TOKEN"));
     }
 }

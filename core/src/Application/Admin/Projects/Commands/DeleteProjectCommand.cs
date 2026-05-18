@@ -74,7 +74,6 @@ public class DeleteProjectCommandHandler(
         if (project != null)
             return project;
 
-        // Try numeric id match or slug match by listing projects (per-zone only)
         var projects = await projectRepository.ListAsync(cancellationToken);
 
         if (long.TryParse(idOrNameOrSlug, out var numericId))

@@ -1,5 +1,4 @@
 <Solution>
-  <Folder Name="/core/" />
   <Folder Name="/core/src/">
     <Project Path="core/src/Application/Application.csproj" />
     <Project Path="core/src/Domain/Domain.csproj" />
@@ -11,6 +10,7 @@
     <Project Path="core/tests/Application.Tests/Application.Tests.csproj" />
     <Project Path="core/tests/Infrastructure.Tests/Infrastructure.Tests.csproj" />
     <Project Path="core/tests/Libsql.Tests/Libsql.Tests.csproj" />
+    <Project Path="core/tests/StorageBenchmarks/StorageBenchmarks.csproj" />
   </Folder>
   <Folder Name="/Migrator/">
     <Project Path="migrator/FirebaseRemoteConfigMigrator.Tests/FirebaseRemoteConfigMigrator.Tests.csproj" />
