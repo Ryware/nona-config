@@ -3,13 +3,10 @@ global using Nona.Infrastructure.Authentication;
 global using Nona.Infrastructure.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using Nona.Domain.Interfaces;
 using Nona.Infrastructure.Repositories.InMemory;
 using Nona.Infrastructure.Repositories.Libsql;
-using Nona.Infrastructure.Repositories.Sqlite;
 using Nona.Libsql;
-using System.Net.Http.Headers;
 
 namespace Nona.Infrastructure;
 
@@ -45,11 +42,7 @@ public static class ConfigureServices
     {
         var storageType = configuration.GetValue<string>("Storage:Type") ?? "InMemory";
 
-        if (storageType.Equals("Sqlite", StringComparison.OrdinalIgnoreCase))
-        {
-            ConfigureSqlitePersistence(services, configuration);
-        }
-        else if (storageType.Equals("Libsql", StringComparison.OrdinalIgnoreCase))
+        if (storageType.Equals("Libsql", StringComparison.OrdinalIgnoreCase))
         {
             ConfigureLibsqlPersistence(services, configuration);
         }
@@ -70,78 +63,76 @@ public static class ConfigureServices
         services.AddSingleton<IProjectMemberRepository, InMemoryProjectMemberRepository>();
     }
 
-    private static void ConfigureSqlitePersistence(IServiceCollection services, IConfiguration configuration)
+    private static void ConfigureLibsqlPersistence(
+        IServiceCollection services,
+        IConfiguration configuration)
     {
-        var connectionString = configuration.GetConnectionString("Sqlite")
-            ?? "Data Source=nona-config.db";
+        var managedPrimary = new LibsqlManagedPrimaryOptions
+        {
+            Enabled = configuration.GetValue<bool>("Storage:Libsql:ManagedPrimary:Enabled"),
+            ExecutablePath = configuration["Storage:Libsql:ManagedPrimary:ExecutablePath"] ?? "sqld",
+            DatabasePath = configuration["Storage:Libsql:ManagedPrimary:DatabasePath"] ?? "nona-config-primary.db",
+            HttpListenAddress = configuration["Storage:Libsql:ManagedPrimary:HttpListenAddress"] ?? "127.0.0.1:9080",
+            LocalConnectUrl = configuration["Storage:Libsql:ManagedPrimary:LocalConnectUrl"] ?? string.Empty,
+            WorkingDirectory = configuration["Storage:Libsql:ManagedPrimary:WorkingDirectory"] ?? string.Empty,
+            StartTimeoutSeconds = configuration.GetValue<int?>("Storage:Libsql:ManagedPrimary:StartTimeoutSeconds") ?? 30,
+            ExtraArgs = configuration
+                .GetSection("Storage:Libsql:ManagedPrimary:ExtraArgs")
+                .Get<string[]>() ?? []
+        };
 
-        services.AddSingleton(sp => new SqliteDbContext(connectionString));
-        services.AddHostedService<SqliteDatabaseInitializer>();
-
-        services.AddSingleton<IAuditLogRepository, SqliteAuditLogRepository>();
-        services.AddSingleton<IConfigEntryRepository, SqliteConfigEntryRepository>();
-        services.AddSingleton<IUserRepository, SqliteUserRepository>();
-        services.AddSingleton<IExternalIdentityRepository, SqliteExternalIdentityRepository>();
-        services.AddSingleton<IProjectRepository, SqliteProjectRepository>();
-        services.AddSingleton<IEnvironmentRepository, SqliteEnvironmentRepository>();
-        services.AddSingleton<IProjectMemberRepository, SqliteProjectMemberRepository>();
-    }
-
-    private static void ConfigureLibsqlPersistence(IServiceCollection services, IConfiguration configuration)
-    {
-        var url = configuration.GetConnectionString("Libsql")
-            ?? configuration["Storage:Libsql:Url"];
+        var dataSource = managedPrimary.Enabled
+            ? managedPrimary.ResolveLocalConnectUrl()
+            : configuration.GetConnectionString("Libsql")
+                ?? configuration["Storage:Libsql:DataSource"];
         var authToken = configuration["Storage:Libsql:AuthToken"];
         var timeoutSeconds = configuration.GetValue<int?>("Storage:Libsql:TimeoutSeconds") ?? 30;
         var enableLocalReplica = configuration.GetValue<bool>("Storage:Libsql:EnableLocalReplica");
         var localReplicaPath = configuration["Storage:Libsql:LocalReplicaPath"];
-        var localReplicaRole = configuration["Storage:Libsql:LocalReplicaRole"] ?? "Replica";
+        var localReplicaSyncIntervalSeconds = configuration.GetValue<double?>("Storage:Libsql:LocalReplicaSyncIntervalSeconds") ?? 1;
 
         services.AddOptions<LibsqlOptions>()
             .Configure(options =>
             {
-                options.Url = url ?? string.Empty;
+                options.DataSource = dataSource ?? string.Empty;
                 options.AuthToken = authToken ?? string.Empty;
                 options.TimeoutSeconds = timeoutSeconds;
                 options.EnableLocalReplica = enableLocalReplica;
                 options.LocalReplicaPath = localReplicaPath ?? string.Empty;
-                options.LocalReplicaRole = localReplicaRole;
+                options.LocalReplicaSyncIntervalSeconds = localReplicaSyncIntervalSeconds;
+                options.ManagedPrimary = managedPrimary;
             })
             .Validate(
-                options => !options.EnableLocalReplica || IsValidLocalReplicaRole(options.LocalReplicaRole),
-                "Storage:Libsql:LocalReplicaRole must be either 'Primary' or 'Replica' when Storage:Libsql:EnableLocalReplica is true.")
-            .Validate(
-                options => !RequiresRemotePeer(options) || !string.IsNullOrWhiteSpace(options.Url),
-                "Storage:Libsql:Url or ConnectionStrings:Libsql must be configured for direct libSQL or replica mode.")
-            .Validate(options => !string.IsNullOrWhiteSpace(options.AuthToken), "Storage:Libsql:AuthToken must be configured.")
+                options => !string.IsNullOrWhiteSpace(options.DataSource),
+                "Storage:Libsql:DataSource or ConnectionStrings:Libsql must be configured.")
             .Validate(options => options.TimeoutSeconds > 0, "Storage:Libsql:TimeoutSeconds must be greater than zero.")
+            .Validate(
+                options => !options.ManagedPrimary.Enabled || !options.EnableLocalReplica,
+                "Storage:Libsql:ManagedPrimary:Enabled cannot be combined with Storage:Libsql:EnableLocalReplica.")
+            .Validate(
+                options => !options.ManagedPrimary.Enabled || !string.IsNullOrWhiteSpace(options.ManagedPrimary.ExecutablePath),
+                "Storage:Libsql:ManagedPrimary:ExecutablePath must be configured when Storage:Libsql:ManagedPrimary:Enabled is true.")
+            .Validate(
+                options => !options.ManagedPrimary.Enabled || !string.IsNullOrWhiteSpace(options.ManagedPrimary.DatabasePath),
+                "Storage:Libsql:ManagedPrimary:DatabasePath must be configured when Storage:Libsql:ManagedPrimary:Enabled is true.")
+            .Validate(
+                options => !options.ManagedPrimary.Enabled || !string.IsNullOrWhiteSpace(options.ManagedPrimary.HttpListenAddress),
+                "Storage:Libsql:ManagedPrimary:HttpListenAddress must be configured when Storage:Libsql:ManagedPrimary:Enabled is true.")
+            .Validate(
+                options => !options.ManagedPrimary.Enabled || options.ManagedPrimary.StartTimeoutSeconds > 0,
+                "Storage:Libsql:ManagedPrimary:StartTimeoutSeconds must be greater than zero when Storage:Libsql:ManagedPrimary:Enabled is true.")
             .Validate(
                 options => !options.EnableLocalReplica || !string.IsNullOrWhiteSpace(options.LocalReplicaPath),
                 "Storage:Libsql:LocalReplicaPath must be configured when Storage:Libsql:EnableLocalReplica is true.")
+            .Validate(
+                options => !options.EnableLocalReplica || options.LocalReplicaSyncIntervalSeconds > 0,
+                "Storage:Libsql:LocalReplicaSyncIntervalSeconds must be greater than zero when Storage:Libsql:EnableLocalReplica is true.")
             .ValidateOnStart();
 
-        services.AddHttpClient<LibsqlHttpDatabaseClient>((sp, client) =>
-        {
-            var options = sp.GetRequiredService<IOptions<LibsqlOptions>>().Value;
-            client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", options.AuthToken);
+        services.AddSingleton<NelknetLibsqlDatabaseClient>();
+        services.AddSingleton<ILibsqlDatabaseClient>(sp => sp.GetRequiredService<NelknetLibsqlDatabaseClient>());
 
-            if (!string.IsNullOrWhiteSpace(options.Url))
-            {
-                client.BaseAddress = new Uri($"{LibsqlHttpDatabaseClient.NormalizeBaseUrl(options.Url)}/");
-            }
-        });
-
-        if (enableLocalReplica)
-        {
-            services.AddSingleton<LibsqlMirroredLocalDatabaseClient>();
-            services.AddSingleton<ILibsqlDatabaseClient>(sp => sp.GetRequiredService<LibsqlMirroredLocalDatabaseClient>());
-        }
-        else
-        {
-            services.AddSingleton<ILibsqlDatabaseClient>(sp => sp.GetRequiredService<LibsqlHttpDatabaseClient>());
-        }
-
+        services.AddHostedService<ManagedLibsqlPrimaryHostedService>();
         services.AddHostedService<LibsqlDatabaseInitializer>();
 
         services.AddSingleton<IAuditLogRepository, LibsqlAuditLogRepository>();
@@ -178,21 +169,5 @@ public static class ConfigureServices
         {
             options.Microsoft.Issuers = microsoftIssuers.ToList();
         }
-    }
-
-    private static bool RequiresRemotePeer(LibsqlOptions options)
-    {
-        return !options.EnableLocalReplica || !IsPrimaryLocalReplica(options.LocalReplicaRole);
-    }
-
-    private static bool IsValidLocalReplicaRole(string role)
-    {
-        return role.Equals("Primary", StringComparison.OrdinalIgnoreCase)
-            || role.Equals("Replica", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static bool IsPrimaryLocalReplica(string role)
-    {
-        return role.Equals("Primary", StringComparison.OrdinalIgnoreCase);
     }
 }

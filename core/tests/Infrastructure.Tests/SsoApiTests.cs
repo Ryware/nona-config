@@ -1,7 +1,7 @@
-using Microsoft.Data.Sqlite;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using Nona.Infrastructure.Tests.Common;
+using Nona.Libsql;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Headers;
@@ -28,7 +28,7 @@ public class SsoApiTests
         await using var jwksServer = await LocalJwksServer.StartAsync(signingKey.CreateJwksDocument());
 
         var port = GetFreeTcpPort();
-        var sqlitePath = Path.Combine(artifactsRoot, "nona-sso-api.db");
+        var databasePath = Path.Combine(artifactsRoot, "nona-sso-api.db");
 
         try
         {
@@ -49,8 +49,9 @@ public class SsoApiTests
                 {
                     ["ASPNETCORE_ENVIRONMENT"] = "Development",
                     ["ASPNETCORE_URLS"] = $"http://127.0.0.1:{port}",
-                    ["Storage__Type"] = "Sqlite",
-                    ["ConnectionStrings__Sqlite"] = $"Data Source={sqlitePath}",
+                    ["Storage__Type"] = "Libsql",
+                    ["ConnectionStrings__Libsql"] = databasePath,
+                    ["Storage__Libsql__ManagedPrimary__Enabled"] = "false",
                     ["Jwt__Key"] = "sso-api-tests-signing-key-1234567890",
                     ["Jwt__Issuer"] = "sso-api-tests",
                     ["Jwt__Audience"] = "sso-api-tests",
@@ -115,7 +116,7 @@ public class SsoApiTests
                 await Assert.That(googleLogin.RootElement.GetProperty("token").GetString()).IsNotNull();
             }
 
-            await Assert.That(await CountExternalIdentitiesAsync(sqlitePath)).IsEqualTo(1);
+            await Assert.That(await CountExternalIdentitiesAsync(databasePath)).IsEqualTo(1);
 
             using (var googleRelogin = await SendJsonAsync(
                 httpClient,
@@ -126,7 +127,7 @@ public class SsoApiTests
                 await Assert.That(googleRelogin.RootElement.GetProperty("token").GetString()).IsNotNull();
             }
 
-            await Assert.That(await CountExternalIdentitiesAsync(sqlitePath)).IsEqualTo(1);
+            await Assert.That(await CountExternalIdentitiesAsync(databasePath)).IsEqualTo(1);
 
             var microsoftToken = signingKey.CreateToken(
                 issuer: "https://login.microsoftonline.com/allowed-tenant/v2.0",
@@ -148,7 +149,7 @@ public class SsoApiTests
                 await Assert.That(microsoftLogin.RootElement.GetProperty("token").GetString()).IsNotNull();
             }
 
-            await Assert.That(await CountExternalIdentitiesAsync(sqlitePath)).IsEqualTo(2);
+            await Assert.That(await CountExternalIdentitiesAsync(databasePath)).IsEqualTo(2);
 
             var mismatchedGoogleToken = signingKey.CreateToken(
                 issuer: "https://accounts.google.com",
@@ -240,7 +241,7 @@ public class SsoApiTests
         await using var jwksServer = await LocalJwksServer.StartAsync(signingKey.CreateJwksDocument());
 
         var port = GetFreeTcpPort();
-        var sqlitePath = Path.Combine(artifactsRoot, "nona-invite-api.db");
+        var databasePath = Path.Combine(artifactsRoot, "nona-invite-api.db");
 
         try
         {
@@ -261,8 +262,9 @@ public class SsoApiTests
                 {
                     ["ASPNETCORE_ENVIRONMENT"] = "Development",
                     ["ASPNETCORE_URLS"] = $"http://127.0.0.1:{port}",
-                    ["Storage__Type"] = "Sqlite",
-                    ["ConnectionStrings__Sqlite"] = $"Data Source={sqlitePath}",
+                    ["Storage__Type"] = "Libsql",
+                    ["ConnectionStrings__Libsql"] = databasePath,
+                    ["Storage__Libsql__ManagedPrimary__Enabled"] = "false",
                     ["Jwt__Key"] = "invite-api-tests-signing-key-1234567890",
                     ["Jwt__Issuer"] = "invite-api-tests",
                     ["Jwt__Audience"] = "invite-api-tests",
@@ -618,21 +620,11 @@ public class SsoApiTests
         return await JsonDocument.ParseAsync(stream);
     }
 
-    private static async Task<int> CountExternalIdentitiesAsync(string sqlitePath)
+    private static async Task<int> CountExternalIdentitiesAsync(string databasePath)
     {
-        var connectionString = new SqliteConnectionStringBuilder
-        {
-            DataSource = sqlitePath,
-            Mode = SqliteOpenMode.ReadOnly
-        }.ToString();
-
-        await using var connection = new SqliteConnection(connectionString);
-        await connection.OpenAsync();
-
-        await using var command = connection.CreateCommand();
-        command.CommandText = "SELECT COUNT(*) FROM ExternalIdentities";
-        var value = await command.ExecuteScalarAsync();
-        return Convert.ToInt32(value);
+        using var client = new NelknetLibsqlDatabaseClient($"Data Source={databasePath}");
+        var result = await client.ExecuteAsync("SELECT COUNT(*) AS Count FROM ExternalIdentities");
+        return result.Rows[0].GetInt32("Count");
     }
 
     private static int GetFreeTcpPort()
