@@ -8,8 +8,12 @@
   </Folder>
   <Folder Name="/core/tests/">
     <Project Path="core/tests/Application.Tests/Application.Tests.csproj" />
-    <Project Path="core/tests/Libsql.Tests/Libsql.Tests.csproj" />
     <Project Path="core/tests/Infrastructure.Tests/Infrastructure.Tests.csproj" />
+    <Project Path="core/tests/Libsql.Tests/Libsql.Tests.csproj" />
     <Project Path="core/tests/StorageBenchmarks/StorageBenchmarks.csproj" />
+  </Folder>
+  <Folder Name="/Migrator/">
+    <Project Path="migrator/FirebaseRemoteConfigMigrator.Tests/FirebaseRemoteConfigMigrator.Tests.csproj" />
+    <Project Path="migrator/FirebaseRemoteConfigMigrator/FirebaseRemoteConfigMigrator.csproj" />
   </Folder>
 </Solution>
