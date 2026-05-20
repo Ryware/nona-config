@@ -17,16 +17,16 @@ RUN if [ -n "$FRONTEND_API_URL" ]; then \
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-COPY NonaBackend/NonaConfig.slnx ./
-COPY NonaBackend/core/src/Domain/Domain.csproj core/src/Domain/
-COPY NonaBackend/core/src/Application/Application.csproj core/src/Application/
-COPY NonaBackend/core/src/Infrastructure/Infrastructure.csproj core/src/Infrastructure/
-COPY NonaBackend/core/src/Libsql/Libsql.csproj core/src/Libsql/
-COPY NonaBackend/core/src/WebApi/WebApi.csproj core/src/WebApi/
+COPY nona-config/NonaConfig.slnx ./
+COPY nona-config/core/src/Domain/Domain.csproj core/src/Domain/
+COPY nona-config/core/src/Application/Application.csproj core/src/Application/
+COPY nona-config/core/src/Infrastructure/Infrastructure.csproj core/src/Infrastructure/
+COPY nona-config/core/src/Libsql/Libsql.csproj core/src/Libsql/
+COPY nona-config/core/src/WebApi/WebApi.csproj core/src/WebApi/
 
 RUN dotnet restore core/src/WebApi/WebApi.csproj
 
-COPY NonaBackend/core/src/ core/src/
+COPY nona-config/core/src/ core/src/
 
 RUN dotnet publish core/src/WebApi/WebApi.csproj \
     -c Release \
