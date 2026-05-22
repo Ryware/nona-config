@@ -7,7 +7,7 @@ namespace Nona.Application.Auth.Commands;
 
 public record LoginCommand(string Email, string Password) : IRequest<LoginResult>;
 
-public record LoginResult(bool Success, LoginResponse? Response, string? Error);
+public record LoginResult(bool Success, LoginResponse? Response, string? Error, string? ErrorCode = null);
 
 public class LoginCommandHandler(IUserRepository userRepository, IJwtTokenService jwtTokenService, IPasswordHasher passwordHasher) : IRequestHandler<LoginCommand, LoginResult>
 {
@@ -18,7 +18,7 @@ public class LoginCommandHandler(IUserRepository userRepository, IJwtTokenServic
         if (user is null)
             return new LoginResult(false, null, "Invalid username or password");
 
-        if (!passwordHasher.VerifyPassword(request.Password, user.PasswordHash))
+        if (string.IsNullOrEmpty(user.PasswordHash) || !passwordHasher.VerifyPassword(request.Password, user.PasswordHash))
             return new LoginResult(false, null, "Invalid username or password");
 
         var token = jwtTokenService.GenerateToken(user);

@@ -11,7 +11,7 @@ namespace Nona.Application.Admin.Users.Commands;
 
 public record CreateUserRequest(string Name, string Email, string? Role, string? Scope);
 public record CreateUserCommand(string Name, string Email, string? Role, string? Scope) : IRequest<CreateUserResult>;
-public record CreateUserResult(bool Success, UserDto? User, string? Error);
+public record CreateUserResult(bool Success, CreateUserResponse? Response, string? Error);
 
 public class CreateUserCommandHandler(
     IUserRepository userRepository,
@@ -35,11 +35,11 @@ public class CreateUserCommandHandler(
 
         var now = dateTime.NowUtc;
 
-        var resetPasswordToken = TokenHelper.Generate();
+        var invitationToken = TokenHelper.Generate();
         var user = new User
         {
             Email = request.Email,
-            PasswordResetToken = TokenHelper.Hash(resetPasswordToken),
+            InviteTokenHash = TokenHelper.Hash(invitationToken),
             Name = request.Name,
             Role = role ?? UserRole.Viewer,
             Scope = scope ?? KeyScope.All,
@@ -66,10 +66,9 @@ public class CreateUserCommandHandler(
             user.IsAdmin,
             [],
             user.CreatedAt,
-            user.UpdatedAt,
-            resetPasswordToken);
+            user.UpdatedAt);
 
-        return new CreateUserResult(true, dto, null);
+        return new CreateUserResult(true, new CreateUserResponse(dto, invitationToken), null);
     }
 
     private static UserRole? ParseRole(string? role)

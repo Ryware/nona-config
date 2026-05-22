@@ -13,7 +13,7 @@ namespace Nona.WebApi.Controllers.Admin;
 public class AdminUsersController(IMediator mediator) : ControllerBase
 {
     [HttpPost]
-    [ProducesResponseType(typeof(UserDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(CreateUserResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request, CancellationToken cancellationToken)
@@ -27,7 +27,7 @@ public class AdminUsersController(IMediator mediator) : ControllerBase
                 : BadRequest(new { error = result.Error });
         }
 
-        return CreatedAtAction(nameof(GetUser), new { id = result.User!.Id }, result.User);
+        return CreatedAtAction(nameof(GetUser), new { id = result.Response!.User.Id }, result.Response);
     }
 
     [HttpGet]

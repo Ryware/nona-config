@@ -3,7 +3,7 @@ services:
     image: nona-combined:dev
     build:
       context: ${NONA_BUILD_CONTEXT:-../../..}
-      dockerfile: NonaBackend/Dockerfile
+      dockerfile: nona-config/Dockerfile
     ports:
       - "${NONA_PRIMARY_API_PORT:-18081}:8080"
       - "${NONA_PRIMARY_LIBSQL_PORT:-19080}:9080"
@@ -29,14 +29,13 @@ services:
     image: nona-combined:dev
     build:
       context: ${NONA_BUILD_CONTEXT:-../../..}
-      dockerfile: NonaBackend/Dockerfile
+      dockerfile: nona-config/Dockerfile
     depends_on:
       - nona-primary
     ports:
       - "${NONA_REPLICA_API_PORT:-18082}:8080"
       - "${NONA_REPLICA_LIBSQL_PORT:-19082}:9080"
     environment:
-
       Storage__Libsql__ManagedPrimary__ExtraArgs__0: --primary-grpc-url
       Storage__Libsql__ManagedPrimary__ExtraArgs__1: http://nona-primary:5001
       Storage__Libsql__ManagedPrimary__ExtraArgs__2: --http-self-url

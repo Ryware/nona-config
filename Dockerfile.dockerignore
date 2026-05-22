@@ -1,9 +1,9 @@
 **
-!NonaBackend/
-!NonaBackend/NonaConfig.slnx
-!NonaBackend/core/
-!NonaBackend/core/src/
-!NonaBackend/core/src/**
+!nona-config/
+!nona-config/NonaConfig.slnx
+!nona-config/core/
+!nona-config/core/src/
+!nona-config/core/src/**
 !nona-config-admin/
 !nona-config-admin/package.json
 !nona-config-admin/package-lock.json

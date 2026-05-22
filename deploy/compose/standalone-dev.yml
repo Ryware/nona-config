@@ -3,7 +3,7 @@ services:
     image: nona-combined:dev
     build:
       context: ${NONA_BUILD_CONTEXT:-../../..}
-      dockerfile: NonaBackend/Dockerfile
+      dockerfile: nona-config/Dockerfile
     ports:
       - "${NONA_API_PORT:-18080}:8080"
       - "${NONA_LIBSQL_PORT:-19080}:9080"

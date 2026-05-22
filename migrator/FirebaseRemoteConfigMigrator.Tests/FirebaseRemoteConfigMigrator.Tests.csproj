@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Nona.FirebaseRemoteConfigMigrator.Tests</RootNamespace>
+    <AssemblyName>Nona.FirebaseRemoteConfigMigrator.Tests</AssemblyName>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="TUnit" Version="1.6.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FirebaseRemoteConfigMigrator\FirebaseRemoteConfigMigrator.csproj" />
+  </ItemGroup>
+
+</Project>

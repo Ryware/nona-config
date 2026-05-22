@@ -27,7 +27,7 @@ services:
     image: rywaredev/nona:latest
     build:
       context: ${NONA_BUILD_CONTEXT:-../../..}
-      dockerfile: NonaBackend/Dockerfile
+      dockerfile: nona-config/Dockerfile
     restart: unless-stopped
     depends_on:
       - nona-primary
@@ -35,7 +35,6 @@ services:
       - "${NONA_REPLICA_API_PORT:-18082}:8080"
       - "${NONA_REPLICA_LIBSQL_PORT:-19082}:9080"
     environment:
-
       Storage__Libsql__ManagedPrimary__ExtraArgs__0: --primary-grpc-url
       Storage__Libsql__ManagedPrimary__ExtraArgs__1: http://nona-primary:5001
       Storage__Libsql__ManagedPrimary__ExtraArgs__2: --http-self-url
