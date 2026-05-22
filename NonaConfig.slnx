@@ -18,7 +18,7 @@
   <Folder Name="/libsql/tests/">
     <Project Path="libsql/tests/Libsql.Tests/Libsql.Tests.csproj" />
   </Folder>
-  <Folder Name="/Migrator_/">
+  <Folder Name="/migrator/">
     <Project Path="migrator/FirebaseRemoteConfigMigrator.Tests/FirebaseRemoteConfigMigrator.Tests.csproj" />
     <Project Path="migrator/FirebaseRemoteConfigMigrator/FirebaseRemoteConfigMigrator.csproj" />
   </Folder>
