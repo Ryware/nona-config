@@ -21,6 +21,36 @@ public class MigrationPlannerTests
     }
 
     [Test]
+    public async Task FirebaseOptions_UsesConfiguredSources_WhenProvided()
+    {
+        var sources = new FirebaseOptions
+        {
+            Sources =
+            [
+                new FirebaseImportSource { Namespace = "custom-client", Scope = "client" },
+                new FirebaseImportSource { Namespace = "custom-server", Scope = "server" }
+            ]
+        }.GetImportSources();
+
+        await Assert.That(sources).Count().IsEqualTo(2);
+        await Assert.That(sources[0].Namespace).IsEqualTo("custom-client");
+        await Assert.That(sources[1].Namespace).IsEqualTo("custom-server");
+    }
+
+    [Test]
+    public async Task FirebaseOptions_UsesLegacyNamespace_WhenSourcesAreNotProvided()
+    {
+        var sources = new FirebaseOptions
+        {
+            Namespace = "legacy-namespace"
+        }.GetImportSources();
+
+        await Assert.That(sources).Count().IsEqualTo(1);
+        await Assert.That(sources[0].Namespace).IsEqualTo("legacy-namespace");
+        await Assert.That(sources[0].Scope).IsEqualTo("all");
+    }
+
+    [Test]
     public async Task Build_AppliesDefaultValueToMappedAndDefaultEnvironments()
     {
         var template = new FirebaseRemoteConfigTemplate

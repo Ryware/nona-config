@@ -36,6 +36,13 @@
       <Build Solution="Debug|*" Project="false" />
     </Project>
   </Folder>
+  <Folder Name="/cli/" />
+  <Folder Name="/cli/src/">
+    <Project Path="cli/src/Nona.Cli/Nona.Cli.csproj" />
+  </Folder>
+  <Folder Name="/cli/tests/">
+    <Project Path="cli/tests/Nona.Cli.Tests/Nona.Cli.Tests.csproj" />
+  </Folder>
   <Folder Name="/migrator/" />
   <Folder Name="/migrator/src/">
     <Project Path="migrator/src/ConfigMigrator.Core/Migrator.Core.csproj" />

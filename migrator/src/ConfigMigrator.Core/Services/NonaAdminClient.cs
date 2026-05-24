@@ -67,7 +67,7 @@ public sealed class NonaAdminClient(HttpClient httpClient, NonaOptions options)
         }
     }
 
-    private async Task<IReadOnlyList<NonaProjectDto>> ListProjectsAsync(CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<NonaProjectDto>> ListProjectsAsync(CancellationToken cancellationToken)
     {
         using var response = await SendAuthorizedAsync(HttpMethod.Get, "admin/projects", null, cancellationToken);
         var content = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -76,6 +76,43 @@ public sealed class NonaAdminClient(HttpClient httpClient, NonaOptions options)
             throw new InvalidOperationException($"Nona projects fetch failed ({(int)response.StatusCode}): {content}");
 
         return JsonSerializer.Deserialize(content, NonaSerializerContext.Default.NonaProjectDtoArray) ?? [];
+    }
+
+    public async Task<NonaProjectDto?> GetProjectAsync(string projectIdOrNameOrSlug, CancellationToken cancellationToken)
+    {
+        var projects = await ListProjectsAsync(cancellationToken);
+
+        var byName = projects.FirstOrDefault(project =>
+            string.Equals(project.Name, projectIdOrNameOrSlug, StringComparison.OrdinalIgnoreCase));
+        if (byName is not null)
+            return byName;
+
+        if (long.TryParse(projectIdOrNameOrSlug, out var numericId))
+        {
+            var byId = projects.FirstOrDefault(project => project.Id == numericId);
+            if (byId is not null)
+                return byId;
+        }
+
+        return projects.FirstOrDefault(project =>
+            !string.IsNullOrWhiteSpace(project.UrlSlug)
+            && string.Equals(project.UrlSlug, projectIdOrNameOrSlug, StringComparison.OrdinalIgnoreCase));
+    }
+
+    public async Task<NonaProjectDto> RerollApiKeysAsync(string projectIdOrNameOrSlug, string keyType, CancellationToken cancellationToken)
+    {
+        using var response = await SendAuthorizedAsync(
+            HttpMethod.Post,
+            $"admin/projects/{Escape(projectIdOrNameOrSlug)}/reroll-keys",
+            JsonContent.Create(new RerollApiKeysRequest(keyType), NonaSerializerContext.Default.RerollApiKeysRequest),
+            cancellationToken);
+
+        var content = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException($"Nona API key reroll failed ({(int)response.StatusCode}): {content}");
+
+        return JsonSerializer.Deserialize(content, NonaSerializerContext.Default.NonaProjectDto)
+            ?? throw new InvalidOperationException("Nona API key reroll response empty.");
     }
 
     private async Task<IReadOnlyList<NonaEnvironmentDto>> ListEnvironmentsAsync(string projectName, CancellationToken cancellationToken)

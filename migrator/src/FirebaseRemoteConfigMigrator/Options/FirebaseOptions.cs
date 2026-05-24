@@ -12,6 +12,21 @@ public sealed record FirebaseOptions
 
     public IReadOnlyList<FirebaseImportSource> GetImportSources()
     {
+        if (Sources.Count > 0)
+            return Sources;
+
+        if (!string.IsNullOrWhiteSpace(Namespace))
+        {
+            return
+            [
+                new FirebaseImportSource
+                {
+                    Namespace = Namespace,
+                    Scope = "all"
+                }
+            ];
+        }
+
         return
         [
             new FirebaseImportSource
