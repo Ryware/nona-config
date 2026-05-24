@@ -21,7 +21,7 @@ COPY nona-config/NonaConfig.slnx ./
 COPY nona-config/core/src/Domain/Domain.csproj core/src/Domain/
 COPY nona-config/core/src/Application/Application.csproj core/src/Application/
 COPY nona-config/core/src/Infrastructure/Infrastructure.csproj core/src/Infrastructure/
-COPY nona-config/core/src/Libsql/Libsql.csproj core/src/Libsql/
+COPY nona-config/libsql/src/Libsql/Libsql.csproj libsql/src/Libsql/
 COPY nona-config/core/src/WebApi/WebApi.csproj core/src/WebApi/
 
 RUN dotnet restore core/src/WebApi/WebApi.csproj
