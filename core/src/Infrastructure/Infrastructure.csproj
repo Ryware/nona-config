@@ -10,7 +10,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\Application\Application.csproj" />
-		<ProjectReference Include="..\Libsql\Libsql.csproj" />
+		<ProjectReference Include="..\..\..\libsql\src\Libsql\Libsql.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>

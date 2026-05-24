@@ -27,6 +27,7 @@ COPY nona-config/core/src/WebApi/WebApi.csproj core/src/WebApi/
 RUN dotnet restore core/src/WebApi/WebApi.csproj
 
 COPY nona-config/core/src/ core/src/
+COPY nona-config/libsql/src/ libsql/src/
 
 RUN dotnet publish core/src/WebApi/WebApi.csproj \
     -c Release \
