@@ -68,9 +68,10 @@ jobs:
 
       - name: Update Docker Hub description
         if: github.event_name != 'pull_request'
-        uses: peter-evans/dockerhub-description@v4
+        continue-on-error: true
+        uses: peter-evans/dockerhub-description@v5
         with:
           username: ${{ env.DOCKERHUB_USERNAME }}
           password: ${{ env.DOCKERHUB_TOKEN }}
           repository: ${{ env.IMAGE_NAME }}
-          readme-filepath: nona-config/README.md
+          readme-filepath: nona-config/README.dockerhub.md
