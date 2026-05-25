@@ -1,22 +1,37 @@
 # Nona CLI
 
-`Nona.Cli` packages the Nona admin and migration workflows as a `dotnet tool`.
+`Nona.Cli` packages the Nona admin and migration workflows as a standalone cross-platform CLI.
 
 ## Install
 
-Build and pack it locally:
+Download the archive for your platform from GitHub Releases, extract it, and put the `nona` binary on your `PATH`.
+
+Each release archive also includes an `appsettings.json` sample for the Firebase migration workflow.
+
+Release assets are published for:
+
+- Windows x64
+- Windows ARM64
+- Linux x64
+- Linux ARM64
+- macOS x64
+- macOS ARM64
+
+Archive naming:
+
+- `nona-cli_<version>_win-x64.zip`
+- `nona-cli_<version>_linux-x64.tar.gz`
+- `nona-cli_<version>_osx-arm64.tar.gz`
+
+### Local Build
 
 ```bash
-dotnet pack cli/src/Nona.Cli/Nona.Cli.csproj -c Release
+dotnet publish cli/src/Nona.Cli/Nona.Cli.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true
 ```
 
-Install from the generated package:
+You can swap `win-x64` for another runtime identifier such as `linux-x64`, `linux-arm64`, `osx-x64`, or `osx-arm64`.
 
-```bash
-dotnet tool install --global --add-source ./cli/src/Nona.Cli/bin/Release Nona.Cli
-```
-
-The installed command name is `nona`.
+The published executable is the `nona` command.
 
 ## Commands
 
