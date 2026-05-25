@@ -23,6 +23,16 @@ Archive naming:
 - `nona-cli_<version>_linux-x64.tar.gz`
 - `nona-cli_<version>_osx-arm64.tar.gz`
 
+### Windows via Chocolatey
+
+Once the package is approved on Chocolatey Community Repository:
+
+```powershell
+choco install nona-cli
+```
+
+The Chocolatey package installs the Windows x64 or Windows ARM64 release asset automatically based on the local machine architecture.
+
 ### Local Build
 
 ```bash

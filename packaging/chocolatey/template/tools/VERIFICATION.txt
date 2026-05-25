@@ -1,0 +1,20 @@
+VERIFICATION
+Verification is intended to assist the Chocolatey moderators and community
+in verifying that this package matches the official release.
+
+Package version: {{VERSION}}
+
+Official release archives:
+- x64: {{WIN_X64_URL}}
+- ARM64: {{WIN_ARM64_URL}}
+
+SHA-256 checksums:
+- x64: {{WIN_X64_CHECKSUM}}
+- ARM64: {{WIN_ARM64_CHECKSUM}}
+
+Example with PowerShell:
+Get-FileHash .\nona-cli_{{VERSION}}_win-x64.zip -Algorithm SHA256
+Get-FileHash .\nona-cli_{{VERSION}}_win-arm64.zip -Algorithm SHA256
+
+Project homepage:
+https://www.nonaconfig.com/
