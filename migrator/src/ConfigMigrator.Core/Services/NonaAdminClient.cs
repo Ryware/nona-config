@@ -152,6 +152,12 @@ public sealed class NonaAdminClient(HttpClient httpClient, NonaOptions options)
             return bearerToken;
         }
 
+        var login = await LoginAsync(cancellationToken);
+        return login.Token;
+    }
+
+    public async Task<LoginResponse> LoginAsync(CancellationToken cancellationToken)
+    {
         using var response = await httpClient.PostAsJsonAsync(
             BuildUri("auth/login"),
             new LoginRequest(options.Email ?? string.Empty, options.Password ?? string.Empty),
@@ -166,7 +172,7 @@ public sealed class NonaAdminClient(HttpClient httpClient, NonaOptions options)
             ?? throw new InvalidOperationException("Nona login response empty.");
 
         bearerToken = login.Token;
-        return bearerToken;
+        return login;
     }
 
     private Uri BuildUri(string relativePath)

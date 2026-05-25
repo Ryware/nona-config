@@ -35,6 +35,22 @@ The published executable is the `nona` command.
 
 ## Commands
 
+Authenticate and persist a session token:
+
+```bash
+nona auth login --base-url http://nona.internal:18080 --email admin@example.com
+nona auth whoami
+nona auth logout
+```
+
+Set saved defaults for repeated use:
+
+```bash
+nona config set base-url http://nona.internal:18080
+nona config set project mobile-app
+nona config show
+```
+
 Show project API keys:
 
 ```bash
@@ -70,3 +86,10 @@ You can also use environment variables:
 - `NONA_CLI_PASSWORD`
 
 The Firebase migration command also continues to support the existing `NONA_MIGRATOR_*` environment variables.
+
+Resolution order is:
+
+1. Explicit command-line flags
+2. `NONA_CLI_*` environment variables
+3. Saved auth session from `nona auth login` for bearer token reuse
+4. Saved CLI defaults from `nona config set`

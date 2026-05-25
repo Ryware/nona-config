@@ -7,9 +7,17 @@ internal static class CliHelpText
         Nona CLI
 
         Usage:
+          nona auth login [--base-url <url>] [--email <email>] [--password <password>]
+          nona auth logout
+          nona auth whoami
+          nona config show
+          nona config set <base-url|project> <value>
           nona keys show --project <name> --base-url <url> (--token <token> | --email <email> --password <password>)
           nona keys reroll --project <name> --type <server|client|both> --base-url <url> (--token <token> | --email <email> --password <password>)
           nona migrate firebase [--config <path>] [--dry-run] [--base-url <url>] [--project <name>] [--token <token> | --email <email> --password <password>]
+
+        Saved defaults:
+          config file stores base-url and project for future commands
 
         On-prem:
           pass --base-url/--api-url, for example http://nona.internal:18080
