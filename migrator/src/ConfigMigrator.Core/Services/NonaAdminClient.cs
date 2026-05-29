@@ -99,6 +99,22 @@ public sealed class NonaAdminClient(HttpClient httpClient, NonaOptions options)
             && string.Equals(project.UrlSlug, projectIdOrNameOrSlug, StringComparison.OrdinalIgnoreCase));
     }
 
+    public async Task<CreateUserResponse> CreateUserAsync(string name, string email, string? role, string? scope, CancellationToken cancellationToken)
+    {
+        using var response = await SendAuthorizedAsync(
+            HttpMethod.Post,
+            "admin/users",
+            JsonContent.Create(new CreateUserRequest(name, email, role, scope), NonaSerializerContext.Default.CreateUserRequest),
+            cancellationToken);
+
+        var content = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException($"Nona user create failed ({(int)response.StatusCode}): {content}");
+
+        return JsonSerializer.Deserialize(content, NonaSerializerContext.Default.CreateUserResponse)
+            ?? throw new InvalidOperationException("Nona user create response empty.");
+    }
+
     public async Task<NonaProjectDto> RerollApiKeysAsync(string projectIdOrNameOrSlug, string keyType, CancellationToken cancellationToken)
     {
         using var response = await SendAuthorizedAsync(

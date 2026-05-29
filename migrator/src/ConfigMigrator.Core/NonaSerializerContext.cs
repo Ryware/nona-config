@@ -16,6 +16,8 @@ namespace Nona.Migrator.Core;
 [JsonSerializable(typeof(CreateEnvironmentRequest))]
 [JsonSerializable(typeof(UpsertConfigEntryRequest))]
 [JsonSerializable(typeof(RerollApiKeysRequest))]
+[JsonSerializable(typeof(CreateUserRequest))]
+[JsonSerializable(typeof(CreateUserResponse))]
 [JsonSerializable(typeof(NonaProjectDto))]
 [JsonSerializable(typeof(NonaProjectDto[]))]
 [JsonSerializable(typeof(NonaEnvironmentDto))]

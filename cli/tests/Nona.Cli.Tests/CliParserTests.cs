@@ -1,92 +1,160 @@
 namespace Nona.Cli.Tests;
 
-public sealed class CliParserTests
+public sealed class CliValueResolverTests
 {
     private static readonly SemaphoreSlim EnvironmentLock = new(1, 1);
 
     [Test]
-    public async Task Parse_AuthLogin_UsesSavedBaseUrl()
+    public async Task BaseUrl_UsesSavedDefault_WhenNotProvided()
     {
-        var defaults = new CliDefaults
-        {
-            BaseUrl = "http://saved.internal:18080"
-        };
+        var defaults = new CliDefaults { BaseUrl = "http://saved.internal:18080" };
+        var resolver = new CliValueResolver(defaults);
 
-        var result = CliParser.Parse(["auth", "login", "--email", "admin@example.com"], defaults);
+        var result = resolver.BaseUrl(null);
 
-        await Assert.That(result.Success).IsTrue();
-        await Assert.That(result.Command).IsTypeOf<LoginCommand>();
-
-        var command = (LoginCommand)result.Command!;
-        await Assert.That(command.BaseUrl).IsEqualTo("http://saved.internal:18080");
-        await Assert.That(command.Email).IsEqualTo("admin@example.com");
+        await Assert.That(result).IsEqualTo("http://saved.internal:18080");
     }
 
     [Test]
-    public async Task Parse_ConfigSet_ParsesBaseUrlSetting()
-    {
-        var result = CliParser.Parse(
-        [
-            "config",
-            "set",
-            "base-url",
-            "http://nona.internal:18080"
-        ]);
-
-        await Assert.That(result.Success).IsTrue();
-        await Assert.That(result.Command).IsTypeOf<SetCliDefaultCommand>();
-
-        var command = (SetCliDefaultCommand)result.Command!;
-        await Assert.That(command.Name).IsEqualTo("base-url");
-        await Assert.That(command.Value).IsEqualTo("http://nona.internal:18080");
-    }
-
-    [Test]
-    public async Task Parse_ConfigSetDefault_RemainsSupportedAsAlias()
-    {
-        var result = CliParser.Parse(
-        [
-            "config",
-            "set-default",
-            "project",
-            "mobile-app"
-        ]);
-
-        await Assert.That(result.Success).IsTrue();
-        await Assert.That(result.Command).IsTypeOf<SetCliDefaultCommand>();
-
-        var command = (SetCliDefaultCommand)result.Command!;
-        await Assert.That(command.Name).IsEqualTo("project");
-        await Assert.That(command.Value).IsEqualTo("mobile-app");
-    }
-
-    [Test]
-    public async Task Parse_KeysShow_UsesSavedDefaults_WhenFlagsAndEnvironmentAreMissing()
+    public async Task BaseUrl_UsesEnvironmentVariable_OverSavedDefault()
     {
         await EnvironmentLock.WaitAsync();
         try
         {
-            var defaults = new CliDefaults
+            using var env = new EnvironmentScope(new Dictionary<string, string?>
+            {
+                ["NONA_CLI_BASE_URL"] = "http://env.internal:18080"
+            });
+
+            var defaults = new CliDefaults { BaseUrl = "http://saved.internal:18080" };
+            var resolver = new CliValueResolver(defaults);
+
+            var result = resolver.BaseUrl(null);
+
+            await Assert.That(result).IsEqualTo("http://env.internal:18080");
+        }
+        finally
+        {
+            EnvironmentLock.Release();
+        }
+    }
+
+    [Test]
+    public async Task Project_UsesSavedDefault_WhenNotProvided()
+    {
+        var defaults = new CliDefaults { Project = "saved-project" };
+        var resolver = new CliValueResolver(defaults);
+
+        var result = resolver.Project(null);
+
+        await Assert.That(result).IsEqualTo("saved-project");
+    }
+
+    [Test]
+    public async Task Project_UsesEnvironmentVariable_OverSavedDefault()
+    {
+        await EnvironmentLock.WaitAsync();
+        try
+        {
+            using var env = new EnvironmentScope(new Dictionary<string, string?>
+            {
+                ["NONA_CLI_PROJECT_NAME"] = "env-project"
+            });
+
+            var defaults = new CliDefaults { Project = "saved-project" };
+            var resolver = new CliValueResolver(defaults);
+
+            var result = resolver.Project(null);
+
+            await Assert.That(result).IsEqualTo("env-project");
+        }
+        finally
+        {
+            EnvironmentLock.Release();
+        }
+    }
+
+    [Test]
+    public async Task ResolveConnection_UsesSavedSession_WhenNoAuthProvided()
+    {
+        await EnvironmentLock.WaitAsync();
+        try
+        {
+            using var env = new EnvironmentScope(new Dictionary<string, string?>
+            {
+                ["NONA_CLI_BEARER_TOKEN"] = null,
+                ["NONA_CLI_EMAIL"] = null,
+                ["NONA_CLI_PASSWORD"] = null
+            });
+
+            var session = new CliAuthSession
             {
                 BaseUrl = "http://saved.internal:18080",
-                Project = "saved-project"
+                Token = "saved-token",
+                Username = "admin@example.com",
+                Role = "Admin",
+                ExpiresAt = DateTime.UtcNow.AddHours(1),
+                SavedAtUtc = DateTime.UtcNow
             };
 
-            using var environmentScope = new EnvironmentScope(new Dictionary<string, string?>
+            var resolver = new CliValueResolver(CliDefaults.Empty, session);
+
+            var result = resolver.ResolveConnection("http://saved.internal:18080", null, null, null);
+
+            await Assert.That(result.Success).IsTrue();
+            await Assert.That(result.Connection!.BearerToken).IsEqualTo("saved-token");
+        }
+        finally
+        {
+            EnvironmentLock.Release();
+        }
+    }
+
+    [Test]
+    public async Task ResolveConnection_UsesEnvironmentBearerToken()
+    {
+        await EnvironmentLock.WaitAsync();
+        try
+        {
+            using var env = new EnvironmentScope(new Dictionary<string, string?>
+            {
+                ["NONA_CLI_BEARER_TOKEN"] = "token-123",
+                ["NONA_CLI_EMAIL"] = null,
+                ["NONA_CLI_PASSWORD"] = null
+            });
+
+            var resolver = new CliValueResolver(CliDefaults.Empty);
+
+            var result = resolver.ResolveConnection("http://nona.internal:18080", null, null, null);
+
+            await Assert.That(result.Success).IsTrue();
+            await Assert.That(result.Connection!.BearerToken).IsEqualTo("token-123");
+        }
+        finally
+        {
+            EnvironmentLock.Release();
+        }
+    }
+
+    [Test]
+    public async Task ResolveConnection_UsesSavedDefaultsForBaseUrl()
+    {
+        await EnvironmentLock.WaitAsync();
+        try
+        {
+            using var env = new EnvironmentScope(new Dictionary<string, string?>
             {
                 ["NONA_CLI_BASE_URL"] = null,
-                ["NONA_CLI_PROJECT_NAME"] = null,
                 ["NONA_CLI_BEARER_TOKEN"] = "token-123"
             });
 
-            var result = CliParser.Parse(["keys", "show"], defaults);
+            var defaults = new CliDefaults { BaseUrl = "http://saved.internal:18080" };
+            var resolver = new CliValueResolver(defaults);
+
+            var result = resolver.ResolveConnection(null, null, null, null);
 
             await Assert.That(result.Success).IsTrue();
-            await Assert.That(result.Command).IsTypeOf<ShowKeysCommand>();
-
-            var command = (ShowKeysCommand)result.Command!;
-            await Assert.That(command.Project).IsEqualTo("saved-project");
-            await Assert.That(command.Connection.BaseUrl).IsEqualTo("http://saved.internal:18080");
+            await Assert.That(result.Connection!.BaseUrl).IsEqualTo("http://saved.internal:18080");
         }
         finally
         {
@@ -95,52 +163,23 @@ public sealed class CliParserTests
     }
 
     [Test]
-    public async Task Parse_KeysShow_UsesEnvironmentFallbacks()
+    public async Task ResolveConnection_Fails_WhenNoAuthIsAvailable()
     {
         await EnvironmentLock.WaitAsync();
         try
         {
-            using var environmentScope = new EnvironmentScope(new Dictionary<string, string?>
+            using var env = new EnvironmentScope(new Dictionary<string, string?>
             {
-                ["NONA_CLI_BASE_URL"] = "http://nona.internal:18080",
-                ["NONA_CLI_PROJECT_NAME"] = "mobile-app",
-                ["NONA_CLI_BEARER_TOKEN"] = "token-123"
+                ["NONA_CLI_BEARER_TOKEN"] = null,
+                ["NONA_CLI_EMAIL"] = null,
+                ["NONA_CLI_PASSWORD"] = null
             });
 
-            var result = CliParser.Parse(["keys", "show"]);
+            var resolver = new CliValueResolver(CliDefaults.Empty);
 
-            await Assert.That(result.Success).IsTrue();
-            await Assert.That(result.Command).IsTypeOf<ShowKeysCommand>();
-
-            var command = (ShowKeysCommand)result.Command!;
-            await Assert.That(command.Project).IsEqualTo("mobile-app");
-            await Assert.That(command.Connection.BaseUrl).IsEqualTo("http://nona.internal:18080");
-            await Assert.That(command.Connection.BearerToken).IsEqualTo("token-123");
-        }
-        finally
-        {
-            EnvironmentLock.Release();
-        }
-    }
-
-    [Test]
-    public async Task Parse_KeysReroll_RejectsUnknownKeyType()
-    {
-        await EnvironmentLock.WaitAsync();
-        try
-        {
-            var result = CliParser.Parse(
-            [
-                "keys",
-                "reroll",
-                "--project", "mobile-app",
-                "--base-url", "https://nona.example.com",
-                "--token", "token-123",
-                "--type", "rotate-all"
-            ]);
+            var result = resolver.ResolveConnection("http://nona.internal:18080", null, null, null);
 
             await Assert.That(result.Success).IsFalse();
-            await Assert.That(result.Error).IsEqualTo("Key reroll type must be server, client, or both.");
         }
         finally
         {
@@ -149,12 +188,33 @@ public sealed class CliParserTests
     }
 
     [Test]
-    public async Task Parse_MigrateFirebase_AppendsCliEnvironmentOverrides()
+    public async Task BuildFirebaseArgs_IncludesResolvedValues()
+    {
+        var resolver = new CliValueResolver(CliDefaults.Empty);
+
+        var args = resolver.BuildFirebaseArgs(
+            config: "nona.migration.json",
+            dryRun: false,
+            baseUrl: "http://nona.internal:18080",
+            project: "my-project",
+            token: "token-123",
+            email: null,
+            password: null);
+
+        var rendered = string.Join(' ', args);
+        await Assert.That(rendered).Contains("--config nona.migration.json");
+        await Assert.That(rendered).Contains("--base-url http://nona.internal:18080");
+        await Assert.That(rendered).Contains("--token token-123");
+        await Assert.That(rendered).Contains("--project my-project");
+    }
+
+    [Test]
+    public async Task BuildFirebaseArgs_WithEnvironmentOverrides()
     {
         await EnvironmentLock.WaitAsync();
         try
         {
-            using var environmentScope = new EnvironmentScope(new Dictionary<string, string?>
+            using var env = new EnvironmentScope(new Dictionary<string, string?>
             {
                 ["NONA_CLI_BASE_URL"] = "http://nona.internal:18080",
                 ["NONA_CLI_BEARER_TOKEN"] = "token-123",
@@ -163,16 +223,21 @@ public sealed class CliParserTests
                 ["NONA_CLI_PASSWORD"] = null
             });
 
-            var result = CliParser.Parse(["migrate", "firebase", "--config", "nona.migration.json"]);
+            var resolver = new CliValueResolver(CliDefaults.Empty);
 
-            await Assert.That(result.Success).IsTrue();
-            await Assert.That(result.Command).IsTypeOf<MigrateFirebaseCommand>();
+            var args = resolver.BuildFirebaseArgs(
+                config: "nona.migration.json",
+                dryRun: false,
+                baseUrl: resolver.BaseUrl(null),
+                project: resolver.Project(null),
+                token: resolver.Token(null),
+                email: resolver.Email(null),
+                password: resolver.Password(null));
 
-            var command = (MigrateFirebaseCommand)result.Command!;
-            var renderedArguments = string.Join(' ', command.Arguments);
-            await Assert.That(renderedArguments).Contains("--config nona.migration.json");
-            await Assert.That(renderedArguments).Contains("--base-url http://nona.internal:18080");
-            await Assert.That(renderedArguments).Contains("--token token-123");
+            var rendered = string.Join(' ', args);
+            await Assert.That(rendered).Contains("--config nona.migration.json");
+            await Assert.That(rendered).Contains("--base-url http://nona.internal:18080");
+            await Assert.That(rendered).Contains("--token token-123");
         }
         finally
         {
@@ -181,12 +246,12 @@ public sealed class CliParserTests
     }
 
     [Test]
-    public async Task Parse_MigrateFirebase_AppendsSavedDefaults_WhenEnvironmentIsMissing()
+    public async Task BuildFirebaseArgs_WithSavedDefaults()
     {
         await EnvironmentLock.WaitAsync();
         try
         {
-            using var environmentScope = new EnvironmentScope(new Dictionary<string, string?>
+            using var env = new EnvironmentScope(new Dictionary<string, string?>
             {
                 ["NONA_CLI_BASE_URL"] = null,
                 ["NONA_CLI_PROJECT_NAME"] = null,
@@ -200,22 +265,36 @@ public sealed class CliParserTests
                 BaseUrl = "http://saved.internal:18080",
                 Project = "saved-project"
             };
+            var resolver = new CliValueResolver(defaults);
 
-            var result = CliParser.Parse(["migrate", "firebase", "--config", "nona.migration.json"], defaults);
+            var args = resolver.BuildFirebaseArgs(
+                config: "nona.migration.json",
+                dryRun: false,
+                baseUrl: resolver.BaseUrl(null),
+                project: resolver.Project(null),
+                token: resolver.Token(null),
+                email: resolver.Email(null),
+                password: resolver.Password(null));
 
-            await Assert.That(result.Success).IsTrue();
-            await Assert.That(result.Command).IsTypeOf<MigrateFirebaseCommand>();
-
-            var command = (MigrateFirebaseCommand)result.Command!;
-            var renderedArguments = string.Join(' ', command.Arguments);
-            await Assert.That(renderedArguments).Contains("--base-url http://saved.internal:18080");
-            await Assert.That(renderedArguments).Contains("--project saved-project");
-            await Assert.That(renderedArguments).Contains("--token token-123");
+            var rendered = string.Join(' ', args);
+            await Assert.That(rendered).Contains("--base-url http://saved.internal:18080");
+            await Assert.That(rendered).Contains("--project saved-project");
+            await Assert.That(rendered).Contains("--token token-123");
         }
         finally
         {
             EnvironmentLock.Release();
         }
+    }
+
+    [Test]
+    public async Task NormalizeConfigSettingName_NormalizesAliases()
+    {
+        await Assert.That(CliValueResolver.NormalizeConfigSettingName("api-url")).IsEqualTo("base-url");
+        await Assert.That(CliValueResolver.NormalizeConfigSettingName("base-url")).IsEqualTo("base-url");
+        await Assert.That(CliValueResolver.NormalizeConfigSettingName("project-name")).IsEqualTo("project");
+        await Assert.That(CliValueResolver.NormalizeConfigSettingName("project")).IsEqualTo("project");
+        await Assert.That(CliValueResolver.NormalizeConfigSettingName("unknown")).IsNull();
     }
 
     private sealed class EnvironmentScope : IDisposable
@@ -235,50 +314,6 @@ public sealed class CliParserTests
         {
             foreach (var (key, value) in _previousValues)
                 Environment.SetEnvironmentVariable(key, value);
-        }
-    }
-
-    [Test]
-    public async Task Parse_KeysShow_UsesSavedSessionToken_WhenNoOtherAuthIsProvided()
-    {
-        await EnvironmentLock.WaitAsync();
-        try
-        {
-            using var environmentScope = new EnvironmentScope(new Dictionary<string, string?>
-            {
-                ["NONA_CLI_BASE_URL"] = null,
-                ["NONA_CLI_PROJECT_NAME"] = null,
-                ["NONA_CLI_BEARER_TOKEN"] = null,
-                ["NONA_CLI_EMAIL"] = null,
-                ["NONA_CLI_PASSWORD"] = null
-            });
-
-            var defaults = new CliDefaults
-            {
-                BaseUrl = "http://saved.internal:18080",
-                Project = "saved-project"
-            };
-            var session = new CliAuthSession
-            {
-                BaseUrl = "http://saved.internal:18080",
-                Token = "saved-token",
-                Username = "admin@example.com",
-                Role = "Admin",
-                ExpiresAt = DateTime.UtcNow.AddHours(1),
-                SavedAtUtc = DateTime.UtcNow
-            };
-
-            var result = CliParser.Parse(["keys", "show"], defaults, session);
-
-            await Assert.That(result.Success).IsTrue();
-            await Assert.That(result.Command).IsTypeOf<ShowKeysCommand>();
-
-            var command = (ShowKeysCommand)result.Command!;
-            await Assert.That(command.Connection.BearerToken).IsEqualTo("saved-token");
-        }
-        finally
-        {
-            EnvironmentLock.Release();
         }
     }
 }
