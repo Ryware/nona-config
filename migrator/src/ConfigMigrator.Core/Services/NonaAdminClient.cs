@@ -115,6 +115,96 @@ public sealed class NonaAdminClient(HttpClient httpClient, NonaOptions options)
             ?? throw new InvalidOperationException("Nona user create response empty.");
     }
 
+    public async Task<NonaProjectDto> CreateProjectAsync(string name, CancellationToken cancellationToken)
+    {
+        using var response = await SendAuthorizedAsync(
+            HttpMethod.Post,
+            "admin/projects",
+            JsonContent.Create(new CreateProjectRequest(name), NonaSerializerContext.Default.CreateProjectRequest),
+            cancellationToken);
+
+        var content = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException($"Nona project create failed ({(int)response.StatusCode}): {content}");
+
+        return JsonSerializer.Deserialize(content, NonaSerializerContext.Default.NonaProjectDto)
+            ?? throw new InvalidOperationException("Nona project create response empty.");
+    }
+
+    public async Task DeleteProjectAsync(string projectIdOrNameOrSlug, CancellationToken cancellationToken)
+    {
+        using var response = await SendAuthorizedAsync(
+            HttpMethod.Delete,
+            $"admin/projects/{Escape(projectIdOrNameOrSlug)}",
+            null,
+            cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var content = await response.Content.ReadAsStringAsync(cancellationToken);
+            throw new InvalidOperationException($"Nona project delete failed ({(int)response.StatusCode}): {content}");
+        }
+    }
+
+    public async Task<IReadOnlyList<ConfigEntryDto>> ListConfigEntriesAsync(
+        string projectIdOrNameOrSlug,
+        string environment,
+        CancellationToken cancellationToken)
+    {
+        using var response = await SendAuthorizedAsync(
+            HttpMethod.Get,
+            $"admin/projects/{Escape(projectIdOrNameOrSlug)}/environments/{Escape(environment)}/config-entries",
+            null,
+            cancellationToken);
+
+        var content = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException($"Nona config entries fetch failed ({(int)response.StatusCode}): {content}");
+
+        return JsonSerializer.Deserialize(content, NonaSerializerContext.Default.ConfigEntryDtoArray) ?? [];
+    }
+
+    public async Task<ConfigEntryDto?> GetConfigEntryAsync(
+        string projectIdOrNameOrSlug,
+        string environment,
+        string key,
+        CancellationToken cancellationToken)
+    {
+        using var response = await SendAuthorizedAsync(
+            HttpMethod.Get,
+            $"admin/projects/{Escape(projectIdOrNameOrSlug)}/environments/{Escape(environment)}/config-entries/{Escape(key)}",
+            null,
+            cancellationToken);
+
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            return null;
+
+        var content = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException($"Nona config entry fetch failed ({(int)response.StatusCode}): {content}");
+
+        return JsonSerializer.Deserialize(content, NonaSerializerContext.Default.ConfigEntryDto);
+    }
+
+    public async Task DeleteConfigEntryAsync(
+        string projectIdOrNameOrSlug,
+        string environment,
+        string key,
+        CancellationToken cancellationToken)
+    {
+        using var response = await SendAuthorizedAsync(
+            HttpMethod.Delete,
+            $"admin/projects/{Escape(projectIdOrNameOrSlug)}/environments/{Escape(environment)}/config-entries/{Escape(key)}",
+            null,
+            cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var content = await response.Content.ReadAsStringAsync(cancellationToken);
+            throw new InvalidOperationException($"Nona config entry delete failed ({(int)response.StatusCode}): {content}");
+        }
+    }
+
     public async Task<NonaProjectDto> RerollApiKeysAsync(string projectIdOrNameOrSlug, string keyType, CancellationToken cancellationToken)
     {
         using var response = await SendAuthorizedAsync(

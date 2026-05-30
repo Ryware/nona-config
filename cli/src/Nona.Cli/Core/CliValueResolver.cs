@@ -19,30 +19,25 @@ internal sealed class CliValueResolver(CliDefaults defaults, CliAuthSession? ses
 
     public ConnectionResolutionResult ResolveConnection(
         string? parsedBaseUrl,
-        string? parsedToken,
-        string? parsedEmail,
-        string? parsedPassword)
+        string? parsedToken)
     {
         var baseUrl = BaseUrl(parsedBaseUrl);
         if (string.IsNullOrWhiteSpace(baseUrl))
             return ConnectionResolutionResult.Fail("Set --base-url/--api-url, NONA_CLI_BASE_URL, or a saved default base-url.");
 
         var token = Token(parsedToken);
-        var email = Email(parsedEmail);
-        var password = Password(parsedPassword);
 
         var hasToken = !string.IsNullOrWhiteSpace(token);
-        var hasEmailPassword = !string.IsNullOrWhiteSpace(email) && !string.IsNullOrWhiteSpace(password);
 
-        if (!hasToken && !hasEmailPassword)
+        if (!hasToken)
         {
             if (session is not null && !session.IsExpired && session.MatchesBaseUrl(baseUrl))
                 token = session.Token;
             else
-                return ConnectionResolutionResult.Fail("Set --token, NONA_CLI_BEARER_TOKEN, provide --email and --password, or run `nona auth login`.");
+                return ConnectionResolutionResult.Fail("Set --token, NONA_CLI_BEARER_TOKEN, or run `nona auth login`.");
         }
 
-        return ConnectionResolutionResult.Ok(new NonaCliConnectionOptions(baseUrl, email, password, token));
+        return ConnectionResolutionResult.Ok(new NonaCliConnectionOptions(baseUrl, token));
     }
 
     public string[] BuildFirebaseArgs(
