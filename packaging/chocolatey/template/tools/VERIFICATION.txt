@@ -17,4 +17,4 @@ Get-FileHash .\nona-cli_{{VERSION}}_win-x64.zip -Algorithm SHA256
 Get-FileHash .\nona-cli_{{VERSION}}_win-arm64.zip -Algorithm SHA256
 
 Project homepage:
-https://www.nonaconfig.com/
+https://nonaconfig.com/

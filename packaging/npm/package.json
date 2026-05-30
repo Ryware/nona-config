@@ -14,7 +14,7 @@
     "remote-config",
     "feature-flags"
   ],
-  "homepage": "https://www.nonaconfig.com",
+  "homepage": "https://nonaconfig.com",
   "repository": {
     "type": "git",
     "url": "https://github.com/rywaredev/nona-config"

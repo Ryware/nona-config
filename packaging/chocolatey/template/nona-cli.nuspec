@@ -6,7 +6,7 @@
     <title>Nona CLI</title>
     <authors>Ryware.dev</authors>
     <owners>rywaredev</owners>
-    <projectUrl>https://www.nonaconfig.com/</projectUrl>
+    <projectUrl>https://nonaconfig.com/</projectUrl>
     <packageSourceUrl>https://github.com/Ryware/nona-config/tree/main/packaging/chocolatey</packageSourceUrl>
     <docsUrl>https://github.com/Ryware/nona-config/tree/main/cli/src/Nona.Cli</docsUrl>
     <bugTrackerUrl>https://github.com/Ryware/nona-config/issues</bugTrackerUrl>

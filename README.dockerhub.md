@@ -75,5 +75,5 @@ Production compose examples are available in the repository:
 ## Useful Links
 
 - GitHub: [Ryware/nona-config](https://github.com/Ryware/nona-config)
-- Docs: [nonaconfig.com](https://www.nonaconfig.com/)
+- Docs: [nonaconfig.com](https://nonaconfig.com/)
 - Creator: [ryware.dev](https://ryware.dev)
