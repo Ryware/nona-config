@@ -363,3 +363,8 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 core/src/WebApi/nona-config.db
+
+# Generated API clients and spec (regenerate with ./generate-clients.sh)
+openapi.json
+migrator/src/ConfigMigrator.Core/Generated/
+cli/src/Nona.Cli/Core/Generated/

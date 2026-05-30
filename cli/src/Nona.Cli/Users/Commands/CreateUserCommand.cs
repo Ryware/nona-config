@@ -1,3 +1,5 @@
+using Nona.Cli.Generated.Models;
+
 namespace Nona.Cli.Users.Commands;
 
 internal sealed record CreateUserCommand(
@@ -9,20 +11,23 @@ internal sealed record CreateUserCommand(
 
 internal sealed class CreateUserCommandHandler
 {
-    private readonly Func<HttpClient> _createClient;
 
-    internal CreateUserCommandHandler(Func<HttpClient>? httpClientFactory = null)
-        { _createClient = httpClientFactory ?? (() => new HttpClient()); }
 
     public async Task<int> HandleAsync(CreateUserCommand command, CancellationToken ct)
     {
-        using var http = _createClient();
-        var api = new NonaApiClient(command.Connection.BaseUrl, command.Connection.BearerToken!, http);
-        var result = await api.CreateUserAsync(command.Name, command.Email, command.Role, command.Scope, ct);
+        
+        var api = NonaClientFactory.Create(command.Connection);
+        var result = await api.Admin.Users.PostAsync(new CreateUserRequest
+        {
+            Name = command.Name,
+            Email = command.Email,
+            Role = command.Role,
+            Scope = command.Scope
+        }, cancellationToken: ct);
 
-        Console.WriteLine($"Created user: {result.Name} <{result.Email}>");
-        Console.WriteLine($"Role:  {result.Role}");
-        Console.WriteLine($"Scope: {result.Scope}");
+        Console.WriteLine($"Created user: {result!.User?.Name} <{result.User?.Email}>");
+        Console.WriteLine($"Role:  {result.User?.Role}");
+        Console.WriteLine($"Scope: {result.User?.Scope}");
         Console.WriteLine($"Invitation token: {result.InvitationToken}");
         return 0;
     }

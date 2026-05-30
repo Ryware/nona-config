@@ -8,16 +8,15 @@ internal sealed record DeleteEntryCommand(
 
 internal sealed class DeleteEntryCommandHandler
 {
-    private readonly Func<HttpClient> _createClient;
 
-    internal DeleteEntryCommandHandler(Func<HttpClient>? httpClientFactory = null)
-        { _createClient = httpClientFactory ?? (() => new HttpClient()); }
 
     public async Task<int> HandleAsync(DeleteEntryCommand command, CancellationToken ct)
     {
-        using var http = _createClient();
-        var api = new NonaApiClient(command.Connection.BaseUrl, command.Connection.BearerToken!, http);
-        await api.DeleteConfigEntryAsync(command.Project, command.Environment, command.Key, ct);
+        
+        var api = NonaClientFactory.Create(command.Connection);
+        await api.Admin.Projects[command.Project]
+            .Environments[command.Environment].ConfigEntries[command.Key]
+            .DeleteAsync(cancellationToken: ct);
 
         Console.WriteLine($"Deleted [{command.Environment}] {command.Key}");
         return 0;

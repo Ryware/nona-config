@@ -1,3 +1,7 @@
+using Microsoft.Kiota.Http.HttpClientLibrary;
+using Nona.Migrator.Core;
+using Nona.Migrator.Core.Generated;
+using Nona.Migrator.Core.Generated.Models;
 using Nona.Migrator.Core.Models;
 using Nona.Migrator.Core.Services;
 using Nona.Migrator.FirebaseRemoteConfig.Service;
@@ -54,20 +58,28 @@ public static class FirebaseRemoteConfigMigrationCommand
                 return 0;
             }
 
-            var nonaClient = new NonaAdminClient(nonaHttpClient, configuration.Nona);
-            var projectName = await nonaClient.EnsureProjectAsync(configuration.Nona.ProjectName, cancellationToken);
+            var authProvider = new NonaAuthenticationProvider(configuration.Nona);
+            var adapter = new HttpClientRequestAdapter(authProvider, httpClient: nonaHttpClient)
+            {
+                BaseUrl = configuration.Nona.BaseUrl.TrimEnd('/')
+            };
+            var nonaClient = new NonaMigrationApiClient(adapter);
+
+            var projectName = await EnsureProjectAsync(nonaClient, configuration.Nona.ProjectName, cancellationToken);
 
             foreach (var environment in plan.Environments)
-                await nonaClient.EnsureEnvironmentAsync(projectName, environment, cancellationToken);
+                await EnsureEnvironmentAsync(nonaClient, projectName, environment, cancellationToken);
 
             foreach (var entry in plan.Entries)
             {
-                await nonaClient.UpsertConfigEntryAsync(
-                    projectName,
-                    entry.Environment,
-                    entry.Key,
-                    new UpsertConfigEntryRequest(entry.Value, entry.ContentType, entry.Scope),
-                    cancellationToken);
+                await nonaClient.Admin.Projects[projectName]
+                    .Environments[entry.Environment].ConfigEntries[entry.Key]
+                    .PutAsync(new UpsertConfigEntryRequest
+                    {
+                        Value = entry.Value,
+                        ContentType = entry.ContentType,
+                        Scope = entry.Scope
+                    }, cancellationToken: cancellationToken);
 
                 await output.WriteLineAsync(
                     $"Migrated [{entry.Environment}] {entry.Key} ({entry.Scope}, {entry.ContentType}) <= {entry.SourceLabel}");
@@ -86,5 +98,35 @@ public static class FirebaseRemoteConfigMigrationCommand
             await error.WriteLineAsync(exception.Message);
             return 1;
         }
+    }
+
+    private static async Task<string> EnsureProjectAsync(
+        NonaMigrationApiClient client, string projectName, CancellationToken ct)
+    {
+        var projects = await client.Admin.Projects.GetAsync(cancellationToken: ct);
+        var existing = projects?.FirstOrDefault(p =>
+            string.Equals(p.Name, projectName, StringComparison.OrdinalIgnoreCase));
+
+        if (existing is not null)
+            return existing.Name!;
+
+        var created = await client.Admin.Projects
+            .PostAsync(new CreateProjectRequest { Name = projectName }, cancellationToken: ct);
+
+        return created!.Name!;
+    }
+
+    private static async Task EnsureEnvironmentAsync(
+        NonaMigrationApiClient client, string projectName, string environmentName, CancellationToken ct)
+    {
+        var environments = await client.Admin.Projects[projectName].Environments
+            .GetAsync(cancellationToken: ct);
+
+        if (environments?.Any(e =>
+            string.Equals(e.Name, environmentName, StringComparison.OrdinalIgnoreCase)) == true)
+            return;
+
+        await client.Admin.Projects[projectName].Environments
+            .PostAsync(new CreateEnvironmentRequest { Name = environmentName }, cancellationToken: ct);
     }
 }

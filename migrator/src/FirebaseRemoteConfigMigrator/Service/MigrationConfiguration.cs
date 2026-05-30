@@ -1,6 +1,5 @@
 using Nona.FirebaseRemoteConfigMigrator;
 using Nona.FirebaseRemoteConfigMigrator.Options;
-using Nona.Migrator.Core;
 using Nona.Migrator.Core.Models;
 using Nona.Migrator.Core.Options;
 using System.Text.Json;
@@ -210,7 +209,7 @@ internal sealed class MigrationConfiguration
         if (string.IsNullOrWhiteSpace(rawValue))
             return fallback;
 
-        var parsed = JsonSerializer.Deserialize(rawValue, NonaSerializerContext.Default.DictionaryStringString);
+        var parsed = JsonSerializer.Deserialize<Dictionary<string, string>>(rawValue);
         return parsed is null
             ? fallback
             : new Dictionary<string, string>(parsed, StringComparer.OrdinalIgnoreCase);

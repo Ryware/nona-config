@@ -1,19 +1,22 @@
+using Nona.Cli.Generated.Models;
+
 namespace Nona.Cli.Keys.Queries;
 
 internal sealed record ShowKeysQuery(NonaCliConnectionOptions Connection, string Project);
 
 internal sealed class ShowKeysQueryHandler
 {
-    private readonly Func<HttpClient> _createClient;
 
-    internal ShowKeysQueryHandler(Func<HttpClient>? httpClientFactory = null)
-        { _createClient = httpClientFactory ?? (() => new HttpClient()); }
 
     public async Task<int> HandleAsync(ShowKeysQuery query, CancellationToken ct)
     {
-        using var http = _createClient();
-        var api = new NonaApiClient(query.Connection.BaseUrl, query.Connection.BearerToken!, http);
-        var project = await api.GetProjectAsync(query.Project, ct);
+        
+        var api = NonaClientFactory.Create(query.Connection);
+        var projects = await api.Admin.Projects.GetAsync(cancellationToken: ct);
+
+        var project = projects?.FirstOrDefault(p =>
+            string.Equals(p.Name, query.Project, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(p.UrlSlug, query.Project, StringComparison.OrdinalIgnoreCase));
 
         if (project is null)
         {
@@ -33,9 +36,9 @@ internal sealed class ShowKeysQueryHandler
         Console.WriteLine($"Slug:       {project.UrlSlug ?? "(none)"}");
         Console.WriteLine($"Server key: {project.ServerApiKey ?? "(none)"}");
         Console.WriteLine($"Client key: {project.ClientApiKey ?? "(none)"}");
-        var environments = project.Environments.Count == 0
+        var environments = project.Environments?.Count == 0
             ? "(none)"
-            : string.Join(", ", project.Environments.OrderBy(static e => e, StringComparer.OrdinalIgnoreCase));
+            : string.Join(", ", (project.Environments ?? []).OrderBy(static e => e, StringComparer.OrdinalIgnoreCase));
         Console.WriteLine($"Environments: {environments}");
     }
 }

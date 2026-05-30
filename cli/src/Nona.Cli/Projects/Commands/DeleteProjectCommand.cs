@@ -4,16 +4,13 @@ internal sealed record DeleteProjectCommand(NonaCliConnectionOptions Connection,
 
 internal sealed class DeleteProjectCommandHandler
 {
-    private readonly Func<HttpClient> _createClient;
 
-    internal DeleteProjectCommandHandler(Func<HttpClient>? httpClientFactory = null)
-        { _createClient = httpClientFactory ?? (() => new HttpClient()); }
 
     public async Task<int> HandleAsync(DeleteProjectCommand command, CancellationToken ct)
     {
-        using var http = _createClient();
-        var api = new NonaApiClient(command.Connection.BaseUrl, command.Connection.BearerToken!, http);
-        await api.DeleteProjectAsync(command.Project, ct);
+        
+        var api = NonaClientFactory.Create(command.Connection);
+        await api.Admin.Projects[command.Project].DeleteAsync(cancellationToken: ct);
 
         Console.WriteLine($"Deleted project: {command.Project}");
         return 0;

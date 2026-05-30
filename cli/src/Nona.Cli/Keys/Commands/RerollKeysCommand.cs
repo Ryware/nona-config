@@ -1,3 +1,4 @@
+using Nona.Cli.Generated.Models;
 using Nona.Cli.Keys.Queries;
 
 namespace Nona.Cli.Keys.Commands;
@@ -6,18 +7,16 @@ internal sealed record RerollKeysCommand(NonaCliConnectionOptions Connection, st
 
 internal sealed class RerollKeysCommandHandler
 {
-    private readonly Func<HttpClient> _createClient;
 
-    internal RerollKeysCommandHandler(Func<HttpClient>? httpClientFactory = null)
-        { _createClient = httpClientFactory ?? (() => new HttpClient()); }
 
     public async Task<int> HandleAsync(RerollKeysCommand command, CancellationToken ct)
     {
-        using var http = _createClient();
-        var api = new NonaApiClient(command.Connection.BaseUrl, command.Connection.BearerToken!, http);
-        var project = await api.RerollApiKeysAsync(command.Project, command.KeyType, ct);
+        
+        var api = NonaClientFactory.Create(command.Connection);
+        var project = await api.Admin.Projects[command.Project].RerollKeys
+            .PostAsync(new RerollApiKeysRequest { KeyType = command.KeyType }, cancellationToken: ct);
 
-        ShowKeysQueryHandler.WriteProject(command.Connection.BaseUrl, $"Rerolled {command.KeyType} key(s)", project);
+        ShowKeysQueryHandler.WriteProject(command.Connection.BaseUrl, $"Rerolled {command.KeyType} key(s)", project!);
         return 0;
     }
 }
