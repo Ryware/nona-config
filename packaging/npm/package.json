@@ -17,9 +17,9 @@
   "homepage": "https://nonaconfig.com",
   "repository": {
     "type": "git",
-    "url": "https://github.com/rywaredev/nona-config"
+    "url": "https://github.com/Ryware/nona-config"
   },
-  "license": "MIT",
+  "license": "Apache-2.0",
   "bin": {
     "nona": "./run.js"
   },

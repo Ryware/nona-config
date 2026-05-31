@@ -6,7 +6,7 @@
 [![npm](https://img.shields.io/npm/v/nona-client?style=flat-square&logo=npm)](https://www.npmjs.com/package/nona-client)
 [![NuGet](https://img.shields.io/nuget/v/Nona.Client?style=flat-square&logo=nuget)](https://www.nuget.org/packages/Nona.Client)
 [![Chocolatey](https://img.shields.io/chocolatey/v/nona-cli?style=flat-square&logo=chocolatey)](https://community.chocolatey.org/packages/nona-cli)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](LICENSE.txt)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg?style=flat-square)](LICENSE.txt)
 
 Nona gives you the same feature flag and remote config capabilities as Firebase Remote Config — without the Google account, without the lock-in, and running entirely on your own infrastructure.
 
@@ -36,7 +36,7 @@ Nona gives you the same feature flag and remote config capabilities as Firebase 
 
 | | Nona | Firebase Remote Config |
 |---|---|---|
-| Open source | ✅ MIT licence | ❌ Closed source |
+| Open source | ✅ Apache 2.0 licence | ❌ Closed source |
 | Self-hostable | ✅ Docker / Kubernetes | ❌ Google-hosted only |
 | No Google account | ✅ | ❌ Required |
 | Works without mobile SDK | ✅ Plain HTTP | ❌ Firebase SDK needed |
@@ -305,6 +305,6 @@ Issues and pull requests are welcome. See the [issues tracker](https://github.co
 
 ## Licence
 
-[MIT](LICENSE.txt) — free to use, self-host, and modify.
+[Apache 2.0](LICENSE.txt) — free to use, self-host, and modify.
 
 Built by [Ryware.dev](https://ryware.dev)
