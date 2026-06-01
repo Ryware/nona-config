@@ -3,7 +3,7 @@ using Nona.Domain.Enums;
 
 namespace Nona.Domain.Interfaces;
 
-public record ApiKeyLookupResult(Project Project, KeyScope Scope);
+public record ApiKeyLookupResult(Project Project, KeyScope Scope, string? Environment = null);
 
 public interface IProjectRepository
 {

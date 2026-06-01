@@ -52,6 +52,12 @@ internal static class Fixtures
 
     internal const string ProjectArrayJson = $"[{ProjectJson}]";
 
+    internal const string ApiKeyJson = """
+        {"id":7,"name":"Web Client","key":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","project":"my-project","environment":"production","scope":"client","createdAt":"2024-01-01T00:00:00Z","updatedAt":"2024-01-01T00:00:00Z"}
+        """;
+
+    internal const string ApiKeyArrayJson = $"[{ApiKeyJson}]";
+
     internal const string ConfigEntryJson = """
         {"project":"my-project","environment":"production","key":"my.key","value":"my-value","contentType":"string","scope":"all","createdAt":"2024-01-01T00:00:00Z","updatedAt":"2024-01-01T00:00:00Z"}
         """;

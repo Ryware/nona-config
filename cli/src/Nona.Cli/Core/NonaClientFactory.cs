@@ -6,15 +6,16 @@ namespace Nona.Cli;
 
 internal static class NonaClientFactory
 {
-    internal static NonaApiClient Create(NonaCliConnectionOptions connection)
+    internal static NonaApiClient Create(NonaCliConnectionOptions connection, Func<HttpClient>? httpClientFactory = null)
     {
         var authProvider = new BaseBearerTokenAuthenticationProvider(
             new StaticTokenProvider(connection.BearerToken!));
 
-        var adapter = new HttpClientRequestAdapter(authProvider)
-        {
-            BaseUrl = connection.BaseUrl.TrimEnd('/')
-        };
+        var adapter = httpClientFactory is null
+            ? new HttpClientRequestAdapter(authProvider)
+            : new HttpClientRequestAdapter(authProvider, httpClient: httpClientFactory());
+
+        adapter.BaseUrl = connection.BaseUrl.TrimEnd('/');
 
         return new NonaApiClient(adapter);
     }

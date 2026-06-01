@@ -9,6 +9,7 @@ namespace Nona.Application.Tests.Common;
 public class TestFixture
 {
     public IProjectRepository ProjectRepository { get; } = Substitute.For<IProjectRepository>();
+    public IApiKeyRepository ApiKeyRepository { get; } = Substitute.For<IApiKeyRepository>();
     public IEnvironmentRepository EnvironmentRepository { get; } = Substitute.For<IEnvironmentRepository>();
     public IConfigEntryRepository ConfigEntryRepository { get; } = Substitute.For<IConfigEntryRepository>();
     public IProjectMemberRepository ProjectMemberRepository { get; } = Substitute.For<IProjectMemberRepository>();

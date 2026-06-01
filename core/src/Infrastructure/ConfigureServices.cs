@@ -58,6 +58,7 @@ public static class ConfigureServices
         services.AddSingleton<IUserRepository, InMemoryUserRepository>();
         services.AddSingleton<IExternalIdentityRepository, InMemoryExternalIdentityRepository>();
         services.AddSingleton<IProjectRepository, InMemoryProjectRepository>();
+        services.AddSingleton<IApiKeyRepository, InMemoryApiKeyRepository>();
         services.AddSingleton<IEnvironmentRepository, InMemoryEnvironmentRepository>();
         services.AddSingleton<IConfigEntryRepository, InMemoryConfigEntryRepository>();
         services.AddSingleton<IProjectMemberRepository, InMemoryProjectMemberRepository>();
@@ -140,6 +141,7 @@ public static class ConfigureServices
         services.AddSingleton<IUserRepository, LibsqlUserRepository>();
         services.AddSingleton<IExternalIdentityRepository, LibsqlExternalIdentityRepository>();
         services.AddSingleton<IProjectRepository, LibsqlProjectRepository>();
+        services.AddSingleton<IApiKeyRepository, LibsqlApiKeyRepository>();
         services.AddSingleton<IEnvironmentRepository, LibsqlEnvironmentRepository>();
         services.AddSingleton<IProjectMemberRepository, LibsqlProjectMemberRepository>();
     }

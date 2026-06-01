@@ -1,5 +1,7 @@
 using MediatR;
 using Nona.Application.Common.Interfaces;
+using Nona.Domain.Entities;
+using Nona.Domain.Enums;
 using Nona.Domain.Interfaces;
 
 namespace Nona.Application.Api.ConfigEntries.Queries;
@@ -10,6 +12,7 @@ public record GetConfigEntryValueResult(bool Success, string? Value, string? Con
 
 public class GetConfigEntryValueQueryHandler(
     IProjectRepository projectRepository,
+    IApiKeyRepository apiKeyRepository,
     IEnvironmentRepository environmentRepository,
     IConfigEntryRepository configEntryRepository,
     IApiKeyService apiKeyService)
@@ -21,11 +24,29 @@ public class GetConfigEntryValueQueryHandler(
         if (string.IsNullOrEmpty(apiKey))
             return new GetConfigEntryValueResult(false, null, null, "API key is required");
 
-        var lookupResult = await projectRepository.GetByApiKeyAsync(apiKey, cancellationToken);
-        if (lookupResult is null)
-            return new GetConfigEntryValueResult(false, null, null, "Invalid API key");
+        var lookupResult = await apiKeyRepository.GetByKeyAsync(apiKey, cancellationToken);
+        Project project;
+        KeyScope apiKeyScope;
+        string? apiKeyEnvironment;
 
-        var (project, apiKeyScope) = lookupResult;
+        if (lookupResult is not null)
+        {
+            (project, apiKeyScope, apiKeyEnvironment) = lookupResult;
+        }
+        else
+        {
+            var legacyLookupResult = await projectRepository.GetByApiKeyAsync(apiKey, cancellationToken);
+            if (legacyLookupResult is null)
+                return new GetConfigEntryValueResult(false, null, null, "Invalid API key");
+
+            (project, apiKeyScope, apiKeyEnvironment) = legacyLookupResult;
+        }
+
+        if (apiKeyEnvironment is not null &&
+            !string.Equals(apiKeyEnvironment, request.EnvironmentId, StringComparison.OrdinalIgnoreCase))
+        {
+            return new GetConfigEntryValueResult(false, null, null, "Environment not found");
+        }
 
         if (!await environmentRepository.ExistsAsync(project.Name, request.EnvironmentId, cancellationToken))
             return new GetConfigEntryValueResult(false, null, null, "Environment not found");
