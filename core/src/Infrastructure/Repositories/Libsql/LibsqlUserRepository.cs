@@ -94,13 +94,39 @@ public sealed class LibsqlUserRepository : IUserRepository
 
     public async Task AddAsync(User user, CancellationToken ct = default)
     {
-        var result = await _client.ExecuteAsync(
-            """
-            INSERT INTO Users (Email, Name, PasswordHash, PasswordSalt, Role, Scope, IsAdmin, CreatedAt, UpdatedAt, PasswordResetToken, InviteTokenHash)
-            VALUES (@Email, @Name, @PasswordHash, @PasswordSalt, @Role, @Scope, @IsAdmin, @CreatedAt, @UpdatedAt, @PasswordResetToken, @InviteTokenHash)
-            """,
-            ToParameters(user),
-            ct);
+        var columns = new List<string>
+        {
+            "Email",
+            "Name",
+            "Role",
+            "Scope",
+            "IsAdmin",
+            "CreatedAt",
+            "UpdatedAt"
+        };
+        var parameters = new Dictionary<string, object?>
+        {
+            ["Email"] = user.Email,
+            ["Name"] = user.Name,
+            ["Role"] = (int)user.Role,
+            ["Scope"] = (int)user.Scope,
+            ["IsAdmin"] = user.IsAdmin,
+            ["CreatedAt"] = user.CreatedAt.ToString("O"),
+            ["UpdatedAt"] = user.UpdatedAt.ToString("O")
+        };
+
+        AddOptionalColumn(columns, parameters, "PasswordHash", user.PasswordHash);
+        AddOptionalColumn(columns, parameters, "PasswordSalt", user.PasswordSalt);
+        AddOptionalColumn(columns, parameters, "PasswordResetToken", user.PasswordResetToken);
+        AddOptionalColumn(columns, parameters, "InviteTokenHash", user.InviteTokenHash);
+
+        var values = columns.Select(column => $"@{column}");
+        var sql = $"""
+            INSERT INTO Users ({string.Join(", ", columns)})
+            VALUES ({string.Join(", ", values)})
+            """;
+
+        var result = await _client.ExecuteAsync(sql, parameters, ct);
 
         user.Id = result.LastInsertRowId ?? 0;
     }
@@ -179,5 +205,20 @@ public sealed class LibsqlUserRepository : IUserRepository
             user.PasswordResetToken,
             user.InviteTokenHash
         };
+    }
+
+    private static void AddOptionalColumn(
+        ICollection<string> columns,
+        IDictionary<string, object?> parameters,
+        string column,
+        object? value)
+    {
+        if (value is null)
+        {
+            return;
+        }
+
+        columns.Add(column);
+        parameters[column] = value;
     }
 }

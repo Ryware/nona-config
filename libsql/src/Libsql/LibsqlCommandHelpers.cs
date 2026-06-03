@@ -73,12 +73,12 @@ internal static class LibsqlCommandHelpers
                 throw new KeyNotFoundException($"Parameter '{match.Value}' was not provided for libSQL statement.");
             }
 
-            var parameterName = $"@p{parameterIndex++}";
+            var parameterName = $"@p_{parameterIndex++}";
             sb.Append(parameterName);
 
             var dbParameter = command.CreateParameter();
             dbParameter.ParameterName = parameterName;
-            dbParameter.Value = NormalizeParameterValue(value) ?? DBNull.Value;
+            dbParameter.Value = NormalizeParameterValue(value);
             command.Parameters.Add(dbParameter);
 
             currentIndex = match.Index + match.Length;

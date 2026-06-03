@@ -5,6 +5,7 @@ namespace Nona.Libsql.Tests;
 public class LibsqlRemoteIntegrationTests
 {
     private const string WrapperSmokeTable = "__NonaLibsqlWrapperSmoke";
+    private const string NullSmokeTable = "__NonaLibsqlNullSmoke";
 
     [Test]
     public async Task RemoteLibsql_WrapperCrud_WorksWhenCredentialsProvided()
@@ -81,7 +82,7 @@ public class LibsqlRemoteIntegrationTests
     public async Task RemoteLibsql_EmbeddedReplica_ObservesRemoteWrites_WhenCredentialsProvided()
     {
         var (url, authToken) = GetRemoteCredentials();
-        if (string.IsNullOrWhiteSpace(url))
+        if (string.IsNullOrWhiteSpace(url) || string.IsNullOrWhiteSpace(authToken))
         {
             return;
         }
@@ -147,6 +148,122 @@ public class LibsqlRemoteIntegrationTests
                 {
                     File.Delete(replicaPath);
                 }
+            }
+            catch
+            {
+            }
+        }
+    }
+
+    [Test]
+    public async Task RemoteLibsql_NullParameters_AreInserted_WhenCredentialsProvided()
+    {
+        var (url, authToken) = GetRemoteCredentials();
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            return;
+        }
+
+        using var client = CreateDirectClient(url, authToken);
+        var id = Guid.NewGuid().ToString("N")[..16];
+
+        await client.ExecuteAsync(
+            $"""
+            CREATE TABLE IF NOT EXISTS {NullSmokeTable} (
+                Id TEXT PRIMARY KEY,
+                OptionalValue TEXT NULL
+            )
+            """);
+
+        try
+        {
+            await client.ExecuteAsync(
+                $"INSERT INTO {NullSmokeTable} (Id, OptionalValue) VALUES (@Id, @OptionalValue)",
+                new { Id = id, OptionalValue = (string?)null });
+
+            var stored = await client.ExecuteAsync(
+                $"SELECT COUNT(1) AS Count FROM {NullSmokeTable} WHERE Id = @Id AND OptionalValue IS NULL",
+                new { Id = id });
+
+            await Assert.That(stored.Rows[0].GetInt32("Count")).IsEqualTo(1);
+        }
+        finally
+        {
+            try
+            {
+                await client.ExecuteAsync(
+                    $"DELETE FROM {NullSmokeTable} WHERE Id = @Id",
+                    new { Id = id });
+            }
+            catch
+            {
+            }
+        }
+    }
+
+    [Test]
+    public async Task RemoteLibsql_UserRepositoryInsertShape_InsertsRow_WhenCredentialsProvided()
+    {
+        var (url, authToken) = GetRemoteCredentials();
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            return;
+        }
+
+        using var client = CreateDirectClient(url, authToken);
+        var email = $"remote-user-{Guid.NewGuid():N}@example.com";
+
+        await client.ExecuteAsync(
+            """
+            CREATE TABLE IF NOT EXISTS __NonaLibsqlUserInsertSmoke (
+                Email TEXT NOT NULL PRIMARY KEY COLLATE NOCASE,
+                Name TEXT NOT NULL DEFAULT '',
+                PasswordHash TEXT,
+                PasswordSalt TEXT,
+                Role INTEGER NOT NULL DEFAULT 0,
+                Scope INTEGER NOT NULL DEFAULT 3,
+                IsAdmin INTEGER NOT NULL DEFAULT 0,
+                CreatedAt TEXT NOT NULL,
+                UpdatedAt TEXT NOT NULL,
+                PasswordResetToken TEXT,
+                InviteTokenHash TEXT NULL
+            )
+            """);
+
+        try
+        {
+            var insert = await client.ExecuteAsync(
+                """
+                INSERT INTO __NonaLibsqlUserInsertSmoke (Email, Name, PasswordHash, PasswordSalt, Role, Scope, IsAdmin, CreatedAt, UpdatedAt)
+                VALUES (@Email, @Name, @PasswordHash, @PasswordSalt, @Role, @Scope, @IsAdmin, @CreatedAt, @UpdatedAt)
+                """,
+                new
+                {
+                    Email = email,
+                    Name = email,
+                    PasswordHash = "$2a$12$aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    PasswordSalt = string.Empty,
+                    Role = 0,
+                    Scope = 3,
+                    IsAdmin = true,
+                    CreatedAt = "2026-06-03T12:00:00.0000000Z",
+                    UpdatedAt = "2026-06-03T12:00:00.0000000Z"
+                });
+
+            var stored = await client.ExecuteAsync(
+                "SELECT COUNT(1) AS Count FROM __NonaLibsqlUserInsertSmoke WHERE Email = @Email",
+                new { Email = email });
+
+            await Assert.That(insert.AffectedRowCount).IsEqualTo(1);
+            await Assert.That(stored.Rows[0].GetInt32("Count")).IsEqualTo(1);
+        }
+        finally
+        {
+            try
+            {
+                await client.ExecuteAsync(
+                    "DELETE FROM __NonaLibsqlUserInsertSmoke WHERE Email = @Email",
+                    new { Email = email });
             }
             catch
             {
