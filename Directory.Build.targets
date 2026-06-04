@@ -33,7 +33,7 @@
       Command="dotnet tool restore"
       WorkingDirectory="$(MSBuildThisFileDirectory)" />
     <Exec
-      Command="dotnet build &quot;$(MSBuildThisFileDirectory)core/src/WebApi/WebApi.csproj&quot; --no-restore /p:NonaGenerateClientsOnBuild=false /p:OpenApiGenerateDocuments=true /p:OpenApiDocumentsDirectory=&quot;$(NonaGeneratedOpenApiDirectory)&quot;"
+      Command="dotnet build &quot;$(MSBuildThisFileDirectory)core/src/WebApi/WebApi.csproj&quot; /p:NonaGenerateClientsOnBuild=false /p:OpenApiGenerateDocuments=true /p:OpenApiDocumentsDirectory=&quot;$(NonaGeneratedOpenApiDirectory)&quot;"
       WorkingDirectory="$(MSBuildThisFileDirectory)"
       EnvironmentVariables="Storage__Type=InMemory" />
     <Exec
