@@ -1,0 +1,38 @@
+using Nona.Cli.Generated.Models;
+
+namespace Nona.Cli.Projects.Queries;
+
+internal sealed record ListProjectsQuery(NonaCliConnectionOptions Connection);
+
+internal sealed class ListProjectsQueryHandler
+{
+
+
+    public async Task<int> HandleAsync(ListProjectsQuery query, CancellationToken ct)
+    {
+        
+        var api = NonaClientFactory.Create(query.Connection);
+        var projects = await api.Admin.Projects.GetAsync(cancellationToken: ct);
+
+        if (projects is null || projects.Count == 0)
+        {
+            Console.WriteLine("No projects found.");
+            return 0;
+        }
+
+        foreach (var p in projects)
+            WriteProject(p);
+
+        return 0;
+    }
+
+    internal static void WriteProject(ProjectDto p)
+    {
+        Console.WriteLine($"  {p.Name}");
+        Console.WriteLine($"    Slug:       {p.UrlSlug ?? "(none)"}");
+        Console.WriteLine($"    Server key: {p.ServerApiKey ?? "(none)"}");
+        Console.WriteLine($"    Client key: {p.ClientApiKey ?? "(none)"}");
+        var envs = p.Environments?.Count == 0 ? "(none)" : string.Join(", ", (p.Environments ?? []).Order());
+        Console.WriteLine($"    Environments: {envs}");
+    }
+}

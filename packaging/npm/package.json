@@ -1,0 +1,36 @@
+{
+  "name": "nona-cli",
+  "version": "0.0.1",
+  "author": {
+    "url": "https://ryware.dev",
+    "email": "michael@ryware.dev",
+    "name": "Michael Tarnorutsky"
+  },
+  "description": "CLI for Nona key management, remote config, and feature flags.",
+  "keywords": [
+    "nona",
+    "cli",
+    "config",
+    "remote-config",
+    "feature-flags"
+  ],
+  "homepage": "https://nonaconfig.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Ryware/nona-config"
+  },
+  "license": "Apache-2.0",
+  "bin": {
+    "nona": "./run.js"
+  },
+  "scripts": {
+    "postinstall": "node install.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "install.js",
+    "run.js"
+  ]
+}

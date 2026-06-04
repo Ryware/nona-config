@@ -1,0 +1,233 @@
+name: release-cli
+
+on:
+  push:
+    tags:
+      - cli-v*
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Release tag to create or update, for example cli-v1.0.0
+        required: true
+        type: string
+      prerelease:
+        description: Mark the GitHub release as a prerelease
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+env:
+  CLI_PROJECT: cli/src/Nona.Cli/Nona.Cli.csproj
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - rid: win-x64
+            published_file: Nona.Cli.exe
+            executable_name: nona.exe
+            archive_extension: zip
+          - rid: win-arm64
+            published_file: Nona.Cli.exe
+            executable_name: nona.exe
+            archive_extension: zip
+          - rid: linux-x64
+            published_file: Nona.Cli
+            executable_name: nona
+            archive_extension: tar.gz
+          - rid: linux-arm64
+            published_file: Nona.Cli
+            executable_name: nona
+            archive_extension: tar.gz
+          - rid: osx-x64
+            published_file: Nona.Cli
+            executable_name: nona
+            archive_extension: tar.gz
+          - rid: osx-arm64
+            published_file: Nona.Cli
+            executable_name: nona
+            archive_extension: tar.gz
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Resolve release metadata
+        id: meta
+        shell: bash
+        run: |
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            TAG="${{ inputs.release_tag }}"
+            MANUAL_PRERELEASE="${{ inputs.prerelease }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+            MANUAL_PRERELEASE="false"
+          fi
+
+          VERSION="${TAG#cli-v}"
+          if [[ "${MANUAL_PRERELEASE}" == "true" || "${VERSION}" == *-* ]]; then
+            PRERELEASE="true"
+          else
+            PRERELEASE="false"
+          fi
+
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "prerelease=${PRERELEASE}" >> "$GITHUB_OUTPUT"
+
+      - name: Publish standalone binary
+        shell: bash
+        run: |
+          dotnet publish "${CLI_PROJECT}" \
+            -c Release \
+            -r "${{ matrix.rid }}" \
+            --self-contained true \
+            -p:PublishSingleFile=true \
+            -p:DebugType=None \
+            -p:DebugSymbols=false \
+            -o "${GITHUB_WORKSPACE}/publish/${{ matrix.rid }}"
+
+      - name: Package release asset
+        id: package
+        shell: bash
+        run: |
+          VERSION="${{ steps.meta.outputs.version }}"
+          RID="${{ matrix.rid }}"
+          STAGE_DIR="${GITHUB_WORKSPACE}/stage/${RID}"
+          PUBLISH_DIR="${GITHUB_WORKSPACE}/publish/${RID}"
+
+          mkdir -p "${STAGE_DIR}"
+          cp "cli/src/Nona.Cli/README.md" "${STAGE_DIR}/README.md"
+          cp "${PUBLISH_DIR}/${{ matrix.published_file }}" "${STAGE_DIR}/${{ matrix.executable_name }}"
+          if [[ -f "${PUBLISH_DIR}/appsettings.json" ]]; then
+            cp "${PUBLISH_DIR}/appsettings.json" "${STAGE_DIR}/appsettings.json"
+          fi
+
+          if [[ "${RID}" != win-* ]]; then
+            chmod +x "${STAGE_DIR}/${{ matrix.executable_name }}"
+          fi
+
+          if [[ "${{ matrix.archive_extension }}" == "zip" ]]; then
+            ASSET_NAME="nona-cli_${VERSION}_${RID}.zip"
+            (
+              cd "${STAGE_DIR}"
+              zip -r "${GITHUB_WORKSPACE}/${ASSET_NAME}" .
+            )
+          else
+            ASSET_NAME="nona-cli_${VERSION}_${RID}.tar.gz"
+            tar -C "${STAGE_DIR}" -czf "${GITHUB_WORKSPACE}/${ASSET_NAME}" .
+          fi
+
+          echo "asset_path=${GITHUB_WORKSPACE}/${ASSET_NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload packaged asset
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-${{ matrix.rid }}
+          path: ${{ steps.package.outputs.asset_path }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Resolve release metadata
+        id: meta
+        shell: bash
+        run: |
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            TAG="${{ inputs.release_tag }}"
+            MANUAL_PRERELEASE="${{ inputs.prerelease }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+            MANUAL_PRERELEASE="false"
+          fi
+
+          VERSION="${TAG#cli-v}"
+          if [[ "${MANUAL_PRERELEASE}" == "true" || "${VERSION}" == *-* ]]; then
+            PRERELEASE="true"
+          else
+            PRERELEASE="false"
+          fi
+
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "prerelease=${PRERELEASE}" >> "$GITHUB_OUTPUT"
+
+      - name: Download packaged assets
+        uses: actions/download-artifact@v4
+        with:
+          pattern: cli-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Generate checksums
+        shell: bash
+        run: |
+          cd release-assets
+          sha256sum *.zip *.tar.gz > SHA256SUMS.txt
+
+      - name: Create or update GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: Nona CLI ${{ steps.meta.outputs.version }}
+          prerelease: ${{ steps.meta.outputs.prerelease == 'true' }}
+          generate_release_notes: true
+          overwrite_files: true
+          files: |
+            release-assets/*.zip
+            release-assets/*.tar.gz
+            release-assets/SHA256SUMS.txt
+          fail_on_unmatched_files: true
+
+  publish-npm:
+    needs: release
+    runs-on: ubuntu-latest
+    # Skip prereleases — only publish stable versions to npm.
+    if: ${{ !contains(github.ref_name, '-') && github.event_name != 'workflow_dispatch' || (github.event_name == 'workflow_dispatch' && inputs.prerelease == false) }}
+    permissions:
+      contents: read
+      id-token: write  # required for provenance attestation
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: meta
+        shell: bash
+        run: |
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            TAG="${{ inputs.release_tag }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+          fi
+          echo "version=${TAG#cli-v}" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Stamp version
+        run: |
+          cd packaging/npm
+          npm version ${{ steps.meta.outputs.version }} --no-git-tag-version
+
+      - name: Publish to npm
+        run: npm publish --access public --provenance
+        working-directory: packaging/npm

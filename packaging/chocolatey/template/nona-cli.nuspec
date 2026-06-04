@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>nona-cli</id>
+    <version>{{VERSION}}</version>
+    <title>Nona CLI</title>
+    <authors>Ryware.dev</authors>
+    <owners>rywaredev</owners>
+    <projectUrl>https://nonaconfig.com/</projectUrl>
+    <packageSourceUrl>https://github.com/Ryware/nona-config/tree/main/packaging/chocolatey</packageSourceUrl>
+    <docsUrl>https://github.com/Ryware/nona-config/tree/main/cli/src/Nona.Cli</docsUrl>
+    <bugTrackerUrl>https://github.com/Ryware/nona-config/issues</bugTrackerUrl>
+    <licenseUrl>https://github.com/Ryware/nona-config/blob/main/LICENSE.txt</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <summary>Cross-platform CLI for Nona Config administration and migrations.</summary>
+    <description>Nona CLI provides command-line access for Nona Config key management, authentication, saved defaults, and Firebase Remote Config migrations. This Chocolatey package installs the standalone Windows CLI from the official GitHub Releases for x64 and ARM64 systems.</description>
+    <releaseNotes>https://github.com/Ryware/nona-config/releases/tag/cli-v{{VERSION}}</releaseNotes>
+    <tags>nona nona-config cli remote-config feature-flags</tags>
+  </metadata>
+  <files>
+    <file src="tools\**" target="tools" />
+  </files>
+</package>

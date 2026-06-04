@@ -1,15 +1,54 @@
 <Solution>
+  <Folder Name="/core/" />
   <Folder Name="/core/src/">
-    <Project Path="core/src/Application/Application.csproj" />
-    <Project Path="core/src/Domain/Domain.csproj" />
-    <Project Path="core/src/Infrastructure/Infrastructure.csproj" />
-    <Project Path="core/src/Libsql/Libsql.csproj" />
-    <Project Path="core/src/WebApi/WebApi.csproj" />
+    <Project Path="core/src/Application/Application.csproj">
+      <Build Solution="Debug|*" Project="false" />
+    </Project>
+    <Project Path="core/src/Domain/Domain.csproj">
+      <Build Solution="Debug|*" Project="false" />
+    </Project>
+    <Project Path="core/src/Infrastructure/Infrastructure.csproj">
+      <Build Solution="Debug|*" Project="false" />
+    </Project>
+    <Project Path="core/src/WebApi/WebApi.csproj">
+      <Build Solution="Debug|*" Project="false" />
+    </Project>
   </Folder>
   <Folder Name="/core/tests/">
-    <Project Path="core/tests/Application.Tests/Application.Tests.csproj" />
-    <Project Path="core/tests/Libsql.Tests/Libsql.Tests.csproj" />
-    <Project Path="core/tests/Infrastructure.Tests/Infrastructure.Tests.csproj" />
-    <Project Path="core/tests/StorageBenchmarks/StorageBenchmarks.csproj" />
+    <Project Path="core/tests/Application.Tests/Application.Tests.csproj">
+      <Build Solution="Debug|*" Project="false" />
+    </Project>
+    <Project Path="core/tests/Infrastructure.Tests/Infrastructure.Tests.csproj">
+      <Build Solution="Debug|*" Project="false" />
+    </Project>
+    <Project Path="core/tests/StorageBenchmarks/StorageBenchmarks.csproj">
+      <Build Solution="Debug|*" Project="false" />
+    </Project>
+  </Folder>
+  <Folder Name="/libsql/" />
+  <Folder Name="/libsql/src/">
+    <Project Path="libsql/src/Libsql/Libsql.csproj">
+      <Build Solution="Debug|*" Project="false" />
+    </Project>
+  </Folder>
+  <Folder Name="/libsql/tests/">
+    <Project Path="libsql/tests/Libsql.Tests/Libsql.Tests.csproj">
+      <Build Solution="Debug|*" Project="false" />
+    </Project>
+  </Folder>
+  <Folder Name="/cli/" />
+  <Folder Name="/cli/src/">
+    <Project Path="cli/src/Nona.Cli/Nona.Cli.csproj" />
+  </Folder>
+  <Folder Name="/cli/tests/">
+    <Project Path="cli/tests/Nona.Cli.Tests/Nona.Cli.Tests.csproj" />
+  </Folder>
+  <Folder Name="/migrator/" />
+  <Folder Name="/migrator/src/">
+    <Project Path="migrator/src/ConfigMigrator.Core/Migrator.Core.csproj" />
+    <Project Path="migrator/src/FirebaseRemoteConfigMigrator/Migrator.FirebaseRemoteConfig.csproj" />
+  </Folder>
+  <Folder Name="/migrator/tests/">
+    <Project Path="migrator/tests/FirebaseRemoteConfigMigrator.Tests/Migrator.FirebaseRemoteConfig.Tests.csproj" />
   </Folder>
 </Solution>

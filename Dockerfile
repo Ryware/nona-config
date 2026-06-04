@@ -17,16 +17,17 @@ RUN if [ -n "$FRONTEND_API_URL" ]; then \
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-COPY NonaBackend/NonaConfig.slnx ./
-COPY NonaBackend/core/src/Domain/Domain.csproj core/src/Domain/
-COPY NonaBackend/core/src/Application/Application.csproj core/src/Application/
-COPY NonaBackend/core/src/Infrastructure/Infrastructure.csproj core/src/Infrastructure/
-COPY NonaBackend/core/src/Libsql/Libsql.csproj core/src/Libsql/
-COPY NonaBackend/core/src/WebApi/WebApi.csproj core/src/WebApi/
+COPY nona-config/NonaConfig.slnx ./
+COPY nona-config/core/src/Domain/Domain.csproj core/src/Domain/
+COPY nona-config/core/src/Application/Application.csproj core/src/Application/
+COPY nona-config/core/src/Infrastructure/Infrastructure.csproj core/src/Infrastructure/
+COPY nona-config/libsql/src/Libsql/Libsql.csproj libsql/src/Libsql/
+COPY nona-config/core/src/WebApi/WebApi.csproj core/src/WebApi/
 
 RUN dotnet restore core/src/WebApi/WebApi.csproj
 
-COPY NonaBackend/core/src/ core/src/
+COPY nona-config/core/src/ core/src/
+COPY nona-config/libsql/src/ libsql/src/
 
 RUN dotnet publish core/src/WebApi/WebApi.csproj \
     -c Release \
@@ -57,12 +58,9 @@ RUN apt-get update \
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled-extra AS runtime
 WORKDIR /app
 
-WORKDIR /var/lib/nona
-WORKDIR /app
-
 COPY --from=libsql /usr/local/bin/sqld /usr/local/bin/sqld
 COPY --from=libsql /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
-COPY --from=build --chown=1654:1654 /empty-nona/ /var/lib/nona/
+COPY --from=build --chown=1654:1654 /empty-nona /var/lib/nona
 COPY --from=build /app/publish/ ./
 
 EXPOSE 8080
