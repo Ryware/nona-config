@@ -26,7 +26,8 @@
     BeforeTargets="CoreCompile"
     Condition="'$(NonaGenerateClientsOnBuild)' == 'true'
       and ('$(MSBuildProjectName)' == 'Migrator.Core' or '$(MSBuildProjectName)' == 'Nona.Cli')
-      and Exists('$(MSBuildThisFileDirectory)generate-clients.sh')">
+      and (('$(OS)' == 'Windows_NT' and Exists('$(MSBuildThisFileDirectory)generate-clients.ps1'))
+        or ('$(OS)' != 'Windows_NT' and Exists('$(MSBuildThisFileDirectory)generate-clients.sh')))">
     <Message Importance="High" Text="Generating Nona API clients from WebApi OpenAPI document..." />
     <Exec
       Command="dotnet tool restore"
@@ -37,6 +38,11 @@
       EnvironmentVariables="Storage__Type=InMemory" />
     <Exec
       Command="bash &quot;$(MSBuildThisFileDirectory)generate-clients.sh&quot; --spec &quot;$(NonaGeneratedOpenApiSpec)&quot; --admin-path &quot;$(NonaGenerateClientsAdminPath)&quot;"
+      Condition="'$(OS)' != 'Windows_NT'"
+      WorkingDirectory="$(MSBuildThisFileDirectory)" />
+    <Exec
+      Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)generate-clients.ps1&quot; -Spec &quot;$(NonaGeneratedOpenApiSpec)&quot; -AdminPath &quot;$(NonaGenerateClientsAdminPath)&quot;"
+      Condition="'$(OS)' == 'Windows_NT'"
       WorkingDirectory="$(MSBuildThisFileDirectory)" />
     <ItemGroup Condition="'$(MSBuildProjectName)' == 'Migrator.Core'">
       <Compile Remove="$(MSBuildThisFileDirectory)migrator/src/ConfigMigrator.Core/Generated/**/*.cs" />
