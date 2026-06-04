@@ -10,6 +10,7 @@ public sealed class NelknetLibsqlDatabaseClient : ILibsqlDatabaseClient, IDispos
     private readonly string _readConnectionString;
     private readonly string _writeConnectionString;
     private readonly int _commandTimeoutSeconds;
+    private readonly bool _shareReadWriteConnection;
     private readonly SemaphoreSlim _gate = new(1, 1);
 
     private LibSQLConnection? _readConnection;
@@ -39,6 +40,10 @@ public sealed class NelknetLibsqlDatabaseClient : ILibsqlDatabaseClient, IDispos
         _readConnectionString = connectionStrings.ReadConnectionString;
         _writeConnectionString = connectionStrings.WriteConnectionString;
         _commandTimeoutSeconds = commandTimeoutSeconds;
+        _shareReadWriteConnection = string.Equals(
+            _readConnectionString,
+            _writeConnectionString,
+            StringComparison.Ordinal);
     }
 
     public async Task<LibsqlQueryResult> ExecuteAsync(string sql, object? parameters = null, CancellationToken ct = default)
@@ -169,6 +174,25 @@ public sealed class NelknetLibsqlDatabaseClient : ILibsqlDatabaseClient, IDispos
     private LibSQLConnection EnsureConnectionOpen(LibsqlConnectionTarget target)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
+
+        if (_shareReadWriteConnection)
+        {
+            var sharedConnection = _readConnection ?? _writeConnection;
+            if (sharedConnection is not null && sharedConnection.State == ConnectionState.Open)
+            {
+                _readConnection = sharedConnection;
+                _writeConnection = sharedConnection;
+                return sharedConnection;
+            }
+
+            sharedConnection?.Dispose();
+            sharedConnection = new LibSQLConnection(_readConnectionString);
+            sharedConnection.Open();
+
+            _readConnection = sharedConnection;
+            _writeConnection = sharedConnection;
+            return sharedConnection;
+        }
 
         var connection = target == LibsqlConnectionTarget.Read
             ? _readConnection

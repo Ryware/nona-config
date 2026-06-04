@@ -67,6 +67,37 @@ public class LibsqlDatabaseClientTests
     }
 
     [Test]
+    public async Task ExecuteAsync_InsertsNullParameters_AgainstLocalFile()
+    {
+        var databasePath = Path.Combine(Path.GetTempPath(), $"nona-libsql-null-{Guid.NewGuid():N}.db");
+
+        try
+        {
+            using var client = new NelknetLibsqlDatabaseClient($"Data Source={databasePath}");
+
+            await client.ExecuteAsync(
+                """
+                CREATE TABLE NullableItems (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    OptionalValue TEXT NULL
+                )
+                """);
+
+            await client.ExecuteAsync(
+                "INSERT INTO NullableItems (OptionalValue) VALUES (@OptionalValue)",
+                new { OptionalValue = (string?)null });
+
+            var read = await client.ExecuteAsync("SELECT COUNT(1) AS Count FROM NullableItems WHERE OptionalValue IS NULL");
+
+            await Assert.That(read.Rows[0].GetInt32("Count")).IsEqualTo(1);
+        }
+        finally
+        {
+            TryDelete(databasePath);
+        }
+    }
+
+    [Test]
     public async Task ExecuteBatchAsync_RunsStatementsInsideSingleClient()
     {
         var databasePath = Path.Combine(Path.GetTempPath(), $"nona-libsql-batch-{Guid.NewGuid():N}.db");

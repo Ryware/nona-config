@@ -23,7 +23,10 @@ public class ApiKeyAuthenticationHandler(
         if (string.IsNullOrWhiteSpace(apiKey))
             return Task.FromResult(AuthenticateResult.Fail("API key is empty"));
 
-        // Create claims with the API key - validation happens in the query handler
+        if (apiKey.Length != 64)
+            return Task.FromResult(AuthenticateResult.Fail("API key must be 64 characters"));
+
+        // Create claims with the API key; project and environment validation happens in the query handler.
         var claims = new[]
         {
             new Claim("ApiKey", apiKey)

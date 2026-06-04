@@ -7,6 +7,8 @@ using Serilog;
 
 public partial class Program
 {
+    private const string CorsPolicyName = "AllowAllOrigins";
+
     private static async Task Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
@@ -25,7 +27,14 @@ public partial class Program
 
     private static void ConfigureServices(WebApplicationBuilder builder)
     {
-        builder.Services.AddCors();
+        builder.Services.AddCors(options =>
+        {
+            options.AddPolicy(CorsPolicyName, policy => policy
+                .SetIsOriginAllowed(_ => true)
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials());
+        });
 
         builder.Services.AddControllers();
         builder.Services.AddOpenApi(o =>
@@ -60,7 +69,7 @@ public partial class Program
                 .WithTitle("Nona config API");
         });
 
-        app.UseCors(x => x.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
+        app.UseCors(CorsPolicyName);
 
         app.UseDefaultFiles();
         app.UseStaticFiles();

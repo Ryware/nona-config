@@ -6,14 +6,14 @@ namespace Nona.Cli.Entries.Queries;
 
 internal sealed record GetEntryQuery(NonaCliConnectionOptions Connection, string Project, string Environment, string Key);
 
-internal sealed class GetEntryQueryHandler
+internal sealed class GetEntryQueryHandler(Func<HttpClient>? httpClientFactory = null)
 {
 
 
     public async Task<int> HandleAsync(GetEntryQuery query, CancellationToken ct)
     {
         
-        var api = NonaClientFactory.Create(query.Connection);
+        var api = NonaClientFactory.Create(query.Connection, httpClientFactory);
 
         ConfigEntryDto? entry;
         try

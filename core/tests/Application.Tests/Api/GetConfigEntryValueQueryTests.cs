@@ -17,6 +17,7 @@ public class GetConfigEntryValueQueryTests
     private const string ClientApiKey = "client-api-key-456";
 
     private IProjectRepository _projectRepository = null!;
+    private IApiKeyRepository _apiKeyRepository = null!;
     private IEnvironmentRepository _environmentRepository = null!;
     private IConfigEntryRepository _configEntryRepository = null!;
     private IApiKeyService _apiKeyService = null!;
@@ -25,6 +26,7 @@ public class GetConfigEntryValueQueryTests
     public void Setup()
     {
         _projectRepository = Substitute.For<IProjectRepository>();
+        _apiKeyRepository = Substitute.For<IApiKeyRepository>();
         _environmentRepository = Substitute.For<IEnvironmentRepository>();
         _configEntryRepository = Substitute.For<IConfigEntryRepository>();
         _apiKeyService = Substitute.For<IApiKeyService>();
@@ -83,6 +85,55 @@ public class GetConfigEntryValueQueryTests
         // Assert
         await Assert.That(result.Success).IsFalse();
         await Assert.That(result.Error).IsEqualTo("Invalid API key");
+    }
+
+    #endregion
+
+    #region Managed API Key Tests
+
+    [Test]
+    public async Task GetConfigEntryValue_WithManagedApiKey_CanReadScopedEnvironment()
+    {
+        // Arrange
+        const string managedApiKey = "managed-api-key";
+        var project = new Project { Name = ProjectName };
+        _apiKeyService.GetCurrentApiKey().Returns(managedApiKey);
+        _apiKeyRepository.GetByKeyAsync(managedApiKey, Arg.Any<CancellationToken>())
+            .Returns(new ApiKeyAuthenticationResult(project, KeyScope.Frontend, EnvironmentName));
+        SetupEnvironmentExists();
+        SetupConfigEntry(KeyScope.Frontend);
+
+        var handler = CreateHandler();
+        var query = new GetConfigEntryValueQuery(EnvironmentName, ConfigKey);
+
+        // Act
+        var result = await handler.Handle(query, CancellationToken.None);
+
+        // Assert
+        await Assert.That(result.Success).IsTrue();
+        await Assert.That(result.Value).IsEqualTo(ConfigValue);
+    }
+
+    [Test]
+    public async Task GetConfigEntryValue_WithManagedApiKey_CannotReadOtherEnvironment()
+    {
+        // Arrange
+        const string managedApiKey = "managed-api-key";
+        var project = new Project { Name = ProjectName };
+        _apiKeyService.GetCurrentApiKey().Returns(managedApiKey);
+        _apiKeyRepository.GetByKeyAsync(managedApiKey, Arg.Any<CancellationToken>())
+            .Returns(new ApiKeyAuthenticationResult(project, KeyScope.Frontend, "staging"));
+
+        var handler = CreateHandler();
+        var query = new GetConfigEntryValueQuery(EnvironmentName, ConfigKey);
+
+        // Act
+        var result = await handler.Handle(query, CancellationToken.None);
+
+        // Assert
+        await Assert.That(result.Success).IsFalse();
+        await Assert.That(result.Error).IsEqualTo("Environment not found");
+        await _environmentRepository.DidNotReceive().ExistsAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     #endregion
@@ -320,6 +371,7 @@ public class GetConfigEntryValueQueryTests
     {
         return new GetConfigEntryValueQueryHandler(
             _projectRepository,
+            _apiKeyRepository,
             _environmentRepository,
             _configEntryRepository,
             _apiKeyService);

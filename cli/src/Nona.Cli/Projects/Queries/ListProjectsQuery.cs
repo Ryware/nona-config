@@ -4,14 +4,14 @@ namespace Nona.Cli.Projects.Queries;
 
 internal sealed record ListProjectsQuery(NonaCliConnectionOptions Connection);
 
-internal sealed class ListProjectsQueryHandler
+internal sealed class ListProjectsQueryHandler(Func<HttpClient>? httpClientFactory = null)
 {
 
 
     public async Task<int> HandleAsync(ListProjectsQuery query, CancellationToken ct)
     {
         
-        var api = NonaClientFactory.Create(query.Connection);
+        var api = NonaClientFactory.Create(query.Connection, httpClientFactory);
         var projects = await api.Admin.Projects.GetAsync(cancellationToken: ct);
 
         if (projects is null || projects.Count == 0)
