@@ -1,0 +1,50 @@
+<Project>
+  <PropertyGroup>
+    <NonaGenerateClientsOnBuild Condition="'$(NonaGenerateClientsOnBuild)' == ''">true</NonaGenerateClientsOnBuild>
+    <NonaGenerateClientsAdminPath Condition="'$(NonaGenerateClientsAdminPath)' == ''">$(MSBuildThisFileDirectory)..\nona-config-admin</NonaGenerateClientsAdminPath>
+    <NonaGeneratedOpenApiDirectory>$(MSBuildThisFileDirectory)obj\openapi</NonaGeneratedOpenApiDirectory>
+    <NonaGeneratedOpenApiSpec>$(NonaGeneratedOpenApiDirectory)\WebApi.json</NonaGeneratedOpenApiSpec>
+  </PropertyGroup>
+
+  <Target
+    Name="InstallGitHooks"
+    BeforeTargets="CollectPackageReferences;Build"
+    Condition="'$(NonaSkipGitHooksInstall)' != 'true'
+      and Exists('$(MSBuildThisFileDirectory).git')
+      and Exists('$(MSBuildThisFileDirectory).githooks/pre-push')">
+    <Exec
+      Command="git config core.hooksPath .githooks"
+      WorkingDirectory="$(MSBuildThisFileDirectory)"
+      IgnoreExitCode="true"
+      IgnoreStandardErrorWarningFormat="true"
+      StandardOutputImportance="Low"
+      StandardErrorImportance="Low" />
+  </Target>
+
+  <Target
+    Name="GenerateNonaClients"
+    BeforeTargets="CoreCompile"
+    Condition="'$(NonaGenerateClientsOnBuild)' == 'true'
+      and ('$(MSBuildProjectName)' == 'Migrator.Core' or '$(MSBuildProjectName)' == 'Nona.Cli')
+      and Exists('$(MSBuildThisFileDirectory)generate-clients.sh')">
+    <Message Importance="High" Text="Generating Nona API clients from WebApi OpenAPI document..." />
+    <Exec
+      Command="dotnet tool restore"
+      WorkingDirectory="$(MSBuildThisFileDirectory)" />
+    <Exec
+      Command="dotnet build &quot;$(MSBuildThisFileDirectory)core/src/WebApi/WebApi.csproj&quot; --no-restore /p:NonaGenerateClientsOnBuild=false /p:OpenApiGenerateDocuments=true /p:OpenApiDocumentsDirectory=&quot;$(NonaGeneratedOpenApiDirectory)&quot;"
+      WorkingDirectory="$(MSBuildThisFileDirectory)"
+      EnvironmentVariables="Storage__Type=InMemory" />
+    <Exec
+      Command="bash &quot;$(MSBuildThisFileDirectory)generate-clients.sh&quot; --spec &quot;$(NonaGeneratedOpenApiSpec)&quot; --admin-path &quot;$(NonaGenerateClientsAdminPath)&quot;"
+      WorkingDirectory="$(MSBuildThisFileDirectory)" />
+    <ItemGroup Condition="'$(MSBuildProjectName)' == 'Migrator.Core'">
+      <Compile Remove="$(MSBuildThisFileDirectory)migrator/src/ConfigMigrator.Core/Generated/**/*.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)migrator/src/ConfigMigrator.Core/Generated/**/*.cs" />
+    </ItemGroup>
+    <ItemGroup Condition="'$(MSBuildProjectName)' == 'Nona.Cli'">
+      <Compile Remove="$(MSBuildThisFileDirectory)cli/src/Nona.Cli/Core/Generated/**/*.cs" />
+      <Compile Include="$(MSBuildThisFileDirectory)cli/src/Nona.Cli/Core/Generated/**/*.cs" />
+    </ItemGroup>
+  </Target>
+</Project>

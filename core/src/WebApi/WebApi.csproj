@@ -4,6 +4,7 @@
 		<TargetFramework>net10.0</TargetFramework>
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
+		<OpenApiGenerateDocuments>false</OpenApiGenerateDocuments>
 
 		<RootNamespace>Nona.WebApi</RootNamespace>
 		<AssemblyName>Nona.WebApi</AssemblyName>
@@ -12,6 +13,7 @@
 	<ItemGroup>
 		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
 		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.1" />
+		<PackageReference Include="Microsoft.Extensions.ApiDescription.Server" Version="10.0.1" PrivateAssets="all" />
 		<PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
 		<PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
 		<PackageReference Include="Scalar.AspNetCore" Version="2.11.0" />

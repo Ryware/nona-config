@@ -1,0 +1,208 @@
+#!/bin/sh
+set -eu
+
+empty_tree_oid=4b825dc642cb6eb9a060e54bf8d69288fbee4904
+solution_path=NonaConfig.slnx
+zero_oid_pattern='^0*$'
+
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+root=$(git -C "$script_dir" rev-parse --show-toplevel)
+remote_name=${1:-origin}
+
+tmp_dir=${TMPDIR:-/tmp}/nona-pre-push.$$
+refs_file=$tmp_dir/refs
+cs_files_file=$tmp_dir/cs-files
+dotnet_files_file=$tmp_dir/dotnet-files
+
+cleanup() {
+  rm -rf "$tmp_dir"
+}
+
+trap cleanup EXIT HUP INT TERM
+mkdir -p "$tmp_dir"
+: >"$refs_file"
+: >"$cs_files_file"
+: >"$dotnet_files_file"
+
+if [ ! -t 0 ]; then
+  cat >"$refs_file"
+fi
+
+run_git() {
+  git -C "$root" "$@"
+}
+
+run_git_maybe() {
+  git -C "$root" "$@" 2>/dev/null || true
+}
+
+resolve_ref() {
+  ref=${1:-}
+
+  if [ -z "$ref" ]; then
+    return 1
+  fi
+
+  run_git_maybe rev-parse --verify --quiet "$ref" | sed '/^$/d' | head -n 1
+}
+
+get_merge_base() {
+  candidate_oid=${1:-}
+  local_oid=${2:-}
+
+  if [ -z "$candidate_oid" ] || [ -z "$local_oid" ]; then
+    return 1
+  fi
+
+  run_git_maybe merge-base "$candidate_oid" "$local_oid" | sed '/^$/d' | head -n 1
+}
+
+find_default_remote_base() {
+  local_oid=$1
+
+  for candidate in \
+    "refs/remotes/$remote_name/HEAD" \
+    "refs/remotes/$remote_name/dev" \
+    "refs/remotes/$remote_name/main" \
+    "refs/remotes/$remote_name/master"
+  do
+    candidate_oid=$(resolve_ref "$candidate" || true)
+    base_oid=$(get_merge_base "$candidate_oid" "$local_oid" || true)
+
+    if [ -n "$base_oid" ]; then
+      printf '%s\n' "$base_oid"
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+same_name_remote_ref() {
+  local_ref=$1
+  prefix=refs/heads/
+
+  case "$local_ref" in
+    "$prefix"*) printf 'refs/remotes/%s/%s\n' "$remote_name" "${local_ref#$prefix}" ;;
+    *) return 1 ;;
+  esac
+}
+
+find_new_branch_base() {
+  local_ref=$1
+  local_oid=$2
+
+  upstream_oid=$(resolve_ref "$local_ref@{upstream}" || true)
+  base_oid=$(get_merge_base "$upstream_oid" "$local_oid" || true)
+  if [ -n "$base_oid" ]; then
+    printf '%s\n' "$base_oid"
+    return 0
+  fi
+
+  same_remote_ref=$(same_name_remote_ref "$local_ref" || true)
+  same_remote_oid=$(resolve_ref "$same_remote_ref" || true)
+  base_oid=$(get_merge_base "$same_remote_oid" "$local_oid" || true)
+  if [ -n "$base_oid" ]; then
+    printf '%s\n' "$base_oid"
+    return 0
+  fi
+
+  base_oid=$(find_default_remote_base "$local_oid" || true)
+  if [ -n "$base_oid" ]; then
+    printf '%s\n' "$base_oid"
+    return 0
+  fi
+
+  resolve_ref "$local_oid^" || true
+}
+
+manual_run_range() {
+  head_oid=$(run_git rev-parse HEAD)
+  base_oid=$(resolve_ref '@{upstream}' || true)
+
+  if [ -z "$base_oid" ]; then
+    base_oid=$(find_default_remote_base "$head_oid" || true)
+  fi
+
+  if [ -z "$base_oid" ]; then
+    base_oid=$(resolve_ref 'HEAD^' || true)
+  fi
+
+  printf '%s..%s\n' "${base_oid:-$empty_tree_oid}" "$head_oid"
+}
+
+pushed_ref_range() {
+  local_ref=$1
+  local_oid=$2
+  remote_oid=$3
+
+  if printf '%s\n' "$local_oid" | grep -Eq "$zero_oid_pattern"; then
+    return 1
+  fi
+
+  if ! printf '%s\n' "$remote_oid" | grep -Eq "$zero_oid_pattern"; then
+    printf '%s..%s\n' "$remote_oid" "$local_oid"
+    return 0
+  fi
+
+  base_oid=$(find_new_branch_base "$local_ref" "$local_oid" || true)
+  printf '%s..%s\n' "${base_oid:-$empty_tree_oid}" "$local_oid"
+}
+
+collect_changed_files() {
+  range=$1
+
+  run_git diff --name-only --diff-filter=ACMR "$range" -- '*.cs' |
+    sed '/^$/d' >>"$cs_files_file"
+
+  run_git diff --name-only --diff-filter=ACMR "$range" -- \
+    '*.cs' '*.csproj' '*.props' '*.targets' '*.sln' '*.slnx' 'global.json' 'NuGet.config' 'Directory.Packages.props' |
+    sed '/^$/d' >>"$dotnet_files_file"
+}
+
+if [ -s "$refs_file" ]; then
+  while read -r local_ref local_oid remote_ref remote_oid extra; do
+    if [ -n "${extra:-}" ] || [ -z "${local_ref:-}" ] || [ -z "${local_oid:-}" ] || [ -z "${remote_ref:-}" ] || [ -z "${remote_oid:-}" ]; then
+      continue
+    fi
+
+    range=$(pushed_ref_range "$local_ref" "$local_oid" "$remote_oid" || true)
+    if [ -n "$range" ]; then
+      collect_changed_files "$range"
+    fi
+  done <"$refs_file"
+else
+  collect_changed_files "$(manual_run_range)"
+fi
+
+sort -u "$cs_files_file" -o "$cs_files_file"
+sort -u "$dotnet_files_file" -o "$dotnet_files_file"
+
+if [ ! -s "$dotnet_files_file" ]; then
+  echo "[pre-push] No pushed .NET files."
+  exit 0
+fi
+
+echo "[pre-push] Restoring $solution_path..."
+dotnet restore "$root/$solution_path"
+
+if [ -s "$cs_files_file" ]; then
+  echo "[pre-push] Verifying C# formatting..."
+  set -- dotnet format "$root/$solution_path" --verify-no-changes --no-restore --include
+
+  while IFS= read -r file; do
+    set -- "$@" "$file"
+  done <"$cs_files_file"
+
+  if ! (cd "$root" && "$@"); then
+    echo
+    echo "[pre-push] Pushed C# files are not formatted."
+    echo "[pre-push] Run: dotnet format $solution_path --include <changed-files>"
+    exit 1
+  fi
+else
+  echo "[pre-push] No pushed C# files to format."
+fi
+
+echo "[pre-push] Building $solution_path..."
+dotnet build "$root/$solution_path" --no-restore
