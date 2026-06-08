@@ -224,7 +224,10 @@ internal static class ManagedLibsqlPrimaryProcessArguments
         var arguments = new List<string>
         {
             "--db-path", options.ResolveDatabasePath(),
-            "--http-listen-addr", options.HttpListenAddress
+            "--http-listen-addr", options.HttpListenAddress,
+            "--max-concurrent-connections", "512",
+            "--max-concurrent-requests", "512",
+            "--disable-intelligent-throttling"
         };
 
         if (options.ExtraArgs.Length > 0)
