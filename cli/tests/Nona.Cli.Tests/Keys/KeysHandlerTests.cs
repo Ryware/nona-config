@@ -42,11 +42,4 @@ public sealed class KeysHandlerTests
         await Assert.That(result).IsEqualTo(0);
     }
 
-    [Test]
-    public async Task RerollKeysCommandHandler_ReturnsZero_OnSuccess()
-    {
-        var result = await new RerollKeysCommandHandler(MockHttp(HttpStatusCode.OK, ProjectJson))
-            .HandleAsync(new RerollKeysCommand(TestConnection, "my-project", "both"), CancellationToken.None);
-        await Assert.That(result).IsEqualTo(0);
-    }
 }

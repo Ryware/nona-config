@@ -1,5 +1,4 @@
 using Nona.Domain.Entities;
-using Nona.Domain.Enums;
 using Nona.Domain.Interfaces;
 using Nona.Libsql;
 
@@ -18,7 +17,7 @@ public sealed class LibsqlProjectRepository : IProjectRepository
     {
         var result = await _client.ExecuteAsync(
             """
-            SELECT rowid AS Id, Name, UrlSlug, ServerApiKey, ClientApiKey, CreatedAt, UpdatedAt
+            SELECT rowid AS Id, Name, UrlSlug, CreatedAt, UpdatedAt
             FROM Projects
             WHERE UrlSlug = @Name COLLATE NOCASE
             LIMIT 1
@@ -29,43 +28,11 @@ public sealed class LibsqlProjectRepository : IProjectRepository
         return result.Rows.Count == 0 ? null : Map(result.Rows[0]);
     }
 
-    public async Task<ApiKeyLookupResult?> GetByApiKeyAsync(string apiKey, CancellationToken ct = default)
-    {
-        var result = await _client.ExecuteAsync(
-            """
-            SELECT rowid AS Id, Name, UrlSlug, ServerApiKey, ClientApiKey, CreatedAt, UpdatedAt
-            FROM Projects
-            WHERE ServerApiKey = @ApiKey OR ClientApiKey = @ApiKey
-            LIMIT 1
-            """,
-            new { ApiKey = apiKey },
-            ct);
-
-        if (result.Rows.Count == 0)
-        {
-            return null;
-        }
-
-        var project = Map(result.Rows[0]);
-
-        if (project.ServerApiKey == apiKey)
-        {
-            return new ApiKeyLookupResult(project, KeyScope.Backend);
-        }
-
-        if (project.ClientApiKey == apiKey)
-        {
-            return new ApiKeyLookupResult(project, KeyScope.Frontend);
-        }
-
-        return null;
-    }
-
     public async Task<IReadOnlyList<Project>> ListAsync(CancellationToken ct = default)
     {
         var result = await _client.ExecuteAsync(
             """
-            SELECT rowid AS Id, Name, UrlSlug, ServerApiKey, ClientApiKey, CreatedAt, UpdatedAt
+            SELECT rowid AS Id, Name, UrlSlug, CreatedAt, UpdatedAt
             FROM Projects
             ORDER BY Name
             """,
@@ -92,8 +59,8 @@ public sealed class LibsqlProjectRepository : IProjectRepository
     {
         var result = await _client.ExecuteAsync(
             """
-            INSERT INTO Projects (Name, UrlSlug, ServerApiKey, ClientApiKey, CreatedAt, UpdatedAt)
-            VALUES (@Name, @UrlSlug, @ServerApiKey, @ClientApiKey, @CreatedAt, @UpdatedAt)
+            INSERT INTO Projects (Name, UrlSlug, CreatedAt, UpdatedAt)
+            VALUES (@Name, @UrlSlug, @CreatedAt, @UpdatedAt)
             RETURNING rowid AS Id
             """,
             ToParameters(project),
@@ -108,8 +75,6 @@ public sealed class LibsqlProjectRepository : IProjectRepository
             """
             UPDATE Projects
             SET Name = @Name,
-                ServerApiKey = @ServerApiKey,
-                ClientApiKey = @ClientApiKey,
                 UpdatedAt = @UpdatedAt
             WHERE UrlSlug = @UrlSlug COLLATE NOCASE
             """,
@@ -141,8 +106,6 @@ public sealed class LibsqlProjectRepository : IProjectRepository
             Id = row.GetInt64("Id"),
             Name = row.GetString("Name"),
             UrlSlug = row.GetNullableString("UrlSlug"),
-            ServerApiKey = row.GetNullableString("ServerApiKey"),
-            ClientApiKey = row.GetNullableString("ClientApiKey"),
             CreatedAt = DateTime.Parse(row.GetString("CreatedAt")),
             UpdatedAt = DateTime.Parse(row.GetString("UpdatedAt"))
         };
@@ -154,8 +117,6 @@ public sealed class LibsqlProjectRepository : IProjectRepository
         {
             project.Name,
             project.UrlSlug,
-            project.ServerApiKey,
-            project.ClientApiKey,
             CreatedAt = project.CreatedAt.ToString("O"),
             UpdatedAt = project.UpdatedAt.ToString("O")
         };

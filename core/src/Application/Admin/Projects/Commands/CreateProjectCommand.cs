@@ -4,7 +4,6 @@ using Nona.Application.Admin.Projects.DTOs;
 using Nona.Application.Common.Interfaces;
 using Nona.Domain.Entities;
 using Nona.Domain.Interfaces;
-using System.Security.Cryptography;
 
 namespace Nona.Application.Admin.Projects.Commands;
 
@@ -51,8 +50,6 @@ public class CreateProjectCommandHandler(
         {
             Name = request.Name,
             UrlSlug = finalSlug,
-            ServerApiKey = GenerateApiKey(),
-            ClientApiKey = GenerateApiKey(),
             CreatedAt = now,
             UpdatedAt = now
         };
@@ -84,18 +81,11 @@ public class CreateProjectCommandHandler(
             project.Id,
             project.Name,
             project.UrlSlug,
-            project.ServerApiKey,
-            project.ClientApiKey,
             project.Environments,
             project.CreatedAt,
             project.UpdatedAt);
 
         return new CreateProjectResult(true, dto, null);
-    }
-
-    private static string GenerateApiKey()
-    {
-        return Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
     }
 
     private static string GenerateSlug(string name)

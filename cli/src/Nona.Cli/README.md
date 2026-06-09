@@ -67,10 +67,10 @@ Show project API keys:
 nona keys show --project mobile-app --base-url https://nona.example.com --token <token>
 ```
 
-Reroll one or both keys:
+Create a scoped API key:
 
 ```bash
-nona keys reroll --project mobile-app --type both --base-url https://nona.example.com --token <token>
+nona keys create --project mobile-app --name "Web Client" --scope client --environment production --base-url https://nona.example.com --token <token>
 ```
 
 Run a Firebase Remote Config migration:

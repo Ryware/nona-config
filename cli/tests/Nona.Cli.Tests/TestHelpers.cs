@@ -47,7 +47,7 @@ internal static class TestHelpers
 internal static class Fixtures
 {
     internal const string ProjectJson = """
-        {"id":1,"name":"my-project","urlSlug":"my-project","serverApiKey":"sk_server","clientApiKey":"ck_client","environments":["production","staging"],"createdAt":"2024-01-01T00:00:00Z","updatedAt":"2024-01-01T00:00:00Z"}
+        {"id":1,"name":"my-project","urlSlug":"my-project","environments":["production","staging"],"createdAt":"2024-01-01T00:00:00Z","updatedAt":"2024-01-01T00:00:00Z"}
         """;
 
     internal const string ProjectArrayJson = $"[{ProjectJson}]";

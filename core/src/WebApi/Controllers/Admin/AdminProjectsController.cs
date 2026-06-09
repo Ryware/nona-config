@@ -51,28 +51,4 @@ public class AdminProjectsController(IMediator mediator) : ControllerBase
         return NoContent();
     }
 
-    [HttpPost("{projectId}/reroll-keys")]
-    [ProducesResponseType(typeof(ProjectDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> RerollApiKeys(string projectId, [FromBody] RerollApiKeysRequest request, CancellationToken cancellationToken)
-    {
-        if (!Enum.TryParse<ApiKeyType>(request.KeyType, ignoreCase: true, out var keyType))
-            return BadRequest(new { error = "Invalid key type. Must be 'server', 'client', or 'both'." });
-
-        var result = await mediator.Send(new RerollApiKeysCommand(projectId, keyType), cancellationToken);
-
-        if (!result.Success)
-        {
-            return result.Error switch
-            {
-                "Project not found" => NotFound(new { error = result.Error }),
-                "Access denied" => Forbid(),
-                _ => BadRequest(new { error = result.Error })
-            };
-        }
-
-        return Ok(result.Project);
-    }
 }

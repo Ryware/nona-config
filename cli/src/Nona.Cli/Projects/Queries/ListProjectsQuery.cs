@@ -30,8 +30,6 @@ internal sealed class ListProjectsQueryHandler(Func<HttpClient>? httpClientFacto
     {
         Console.WriteLine($"  {p.Name}");
         Console.WriteLine($"    Slug:       {p.UrlSlug ?? "(none)"}");
-        Console.WriteLine($"    Server key: {p.ServerApiKey ?? "(none)"}");
-        Console.WriteLine($"    Client key: {p.ClientApiKey ?? "(none)"}");
         var envs = p.Environments?.Count == 0 ? "(none)" : string.Join(", ", (p.Environments ?? []).Order());
         Console.WriteLine($"    Environments: {envs}");
     }

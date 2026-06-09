@@ -39,8 +39,6 @@ public sealed class LibsqlApiKeyRepository : IApiKeyRepository
                 p.rowid AS ProjectId,
                 p.Name AS ProjectName,
                 p.UrlSlug,
-                p.ServerApiKey,
-                p.ClientApiKey,
                 p.CreatedAt AS ProjectCreatedAt,
                 p.UpdatedAt AS ProjectUpdatedAt
             FROM ApiKeys ak
@@ -60,8 +58,6 @@ public sealed class LibsqlApiKeyRepository : IApiKeyRepository
             Id = row.GetInt64("ProjectId"),
             Name = row.GetString("ProjectName"),
             UrlSlug = row.GetNullableString("UrlSlug"),
-            ServerApiKey = row.GetNullableString("ServerApiKey"),
-            ClientApiKey = row.GetNullableString("ClientApiKey"),
             CreatedAt = DateTime.Parse(row.GetString("ProjectCreatedAt")),
             UpdatedAt = DateTime.Parse(row.GetString("ProjectUpdatedAt"))
         };

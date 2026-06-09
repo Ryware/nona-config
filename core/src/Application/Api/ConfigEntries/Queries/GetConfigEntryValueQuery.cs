@@ -11,7 +11,6 @@ public record GetConfigEntryValueQuery(string EnvironmentId, string Key) : IRequ
 public record GetConfigEntryValueResult(bool Success, string? Value, string? ContentType, string? Error);
 
 public class GetConfigEntryValueQueryHandler(
-    IProjectRepository projectRepository,
     IApiKeyRepository apiKeyRepository,
     IEnvironmentRepository environmentRepository,
     IConfigEntryRepository configEntryRepository,
@@ -25,22 +24,10 @@ public class GetConfigEntryValueQueryHandler(
             return new GetConfigEntryValueResult(false, null, null, "API key is required");
 
         var lookupResult = await apiKeyRepository.GetByKeyAsync(apiKey, cancellationToken);
-        Project project;
-        KeyScope apiKeyScope;
-        string? apiKeyEnvironment;
+        if (lookupResult is null)
+            return new GetConfigEntryValueResult(false, null, null, "Invalid API key");
 
-        if (lookupResult is not null)
-        {
-            (project, apiKeyScope, apiKeyEnvironment) = lookupResult;
-        }
-        else
-        {
-            var legacyLookupResult = await projectRepository.GetByApiKeyAsync(apiKey, cancellationToken);
-            if (legacyLookupResult is null)
-                return new GetConfigEntryValueResult(false, null, null, "Invalid API key");
-
-            (project, apiKeyScope, apiKeyEnvironment) = legacyLookupResult;
-        }
+        var (project, apiKeyScope, apiKeyEnvironment) = lookupResult;
 
         if (apiKeyEnvironment is not null &&
             !string.Equals(apiKeyEnvironment, request.EnvironmentId, StringComparison.OrdinalIgnoreCase))

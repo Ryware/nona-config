@@ -6,8 +6,7 @@ internal static class DatabaseSeeder
 {
     public const string ProjectName = "bench-project";
     public const string ProjectSlug = "bench-project";
-    public const string ServerApiKey = "BENCH-SERVER-KEY";
-    public const string ClientApiKey = "BENCH-CLIENT-KEY";
+    public const string ApiKey = "BENCH-SCOPED-KEY";
 
     public static readonly IReadOnlyDictionary<DatasetSize, int> DatasetRows = new Dictionary<DatasetSize, int>
     {
@@ -91,15 +90,29 @@ internal static class DatabaseSeeder
 
         await client.ExecuteAsync(
             """
-            INSERT INTO Projects (Name, UrlSlug, ServerApiKey, ClientApiKey, CreatedAt, UpdatedAt)
-            VALUES (@Name, @Slug, @ServerApiKey, @ClientApiKey, @CreatedAt, @UpdatedAt)
+            INSERT INTO Projects (Name, UrlSlug, CreatedAt, UpdatedAt)
+            VALUES (@Name, @Slug, @CreatedAt, @UpdatedAt)
             """,
             new
             {
                 Name = ProjectName,
                 Slug = ProjectSlug,
-                ServerApiKey,
-                ClientApiKey,
+                CreatedAt = now,
+                UpdatedAt = now
+            },
+            cancellationToken);
+
+        await client.ExecuteAsync(
+            """
+            INSERT INTO ApiKeys (Name, Key, Project, Environment, Scope, CreatedAt, UpdatedAt)
+            VALUES (@Name, @Key, @Project, NULL, @Scope, @CreatedAt, @UpdatedAt)
+            """,
+            new
+            {
+                Name = "Benchmark",
+                Key = ApiKey,
+                Project = ProjectName,
+                Scope = 3,
                 CreatedAt = now,
                 UpdatedAt = now
             },
@@ -171,6 +184,9 @@ internal static class DatabaseSeeder
     {
         await client.ExecuteBatchAsync(
         [
+            new LibsqlStatement(
+                "DELETE FROM ApiKeys WHERE Project = @Project",
+                new { Project = ProjectName }),
             new LibsqlStatement(
                 "DELETE FROM ConfigEntries WHERE Project = @Project",
                 new { Project = ProjectName }),

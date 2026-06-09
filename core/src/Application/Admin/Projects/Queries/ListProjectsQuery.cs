@@ -23,8 +23,6 @@ public class ListProjectsQueryHandler(
                 p.Id,
                 p.Name,
                 p.UrlSlug,
-                p.ServerApiKey,
-                p.ClientApiKey,
                 p.Environments,
                 p.CreatedAt,
                 p.UpdatedAt)).ToList();
@@ -44,8 +42,6 @@ public class ListProjectsQueryHandler(
                 p.Id,
                 p.Name,
                 p.UrlSlug,
-                p.ServerApiKey,
-                p.ClientApiKey,
                 p.Environments,
                 p.CreatedAt,
                 p.UpdatedAt)).ToList();
