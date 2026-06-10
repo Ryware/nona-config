@@ -1,7 +1,5 @@
 using MediatR;
 using Nona.Application.Common.Interfaces;
-using Nona.Domain.Entities;
-using Nona.Domain.Enums;
 using Nona.Domain.Interfaces;
 
 namespace Nona.Application.Api.ConfigEntries.Queries;

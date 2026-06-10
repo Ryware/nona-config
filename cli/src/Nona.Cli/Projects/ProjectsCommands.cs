@@ -13,7 +13,7 @@ internal sealed class ProjectsCommands(CliContext ctx) : ICliCommandGroup
         var projects = new Command("projects", "Manage Nona projects.");
 
         var baseUrlOpt = new Option<string?>(["--base-url", "--api-url"], "Nona API base URL.");
-        var tokenOpt   = new Option<string?>(["--token", "--bearer-token"], "Bearer token.");
+        var tokenOpt = new Option<string?>(["--token", "--bearer-token"], "Bearer token.");
         var projectOpt = new Option<string?>(["--project", "--project-name"], "Project name.");
 
         projects.AddCommand(BuildList(baseUrlOpt, tokenOpt));

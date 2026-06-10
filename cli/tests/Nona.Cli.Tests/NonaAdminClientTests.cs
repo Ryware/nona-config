@@ -1,7 +1,6 @@
 using Nona.Migrator.Core.Options;
 using Nona.Migrator.Core.Services;
 using System.Net;
-using System.Net.Http.Headers;
 using System.Text;
 
 namespace Nona.Cli.Tests;

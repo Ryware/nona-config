@@ -13,8 +13,12 @@ public sealed class AuthHandlerTests
         var store = new CliSessionStore(file.Path);
         store.Save(new CliAuthSession
         {
-            BaseUrl = "http://x.com", Token = "tok", Username = "u", Role = "Admin",
-            ExpiresAt = DateTime.UtcNow.AddHours(1), SavedAtUtc = DateTime.UtcNow
+            BaseUrl = "http://x.com",
+            Token = "tok",
+            Username = "u",
+            Role = "Admin",
+            ExpiresAt = DateTime.UtcNow.AddHours(1),
+            SavedAtUtc = DateTime.UtcNow
         });
 
         var result = await new LogoutCommandHandler(store).HandleAsync(new LogoutCommand(), CancellationToken.None);
@@ -36,8 +40,12 @@ public sealed class AuthHandlerTests
     {
         var session = new CliAuthSession
         {
-            BaseUrl = "http://x.com", Token = "tok", Username = "admin", Role = "Admin",
-            ExpiresAt = DateTime.UtcNow.AddHours(1), SavedAtUtc = DateTime.UtcNow
+            BaseUrl = "http://x.com",
+            Token = "tok",
+            Username = "admin",
+            Role = "Admin",
+            ExpiresAt = DateTime.UtcNow.AddHours(1),
+            SavedAtUtc = DateTime.UtcNow
         };
         var result = await new WhoAmIQueryHandler()
             .HandleAsync(new WhoAmIQuery(session), CancellationToken.None);

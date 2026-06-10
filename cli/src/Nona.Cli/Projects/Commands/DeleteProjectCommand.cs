@@ -8,7 +8,7 @@ internal sealed class DeleteProjectCommandHandler(Func<HttpClient>? httpClientFa
 
     public async Task<int> HandleAsync(DeleteProjectCommand command, CancellationToken ct)
     {
-        
+
         var api = NonaClientFactory.Create(command.Connection, httpClientFactory);
         await api.Admin.Projects[command.Project].DeleteAsync(cancellationToken: ct);
 

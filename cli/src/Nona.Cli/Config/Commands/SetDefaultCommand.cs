@@ -10,8 +10,8 @@ internal sealed class SetDefaultCommandHandler(CliDefaultsStore defaultsStore)
         var updated = command.Name switch
         {
             "base-url" => current with { BaseUrl = command.Value },
-            "project"  => current with { Project = command.Value },
-            _          => throw new InvalidOperationException($"Unsupported setting '{command.Name}'.")
+            "project" => current with { Project = command.Value },
+            _ => throw new InvalidOperationException($"Unsupported setting '{command.Name}'.")
         };
 
         defaultsStore.Save(updated);

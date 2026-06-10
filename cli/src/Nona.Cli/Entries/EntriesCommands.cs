@@ -13,10 +13,10 @@ internal sealed class EntriesCommands(CliContext ctx) : ICliCommandGroup
         var entries = new Command("entries", "Manage config entries within a project environment.");
 
         var baseUrlOpt = new Option<string?>(["--base-url", "--api-url"], "Nona API base URL.");
-        var tokenOpt   = new Option<string?>(["--token", "--bearer-token"], "Bearer token.");
+        var tokenOpt = new Option<string?>(["--token", "--bearer-token"], "Bearer token.");
         var projectOpt = new Option<string?>(["--project", "--project-name"], "Project name.");
-        var envOpt     = new Option<string?>("--environment", "Environment name.");
-        var keyOpt     = new Option<string?>("--key", "Config entry key.");
+        var envOpt = new Option<string?>("--environment", "Environment name.");
+        var keyOpt = new Option<string?>("--key", "Config entry key.");
 
         entries.AddCommand(BuildList(baseUrlOpt, tokenOpt, projectOpt, envOpt));
         entries.AddCommand(BuildGet(baseUrlOpt, tokenOpt, projectOpt, envOpt, keyOpt));
@@ -66,7 +66,7 @@ internal sealed class EntriesCommands(CliContext ctx) : ICliCommandGroup
             if (conn is null) return;
 
             var environment = CliPrompter.Required(ic.ParseResult.GetValueForOption(envOpt), "Environment");
-            var key         = CliPrompter.Required(ic.ParseResult.GetValueForOption(keyOpt), "Key");
+            var key = CliPrompter.Required(ic.ParseResult.GetValueForOption(keyOpt), "Key");
 
             ic.ExitCode = await handler.HandleAsync(
                 new GetEntryQuery(conn, project!, environment, key),
@@ -79,8 +79,8 @@ internal sealed class EntriesCommands(CliContext ctx) : ICliCommandGroup
         Option<string?> baseUrlOpt, Option<string?> tokenOpt,
         Option<string?> projectOpt, Option<string?> envOpt, Option<string?> keyOpt)
     {
-        var valueOpt       = new Option<string?>("--value", "The config value.");
-        var scopeOpt       = new Option<string?>("--scope", "Scope: client, server, or all.");
+        var valueOpt = new Option<string?>("--value", "The config value.");
+        var scopeOpt = new Option<string?>("--scope", "Scope: client, server, or all.");
         var contentTypeOpt = new Option<string?>("--content-type", "MIME content type.");
 
         scopeOpt.AddValidator(result =>
@@ -106,9 +106,9 @@ internal sealed class EntriesCommands(CliContext ctx) : ICliCommandGroup
             if (conn is null) return;
 
             var environment = CliPrompter.Required(ic.ParseResult.GetValueForOption(envOpt), "Environment");
-            var key         = CliPrompter.Required(ic.ParseResult.GetValueForOption(keyOpt), "Key");
-            var value       = CliPrompter.Required(ic.ParseResult.GetValueForOption(valueOpt), "Value");
-            var scope       = CliPrompter.Optional(ic.ParseResult.GetValueForOption(scopeOpt), "Scope (client/server/all)");
+            var key = CliPrompter.Required(ic.ParseResult.GetValueForOption(keyOpt), "Key");
+            var value = CliPrompter.Required(ic.ParseResult.GetValueForOption(valueOpt), "Value");
+            var scope = CliPrompter.Optional(ic.ParseResult.GetValueForOption(scopeOpt), "Scope (client/server/all)");
             var contentType = CliPrompter.Optional(ic.ParseResult.GetValueForOption(contentTypeOpt), "Content-Type");
 
             ic.ExitCode = await handler.HandleAsync(
@@ -135,7 +135,7 @@ internal sealed class EntriesCommands(CliContext ctx) : ICliCommandGroup
             if (conn is null) return;
 
             var environment = CliPrompter.Required(ic.ParseResult.GetValueForOption(envOpt), "Environment");
-            var key         = CliPrompter.Required(ic.ParseResult.GetValueForOption(keyOpt), "Key");
+            var key = CliPrompter.Required(ic.ParseResult.GetValueForOption(keyOpt), "Key");
 
             ic.ExitCode = await handler.HandleAsync(
                 new DeleteEntryCommand(conn, project!, environment, key),

@@ -1,5 +1,4 @@
 using Microsoft.Kiota.Abstractions;
-using Nona.Cli.Entries.Queries;
 using Nona.Cli.Generated.Models;
 
 namespace Nona.Cli.Entries.Queries;
@@ -12,7 +11,7 @@ internal sealed class GetEntryQueryHandler(Func<HttpClient>? httpClientFactory =
 
     public async Task<int> HandleAsync(GetEntryQuery query, CancellationToken ct)
     {
-        
+
         var api = NonaClientFactory.Create(query.Connection, httpClientFactory);
 
         ConfigEntryDto? entry;

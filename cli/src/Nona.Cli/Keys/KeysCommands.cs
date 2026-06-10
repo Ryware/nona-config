@@ -1,3 +1,4 @@
+using Nona.Cli.Keys.Queries;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.CommandLine.NamingConventionBinder;
@@ -16,11 +17,11 @@ internal sealed class KeysCommands(CliContext ctx) : ICliCommandGroup
 
         var baseUrlOpt = new Option<string?>(["--base-url", "--api-url"], "Nona API base URL.");
         var projectOpt = new Option<string?>(["--project", "--project-name"], "Project name.");
-        var tokenOpt   = new Option<string?>(["--token", "--bearer-token"], "Bearer token.");
-        var nameOpt    = new Option<string?>(["--name"], "API key name.");
-        var envOpt     = new Option<string?>(["--environment", "--env"], "Optional environment scope.");
-        var scopeOpt   = new Option<string?>(["--scope"], "Config scope: client, server, or all.");
-        var idOpt      = new Option<string?>(["--id"], "API key id.");
+        var tokenOpt = new Option<string?>(["--token", "--bearer-token"], "Bearer token.");
+        var nameOpt = new Option<string?>(["--name"], "API key name.");
+        var envOpt = new Option<string?>(["--environment", "--env"], "Optional environment scope.");
+        var scopeOpt = new Option<string?>(["--scope"], "Config scope: client, server, or all.");
+        var idOpt = new Option<string?>(["--id"], "API key id.");
 
         keys.AddCommand(BuildShow(baseUrlOpt, projectOpt, tokenOpt));
         keys.AddCommand(BuildCreate(baseUrlOpt, projectOpt, nameOpt, envOpt, scopeOpt, tokenOpt));

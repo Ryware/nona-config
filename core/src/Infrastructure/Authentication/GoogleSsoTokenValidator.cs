@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Nona.Application.Auth;
-using Nona.Application.Common.Interfaces;
 
 namespace Nona.Infrastructure.Authentication;
 

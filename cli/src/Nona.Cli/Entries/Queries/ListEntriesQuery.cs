@@ -10,7 +10,7 @@ internal sealed class ListEntriesQueryHandler(Func<HttpClient>? httpClientFactor
 
     public async Task<int> HandleAsync(ListEntriesQuery query, CancellationToken ct)
     {
-        
+
         var api = NonaClientFactory.Create(query.Connection, httpClientFactory);
         var entries = await api.Admin.Projects[query.Project]
             .Environments[query.Environment].ConfigEntries.GetAsync(cancellationToken: ct);

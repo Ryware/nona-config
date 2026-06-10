@@ -55,9 +55,12 @@ public sealed class CliValueResolverTests
             using var env = new EnvironmentScope(new Dictionary<string, string?> { ["NONA_CLI_BEARER_TOKEN"] = null });
             var session = new CliAuthSession
             {
-                BaseUrl = "http://saved.internal:18080", Token = "saved-token",
-                Username = "admin@example.com", Role = "Admin",
-                ExpiresAt = DateTime.UtcNow.AddHours(1), SavedAtUtc = DateTime.UtcNow
+                BaseUrl = "http://saved.internal:18080",
+                Token = "saved-token",
+                Username = "admin@example.com",
+                Role = "Admin",
+                ExpiresAt = DateTime.UtcNow.AddHours(1),
+                SavedAtUtc = DateTime.UtcNow
             };
             var result = new CliValueResolver(CliDefaults.Empty, session)
                 .ResolveConnection("http://saved.internal:18080", null);
@@ -89,7 +92,7 @@ public sealed class CliValueResolverTests
         try
         {
             using var env = new EnvironmentScope(new Dictionary<string, string?>
-                { ["NONA_CLI_BASE_URL"] = null, ["NONA_CLI_BEARER_TOKEN"] = "token-123" });
+            { ["NONA_CLI_BASE_URL"] = null, ["NONA_CLI_BEARER_TOKEN"] = "token-123" });
             var result = new CliValueResolver(new CliDefaults { BaseUrl = "http://saved.internal:18080" })
                 .ResolveConnection(null, null);
             await Assert.That(result.Success).IsTrue();
@@ -118,7 +121,7 @@ public sealed class CliValueResolverTests
         try
         {
             using var env = new EnvironmentScope(new Dictionary<string, string?>
-                { ["NONA_CLI_BASE_URL"] = null, ["NONA_CLI_BEARER_TOKEN"] = "token-123" });
+            { ["NONA_CLI_BASE_URL"] = null, ["NONA_CLI_BEARER_TOKEN"] = "token-123" });
             var result = new CliValueResolver(CliDefaults.Empty).ResolveConnection(null, null);
             await Assert.That(result.Success).IsFalse();
         }
@@ -134,9 +137,12 @@ public sealed class CliValueResolverTests
             using var env = new EnvironmentScope(new Dictionary<string, string?> { ["NONA_CLI_BEARER_TOKEN"] = null });
             var expired = new CliAuthSession
             {
-                BaseUrl = "http://saved.internal:18080", Token = "expired-token",
-                Username = "admin", Role = "Admin",
-                ExpiresAt = DateTime.UtcNow.AddHours(-1), SavedAtUtc = DateTime.UtcNow.AddDays(-2)
+                BaseUrl = "http://saved.internal:18080",
+                Token = "expired-token",
+                Username = "admin",
+                Role = "Admin",
+                ExpiresAt = DateTime.UtcNow.AddHours(-1),
+                SavedAtUtc = DateTime.UtcNow.AddDays(-2)
             };
             var result = new CliValueResolver(CliDefaults.Empty, expired)
                 .ResolveConnection("http://saved.internal:18080", null);

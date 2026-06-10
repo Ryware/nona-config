@@ -16,12 +16,12 @@ internal sealed class UsersCommands(CliContext ctx) : ICliCommandGroup
 
     private Command BuildCreate()
     {
-        var baseUrlOpt   = new Option<string?>(["--base-url", "--api-url"], "Nona API base URL.");
-        var tokenOpt     = new Option<string?>(["--token", "--bearer-token"], "Bearer token.");
-        var nameOpt      = new Option<string>("--name", "Full name of the new user.") { IsRequired = true };
+        var baseUrlOpt = new Option<string?>(["--base-url", "--api-url"], "Nona API base URL.");
+        var tokenOpt = new Option<string?>(["--token", "--bearer-token"], "Bearer token.");
+        var nameOpt = new Option<string>("--name", "Full name of the new user.") { IsRequired = true };
         var userEmailOpt = new Option<string>("--user-email", "Email address of the new user.") { IsRequired = true };
-        var roleOpt      = new Option<string?>("--role", "Role: viewer or editor.");
-        var scopeOpt     = new Option<string?>("--scope", "Scope: client, server, or all.");
+        var roleOpt = new Option<string?>("--role", "Role: viewer or editor.");
+        var scopeOpt = new Option<string?>("--scope", "Scope: client, server, or all.");
 
         roleOpt.AddValidator(result =>
         {
