@@ -6,12 +6,7 @@ RUN npm ci
 
 COPY nona-config-admin/ ./
 ARG FRONTEND_API_URL=
-RUN if [ -n "$FRONTEND_API_URL" ]; then \
-        export VITE_API_URL="$FRONTEND_API_URL"; \
-    else \
-        export VITE_API_URL=""; \
-        node -e "const fs=require('fs'); const p='src/services/api-client.ts'; const old='const API_BASE_URL = import.meta.env.VITE_API_URL || \"http://localhost:5027\";'; const next='const API_BASE_URL = import.meta.env.VITE_API_URL || window.location.origin;'; const source=fs.readFileSync(p,'utf8'); if(!source.includes(old)){throw new Error('API fallback not found')} fs.writeFileSync(p,source.replace(old,next));"; \
-    fi; \
+RUN export VITE_API_BASE_URL="$FRONTEND_API_URL"; \
     npm exec vite -- build
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
