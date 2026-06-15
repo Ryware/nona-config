@@ -230,5 +230,5 @@ jobs:
           npm version ${{ steps.meta.outputs.version }} --no-git-tag-version
 
       - name: Publish to npm
-        run: npm publish --access public
+        run: npm publish --access public --provenance
         working-directory: packaging/npm
