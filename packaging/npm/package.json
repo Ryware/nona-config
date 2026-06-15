@@ -17,7 +17,7 @@
   "homepage": "https://nonaconfig.com",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Ryware/nona-config"
+    "url": "https://github.com/Ryware/nona-config/"
   },
   "license": "Apache-2.0",
   "bin": {
