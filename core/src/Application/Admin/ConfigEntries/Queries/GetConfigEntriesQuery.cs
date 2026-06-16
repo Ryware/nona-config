@@ -1,5 +1,6 @@
 ﻿using MediatR;
 using Nona.Application.Admin.ConfigEntries.DTOs;
+using Nona.Application.Admin.Projects;
 using Nona.Application.Common;
 using Nona.Application.Common.Interfaces;
 using Nona.Domain.Interfaces;
@@ -19,16 +20,18 @@ public class GetConfigEntriesQueryHandler(
 {
     public async Task<GetConfigEntriesResult> Handle(GetConfigEntriesQuery request, CancellationToken cancellationToken)
     {
-        if (!await projectRepository.ExistsAsync(request.ProjectId, cancellationToken))
+        var project = await ProjectResolution.ResolveProjectAsync(projectRepository, request.ProjectId, cancellationToken);
+        if (project is null)
             return new GetConfigEntriesResult(false, null, "Project not found");
 
-        if (!await projectAccessService.HasAccessAsync(request.ProjectId, cancellationToken))
+        var projectName = project.Name;
+        if (!await projectAccessService.HasViewAccessAsync(projectName, cancellationToken))
             return new GetConfigEntriesResult(false, null, "Access denied");
 
-        if (!await environmentRepository.ExistsAsync(request.ProjectId, request.EnvironmentName, cancellationToken))
+        if (!await environmentRepository.ExistsAsync(projectName, request.EnvironmentName, cancellationToken))
             return new GetConfigEntriesResult(false, null, "Environment not found");
 
-        var configEntries = await configEntryRepository.ListAsync(request.ProjectId, request.EnvironmentName, cancellationToken);
+        var configEntries = await configEntryRepository.ListAsync(projectName, request.EnvironmentName, cancellationToken);
 
         var dtos = configEntries.Select(e => new ConfigEntryDto(
             e.Project,

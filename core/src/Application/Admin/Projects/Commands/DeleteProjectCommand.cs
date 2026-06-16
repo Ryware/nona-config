@@ -14,7 +14,7 @@ public class DeleteProjectCommandHandler(
     IEnvironmentRepository environmentRepository,
     IConfigEntryRepository configEntryRepository,
     IProjectMemberRepository projectMemberRepository,
-    ICurrentUserService currentUserService,
+    IUserAuthorizationService userAuthorizationService,
     IAuditLogService? auditLogService = null)
     : IRequestHandler<DeleteProjectCommand, DeleteProjectResult>
 {
@@ -26,7 +26,8 @@ public class DeleteProjectCommandHandler(
             return new DeleteProjectResult(false, "Project not found");
 
         // Only admin users can delete projects
-        if (!currentUserService.IsAdmin)
+        var currentUser = await userAuthorizationService.GetCurrentUserAsync(cancellationToken);
+        if (currentUser?.IsAdmin != true)
             return new DeleteProjectResult(false, "Access denied. Only admin users can delete projects.");
 
         var projectName = project.Name;

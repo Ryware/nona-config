@@ -26,7 +26,7 @@ public class DeleteProjectCommandTests
             fixture.EnvironmentRepository,
             fixture.ConfigEntryRepository,
             fixture.ProjectMemberRepository,
-            fixture.CurrentUserService);
+            fixture.UserAuthorizationService);
 
         var command = new DeleteProjectCommand(ProjectName);
 
@@ -51,7 +51,7 @@ public class DeleteProjectCommandTests
             fixture.EnvironmentRepository,
             fixture.ConfigEntryRepository,
             fixture.ProjectMemberRepository,
-            fixture.CurrentUserService);
+            fixture.UserAuthorizationService);
 
         var command = new DeleteProjectCommand(ProjectName);
 
@@ -77,7 +77,7 @@ public class DeleteProjectCommandTests
             fixture.EnvironmentRepository,
             fixture.ConfigEntryRepository,
             fixture.ProjectMemberRepository,
-            fixture.CurrentUserService);
+            fixture.UserAuthorizationService);
 
         var command = new DeleteProjectCommand(ProjectName);
 
@@ -102,7 +102,7 @@ public class DeleteProjectCommandTests
             fixture.EnvironmentRepository,
             fixture.ConfigEntryRepository,
             fixture.ProjectMemberRepository,
-            fixture.CurrentUserService);
+            fixture.UserAuthorizationService);
 
         var command = new DeleteProjectCommand(ProjectName);
 
@@ -127,7 +127,7 @@ public class DeleteProjectCommandTests
             fixture.EnvironmentRepository,
             fixture.ConfigEntryRepository,
             fixture.ProjectMemberRepository,
-            fixture.CurrentUserService);
+            fixture.UserAuthorizationService);
 
         var command = new DeleteProjectCommand(ProjectName);
 

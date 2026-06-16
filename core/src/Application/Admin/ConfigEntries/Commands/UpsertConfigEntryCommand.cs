@@ -1,5 +1,6 @@
 using MediatR;
 using Nona.Application.Admin.ConfigEntries.DTOs;
+using Nona.Application.Admin.Projects;
 using Nona.Application.Common;
 using Nona.Application.Common.Interfaces;
 using Nona.Domain.Entities;
@@ -24,13 +25,15 @@ public class UpsertConfigEntryCommandHandler(
 {
     public async Task<UpsertConfigEntryResult> Handle(UpsertConfigEntryCommand request, CancellationToken cancellationToken)
     {
-        if (!await projectRepository.ExistsAsync(request.ProjectId, cancellationToken))
+        var project = await ProjectResolution.ResolveProjectAsync(projectRepository, request.ProjectId, cancellationToken);
+        if (project is null)
             return new UpsertConfigEntryResult(false, null, "Project not found");
 
-        if (!await projectAccessService.HasAccessAsync(request.ProjectId, cancellationToken))
+        var projectName = project.Name;
+        if (!await projectAccessService.HasEditAccessAsync(projectName, cancellationToken))
             return new UpsertConfigEntryResult(false, null, "Access denied");
 
-        if (!await environmentRepository.ExistsAsync(request.ProjectId, request.EnvironmentName, cancellationToken))
+        if (!await environmentRepository.ExistsAsync(projectName, request.EnvironmentName, cancellationToken))
             return new UpsertConfigEntryResult(false, null, "Environment not found");
 
         var scope = ParseScope(request.Scope);
@@ -38,7 +41,7 @@ public class UpsertConfigEntryCommandHandler(
             return new UpsertConfigEntryResult(false, null, "Invalid scope. Must be 'client', 'server', or 'all'");
 
         var now = dateTime.NowUtc;
-        var existingEntry = await configEntryRepository.GetAsync(request.ProjectId, request.EnvironmentName, request.Key, cancellationToken);
+        var existingEntry = await configEntryRepository.GetAsync(projectName, request.EnvironmentName, request.Key, cancellationToken);
         var action = existingEntry is null ? "Created Key" : "Updated Key";
 
         ConfigEntry entry;
@@ -55,7 +58,7 @@ public class UpsertConfigEntryCommandHandler(
         {
             entry = new ConfigEntry
             {
-                Project = request.ProjectId,
+                Project = projectName,
                 Environment = request.EnvironmentName,
                 Key = request.Key,
                 Value = request.Value,

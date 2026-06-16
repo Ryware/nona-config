@@ -25,7 +25,7 @@ public class ListProjectsQueryTests
         var handler = new ListProjectsQueryHandler(
             fixture.ProjectRepository,
             fixture.ProjectMemberRepository,
-            fixture.CurrentUserService);
+            fixture.UserAuthorizationService);
 
         var query = new ListProjectsQuery();
 
@@ -62,7 +62,7 @@ public class ListProjectsQueryTests
         var handler = new ListProjectsQueryHandler(
             fixture.ProjectRepository,
             fixture.ProjectMemberRepository,
-            fixture.CurrentUserService);
+            fixture.UserAuthorizationService);
 
         var query = new ListProjectsQuery();
 
@@ -100,7 +100,7 @@ public class ListProjectsQueryTests
         var handler = new ListProjectsQueryHandler(
             fixture.ProjectRepository,
             fixture.ProjectMemberRepository,
-            fixture.CurrentUserService);
+            fixture.UserAuthorizationService);
 
         var query = new ListProjectsQuery();
 
@@ -120,6 +120,8 @@ public class ListProjectsQueryTests
         var username = "multiuser";
         fixture.CurrentUserService.Username.Returns(username);
         fixture.CurrentUserService.IsAdmin.Returns(false);
+        fixture.UserAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
+            .Returns(new User { Email = username, Name = username, Role = UserRole.Viewer });
 
         var projects = new List<Project>
         {
@@ -139,7 +141,7 @@ public class ListProjectsQueryTests
         var handler = new ListProjectsQueryHandler(
             fixture.ProjectRepository,
             fixture.ProjectMemberRepository,
-            fixture.CurrentUserService);
+            fixture.UserAuthorizationService);
 
         var query = new ListProjectsQuery();
 
@@ -161,6 +163,8 @@ public class ListProjectsQueryTests
         var username = "noassignments";
         fixture.CurrentUserService.Username.Returns(username);
         fixture.CurrentUserService.IsAdmin.Returns(false);
+        fixture.UserAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
+            .Returns(new User { Email = username, Name = username, Role = UserRole.Viewer });
 
         var projects = new List<Project>
         {
@@ -174,7 +178,7 @@ public class ListProjectsQueryTests
         var handler = new ListProjectsQueryHandler(
             fixture.ProjectRepository,
             fixture.ProjectMemberRepository,
-            fixture.CurrentUserService);
+            fixture.UserAuthorizationService);
 
         var query = new ListProjectsQuery();
 
@@ -192,6 +196,8 @@ public class ListProjectsQueryTests
         var fixture = new TestFixture();
         fixture.CurrentUserService.Username.Returns((string?)null);
         fixture.CurrentUserService.IsAdmin.Returns(false);
+        fixture.UserAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
+            .Returns((User?)null);
 
         var projects = new List<Project>
         {
@@ -202,7 +208,7 @@ public class ListProjectsQueryTests
         var handler = new ListProjectsQueryHandler(
             fixture.ProjectRepository,
             fixture.ProjectMemberRepository,
-            fixture.CurrentUserService);
+            fixture.UserAuthorizationService);
 
         var query = new ListProjectsQuery();
 
@@ -211,5 +217,31 @@ public class ListProjectsQueryTests
 
         // Assert
         await Assert.That(result.Count).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task Editor_CanListAllProjects()
+    {
+        var fixture = new TestFixture();
+        fixture.UserAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
+            .Returns(new User { Email = "editor@example.com", Name = "Editor", Role = UserRole.Editor });
+
+        var projects = new List<Project>
+        {
+            new() { Name = "project1" },
+            new() { Name = "project2" }
+        };
+        fixture.ProjectRepository.ListAsync(Arg.Any<CancellationToken>()).Returns(projects);
+
+        var handler = new ListProjectsQueryHandler(
+            fixture.ProjectRepository,
+            fixture.ProjectMemberRepository,
+            fixture.UserAuthorizationService);
+
+        var result = await handler.Handle(new ListProjectsQuery(), CancellationToken.None);
+
+        await Assert.That(result.Count).IsEqualTo(2);
+        await fixture.ProjectMemberRepository.DidNotReceive()
+            .ListByUserAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 }

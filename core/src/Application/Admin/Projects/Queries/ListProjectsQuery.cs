@@ -10,14 +10,15 @@ public record ListProjectsQuery : IRequest<IReadOnlyList<ProjectDto>>;
 public class ListProjectsQueryHandler(
     IProjectRepository projectRepository,
     IProjectMemberRepository projectMemberRepository,
-    ICurrentUserService currentUserService) : IRequestHandler<ListProjectsQuery, IReadOnlyList<ProjectDto>>
+    IUserAuthorizationService userAuthorizationService) : IRequestHandler<ListProjectsQuery, IReadOnlyList<ProjectDto>>
 {
     public async Task<IReadOnlyList<ProjectDto>> Handle(ListProjectsQuery request, CancellationToken cancellationToken)
     {
         var projects = await projectRepository.ListAsync(cancellationToken);
 
-        // Admin users see all projects
-        if (currentUserService.IsAdmin)
+        var currentUser = await userAuthorizationService.GetCurrentUserAsync(cancellationToken);
+
+        if (currentUser?.IsAdmin == true || currentUser?.Role == Nona.Domain.Entities.UserRole.Editor)
         {
             return projects.Select(p => new ProjectDto(
                 p.Id,
@@ -29,8 +30,8 @@ public class ListProjectsQueryHandler(
         }
 
         // Non-admin users only see projects they have access to
-        var username = currentUserService.Username;
-        if (string.IsNullOrEmpty(username))
+        var username = currentUser?.Email;
+        if (string.IsNullOrWhiteSpace(username))
             return Array.Empty<ProjectDto>();
 
         var userProjects = await projectMemberRepository.ListByUserAsync(username, cancellationToken);

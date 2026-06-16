@@ -21,7 +21,7 @@ public class ListApiKeysQueryHandler(
         if (project is null)
             return new ListApiKeysResult(false, [], "Project not found");
 
-        if (!await projectAccessService.HasAdminAccessAsync(project.Name, cancellationToken))
+        if (!await projectAccessService.HasEditAccessAsync(project.Name, cancellationToken))
             return new ListApiKeysResult(false, [], "Access denied");
 
         var apiKeys = await apiKeyRepository.ListByProjectAsync(project.Name, cancellationToken);

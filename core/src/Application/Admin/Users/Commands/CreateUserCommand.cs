@@ -16,10 +16,14 @@ public record CreateUserResult(bool Success, CreateUserResponse? Response, strin
 public class CreateUserCommandHandler(
     IUserRepository userRepository,
     IDateTime dateTime,
+    IUserAuthorizationService userAuthorizationService,
     IAuditLogService? auditLogService = null) : IRequestHandler<CreateUserCommand, CreateUserResult>
 {
     public async Task<CreateUserResult> Handle(CreateUserCommand request, CancellationToken cancellationToken)
     {
+        if (!await userAuthorizationService.CanManageUsersAsync(cancellationToken))
+            return new CreateUserResult(false, null, "Access denied");
+
         if (await userRepository.ExistsAsync(request.Email, cancellationToken))
             return new CreateUserResult(false, null, "User already exists");
 
@@ -97,6 +101,5 @@ public class CreateUserCommandHandler(
             _ => null
         };
     }
-
 
 }

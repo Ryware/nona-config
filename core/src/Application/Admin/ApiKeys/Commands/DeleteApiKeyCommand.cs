@@ -20,7 +20,7 @@ public class DeleteApiKeyCommandHandler(
         if (project is null)
             return new DeleteApiKeyResult(false, "Project not found");
 
-        if (!await projectAccessService.HasAdminAccessAsync(project.Name, cancellationToken))
+        if (!await projectAccessService.HasEditAccessAsync(project.Name, cancellationToken))
             return new DeleteApiKeyResult(false, "Access denied");
 
         var apiKey = await apiKeyRepository.GetByIdAsync(request.ApiKeyId, cancellationToken);

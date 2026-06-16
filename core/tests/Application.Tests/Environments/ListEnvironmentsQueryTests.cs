@@ -28,8 +28,7 @@ public class ListEnvironmentsQueryTests
         var handler = new ListEnvironmentsQueryHandler(
             fixture.ProjectRepository,
             fixture.EnvironmentRepository,
-            fixture.ProjectMemberRepository,
-            fixture.CurrentUserService);
+            fixture.ProjectAccessService);
 
         var query = new ListEnvironmentsQuery(ProjectName);
 
@@ -60,8 +59,7 @@ public class ListEnvironmentsQueryTests
         var handler = new ListEnvironmentsQueryHandler(
             fixture.ProjectRepository,
             fixture.EnvironmentRepository,
-            fixture.ProjectMemberRepository,
-            fixture.CurrentUserService);
+            fixture.ProjectAccessService);
 
         var query = new ListEnvironmentsQuery(ProjectName);
 
@@ -92,8 +90,7 @@ public class ListEnvironmentsQueryTests
         var handler = new ListEnvironmentsQueryHandler(
             fixture.ProjectRepository,
             fixture.EnvironmentRepository,
-            fixture.ProjectMemberRepository,
-            fixture.CurrentUserService);
+            fixture.ProjectAccessService);
 
         var query = new ListEnvironmentsQuery(ProjectName);
 
@@ -116,8 +113,7 @@ public class ListEnvironmentsQueryTests
         var handler = new ListEnvironmentsQueryHandler(
             fixture.ProjectRepository,
             fixture.EnvironmentRepository,
-            fixture.ProjectMemberRepository,
-            fixture.CurrentUserService);
+            fixture.ProjectAccessService);
 
         var query = new ListEnvironmentsQuery(ProjectName);
 
@@ -140,8 +136,7 @@ public class ListEnvironmentsQueryTests
         var handler = new ListEnvironmentsQueryHandler(
             fixture.ProjectRepository,
             fixture.EnvironmentRepository,
-            fixture.ProjectMemberRepository,
-            fixture.CurrentUserService);
+            fixture.ProjectAccessService);
 
         var query = new ListEnvironmentsQuery(ProjectName);
 
@@ -151,5 +146,35 @@ public class ListEnvironmentsQueryTests
         // Assert
         await Assert.That(result.Success).IsFalse();
         await Assert.That(result.Error).IsEqualTo("Project not found");
+    }
+
+    [Test]
+    public async Task ProjectUser_CanListEnvironmentsWhenProjectSlugIsProvided()
+    {
+        var fixture = new TestFixture();
+        const string slug = "test-project-slug";
+        fixture.SetupAsProjectUser("regularuser", ProjectName);
+        fixture.ProjectRepository.GetByNameAsync(slug, Arg.Any<CancellationToken>()).Returns((Project?)null);
+        fixture.ProjectRepository.ListAsync(Arg.Any<CancellationToken>())
+            .Returns(new List<Project> { new() { Name = ProjectName, UrlSlug = slug } });
+
+        var environments = new List<ProjectEnvironment>
+        {
+            new() { Name = "development", Project = ProjectName }
+        };
+        fixture.EnvironmentRepository.ListByProjectAsync(ProjectName, Arg.Any<CancellationToken>())
+            .Returns(environments);
+
+        var handler = new ListEnvironmentsQueryHandler(
+            fixture.ProjectRepository,
+            fixture.EnvironmentRepository,
+            fixture.ProjectAccessService);
+
+        var result = await handler.Handle(new ListEnvironmentsQuery(slug), CancellationToken.None);
+
+        await Assert.That(result.Success).IsTrue();
+        await Assert.That(result.Environments!.Count).IsEqualTo(1);
+        await fixture.ProjectAccessService.Received(1)
+            .HasViewAccessAsync(ProjectName, Arg.Any<CancellationToken>());
     }
 }

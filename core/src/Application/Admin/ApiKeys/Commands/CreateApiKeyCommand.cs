@@ -29,7 +29,7 @@ public class CreateApiKeyCommandHandler(
         if (project is null)
             return new CreateApiKeyResult(false, null, "Project not found");
 
-        if (!await projectAccessService.HasAdminAccessAsync(project.Name, cancellationToken))
+        if (!await projectAccessService.HasEditAccessAsync(project.Name, cancellationToken))
             return new CreateApiKeyResult(false, null, "Access denied");
 
         if (!TryParseScope(request.Scope, out var scope))

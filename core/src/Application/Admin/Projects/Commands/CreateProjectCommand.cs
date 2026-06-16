@@ -14,7 +14,7 @@ public record CreateProjectResult(bool Success, ProjectDto? Project, string? Err
 
 public class CreateProjectCommandHandler(
     IProjectRepository projectRepository,
-    ICurrentUserService currentUserService,
+    IUserAuthorizationService userAuthorizationService,
     IEnvironmentRepository environmentRepository,
     IConfiguration configuration,
     IDateTime dateTime,
@@ -23,7 +23,8 @@ public class CreateProjectCommandHandler(
     public async Task<CreateProjectResult> Handle(CreateProjectCommand request, CancellationToken cancellationToken)
     {
         // Only admin users can create new projects
-        if (!currentUserService.IsAdmin)
+        var currentUser = await userAuthorizationService.GetCurrentUserAsync(cancellationToken);
+        if (currentUser?.IsAdmin != true)
             return new CreateProjectResult(false, null, "Access denied. Only admin users can create projects.");
 
         if (await projectRepository.ExistsAsync(request.Name, cancellationToken))

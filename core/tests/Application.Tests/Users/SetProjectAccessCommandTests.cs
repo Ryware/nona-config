@@ -16,6 +16,9 @@ public class SetProjectAccessCommandTests
     public async Task SetProjectAccess_AllowsEditorRole()
     {
         var fixture = new TestFixture();
+        fixture.CurrentUserService.Role.Returns(UserRole.Editor);
+        fixture.UserAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
+            .Returns(new User { Id = 7, Email = "editor@example.com", Name = "Editor", Role = UserRole.Editor });
         fixture.UserRepository.GetByIdAsync(UserId, Arg.Any<CancellationToken>())
             .Returns(new User
             {
@@ -23,12 +26,14 @@ public class SetProjectAccessCommandTests
                 Email = Email,
                 Name = "User"
             });
-        fixture.ProjectRepository.ExistsAsync(ProjectName, Arg.Any<CancellationToken>()).Returns(true);
+        fixture.ProjectRepository.GetByNameAsync(ProjectName, Arg.Any<CancellationToken>())
+            .Returns(new Project { Name = ProjectName });
 
         var handler = new SetProjectAccessCommandHandler(
             fixture.UserRepository,
             fixture.ProjectRepository,
-            fixture.ProjectMemberRepository);
+            fixture.ProjectMemberRepository,
+            fixture.UserAuthorizationService);
 
         var result = await handler.Handle(
             new SetProjectAccessCommand(UserId, ProjectName, "editor"),
@@ -43,6 +48,126 @@ public class SetProjectAccessCommandTests
                 member.Username == Email &&
                 member.ProjectId == ProjectName &&
                 member.Role == ProjectRole.Editor),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Test]
+    public async Task SetProjectAccess_RejectsViewer()
+    {
+        var fixture = new TestFixture();
+        fixture.CurrentUserService.Role.Returns(UserRole.Viewer);
+        fixture.UserAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
+            .Returns(new User { Id = 7, Email = "viewer@example.com", Name = "Viewer", Role = UserRole.Viewer });
+
+        var handler = new SetProjectAccessCommandHandler(
+            fixture.UserRepository,
+            fixture.ProjectRepository,
+            fixture.ProjectMemberRepository,
+            fixture.UserAuthorizationService);
+
+        var result = await handler.Handle(
+            new SetProjectAccessCommand(UserId, ProjectName, "editor"),
+            CancellationToken.None);
+
+        await Assert.That(result.Success).IsFalse();
+        await Assert.That(result.Error).IsEqualTo("Access denied");
+        await fixture.ProjectMemberRepository.DidNotReceive().AddAsync(
+            Arg.Any<ProjectMember>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Test]
+    public async Task SetProjectAccess_UsesPersistedRoleAfterSelfDemotion()
+    {
+        var fixture = new TestFixture();
+        fixture.CurrentUserService.Role.Returns(UserRole.Editor);
+        fixture.UserAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
+            .Returns(new User { Id = 7, Email = "viewer@example.com", Name = "Former Editor", Role = UserRole.Viewer });
+
+        var handler = new SetProjectAccessCommandHandler(
+            fixture.UserRepository,
+            fixture.ProjectRepository,
+            fixture.ProjectMemberRepository,
+            fixture.UserAuthorizationService);
+
+        var result = await handler.Handle(
+            new SetProjectAccessCommand(UserId, ProjectName, "editor"),
+            CancellationToken.None);
+
+        await Assert.That(result.Success).IsFalse();
+        await Assert.That(result.Error).IsEqualTo("Access denied");
+        await fixture.ProjectMemberRepository.DidNotReceive().AddAsync(
+            Arg.Any<ProjectMember>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Test]
+    public async Task SetProjectAccess_RejectsEditorModifyingSystemAdmin()
+    {
+        var fixture = new TestFixture();
+        fixture.UserAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
+            .Returns(new User { Id = 7, Email = "editor@example.com", Name = "Editor", Role = UserRole.Editor });
+        fixture.UserRepository.GetByIdAsync(UserId, Arg.Any<CancellationToken>())
+            .Returns(new User
+            {
+                Id = UserId,
+                Email = "admin@example.com",
+                Name = "Admin",
+                IsAdmin = true
+            });
+
+        var handler = new SetProjectAccessCommandHandler(
+            fixture.UserRepository,
+            fixture.ProjectRepository,
+            fixture.ProjectMemberRepository,
+            fixture.UserAuthorizationService);
+
+        var result = await handler.Handle(
+            new SetProjectAccessCommand(UserId, ProjectName, "viewer"),
+            CancellationToken.None);
+
+        await Assert.That(result.Success).IsFalse();
+        await Assert.That(result.Error).IsEqualTo("Access denied");
+        await fixture.ProjectMemberRepository.DidNotReceive().AddAsync(
+            Arg.Any<ProjectMember>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Test]
+    public async Task SetProjectAccess_StoresCanonicalProjectNameWhenSlugIsProvided()
+    {
+        var fixture = new TestFixture();
+        const string slug = "alpha-slug";
+        fixture.UserAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
+            .Returns(new User { Id = 7, Email = "editor@example.com", Name = "Editor", Role = UserRole.Editor });
+        fixture.UserRepository.GetByIdAsync(UserId, Arg.Any<CancellationToken>())
+            .Returns(new User
+            {
+                Id = UserId,
+                Email = Email,
+                Name = "User"
+            });
+        fixture.ProjectRepository.GetByNameAsync(slug, Arg.Any<CancellationToken>()).Returns((Project?)null);
+        fixture.ProjectRepository.ListAsync(Arg.Any<CancellationToken>())
+            .Returns(new List<Project> { new() { Id = 100, Name = ProjectName, UrlSlug = slug } });
+
+        var handler = new SetProjectAccessCommandHandler(
+            fixture.UserRepository,
+            fixture.ProjectRepository,
+            fixture.ProjectMemberRepository,
+            fixture.UserAuthorizationService);
+
+        var result = await handler.Handle(
+            new SetProjectAccessCommand(UserId, slug, "viewer"),
+            CancellationToken.None);
+
+        await Assert.That(result.Success).IsTrue();
+        await Assert.That(result.ProjectAccess!.ProjectName).IsEqualTo(ProjectName);
+        await fixture.ProjectMemberRepository.Received(1).AddAsync(
+            Arg.Is<ProjectMember>(member =>
+                member.Username == Email &&
+                member.ProjectId == ProjectName &&
+                member.Role == ProjectRole.Viewer),
             Arg.Any<CancellationToken>());
     }
 

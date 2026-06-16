@@ -1,4 +1,5 @@
 using MediatR;
+using Nona.Application.Admin.Projects;
 using Nona.Application.Common.Interfaces;
 using Nona.Domain.Interfaces;
 
@@ -18,28 +19,30 @@ public class DeleteConfigEntryCommandHandler(
 {
     public async Task<DeleteConfigEntryResult> Handle(DeleteConfigEntryCommand request, CancellationToken cancellationToken)
     {
-        if (!await projectRepository.ExistsAsync(request.ProjectId, cancellationToken))
+        var project = await ProjectResolution.ResolveProjectAsync(projectRepository, request.ProjectId, cancellationToken);
+        if (project is null)
             return new DeleteConfigEntryResult(false, "Project not found");
 
-        if (!await projectAccessService.HasAdminAccessAsync(request.ProjectId, cancellationToken))
+        var projectName = project.Name;
+        if (!await projectAccessService.HasEditAccessAsync(projectName, cancellationToken))
             return new DeleteConfigEntryResult(false, "Access denied");
 
-        if (!await environmentRepository.ExistsAsync(request.ProjectId, request.EnvironmentId, cancellationToken))
+        if (!await environmentRepository.ExistsAsync(projectName, request.EnvironmentId, cancellationToken))
             return new DeleteConfigEntryResult(false, "Environment not found");
 
 
-        if (!await configEntryRepository.ExistsAsync(request.ProjectId, request.EnvironmentId, request.Key, cancellationToken))
+        if (!await configEntryRepository.ExistsAsync(projectName, request.EnvironmentId, request.Key, cancellationToken))
             return new DeleteConfigEntryResult(false, "Config entry not found");
 
 
-        await configEntryRepository.DeleteAsync(request.ProjectId, request.EnvironmentId, request.Key, cancellationToken);
+        await configEntryRepository.DeleteAsync(projectName, request.EnvironmentId, request.Key, cancellationToken);
 
         if (auditLogService is not null)
         {
             await auditLogService.WriteAsync(
                 "Deleted Key",
                 request.Key,
-                project: request.ProjectId,
+                project: projectName,
                 environment: request.EnvironmentId,
                 cancellationToken: cancellationToken);
         }

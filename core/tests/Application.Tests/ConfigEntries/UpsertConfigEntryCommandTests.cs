@@ -65,7 +65,7 @@ public class UpsertConfigEntryCommandTests
     }
 
     [Test]
-    public async Task ProjectUser_CanUpsertConfigEntry()
+    public async Task ProjectUser_CannotUpsertConfigEntry()
     {
         // Arrange
         var fixture = new TestFixture();
@@ -86,8 +86,8 @@ public class UpsertConfigEntryCommandTests
         var result = await handler.Handle(command, CancellationToken.None);
 
         // Assert
-        await Assert.That(result.Success).IsTrue();
-        await Assert.That(result.ConfigEntry).IsNotNull();
+        await Assert.That(result.Success).IsFalse();
+        await Assert.That(result.Error).IsEqualTo("Access denied");
     }
 
     [Test]

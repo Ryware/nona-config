@@ -36,7 +36,7 @@ public class PermissionMatrixTests
         // Create
         var createHandler = new CreateProjectCommandHandler(
             fixture.ProjectRepository,
-            fixture.CurrentUserService,
+            fixture.UserAuthorizationService,
             fixture.EnvironmentRepository,
             fixture.Configuration,
             fixture.DateTime);
@@ -44,13 +44,13 @@ public class PermissionMatrixTests
         await Assert.That(createResult.Success).IsTrue();
 
         // Read
-        var listHandler = new ListProjectsQueryHandler(fixture.ProjectRepository, fixture.ProjectMemberRepository, fixture.CurrentUserService);
+        var listHandler = new ListProjectsQueryHandler(fixture.ProjectRepository, fixture.ProjectMemberRepository, fixture.UserAuthorizationService);
         var listResult = await listHandler.Handle(new ListProjectsQuery(), CancellationToken.None);
         await Assert.That(listResult.Count).IsGreaterThan(0);
 
         // Delete
         fixture.SetupProjectExists(ProjectName, exists: true);
-        var deleteHandler = new DeleteProjectCommandHandler(fixture.ProjectRepository, fixture.EnvironmentRepository, fixture.ConfigEntryRepository, fixture.ProjectMemberRepository, fixture.CurrentUserService);
+        var deleteHandler = new DeleteProjectCommandHandler(fixture.ProjectRepository, fixture.EnvironmentRepository, fixture.ConfigEntryRepository, fixture.ProjectMemberRepository, fixture.UserAuthorizationService);
         var deleteResult = await deleteHandler.Handle(new DeleteProjectCommand(ProjectName), CancellationToken.None);
         await Assert.That(deleteResult.Success).IsTrue();
     }
@@ -74,7 +74,7 @@ public class PermissionMatrixTests
         await Assert.That(createResult.Success).IsTrue();
 
         // Read
-        var listHandler = new ListEnvironmentsQueryHandler(fixture.ProjectRepository, fixture.EnvironmentRepository, fixture.ProjectMemberRepository, fixture.CurrentUserService);
+        var listHandler = new ListEnvironmentsQueryHandler(fixture.ProjectRepository, fixture.EnvironmentRepository, fixture.ProjectAccessService);
         var listResult = await listHandler.Handle(new ListEnvironmentsQuery(ProjectName), CancellationToken.None);
         await Assert.That(listResult.Success).IsTrue();
 
@@ -127,7 +127,7 @@ public class PermissionMatrixTests
         // Create - should fail
         var createHandler = new CreateProjectCommandHandler(
             fixture.ProjectRepository,
-            fixture.CurrentUserService,
+            fixture.UserAuthorizationService,
             fixture.EnvironmentRepository,
             fixture.Configuration,
             fixture.DateTime);
@@ -136,7 +136,7 @@ public class PermissionMatrixTests
 
         // Delete - should fail
         fixture.SetupProjectExists(ProjectName, exists: true);
-        var deleteHandler = new DeleteProjectCommandHandler(fixture.ProjectRepository, fixture.EnvironmentRepository, fixture.ConfigEntryRepository, fixture.ProjectMemberRepository, fixture.CurrentUserService);
+        var deleteHandler = new DeleteProjectCommandHandler(fixture.ProjectRepository, fixture.EnvironmentRepository, fixture.ConfigEntryRepository, fixture.ProjectMemberRepository, fixture.UserAuthorizationService);
         var deleteResult = await deleteHandler.Handle(new DeleteProjectCommand(ProjectName), CancellationToken.None);
         await Assert.That(deleteResult.Success).IsFalse();
     }
@@ -160,7 +160,7 @@ public class PermissionMatrixTests
         await Assert.That(createResult.Success).IsTrue();
 
         // Read
-        var listHandler = new ListEnvironmentsQueryHandler(fixture.ProjectRepository, fixture.EnvironmentRepository, fixture.ProjectMemberRepository, fixture.CurrentUserService);
+        var listHandler = new ListEnvironmentsQueryHandler(fixture.ProjectRepository, fixture.EnvironmentRepository, fixture.ProjectAccessService);
         var listResult = await listHandler.Handle(new ListEnvironmentsQuery(ProjectName), CancellationToken.None);
         await Assert.That(listResult.Success).IsTrue();
 
@@ -213,7 +213,7 @@ public class PermissionMatrixTests
         // Create - should fail
         var createHandler = new CreateProjectCommandHandler(
             fixture.ProjectRepository,
-            fixture.CurrentUserService,
+            fixture.UserAuthorizationService,
             fixture.EnvironmentRepository,
             fixture.Configuration,
             fixture.DateTime);
@@ -222,7 +222,7 @@ public class PermissionMatrixTests
 
         // Delete - should fail
         fixture.SetupProjectExists(ProjectName, exists: true);
-        var deleteHandler = new DeleteProjectCommandHandler(fixture.ProjectRepository, fixture.EnvironmentRepository, fixture.ConfigEntryRepository, fixture.ProjectMemberRepository, fixture.CurrentUserService);
+        var deleteHandler = new DeleteProjectCommandHandler(fixture.ProjectRepository, fixture.EnvironmentRepository, fixture.ConfigEntryRepository, fixture.ProjectMemberRepository, fixture.UserAuthorizationService);
         var deleteResult = await deleteHandler.Handle(new DeleteProjectCommand(ProjectName), CancellationToken.None);
         await Assert.That(deleteResult.Success).IsFalse();
     }
@@ -260,14 +260,14 @@ public class PermissionMatrixTests
         fixture.EnvironmentRepository.ListByProjectAsync(ProjectName, Arg.Any<CancellationToken>())
             .Returns(new List<ProjectEnvironment> { new() { Name = EnvironmentName, Project = ProjectName } });
 
-        var listHandler = new ListEnvironmentsQueryHandler(fixture.ProjectRepository, fixture.EnvironmentRepository, fixture.ProjectMemberRepository, fixture.CurrentUserService);
+        var listHandler = new ListEnvironmentsQueryHandler(fixture.ProjectRepository, fixture.EnvironmentRepository, fixture.ProjectAccessService);
         var listResult = await listHandler.Handle(new ListEnvironmentsQuery(ProjectName), CancellationToken.None);
         await Assert.That(listResult.Success).IsTrue();
     }
 
     [Test]
     [Category("ProjectUser")]
-    public async Task ProjectUser_CanReadAndUpdateConfigEntries_ButNotDelete()
+    public async Task ProjectUser_CanReadConfigEntries_ButNotUpdateOrDelete()
     {
         var fixture = new TestFixture();
         fixture.SetupAsProjectUser("regularuser", ProjectName);
@@ -280,10 +280,11 @@ public class PermissionMatrixTests
         var getResult = await getHandler.Handle(new GetConfigEntryQuery(ProjectName, EnvironmentName, ConfigKey), CancellationToken.None);
         await Assert.That(getResult.Success).IsTrue();
 
-        // Update - should succeed
+        // Update - should fail
         var upsertHandler = new UpsertConfigEntryCommandHandler(fixture.ProjectRepository, fixture.EnvironmentRepository, fixture.ConfigEntryRepository, fixture.ProjectAccessService, fixture.DateTime);
         var upsertResult = await upsertHandler.Handle(new UpsertConfigEntryCommand(ProjectName, EnvironmentName, ConfigKey, "new-value", null, null), CancellationToken.None);
-        await Assert.That(upsertResult.Success).IsTrue();
+        await Assert.That(upsertResult.Success).IsFalse();
+        await Assert.That(upsertResult.Error).IsEqualTo("Access denied");
 
         // Delete - should fail
         var deleteHandler = new DeleteConfigEntryCommandHandler(fixture.ProjectRepository, fixture.EnvironmentRepository, fixture.ConfigEntryRepository, fixture.ProjectAccessService);
@@ -307,7 +308,7 @@ public class PermissionMatrixTests
         fixture.SetupConfigEntryExists(ProjectName, EnvironmentName, ConfigKey);
 
         // Environments - List should fail
-        var listEnvHandler = new ListEnvironmentsQueryHandler(fixture.ProjectRepository, fixture.EnvironmentRepository, fixture.ProjectMemberRepository, fixture.CurrentUserService);
+        var listEnvHandler = new ListEnvironmentsQueryHandler(fixture.ProjectRepository, fixture.EnvironmentRepository, fixture.ProjectAccessService);
         var listEnvResult = await listEnvHandler.Handle(new ListEnvironmentsQuery(ProjectName), CancellationToken.None);
         await Assert.That(listEnvResult.Success).IsFalse();
 

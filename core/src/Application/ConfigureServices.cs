@@ -22,6 +22,7 @@ public static class ConfigureServices
         services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 
         services.AddScoped<IProjectAccessService, ProjectAccessService>();
+        services.AddScoped<IUserAuthorizationService, UserAuthorizationService>();
 
         return services;
     }

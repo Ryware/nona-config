@@ -15,6 +15,7 @@ public class TestFixture
     public IProjectMemberRepository ProjectMemberRepository { get; } = Substitute.For<IProjectMemberRepository>();
     public IUserRepository UserRepository { get; } = Substitute.For<IUserRepository>();
     public ICurrentUserService CurrentUserService { get; } = Substitute.For<ICurrentUserService>();
+    public IUserAuthorizationService UserAuthorizationService { get; } = Substitute.For<IUserAuthorizationService>();
     public IProjectAccessService ProjectAccessService { get; } = Substitute.For<IProjectAccessService>();
     public IDateTime DateTime { get; } = Substitute.For<IDateTime>();
     public IConfiguration Configuration { get; }
@@ -33,17 +34,27 @@ public class TestFixture
     public void SetupAsSystemAdmin(string username = "admin")
     {
         CurrentUserService.Username.Returns(username);
+        CurrentUserService.Role.Returns(UserRole.Viewer);
         CurrentUserService.IsAdmin.Returns(true);
-        ProjectAccessService.HasAccessAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(true);
-        ProjectAccessService.HasAdminAccessAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(true);
+        UserAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
+            .Returns(new User { Email = username, Name = username, IsAdmin = true, Role = UserRole.Viewer });
+        UserAuthorizationService.CanManageUsersAsync(Arg.Any<CancellationToken>()).Returns(true);
+        UserAuthorizationService.HasGlobalProjectAccessAsync(Arg.Any<CancellationToken>()).Returns(true);
+        ProjectAccessService.HasViewAccessAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(true);
+        ProjectAccessService.HasEditAccessAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(true);
     }
 
     public void SetupAsProjectAdmin(string username, string projectName)
     {
         CurrentUserService.Username.Returns(username);
+        CurrentUserService.Role.Returns(UserRole.Viewer);
         CurrentUserService.IsAdmin.Returns(false);
-        ProjectAccessService.HasAccessAsync(projectName, Arg.Any<CancellationToken>()).Returns(true);
-        ProjectAccessService.HasAdminAccessAsync(projectName, Arg.Any<CancellationToken>()).Returns(true);
+        UserAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
+            .Returns(new User { Email = username, Name = username, Role = UserRole.Viewer });
+        UserAuthorizationService.CanManageUsersAsync(Arg.Any<CancellationToken>()).Returns(false);
+        UserAuthorizationService.HasGlobalProjectAccessAsync(Arg.Any<CancellationToken>()).Returns(false);
+        ProjectAccessService.HasViewAccessAsync(projectName, Arg.Any<CancellationToken>()).Returns(true);
+        ProjectAccessService.HasEditAccessAsync(projectName, Arg.Any<CancellationToken>()).Returns(true);
         ProjectMemberRepository.ExistsAsync(username, projectName, Arg.Any<CancellationToken>()).Returns(true);
         ProjectMemberRepository.GetAsync(username, projectName, Arg.Any<CancellationToken>())
             .Returns(new ProjectMember { Username = username, ProjectId = projectName, Role = ProjectRole.Editor });
@@ -52,9 +63,14 @@ public class TestFixture
     public void SetupAsProjectUser(string username, string projectName)
     {
         CurrentUserService.Username.Returns(username);
+        CurrentUserService.Role.Returns(UserRole.Viewer);
         CurrentUserService.IsAdmin.Returns(false);
-        ProjectAccessService.HasAccessAsync(projectName, Arg.Any<CancellationToken>()).Returns(true);
-        ProjectAccessService.HasAdminAccessAsync(projectName, Arg.Any<CancellationToken>()).Returns(false);
+        UserAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
+            .Returns(new User { Email = username, Name = username, Role = UserRole.Viewer });
+        UserAuthorizationService.CanManageUsersAsync(Arg.Any<CancellationToken>()).Returns(false);
+        UserAuthorizationService.HasGlobalProjectAccessAsync(Arg.Any<CancellationToken>()).Returns(false);
+        ProjectAccessService.HasViewAccessAsync(projectName, Arg.Any<CancellationToken>()).Returns(true);
+        ProjectAccessService.HasEditAccessAsync(projectName, Arg.Any<CancellationToken>()).Returns(false);
         ProjectMemberRepository.ExistsAsync(username, projectName, Arg.Any<CancellationToken>()).Returns(true);
         ProjectMemberRepository.GetAsync(username, projectName, Arg.Any<CancellationToken>())
             .Returns(new ProjectMember { Username = username, ProjectId = projectName, Role = ProjectRole.Viewer });
@@ -63,9 +79,14 @@ public class TestFixture
     public void SetupAsUserWithNoProjectAccess(string username, string projectName)
     {
         CurrentUserService.Username.Returns(username);
+        CurrentUserService.Role.Returns(UserRole.Viewer);
         CurrentUserService.IsAdmin.Returns(false);
-        ProjectAccessService.HasAccessAsync(projectName, Arg.Any<CancellationToken>()).Returns(false);
-        ProjectAccessService.HasAdminAccessAsync(projectName, Arg.Any<CancellationToken>()).Returns(false);
+        UserAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
+            .Returns(new User { Email = username, Name = username, Role = UserRole.Viewer });
+        UserAuthorizationService.CanManageUsersAsync(Arg.Any<CancellationToken>()).Returns(false);
+        UserAuthorizationService.HasGlobalProjectAccessAsync(Arg.Any<CancellationToken>()).Returns(false);
+        ProjectAccessService.HasViewAccessAsync(projectName, Arg.Any<CancellationToken>()).Returns(false);
+        ProjectAccessService.HasEditAccessAsync(projectName, Arg.Any<CancellationToken>()).Returns(false);
         ProjectMemberRepository.ExistsAsync(username, projectName, Arg.Any<CancellationToken>()).Returns(false);
         ProjectMemberRepository.GetAsync(username, projectName, Arg.Any<CancellationToken>()).Returns((ProjectMember?)null);
     }

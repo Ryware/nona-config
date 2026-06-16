@@ -1,5 +1,6 @@
 using MediatR;
 using Nona.Application.Admin.Environments.DTOs;
+using Nona.Application.Admin.Projects;
 using Nona.Application.Common.Interfaces;
 using Nona.Domain.Interfaces;
 
@@ -12,27 +13,18 @@ public record ListEnvironmentsResult(bool Success, IReadOnlyList<EnvironmentDto>
 public class ListEnvironmentsQueryHandler(
     IProjectRepository projectRepository,
     IEnvironmentRepository environmentRepository,
-    IProjectMemberRepository projectMemberRepository,
-    ICurrentUserService currentUserService) : IRequestHandler<ListEnvironmentsQuery, ListEnvironmentsResult>
+    IProjectAccessService projectAccessService) : IRequestHandler<ListEnvironmentsQuery, ListEnvironmentsResult>
 {
     public async Task<ListEnvironmentsResult> Handle(ListEnvironmentsQuery request, CancellationToken cancellationToken)
     {
-        if (!await projectRepository.ExistsAsync(request.ProjectId, cancellationToken))
+        var project = await ProjectResolution.ResolveProjectAsync(projectRepository, request.ProjectId, cancellationToken);
+        if (project is null)
             return new ListEnvironmentsResult(false, null, "Project not found");
 
-        // Check access for non-admin users
-        if (!currentUserService.IsAdmin)
-        {
-            var username = currentUserService.Username;
-            if (string.IsNullOrEmpty(username))
-                return new ListEnvironmentsResult(false, null, "Access denied");
+        if (!await projectAccessService.HasViewAccessAsync(project.Name, cancellationToken))
+            return new ListEnvironmentsResult(false, null, "Access denied");
 
-            var hasAccess = await projectMemberRepository.ExistsAsync(username, request.ProjectId, cancellationToken);
-            if (!hasAccess)
-                return new ListEnvironmentsResult(false, null, "Access denied");
-        }
-
-        var environments = await environmentRepository.ListByProjectAsync(request.ProjectId, cancellationToken);
+        var environments = await environmentRepository.ListByProjectAsync(project.Name, cancellationToken);
 
         var dtos = environments.Select(e => new EnvironmentDto(
             e.Name,
