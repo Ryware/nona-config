@@ -78,7 +78,11 @@ public class AdminUsersController(IMediator mediator) : ControllerBase
         var result = await mediator.Send(new DeleteUserCommand(id), cancellationToken);
 
         if (!result.Success)
-            return NotFound(new { error = result.Error });
+        {
+            return result.Error == "User not found"
+                ? NotFound(new { error = result.Error })
+                : BadRequest(new { error = result.Error });
+        }
 
         return NoContent();
     }
