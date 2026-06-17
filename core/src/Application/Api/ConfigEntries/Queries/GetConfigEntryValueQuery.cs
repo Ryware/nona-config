@@ -41,7 +41,7 @@ public class GetConfigEntryValueQueryHandler(
             return new GetConfigEntryValueResult(false, null, null, "Config entry not found");
 
         // Check if the API key scope has access to this config entry
-        if (!configEntry.Scope.HasFlag(apiKeyScope))
+        if (!apiKeyScope.HasFlag(configEntry.Scope))
             return new GetConfigEntryValueResult(false, null, null, "Config entry not found");
 
         return new GetConfigEntryValueResult(true, configEntry.Value, configEntry.ContentType, null);
