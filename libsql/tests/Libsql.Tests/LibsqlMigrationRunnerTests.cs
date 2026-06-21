@@ -85,7 +85,14 @@ public class LibsqlMigrationRunnerTests
                 WHERE type = 'table' AND name = 'Projects'
                 """);
 
+            var projectColumns = await client.ExecuteAsync("PRAGMA table_info(Projects)");
+            var projectColumnNames = projectColumns.Rows
+                .Select(row => row.GetString("name"))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
             await Assert.That(projectsTable.Rows[0].GetInt32("Count")).IsEqualTo(1);
+            await Assert.That(projectColumnNames.Contains("ServerApiKey")).IsFalse();
+            await Assert.That(projectColumnNames.Contains("ClientApiKey")).IsFalse();
         }
         finally
         {

@@ -22,7 +22,6 @@ public class CreateProjectCommandHandler(
 {
     public async Task<CreateProjectResult> Handle(CreateProjectCommand request, CancellationToken cancellationToken)
     {
-        // Only admin users can create new projects
         var currentUser = await userAuthorizationService.GetCurrentUserAsync(cancellationToken);
         if (currentUser?.IsAdmin != true)
             return new CreateProjectResult(false, null, "Access denied. Only admin users can create projects.");
@@ -95,7 +94,6 @@ public class CreateProjectCommandHandler(
             return string.Empty;
 
         var slug = name.Trim().ToLowerInvariant();
-        // replace spaces and invalid chars with hyphens
         var sb = new System.Text.StringBuilder();
         foreach (var c in slug)
         {
@@ -103,7 +101,6 @@ public class CreateProjectCommandHandler(
             else if (char.IsWhiteSpace(c) || c == '-' || c == '_') sb.Append('-');
         }
 
-        // collapse multiple hyphens
         var result = System.Text.RegularExpressions.Regex.Replace(sb.ToString(), "-+", "-").Trim('-');
         return result;
     }
