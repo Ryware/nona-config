@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: Existing CLI release tag, for example cli-v1.0.0
+        description: Existing CLI GitHub release tag, for example cli-v1.0.0. Run release-cli first if it does not exist.
         required: true
         type: string
       push_package:
@@ -72,6 +72,38 @@ jobs:
           "should_publish=$shouldPublish" >> $env:GITHUB_OUTPUT
           "tag=$tag" >> $env:GITHUB_OUTPUT
           "version=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Validate CLI release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "${{ steps.meta.outputs.tag }}"
+          $version = "${{ steps.meta.outputs.version }}"
+          $repository = "${{ github.repository }}"
+
+          git ls-remote --exit-code --tags origin "refs/tags/$tag" | Out-Null
+          if ($LASTEXITCODE -ne 0) {
+            throw "CLI tag '$tag' was not found in $repository. Create and push the tag, or run release-cli with an existing cli-v* tag before release-chocolatey."
+          }
+
+          $releaseJson = gh release view $tag --repo $repository --json assets,url 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            throw "GitHub Release '$tag' was not found in $repository. Run the release-cli workflow for '$tag' and wait for it to publish release assets before running release-chocolatey."
+          }
+
+          $release = $releaseJson | ConvertFrom-Json
+          $assetNames = @($release.assets | ForEach-Object { $_.name })
+          $requiredAssets = @(
+            "nona-cli_${version}_win-x64.zip",
+            "SHA256SUMS.txt"
+          )
+
+          foreach ($assetName in $requiredAssets) {
+            if ($assetNames -notcontains $assetName) {
+              throw "GitHub Release '$tag' is missing required asset '$assetName'. Re-run release-cli for '$tag' before running release-chocolatey."
+            }
+          }
 
       - name: Download GitHub release assets
         shell: pwsh
