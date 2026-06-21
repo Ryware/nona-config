@@ -249,6 +249,23 @@ jobs:
 
       - name: Push package to Chocolatey
         shell: pwsh
+        env:
+          PACKAGE_ID: ${{ needs.build.outputs.package_id }}
+          PACKAGE_VERSION: ${{ needs.build.outputs.version }}
         run: |
           $packagePath = Join-Path $PWD "chocolatey-package/${{ needs.build.outputs.package_file }}"
-          choco push $packagePath --source https://push.chocolatey.org/ --api-key $env:CHOCOLATEY_API_KEY --no-progress
+          $source = 'https://push.chocolatey.org/'
+          $output = & choco push $packagePath --source $source --api-key $env:CHOCOLATEY_API_KEY --no-progress 2>&1
+          $exitCode = $LASTEXITCODE
+          $output | ForEach-Object { Write-Host $_ }
+
+          if ($exitCode -eq 0) {
+            return
+          }
+
+          $message = $output | Out-String
+          if ($message -match '403|Forbidden') {
+            throw "Chocolatey rejected publishing $env:PACKAGE_ID $env:PACKAGE_VERSION with 403 Forbidden. Check that CHOCOLATEY_API_KEY is the Chocolatey community repository API key for an account allowed to create or maintain '$env:PACKAGE_ID'. Chocolatey also returns 403 when the package/version is still in moderation, has too many versions in moderation, is owned by another account, or the package name is forbidden. Check https://community.chocolatey.org/packages/$env:PACKAGE_ID and the Chocolatey account moderation dashboard before retrying."
+          }
+
+          throw "Chocolatey push failed with exit code $exitCode."
