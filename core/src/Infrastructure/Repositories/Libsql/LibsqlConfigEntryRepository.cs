@@ -2,6 +2,7 @@ using Nona.Domain.Entities;
 using Nona.Domain.Enums;
 using Nona.Domain.Interfaces;
 using Nona.Libsql;
+using System.Globalization;
 
 namespace Nona.Infrastructure.Repositories.Libsql;
 
@@ -36,7 +37,7 @@ public sealed class LibsqlConfigEntryRepository : IConfigEntryRepository
         var normalizedActor = string.IsNullOrWhiteSpace(actor) ? "System" : actor;
         var parameters = ToVersionParameters(entry, normalizedActor);
 
-        await _client.ExecuteBatchAsync(
+        var results = await _client.ExecuteBatchAsync(
             [
                 new LibsqlStatement(
                     """
@@ -87,11 +88,22 @@ public sealed class LibsqlConfigEntryRepository : IConfigEntryRepository
                         ActiveVersion = excluded.ActiveVersion,
                         UpdatedAt = excluded.UpdatedAt
                     """,
+                    parameters),
+                new LibsqlStatement(
+                    """
+                    SELECT Project, Environment, Key, Value, ContentType, Scope, ActiveVersion, CreatedAt, UpdatedAt
+                    FROM ConfigEntries
+                    WHERE Project = @Project COLLATE NOCASE
+                      AND Environment = @Environment COLLATE NOCASE
+                      AND Key = @Key COLLATE NOCASE
+                    LIMIT 1
+                    """,
                     parameters)
             ],
             ct);
 
-        return await GetAsync(entry.Project, entry.Environment, entry.Key, ct);
+        var savedRows = results[^1].Rows;
+        return savedRows.Count == 0 ? null : Map(savedRows[0]);
     }
 
     public async Task<IReadOnlyList<ConfigEntryVersion>> ListVersionsAsync(string projectName, string environmentName, string key, CancellationToken ct = default)
@@ -240,8 +252,8 @@ public sealed class LibsqlConfigEntryRepository : IConfigEntryRepository
             ContentType = row.GetString("ContentType"),
             Scope = (KeyScope)row.GetInt32("Scope"),
             ActiveVersion = row.GetInt32("ActiveVersion"),
-            CreatedAt = DateTime.Parse(row.GetString("CreatedAt")),
-            UpdatedAt = DateTime.Parse(row.GetString("UpdatedAt"))
+            CreatedAt = ParseTimestamp(row.GetString("CreatedAt")),
+            UpdatedAt = ParseTimestamp(row.GetString("UpdatedAt"))
         };
     }
 
@@ -256,10 +268,13 @@ public sealed class LibsqlConfigEntryRepository : IConfigEntryRepository
             Value = row.GetString("Value"),
             ContentType = row.GetString("ContentType"),
             Scope = (KeyScope)row.GetInt32("Scope"),
-            CreatedAt = DateTime.Parse(row.GetString("CreatedAt")),
+            CreatedAt = ParseTimestamp(row.GetString("CreatedAt")),
             Actor = row.GetString("Actor")
         };
     }
+
+    private static DateTime ParseTimestamp(string value)
+        => DateTime.Parse(value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
 
     private static object ToVersionParameters(ConfigEntry entry, string actor)
     {

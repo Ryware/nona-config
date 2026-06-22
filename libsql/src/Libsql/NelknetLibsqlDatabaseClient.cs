@@ -11,6 +11,7 @@ public sealed class NelknetLibsqlDatabaseClient : ILibsqlDatabaseClient, IDispos
     private readonly string _writeConnectionString;
     private readonly int _commandTimeoutSeconds;
     private readonly bool _shareReadWriteConnection;
+    private readonly bool _syncReadConnectionAfterWrites;
     private readonly SemaphoreSlim _gate = new(1, 1);
 
     private LibSQLConnection? _readConnection;
@@ -23,7 +24,7 @@ public sealed class NelknetLibsqlDatabaseClient : ILibsqlDatabaseClient, IDispos
     }
 
     public NelknetLibsqlDatabaseClient(string connectionString, int commandTimeoutSeconds = 30)
-        : this(new LibsqlConnectionStrings(connectionString, connectionString), commandTimeoutSeconds)
+        : this(new LibsqlConnectionStrings(connectionString, connectionString, SyncReadConnectionAfterWrites: false), commandTimeoutSeconds)
     {
     }
 
@@ -40,6 +41,7 @@ public sealed class NelknetLibsqlDatabaseClient : ILibsqlDatabaseClient, IDispos
         _readConnectionString = connectionStrings.ReadConnectionString;
         _writeConnectionString = connectionStrings.WriteConnectionString;
         _commandTimeoutSeconds = commandTimeoutSeconds;
+        _syncReadConnectionAfterWrites = connectionStrings.SyncReadConnectionAfterWrites;
         _shareReadWriteConnection = string.Equals(
             _readConnectionString,
             _writeConnectionString,
@@ -53,8 +55,15 @@ public sealed class NelknetLibsqlDatabaseClient : ILibsqlDatabaseClient, IDispos
         await _gate.WaitAsync(ct);
         try
         {
-            var connection = EnsureConnectionOpen(GetConnectionTarget(sql));
-            return await ExecuteStatementAsync(connection, new LibsqlStatement(sql, parameters), transaction: null, ct);
+            var target = GetConnectionTarget(sql);
+            var connection = EnsureConnectionOpen(target);
+            var result = await ExecuteStatementAsync(connection, new LibsqlStatement(sql, parameters), transaction: null, ct);
+            if (target == LibsqlConnectionTarget.Write)
+            {
+                await SyncReadConnectionAfterWriteAsync(ct);
+            }
+
+            return result;
         }
         catch (Exception ex) when (ex is not LibsqlException and not OperationCanceledException)
         {
@@ -95,6 +104,11 @@ public sealed class NelknetLibsqlDatabaseClient : ILibsqlDatabaseClient, IDispos
             }
 
             transaction.Commit();
+            if (target == LibsqlConnectionTarget.Write)
+            {
+                await SyncReadConnectionAfterWriteAsync(ct);
+            }
+
             return results;
         }
         catch (Exception ex) when (ex is not LibsqlException and not OperationCanceledException)
@@ -150,10 +164,16 @@ public sealed class NelknetLibsqlDatabaseClient : ILibsqlDatabaseClient, IDispos
                 builder.SyncAuthToken = options.AuthToken;
             }
 
-            return new LibsqlConnectionStrings(builder.ConnectionString, writeConnectionString);
+            return new LibsqlConnectionStrings(
+                builder.ConnectionString,
+                writeConnectionString,
+                SyncReadConnectionAfterWrites: true);
         }
 
-        return new LibsqlConnectionStrings(writeConnectionString, writeConnectionString);
+        return new LibsqlConnectionStrings(
+            writeConnectionString,
+            writeConnectionString,
+            SyncReadConnectionAfterWrites: false);
     }
 
     private static string CreateDirectConnectionString(string dataSource, string authToken)
@@ -240,6 +260,17 @@ public sealed class NelknetLibsqlDatabaseClient : ILibsqlDatabaseClient, IDispos
 
     private static LibsqlConnectionTarget GetConnectionTarget(string sql)
         => LibsqlCommandHelpers.IsQuery(sql) ? LibsqlConnectionTarget.Read : LibsqlConnectionTarget.Write;
+
+    private async Task SyncReadConnectionAfterWriteAsync(CancellationToken ct)
+    {
+        if (!_syncReadConnectionAfterWrites || _shareReadWriteConnection)
+        {
+            return;
+        }
+
+        var readConnection = EnsureConnectionOpen(LibsqlConnectionTarget.Read);
+        await readConnection.SyncAsync(ct);
+    }
 
     private async Task<LibsqlQueryResult> ExecuteStatementAsync(
         LibSQLConnection connection,
@@ -332,7 +363,10 @@ public sealed class NelknetLibsqlDatabaseClient : ILibsqlDatabaseClient, IDispos
         return resolvedPath;
     }
 
-    private readonly record struct LibsqlConnectionStrings(string ReadConnectionString, string WriteConnectionString);
+    private readonly record struct LibsqlConnectionStrings(
+        string ReadConnectionString,
+        string WriteConnectionString,
+        bool SyncReadConnectionAfterWrites);
 
     private enum LibsqlConnectionTarget
     {
