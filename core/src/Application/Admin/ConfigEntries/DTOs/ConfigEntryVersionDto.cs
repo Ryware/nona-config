@@ -1,12 +1,12 @@
 namespace Nona.Application.Admin.ConfigEntries.DTOs;
 
-public record ConfigEntryDto(
+public record ConfigEntryVersionDto(
     string Project,
     string Environment,
     string Key,
+    int Version,
     string Value,
     string ContentType,
     string Scope,
-    int ActiveVersion,
     DateTime CreatedAt,
-    DateTime UpdatedAt);
+    string Actor);

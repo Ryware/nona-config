@@ -65,6 +65,24 @@ public sealed class EntriesHandlerTests
     }
 
     [Test]
+    public async Task HistoryEntriesQueryHandler_ReturnsZero_WithVersions()
+    {
+        var result = await new HistoryEntriesQueryHandler(MockHttp(HttpStatusCode.OK, ConfigEntryVersionArrayJson))
+            .HandleAsync(new HistoryEntriesQuery(TestConnection, "my-project", "production", "my.key"),
+                CancellationToken.None);
+        await Assert.That(result).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task RollbackEntryCommandHandler_ReturnsZero_OnSuccess()
+    {
+        var result = await new RollbackEntryCommandHandler(MockHttp(HttpStatusCode.OK, ConfigEntryJson))
+            .HandleAsync(new RollbackEntryCommand(TestConnection, "my-project", "production", "my.key", 1),
+                CancellationToken.None);
+        await Assert.That(result).IsEqualTo(0);
+    }
+
+    [Test]
     public async Task DeleteEntryCommandHandler_ReturnsZero_OnSuccess()
     {
         var result = await new DeleteEntryCommandHandler(MockHttp(HttpStatusCode.NoContent, string.Empty))

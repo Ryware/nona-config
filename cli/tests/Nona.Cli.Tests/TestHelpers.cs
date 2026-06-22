@@ -72,10 +72,16 @@ internal static class Fixtures
     internal const string ApiKeyArrayJson = $"[{ApiKeyJson}]";
 
     internal const string ConfigEntryJson = """
-        {"project":"my-project","environment":"production","key":"my.key","value":"my-value","contentType":"text","scope":"all","createdAt":"2024-01-01T00:00:00Z","updatedAt":"2024-01-01T00:00:00Z"}
+        {"project":"my-project","environment":"production","key":"my.key","value":"my-value","contentType":"text","scope":"all","activeVersion":1,"createdAt":"2024-01-01T00:00:00Z","updatedAt":"2024-01-01T00:00:00Z"}
         """;
 
     internal const string ConfigEntryArrayJson = $"[{ConfigEntryJson}]";
+
+    internal const string ConfigEntryVersionJson = """
+        {"project":"my-project","environment":"production","key":"my.key","version":1,"value":"my-value","contentType":"text","scope":"all","createdAt":"2024-01-01T00:00:00Z","actor":"alice"}
+        """;
+
+    internal const string ConfigEntryVersionArrayJson = $"[{ConfigEntryVersionJson}]";
 
     internal const string CreateUserResponseJson = """
         {"user":{"id":1,"email":"user@example.com","name":"Test User","role":"editor","scope":"all"},"invitationToken":"inv_token_abc123"}

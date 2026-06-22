@@ -9,16 +9,16 @@ namespace Nona.Cli.Generated.Models
 {
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
     #pragma warning disable CS1591
-    public partial class ConfigEntryDto : IAdditionalDataHolder, IParsable
+    public partial class ConfigEntryVersionDto : IAdditionalDataHolder, IParsable
     #pragma warning restore CS1591
     {
-        /// <summary>The activeVersion property</summary>
+        /// <summary>The actor property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
-        public UntypedNode? ActiveVersion { get; set; }
+        public string? Actor { get; set; }
 #nullable restore
 #else
-        public UntypedNode ActiveVersion { get; set; }
+        public string Actor { get; set; }
 #endif
         /// <summary>Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.</summary>
         public IDictionary<string, object> AdditionalData { get; set; }
@@ -64,8 +64,6 @@ namespace Nona.Cli.Generated.Models
 #else
         public string Scope { get; set; }
 #endif
-        /// <summary>The updatedAt property</summary>
-        public DateTimeOffset? UpdatedAt { get; set; }
         /// <summary>The value property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
@@ -74,22 +72,30 @@ namespace Nona.Cli.Generated.Models
 #else
         public string Value { get; set; }
 #endif
+        /// <summary>The version property</summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
+#nullable enable
+        public UntypedNode? Version { get; set; }
+#nullable restore
+#else
+        public UntypedNode Version { get; set; }
+#endif
         /// <summary>
-        /// Instantiates a new <see cref="global::Nona.Cli.Generated.Models.ConfigEntryDto"/> and sets the default values.
+        /// Instantiates a new <see cref="global::Nona.Cli.Generated.Models.ConfigEntryVersionDto"/> and sets the default values.
         /// </summary>
-        public ConfigEntryDto()
+        public ConfigEntryVersionDto()
         {
             AdditionalData = new Dictionary<string, object>();
         }
         /// <summary>
         /// Creates a new instance of the appropriate class based on discriminator value
         /// </summary>
-        /// <returns>A <see cref="global::Nona.Cli.Generated.Models.ConfigEntryDto"/></returns>
+        /// <returns>A <see cref="global::Nona.Cli.Generated.Models.ConfigEntryVersionDto"/></returns>
         /// <param name="parseNode">The parse node to use to read the discriminator value and create the object</param>
-        public static global::Nona.Cli.Generated.Models.ConfigEntryDto CreateFromDiscriminatorValue(IParseNode parseNode)
+        public static global::Nona.Cli.Generated.Models.ConfigEntryVersionDto CreateFromDiscriminatorValue(IParseNode parseNode)
         {
             if(ReferenceEquals(parseNode, null)) throw new ArgumentNullException(nameof(parseNode));
-            return new global::Nona.Cli.Generated.Models.ConfigEntryDto();
+            return new global::Nona.Cli.Generated.Models.ConfigEntryVersionDto();
         }
         /// <summary>
         /// The deserialization information for the current model
@@ -99,15 +105,15 @@ namespace Nona.Cli.Generated.Models
         {
             return new Dictionary<string, Action<IParseNode>>
             {
-                { "activeVersion", n => { ActiveVersion = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
+                { "actor", n => { Actor = n.GetStringValue(); } },
                 { "contentType", n => { ContentType = n.GetStringValue(); } },
                 { "createdAt", n => { CreatedAt = n.GetDateTimeOffsetValue(); } },
                 { "environment", n => { Environment = n.GetStringValue(); } },
                 { "key", n => { Key = n.GetStringValue(); } },
                 { "project", n => { Project = n.GetStringValue(); } },
                 { "scope", n => { Scope = n.GetStringValue(); } },
-                { "updatedAt", n => { UpdatedAt = n.GetDateTimeOffsetValue(); } },
                 { "value", n => { Value = n.GetStringValue(); } },
+                { "version", n => { Version = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
             };
         }
         /// <summary>
@@ -117,15 +123,15 @@ namespace Nona.Cli.Generated.Models
         public virtual void Serialize(ISerializationWriter writer)
         {
             if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));
-            writer.WriteObjectValue<UntypedNode>("activeVersion", ActiveVersion);
+            writer.WriteStringValue("actor", Actor);
             writer.WriteStringValue("contentType", ContentType);
             writer.WriteDateTimeOffsetValue("createdAt", CreatedAt);
             writer.WriteStringValue("environment", Environment);
             writer.WriteStringValue("key", Key);
             writer.WriteStringValue("project", Project);
             writer.WriteStringValue("scope", Scope);
-            writer.WriteDateTimeOffsetValue("updatedAt", UpdatedAt);
             writer.WriteStringValue("value", Value);
+            writer.WriteObjectValue<UntypedNode>("version", Version);
             writer.WriteAdditionalData(AdditionalData);
         }
     }
