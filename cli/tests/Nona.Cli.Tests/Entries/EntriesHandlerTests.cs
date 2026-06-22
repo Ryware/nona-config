@@ -1,4 +1,5 @@
 using System.Net;
+using Nona.Cli.Entries;
 using Nona.Cli.Entries.Commands;
 using Nona.Cli.Entries.Queries;
 using static Nona.Cli.Tests.Fixtures;
@@ -9,6 +10,7 @@ namespace Nona.Cli.Tests.Entries;
 public sealed class EntriesHandlerTests
 {
     private static readonly NonaCliConnectionOptions TestConnection = new("http://nona.test", "test-token");
+    private static readonly NonaCliConnectionOptions ApiKeyConnection = new("http://nona.test", new string('A', 64));
 
     [Test]
     public async Task ListEntriesQueryHandler_ReturnsZero_WithEntries()
@@ -31,6 +33,17 @@ public sealed class EntriesHandlerTests
     {
         var result = await new GetEntryQueryHandler(MockHttp(HttpStatusCode.OK, ConfigEntryJson))
             .HandleAsync(new GetEntryQuery(TestConnection, "my-project", "production", "my.key"), CancellationToken.None);
+        await Assert.That(result).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task GetEntryQueryHandler_ReturnsZero_WhenRawValueFound()
+    {
+        var result = await new GetEntryQueryHandler(MockHttp(
+                HttpStatusCode.OK,
+                """{"enabled":true}""",
+                new Dictionary<string, string> { [ConfigEntryValueRenderer.LogicalContentTypeHeader] = "json" }))
+            .HandleAsync(new GetEntryQuery(ApiKeyConnection, "my-project", "production", "my.key"), CancellationToken.None);
         await Assert.That(result).IsEqualTo(0);
     }
 

@@ -33,7 +33,7 @@ public partial class Program
                 .SetIsOriginAllowed(_ => true)
                 .AllowAnyHeader()
                 .AllowAnyMethod()
-                .WithExposedHeaders("ContentType")
+                .WithExposedHeaders(NonaResponseHeaders.LogicalContentType)
                 .AllowCredentials());
         });
 
@@ -46,6 +46,7 @@ public partial class Program
                 return Task.CompletedTask;
             });
             o.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
+            o.AddDocumentTransformer<ConfigValueOpenApiTransformer>();
         }
         );
 

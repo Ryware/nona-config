@@ -330,7 +330,7 @@ public class GetConfigEntryValueQueryTests
 
         // Assert
         await Assert.That(result.Success).IsTrue();
-        await Assert.That(result.ContentType).IsEqualTo("application/json");
+        await Assert.That(result.LogicalContentType).IsEqualTo("json");
     }
 
     #endregion
@@ -415,7 +415,7 @@ public class GetConfigEntryValueQueryTests
                 Environment = EnvironmentName,
                 Key = ConfigKey,
                 Value = ConfigValue,
-                ContentType = "string",
+                ContentType = "text",
                 Scope = scope
             });
     }

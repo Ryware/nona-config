@@ -36,6 +36,7 @@ public class UpsertConfigEntryCommandTests
         await Assert.That(result.ConfigEntry).IsNotNull();
         await Assert.That(result.ConfigEntry!.Key).IsEqualTo(ConfigKey);
         await Assert.That(result.ConfigEntry!.Value).IsEqualTo(ConfigValue);
+        await Assert.That(result.ConfigEntry!.ContentType).IsEqualTo("text");
     }
 
     [Test]
@@ -165,5 +166,51 @@ public class UpsertConfigEntryCommandTests
         // Assert
         await Assert.That(result.Success).IsFalse();
         await Assert.That(result.Error).IsEqualTo("Environment not found");
+    }
+
+    [Test]
+    public async Task UpsertConfigEntry_InfersContentType_WhenNotDeclared()
+    {
+        var fixture = new TestFixture();
+        fixture.SetupAsSystemAdmin();
+        fixture.SetupProjectExists(ProjectName);
+        fixture.SetupEnvironmentExists(ProjectName, EnvironmentName);
+
+        var handler = new UpsertConfigEntryCommandHandler(
+            fixture.ProjectRepository,
+            fixture.EnvironmentRepository,
+            fixture.ConfigEntryRepository,
+            fixture.ProjectAccessService,
+            fixture.DateTime);
+
+        var command = new UpsertConfigEntryCommand(ProjectName, EnvironmentName, "max_items", "42", null, null);
+
+        var result = await handler.Handle(command, CancellationToken.None);
+
+        await Assert.That(result.Success).IsTrue();
+        await Assert.That(result.ConfigEntry!.ContentType).IsEqualTo("number");
+    }
+
+    [Test]
+    public async Task UpsertConfigEntry_RejectsInvalidDeclaredContentTypeValue()
+    {
+        var fixture = new TestFixture();
+        fixture.SetupAsSystemAdmin();
+        fixture.SetupProjectExists(ProjectName);
+        fixture.SetupEnvironmentExists(ProjectName, EnvironmentName);
+
+        var handler = new UpsertConfigEntryCommandHandler(
+            fixture.ProjectRepository,
+            fixture.EnvironmentRepository,
+            fixture.ConfigEntryRepository,
+            fixture.ProjectAccessService,
+            fixture.DateTime);
+
+        var command = new UpsertConfigEntryCommand(ProjectName, EnvironmentName, ConfigKey, "{bad", "json", null);
+
+        var result = await handler.Handle(command, CancellationToken.None);
+
+        await Assert.That(result.Success).IsFalse();
+        await Assert.That(result.Error).IsEqualTo("Value must be valid JSON when contentType is 'json'.");
     }
 }

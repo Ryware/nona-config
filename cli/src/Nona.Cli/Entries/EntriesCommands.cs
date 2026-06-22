@@ -81,7 +81,7 @@ internal sealed class EntriesCommands(CliContext ctx) : ICliCommandGroup
     {
         var valueOpt = new Option<string?>("--value", "The config value.");
         var scopeOpt = new Option<string?>("--scope", "Scope: client, server, or all.");
-        var contentTypeOpt = new Option<string?>("--content-type", "MIME content type.");
+        var contentTypeOpt = new Option<string?>("--content-type", "Logical content type: json, text, number, or boolean.");
 
         scopeOpt.AddValidator(result =>
         {

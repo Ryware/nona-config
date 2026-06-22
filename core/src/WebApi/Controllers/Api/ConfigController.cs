@@ -2,6 +2,8 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Nona.Application.Api.ConfigEntries.Queries;
+using Nona.Application.Common;
+using Nona.WebApi;
 using Nona.WebApi.Authentication;
 
 namespace Nona.WebApi.Controllers.Api;
@@ -13,7 +15,8 @@ namespace Nona.WebApi.Controllers.Api;
 public class ConfigController(IMediator mediator) : ControllerBase
 {
     [HttpGet("{key}")]
-    [ProducesResponseType(typeof(string), StatusCodes.Status200OK, "text/plain")]
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(string), StatusCodes.Status200OK, "application/json")]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetConfigValue(string environmentId, string key, CancellationToken cancellationToken)
@@ -29,7 +32,7 @@ public class ConfigController(IMediator mediator) : ControllerBase
             };
         }
 
-        Response.Headers["ContentType"] = result.ContentType!;
-        return Content(result.Value!, "text/plain; charset=utf-8");
+        Response.Headers[NonaResponseHeaders.LogicalContentType] = result.LogicalContentType ?? ConfigEntryContentTypes.Text;
+        return Content(result.Value!, "application/json");
     }
 }

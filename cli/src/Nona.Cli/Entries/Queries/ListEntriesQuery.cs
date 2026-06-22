@@ -1,4 +1,5 @@
 using Nona.Cli.Generated.Models;
+using Nona.Cli.Entries;
 
 namespace Nona.Cli.Entries.Queries;
 
@@ -33,7 +34,7 @@ internal sealed class ListEntriesQueryHandler(Func<HttpClient>? httpClientFactor
         Console.WriteLine($"  {entry.Key}");
         Console.WriteLine($"    Value:        {entry.Value}");
         Console.WriteLine($"    Scope:        {entry.Scope}");
-        Console.WriteLine($"    Content-Type: {entry.ContentType}");
+        Console.WriteLine($"    Content-Type: {ConfigEntryValueRenderer.NormalizeContentType(entry.ContentType)}");
         Console.WriteLine($"    Updated:      {entry.UpdatedAt:O}");
     }
 }

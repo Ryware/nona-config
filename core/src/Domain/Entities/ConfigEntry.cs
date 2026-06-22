@@ -10,7 +10,7 @@ public class ConfigEntry
 
 
     public required string Value { get; set; }
-    public string ContentType { get; set; } = "string";
+    public string ContentType { get; set; } = "text";
 
     public KeyScope Scope { get; set; } = KeyScope.All;
 

@@ -40,15 +40,19 @@ public class UpsertConfigEntryCommandHandler(
         if (scope is null && request.Scope is not null)
             return new UpsertConfigEntryResult(false, null, "Invalid scope. Must be 'client', 'server', or 'all'");
 
-        var now = dateTime.NowUtc;
         var existingEntry = await configEntryRepository.GetAsync(projectName, request.EnvironmentName, request.Key, cancellationToken);
+        var contentType = ResolveContentType(request.ContentType, existingEntry, request.Value, out var contentTypeError);
+        if (contentTypeError is not null)
+            return new UpsertConfigEntryResult(false, null, contentTypeError);
+
+        var now = dateTime.NowUtc;
         var action = existingEntry is null ? "Created Key" : "Updated Key";
 
         ConfigEntry entry;
         if (existingEntry is not null)
         {
             existingEntry.Value = request.Value;
-            existingEntry.ContentType = request.ContentType ?? existingEntry.ContentType;
+            existingEntry.ContentType = contentType;
             existingEntry.Scope = scope ?? existingEntry.Scope;
             existingEntry.UpdatedAt = now;
             await configEntryRepository.UpdateAsync(existingEntry, cancellationToken);
@@ -62,7 +66,7 @@ public class UpsertConfigEntryCommandHandler(
                 Environment = request.EnvironmentName,
                 Key = request.Key,
                 Value = request.Value,
-                ContentType = request.ContentType ?? "string",
+                ContentType = contentType,
                 Scope = scope ?? KeyScope.All,
                 CreatedAt = now,
                 UpdatedAt = now
@@ -105,5 +109,30 @@ public class UpsertConfigEntryCommandHandler(
             "all" => KeyScope.All,
             _ => null
         };
+    }
+
+    private static string ResolveContentType(
+        string? requestedContentType,
+        ConfigEntry? existingEntry,
+        string value,
+        out string? error)
+    {
+        error = null;
+
+        var normalizedRequested = ConfigEntryContentTypes.Normalize(requestedContentType);
+        if (!string.IsNullOrWhiteSpace(requestedContentType) && normalizedRequested is null)
+        {
+            error = $"Content type must be one of: {string.Join(", ", ConfigEntryContentTypes.LogicalTypes)}.";
+            return ConfigEntryContentTypes.Text;
+        }
+
+        var contentType = normalizedRequested
+            ?? ConfigEntryContentTypes.Normalize(existingEntry?.ContentType)
+            ?? ConfigEntryContentTypes.Infer(value);
+
+        if (!ConfigEntryContentTypes.IsValidValue(value, contentType, out var validationError))
+            error = validationError;
+
+        return contentType;
     }
 }

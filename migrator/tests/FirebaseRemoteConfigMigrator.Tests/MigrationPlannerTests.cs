@@ -88,7 +88,7 @@ public class MigrationPlannerTests
         await Assert.That(plan.Entries).Count().IsEqualTo(2);
         await Assert.That(plan.Entries.Single(entry => entry.Environment == "dev").Value).IsEqualTo("https://dev.example.com");
         await Assert.That(plan.Entries.Single(entry => entry.Environment == "prod").Value).IsEqualTo("https://prod.example.com");
-        await Assert.That(plan.Entries.Select(static entry => entry.ContentType).Distinct()).IsEquivalentTo(["string"]);
+        await Assert.That(plan.Entries.Select(static entry => entry.ContentType).Distinct()).IsEquivalentTo(["text"]);
         await Assert.That(plan.Entries.Select(static entry => entry.Scope).Distinct()).IsEquivalentTo(["client"]);
     }
 
@@ -196,12 +196,12 @@ public class MigrationPlannerTests
         [
             new MigrationPlan(
                 ["prod"],
-                [new PlannedConfigEntry("prod", "shared_key", "42", "string", "client", "Client/defaultValue")],
+                [new PlannedConfigEntry("prod", "shared_key", "42", "text", "client", "Client/defaultValue")],
                 [],
                 1),
             new MigrationPlan(
                 ["prod"],
-                [new PlannedConfigEntry("prod", "shared_key", "77", "string", "server", "Server/defaultValue")],
+                [new PlannedConfigEntry("prod", "shared_key", "77", "text", "server", "Server/defaultValue")],
                 [],
                 1)
         ]);
@@ -224,7 +224,7 @@ public class MigrationPlannerTests
                 1),
             new MigrationPlan(
                 ["prod"],
-                [new PlannedConfigEntry("prod", "shared_key", "42", "string", "server", "Server/defaultValue")],
+                [new PlannedConfigEntry("prod", "shared_key", "42", "text", "server", "Server/defaultValue")],
                 [],
                 1)
         ]);
@@ -242,12 +242,12 @@ public class MigrationPlannerTests
         [
             new MigrationPlan(
                 ["prod"],
-                [new PlannedConfigEntry("prod", "shared_key", "42", "string", "client", "Client/defaultValue")],
+                [new PlannedConfigEntry("prod", "shared_key", "42", "text", "client", "Client/defaultValue")],
                 [],
                 1),
             new MigrationPlan(
                 ["prod"],
-                [new PlannedConfigEntry("prod", "shared_key", "77", "string", "server", "Server/defaultValue")],
+                [new PlannedConfigEntry("prod", "shared_key", "77", "text", "server", "Server/defaultValue")],
                 [],
                 1)
         ],
@@ -268,16 +268,16 @@ public class MigrationPlannerTests
             new MigrationPlan(
                 ["dev", "prod"],
                 [
-                    new PlannedConfigEntry("dev", "shared_key", "42", "string", "client", "Client/defaultValue"),
-                    new PlannedConfigEntry("prod", "shared_key", "42", "string", "client", "Client/defaultValue")
+                    new PlannedConfigEntry("dev", "shared_key", "42", "text", "client", "Client/defaultValue"),
+                    new PlannedConfigEntry("prod", "shared_key", "42", "text", "client", "Client/defaultValue")
                 ],
                 [],
                 1),
             new MigrationPlan(
                 ["dev", "prod"],
                 [
-                    new PlannedConfigEntry("dev", "shared_key", "77", "string", "server", "Server/defaultValue"),
-                    new PlannedConfigEntry("prod", "shared_key", "88", "string", "server", "Server/defaultValue")
+                    new PlannedConfigEntry("dev", "shared_key", "77", "text", "server", "Server/defaultValue"),
+                    new PlannedConfigEntry("prod", "shared_key", "88", "text", "server", "Server/defaultValue")
                 ],
                 [],
                 1)

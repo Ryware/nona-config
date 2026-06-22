@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS ConfigEntries (
     Environment TEXT NOT NULL COLLATE NOCASE,
     Key TEXT NOT NULL COLLATE NOCASE,
     Value TEXT NOT NULL,
-    ContentType TEXT NOT NULL DEFAULT 'string',
+    ContentType TEXT NOT NULL DEFAULT 'text',
     Scope INTEGER NOT NULL DEFAULT 3,
     CreatedAt TEXT NOT NULL,
     UpdatedAt TEXT NOT NULL,
