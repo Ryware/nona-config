@@ -20,7 +20,9 @@ internal sealed class EntriesCommands(CliContext ctx) : ICliCommandGroup
 
         entries.AddCommand(BuildList(baseUrlOpt, tokenOpt, projectOpt, envOpt));
         entries.AddCommand(BuildGet(baseUrlOpt, tokenOpt, projectOpt, envOpt, keyOpt));
+        entries.AddCommand(BuildHistory(baseUrlOpt, tokenOpt, projectOpt, envOpt, keyOpt));
         entries.AddCommand(BuildSet(baseUrlOpt, tokenOpt, projectOpt, envOpt, keyOpt));
+        entries.AddCommand(BuildRollback(baseUrlOpt, tokenOpt, projectOpt, envOpt, keyOpt));
         entries.AddCommand(BuildDelete(baseUrlOpt, tokenOpt, projectOpt, envOpt, keyOpt));
         return entries;
     }
@@ -49,6 +51,32 @@ internal sealed class EntriesCommands(CliContext ctx) : ICliCommandGroup
         return cmd;
     }
 
+    private Command BuildHistory(
+        Option<string?> baseUrlOpt, Option<string?> tokenOpt,
+        Option<string?> projectOpt, Option<string?> envOpt, Option<string?> keyOpt)
+    {
+        var handler = new HistoryEntriesQueryHandler();
+        var cmd = new Command("history", "List version history for a config entry.");
+        cmd.AddOption(baseUrlOpt);
+        cmd.AddOption(tokenOpt);
+        cmd.AddOption(projectOpt);
+        cmd.AddOption(envOpt);
+        cmd.AddOption(keyOpt);
+        cmd.Handler = CommandHandler.Create(async (InvocationContext ic) =>
+        {
+            var (conn, project) = ResolveConnAndProject(ic, baseUrlOpt, tokenOpt, projectOpt);
+            if (conn is null) return;
+
+            var environment = CliPrompter.Required(ic.ParseResult.GetValueForOption(envOpt), "Environment");
+            var key = CliPrompter.Required(ic.ParseResult.GetValueForOption(keyOpt), "Key");
+
+            ic.ExitCode = await handler.HandleAsync(
+                new HistoryEntriesQuery(conn, project!, environment, key),
+                ic.GetCancellationToken());
+        });
+        return cmd;
+    }
+
     private Command BuildGet(
         Option<string?> baseUrlOpt, Option<string?> tokenOpt,
         Option<string?> projectOpt, Option<string?> envOpt, Option<string?> keyOpt)
@@ -70,6 +98,42 @@ internal sealed class EntriesCommands(CliContext ctx) : ICliCommandGroup
 
             ic.ExitCode = await handler.HandleAsync(
                 new GetEntryQuery(conn, project!, environment, key),
+                ic.GetCancellationToken());
+        });
+        return cmd;
+    }
+
+    private Command BuildRollback(
+        Option<string?> baseUrlOpt, Option<string?> tokenOpt,
+        Option<string?> projectOpt, Option<string?> envOpt, Option<string?> keyOpt)
+    {
+        var versionOpt = new Option<int?>("--version", "Version number to roll back to.");
+        versionOpt.AddValidator(result =>
+        {
+            var v = result.GetValueOrDefault<int?>();
+            if (v is not null and <= 0)
+                result.ErrorMessage = "Version must be greater than zero.";
+        });
+
+        var handler = new RollbackEntryCommandHandler();
+        var cmd = new Command("rollback", "Roll a config entry back to a previous version.");
+        cmd.AddOption(baseUrlOpt);
+        cmd.AddOption(tokenOpt);
+        cmd.AddOption(projectOpt);
+        cmd.AddOption(envOpt);
+        cmd.AddOption(keyOpt);
+        cmd.AddOption(versionOpt);
+        cmd.Handler = CommandHandler.Create(async (InvocationContext ic) =>
+        {
+            var (conn, project) = ResolveConnAndProject(ic, baseUrlOpt, tokenOpt, projectOpt);
+            if (conn is null) return;
+
+            var environment = CliPrompter.Required(ic.ParseResult.GetValueForOption(envOpt), "Environment");
+            var key = CliPrompter.Required(ic.ParseResult.GetValueForOption(keyOpt), "Key");
+            var version = CliPrompter.RequiredInt(ic.ParseResult.GetValueForOption(versionOpt), "Version");
+
+            ic.ExitCode = await handler.HandleAsync(
+                new RollbackEntryCommand(conn, project!, environment, key, version),
                 ic.GetCancellationToken());
         });
         return cmd;

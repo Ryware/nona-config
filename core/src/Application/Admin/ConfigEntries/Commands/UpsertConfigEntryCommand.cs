@@ -1,4 +1,5 @@
 using MediatR;
+using Nona.Application.Admin.ConfigEntries;
 using Nona.Application.Admin.ConfigEntries.DTOs;
 using Nona.Application.Admin.Projects;
 using Nona.Application.Common;
@@ -20,7 +21,8 @@ public class UpsertConfigEntryCommandHandler(
     IConfigEntryRepository configEntryRepository,
     IProjectAccessService projectAccessService,
     IDateTime dateTime,
-    IAuditLogService? auditLogService = null)
+    IAuditLogService? auditLogService = null,
+    ICurrentUserService? currentUserService = null)
     : IRequestHandler<UpsertConfigEntryCommand, UpsertConfigEntryResult>
 {
     public async Task<UpsertConfigEntryResult> Handle(UpsertConfigEntryCommand request, CancellationToken cancellationToken)
@@ -47,54 +49,33 @@ public class UpsertConfigEntryCommandHandler(
 
         var now = dateTime.NowUtc;
         var action = existingEntry is null ? "Created Key" : "Updated Key";
+        var entry = new ConfigEntry
+        {
+            Project = projectName,
+            Environment = request.EnvironmentName,
+            Key = request.Key,
+            Value = request.Value,
+            ContentType = contentType,
+            Scope = scope ?? existingEntry?.Scope ?? KeyScope.All,
+            CreatedAt = existingEntry?.CreatedAt ?? now,
+            UpdatedAt = now
+        };
 
-        ConfigEntry entry;
-        if (existingEntry is not null)
-        {
-            existingEntry.Value = request.Value;
-            existingEntry.ContentType = contentType;
-            existingEntry.Scope = scope ?? existingEntry.Scope;
-            existingEntry.UpdatedAt = now;
-            await configEntryRepository.UpdateAsync(existingEntry, cancellationToken);
-            entry = existingEntry;
-        }
-        else
-        {
-            entry = new ConfigEntry
-            {
-                Project = projectName,
-                Environment = request.EnvironmentName,
-                Key = request.Key,
-                Value = request.Value,
-                ContentType = contentType,
-                Scope = scope ?? KeyScope.All,
-                CreatedAt = now,
-                UpdatedAt = now
-            };
-            await configEntryRepository.AddAsync(entry, cancellationToken);
-        }
+        var savedEntry = await configEntryRepository.AddVersionAsync(entry, ResolveActor(), cancellationToken);
+        if (savedEntry is null)
+            return new UpsertConfigEntryResult(false, null, "Config entry could not be saved");
 
         if (auditLogService is not null)
         {
             await auditLogService.WriteAsync(
                 action,
-                entry.Key,
-                project: entry.Project,
-                environment: entry.Environment,
+                savedEntry.Key,
+                project: savedEntry.Project,
+                environment: savedEntry.Environment,
                 cancellationToken: cancellationToken);
         }
 
-        var dto = new ConfigEntryDto(
-            entry.Project,
-            entry.Environment,
-            entry.Key,
-            entry.Value,
-            entry.ContentType,
-            entry.Scope.ToApiString(),
-            entry.CreatedAt,
-            entry.UpdatedAt);
-
-        return new UpsertConfigEntryResult(true, dto, null);
+        return new UpsertConfigEntryResult(true, ConfigEntryMapping.ToDto(savedEntry), null);
     }
 
     private static KeyScope? ParseScope(string? scope)
@@ -134,5 +115,12 @@ public class UpsertConfigEntryCommandHandler(
             error = validationError;
 
         return contentType;
+    }
+
+    private string ResolveActor()
+    {
+        return string.IsNullOrWhiteSpace(currentUserService?.Username)
+            ? "System"
+            : currentUserService.Username!;
     }
 }

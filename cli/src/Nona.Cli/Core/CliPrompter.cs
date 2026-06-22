@@ -35,4 +35,19 @@ internal static class CliPrompter
         var input = Console.ReadLine()?.Trim();
         return string.IsNullOrWhiteSpace(input) ? null : input;
     }
+
+    public static int RequiredInt(int? provided, string label)
+    {
+        if (provided is not null)
+            return provided.Value;
+
+        while (true)
+        {
+            var value = Required(null, label);
+            if (int.TryParse(value, out var parsed))
+                return parsed;
+
+            Console.Error.WriteLine($"  {label} must be a whole number.");
+        }
+    }
 }

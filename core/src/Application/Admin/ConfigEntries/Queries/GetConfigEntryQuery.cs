@@ -1,7 +1,7 @@
 using MediatR;
+using Nona.Application.Admin.ConfigEntries;
 using Nona.Application.Admin.ConfigEntries.DTOs;
 using Nona.Application.Admin.Projects;
-using Nona.Application.Common;
 using Nona.Application.Common.Interfaces;
 using Nona.Domain.Interfaces;
 
@@ -35,16 +35,6 @@ public class GetConfigEntryQueryHandler(
         if (configEntry is null)
             return new GetConfigEntryResult(false, null, "Config entry not found");
 
-        var dto = new ConfigEntryDto(
-            configEntry.Project,
-            configEntry.Environment,
-            configEntry.Key,
-            configEntry.Value,
-            configEntry.ContentType,
-            configEntry.Scope.ToApiString(),
-            configEntry.CreatedAt,
-            configEntry.UpdatedAt);
-
-        return new GetConfigEntryResult(true, dto, null);
+        return new GetConfigEntryResult(true, ConfigEntryMapping.ToDto(configEntry), null);
     }
 }

@@ -23,6 +23,23 @@ public class TestFixture
     public TestFixture()
     {
         DateTime.NowUtc.Returns(System.DateTime.UtcNow);
+        ConfigEntryRepository.AddVersionAsync(Arg.Any<ConfigEntry>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                var entry = call.ArgAt<ConfigEntry>(0);
+                return new ConfigEntry
+                {
+                    Project = entry.Project,
+                    Environment = entry.Environment,
+                    Key = entry.Key,
+                    Value = entry.Value,
+                    ContentType = entry.ContentType,
+                    Scope = entry.Scope,
+                    ActiveVersion = entry.ActiveVersion,
+                    CreatedAt = entry.CreatedAt,
+                    UpdatedAt = entry.UpdatedAt
+                };
+            });
         Configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {

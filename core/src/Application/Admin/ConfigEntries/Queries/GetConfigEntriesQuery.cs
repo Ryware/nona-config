@@ -1,7 +1,7 @@
 ﻿using MediatR;
+using Nona.Application.Admin.ConfigEntries;
 using Nona.Application.Admin.ConfigEntries.DTOs;
 using Nona.Application.Admin.Projects;
-using Nona.Application.Common;
 using Nona.Application.Common.Interfaces;
 using Nona.Domain.Interfaces;
 
@@ -33,15 +33,7 @@ public class GetConfigEntriesQueryHandler(
 
         var configEntries = await configEntryRepository.ListAsync(projectName, request.EnvironmentName, cancellationToken);
 
-        var dtos = configEntries.Select(e => new ConfigEntryDto(
-            e.Project,
-            e.Environment,
-            e.Key,
-            e.Value,
-            e.ContentType,
-            e.Scope.ToApiString(),
-            e.CreatedAt,
-            e.UpdatedAt)).ToList();
+        var dtos = configEntries.Select(ConfigEntryMapping.ToDto).ToList();
 
         return new GetConfigEntriesResult(true, dtos, null);
     }

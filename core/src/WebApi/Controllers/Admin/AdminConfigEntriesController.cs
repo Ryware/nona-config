@@ -37,6 +37,18 @@ public class AdminConfigEntriesController(IMediator mediator) : ControllerBase
         return Ok(result.ConfigEntry);
     }
 
+    [HttpGet("{key}/history")]
+    [ProducesResponseType(typeof(List<ConfigEntryVersionDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetConfigEntryHistory(string projectId, string environmentName, string key, CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new ListConfigEntryVersionsQuery(projectId, environmentName, key), cancellationToken);
+        if (!result.Success)
+            return NotFound(new { error = result.Error });
+
+        return Ok(result.Versions);
+    }
+
     [HttpPut("{key}")]
     [ProducesResponseType(typeof(ConfigEntryDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -52,6 +64,28 @@ public class AdminConfigEntriesController(IMediator mediator) : ControllerBase
             return result.Error switch
             {
                 "Project not found" or "Environment not found" => NotFound(new { error = result.Error }),
+                _ => BadRequest(new { error = result.Error })
+            };
+        }
+
+        return Ok(result.ConfigEntry);
+    }
+
+    [HttpPost("{key}/rollback")]
+    [ProducesResponseType(typeof(ConfigEntryDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> RollbackConfigEntry(string projectId, string environmentName, string key, [FromBody] RollbackConfigEntryRequest request, CancellationToken cancellationToken)
+    {
+        if (!ValidationHelpers.IsValidKey(key))
+            return BadRequest(new { error = "Key must be non-empty and contain no spaces" });
+
+        var result = await mediator.Send(new RollbackConfigEntryCommand(projectId, environmentName, key, request.Version), cancellationToken);
+        if (!result.Success)
+        {
+            return result.Error switch
+            {
+                "Project not found" or "Environment not found" or "Config entry not found" or "Version not found" => NotFound(new { error = result.Error }),
                 _ => BadRequest(new { error = result.Error })
             };
         }
