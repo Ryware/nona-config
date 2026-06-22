@@ -227,7 +227,8 @@ internal static class ManagedLibsqlPrimaryProcessArguments
             "--http-listen-addr", options.HttpListenAddress,
             "--max-concurrent-connections", "512",
             "--max-concurrent-requests", "512",
-            "--disable-intelligent-throttling"
+            "--disable-intelligent-throttling",
+            "--connection-creation-timeout-sec", "4"
         };
 
         if (options.ExtraArgs.Length > 0)

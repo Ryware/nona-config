@@ -15,8 +15,6 @@ services:
       Storage__Libsql__ManagedPrimary__ExtraArgs__5: "4096"
       Storage__Libsql__ManagedPrimary__ExtraArgs__6: --max-concurrent-requests
       Storage__Libsql__ManagedPrimary__ExtraArgs__7: "4096"
-      Storage__Libsql__ManagedPrimary__ExtraArgs__8: --connection-creation-timeout-sec
-      Storage__Libsql__ManagedPrimary__ExtraArgs__9: "10"
       # Jwt__Key: ${NONA_JWT_KEY:?set NONA_JWT_KEY}
       # Jwt__Issuer: ${NONA_JWT_ISSUER:-nona}
       # Jwt__Audience: ${NONA_JWT_AUDIENCE:-nona}
@@ -43,8 +41,6 @@ services:
       Storage__Libsql__ManagedPrimary__ExtraArgs__5: "4096"
       Storage__Libsql__ManagedPrimary__ExtraArgs__6: --max-concurrent-requests
       Storage__Libsql__ManagedPrimary__ExtraArgs__7: "4096"
-      Storage__Libsql__ManagedPrimary__ExtraArgs__8: --connection-creation-timeout-sec
-      Storage__Libsql__ManagedPrimary__ExtraArgs__9: "10"
       # Jwt__Key: ${NONA_JWT_KEY:?set NONA_JWT_KEY}
       # Jwt__Issuer: ${NONA_JWT_ISSUER:-nona}
       # Jwt__Audience: ${NONA_JWT_AUDIENCE:-nona}
