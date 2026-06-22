@@ -19,6 +19,22 @@ env:
   DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
 
 jobs:
+  verify-generated-clients:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout backend
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Verify checked-in generated C# clients
+        # Admin TypeScript generation targets a separate repository; backend PRs
+        # can only enforce generated files committed to this repository.
+        run: bash verify-generated-clients.sh --skip-admin
+
   build:
     runs-on: ubuntu-latest
     steps:

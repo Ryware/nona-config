@@ -1,6 +1,1 @@
-<Project>
-  <PropertyGroup>
-    <DefaultItemExcludes>$(DefaultItemExcludes);$(MSBuildThisFileDirectory)migrator/src/ConfigMigrator.Core/Generated/**/*.cs</DefaultItemExcludes>
-    <DefaultItemExcludes>$(DefaultItemExcludes);$(MSBuildThisFileDirectory)cli/src/Nona.Cli/Core/Generated/**/*.cs</DefaultItemExcludes>
-  </PropertyGroup>
-</Project>
+<Project />
