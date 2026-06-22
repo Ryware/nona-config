@@ -13,7 +13,7 @@ namespace Nona.WebApi.Controllers.Api;
 public class ConfigController(IMediator mediator) : ControllerBase
 {
     [HttpGet("{key}")]
-    [ProducesResponseType(typeof(ConfigValueResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status200OK, "text/plain")]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetConfigValue(string environmentId, string key, CancellationToken cancellationToken)
@@ -29,8 +29,7 @@ public class ConfigController(IMediator mediator) : ControllerBase
             };
         }
 
-        return Ok(new ConfigValueResponse(result.Value!, result.ContentType!));
+        Response.Headers["ContentType"] = result.ContentType!;
+        return Content(result.Value!, "text/plain; charset=utf-8");
     }
 }
-
-public record ConfigValueResponse(string Value, string ContentType);

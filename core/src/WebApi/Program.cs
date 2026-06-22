@@ -33,6 +33,7 @@ public partial class Program
                 .SetIsOriginAllowed(_ => true)
                 .AllowAnyHeader()
                 .AllowAnyMethod()
+                .WithExposedHeaders("ContentType")
                 .AllowCredentials());
         });
 
