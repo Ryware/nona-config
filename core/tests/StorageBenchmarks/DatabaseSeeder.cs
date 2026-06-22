@@ -161,7 +161,7 @@ internal static class DatabaseSeeder
                     Environment = environment,
                     Key = BuildKey(index),
                     Value = BuildValue(dataset, index),
-                    ContentType = "string",
+                    ContentType = "text",
                     Scope = 3,
                     CreatedAt = now,
                     UpdatedAt = now

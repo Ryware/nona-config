@@ -1,4 +1,5 @@
 using MediatR;
+using Nona.Application.Common;
 using Nona.Application.Common.Interfaces;
 using Nona.Domain.Interfaces;
 
@@ -6,7 +7,7 @@ namespace Nona.Application.Api.ConfigEntries.Queries;
 
 public record GetConfigEntryValueQuery(string EnvironmentId, string Key) : IRequest<GetConfigEntryValueResult>;
 
-public record GetConfigEntryValueResult(bool Success, string? Value, string? ContentType, string? Error);
+public record GetConfigEntryValueResult(bool Success, string? Value, string? LogicalContentType, string? Error);
 
 public class GetConfigEntryValueQueryHandler(
     IApiKeyRepository apiKeyRepository,
@@ -43,6 +44,9 @@ public class GetConfigEntryValueQueryHandler(
         if ((apiKeyScope & configEntry.Scope) == 0)
             return new GetConfigEntryValueResult(false, null, null, "Config entry not found");
 
-        return new GetConfigEntryValueResult(true, configEntry.Value, configEntry.ContentType, null);
+        var contentType = ConfigEntryContentTypes.Normalize(configEntry.ContentType)
+            ?? ConfigEntryContentTypes.Infer(configEntry.Value);
+
+        return new GetConfigEntryValueResult(true, configEntry.Value, contentType, null);
     }
 }

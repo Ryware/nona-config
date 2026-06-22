@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Nona.Application.Api.ConfigEntries.Queries;
+using Nona.WebApi;
 using Nona.WebApi.Controllers.Api;
 
 namespace Nona.Infrastructure.Tests;
@@ -9,7 +10,7 @@ namespace Nona.Infrastructure.Tests;
 public class ConfigApiControllerTests
 {
     [Test]
-    public async Task GetConfigValue_ReturnsValueBodyAndContentTypeHeader()
+    public async Task GetConfigValue_ReturnsRawValueBodyAndLogicalContentTypeHeader()
     {
         var mediator = new StubMediator(new GetConfigEntryValueResult(true, """{"enabled":true}""", "json", null));
         var controller = new ConfigController(mediator)
@@ -25,8 +26,8 @@ public class ConfigApiControllerTests
         var content = result as ContentResult;
         await Assert.That(content).IsNotNull();
         await Assert.That(content!.Content).IsEqualTo("""{"enabled":true}""");
-        await Assert.That(content.ContentType).IsEqualTo("text/plain; charset=utf-8");
-        await Assert.That(controller.Response.Headers["ContentType"].ToString()).IsEqualTo("json");
+        await Assert.That(content.ContentType).IsEqualTo("application/json");
+        await Assert.That(controller.Response.Headers[NonaResponseHeaders.LogicalContentType].ToString()).IsEqualTo("json");
     }
 
     private sealed class StubMediator(GetConfigEntryValueResult result) : IMediator
