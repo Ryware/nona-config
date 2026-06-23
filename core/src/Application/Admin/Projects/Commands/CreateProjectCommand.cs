@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using Microsoft.Extensions.Configuration;
 using Nona.Application.Admin.Projects.DTOs;
 using Nona.Application.Common.Interfaces;
@@ -20,7 +20,7 @@ public class CreateProjectCommandHandler(
     IDateTime dateTime,
     IAuditLogService? auditLogService = null) : IRequestHandler<CreateProjectCommand, CreateProjectResult>
 {
-    public async Task<CreateProjectResult> Handle(CreateProjectCommand request, CancellationToken cancellationToken)
+    public async ValueTask<CreateProjectResult> Handle(CreateProjectCommand request, CancellationToken cancellationToken)
     {
         var currentUser = await userAuthorizationService.GetCurrentUserAsync(cancellationToken);
         if (currentUser?.IsAdmin != true)

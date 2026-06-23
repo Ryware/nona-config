@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using Nona.Application.Admin.Common;
 using Nona.Application.Admin.Users.DTOs;
 using Nona.Application.Common;
@@ -19,7 +19,7 @@ public class CreateUserCommandHandler(
     IUserAuthorizationService userAuthorizationService,
     IAuditLogService? auditLogService = null) : IRequestHandler<CreateUserCommand, CreateUserResult>
 {
-    public async Task<CreateUserResult> Handle(CreateUserCommand request, CancellationToken cancellationToken)
+    public async ValueTask<CreateUserResult> Handle(CreateUserCommand request, CancellationToken cancellationToken)
     {
         if (!await userAuthorizationService.CanManageUsersAsync(cancellationToken))
             return new CreateUserResult(false, null, "Access denied");

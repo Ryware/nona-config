@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Nona.Application.Admin.ApiKeys.Commands;
 using Nona.Application.Admin.ApiKeys.Queries;

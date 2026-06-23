@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using Nona.Application.Admin.Users.DTOs;
 using Nona.Application.Common;
 using Nona.Application.Common.Interfaces;
@@ -19,7 +19,7 @@ public class UpdateUserCommandHandler(
     IUserAuthorizationService userAuthorizationService,
     IAuditLogService? auditLogService = null) : IRequestHandler<UpdateUserCommand, UpdateUserResult>
 {
-    public async Task<UpdateUserResult> Handle(UpdateUserCommand request, CancellationToken cancellationToken)
+    public async ValueTask<UpdateUserResult> Handle(UpdateUserCommand request, CancellationToken cancellationToken)
     {
         var user = await userRepository.GetByIdAsync(request.Id, cancellationToken);
         if (user is null)

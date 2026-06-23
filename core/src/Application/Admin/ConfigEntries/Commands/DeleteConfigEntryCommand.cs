@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using Nona.Application.Admin.Projects;
 using Nona.Application.Common.Interfaces;
 using Nona.Domain.Interfaces;
@@ -17,7 +17,7 @@ public class DeleteConfigEntryCommandHandler(
     IAuditLogService? auditLogService = null)
     : IRequestHandler<DeleteConfigEntryCommand, DeleteConfigEntryResult>
 {
-    public async Task<DeleteConfigEntryResult> Handle(DeleteConfigEntryCommand request, CancellationToken cancellationToken)
+    public async ValueTask<DeleteConfigEntryResult> Handle(DeleteConfigEntryCommand request, CancellationToken cancellationToken)
     {
         var project = await ProjectResolution.ResolveProjectAsync(projectRepository, request.ProjectId, cancellationToken);
         if (project is null)

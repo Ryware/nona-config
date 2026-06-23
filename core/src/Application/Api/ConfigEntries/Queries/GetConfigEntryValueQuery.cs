@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using Nona.Application.Common;
 using Nona.Application.Common.Interfaces;
 using Nona.Domain.Interfaces;
@@ -16,7 +16,7 @@ public class GetConfigEntryValueQueryHandler(
     IApiKeyService apiKeyService)
     : IRequestHandler<GetConfigEntryValueQuery, GetConfigEntryValueResult>
 {
-    public async Task<GetConfigEntryValueResult> Handle(GetConfigEntryValueQuery request, CancellationToken cancellationToken)
+    public async ValueTask<GetConfigEntryValueResult> Handle(GetConfigEntryValueQuery request, CancellationToken cancellationToken)
     {
         var apiKey = apiKeyService.GetCurrentApiKey();
         if (string.IsNullOrEmpty(apiKey))

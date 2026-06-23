@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using Nona.Application.Admin.Projects.DTOs;
 using Nona.Application.Common.Interfaces;
 using Nona.Domain.Interfaces;
@@ -12,7 +12,7 @@ public class ListProjectsQueryHandler(
     IProjectMemberRepository projectMemberRepository,
     IUserAuthorizationService userAuthorizationService) : IRequestHandler<ListProjectsQuery, IReadOnlyList<ProjectDto>>
 {
-    public async Task<IReadOnlyList<ProjectDto>> Handle(ListProjectsQuery request, CancellationToken cancellationToken)
+    public async ValueTask<IReadOnlyList<ProjectDto>> Handle(ListProjectsQuery request, CancellationToken cancellationToken)
     {
         var projects = await projectRepository.ListAsync(cancellationToken);
 

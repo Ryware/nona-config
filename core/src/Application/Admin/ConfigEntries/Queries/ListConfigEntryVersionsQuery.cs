@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using Nona.Application.Admin.ConfigEntries.DTOs;
 using Nona.Application.Admin.Projects;
 using Nona.Application.Common.Interfaces;
@@ -17,7 +17,7 @@ public class ListConfigEntryVersionsQueryHandler(
     IProjectAccessService projectAccessService)
     : IRequestHandler<ListConfigEntryVersionsQuery, ListConfigEntryVersionsResult>
 {
-    public async Task<ListConfigEntryVersionsResult> Handle(ListConfigEntryVersionsQuery request, CancellationToken cancellationToken)
+    public async ValueTask<ListConfigEntryVersionsResult> Handle(ListConfigEntryVersionsQuery request, CancellationToken cancellationToken)
     {
         var project = await ProjectResolution.ResolveProjectAsync(projectRepository, request.ProjectId, cancellationToken);
         if (project is null)

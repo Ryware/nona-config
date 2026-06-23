@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using Nona.Application.Admin.Users.DTOs;
 using Nona.Application.Common;
 using Nona.Domain.Interfaces;
@@ -11,7 +11,7 @@ public record GetUserResult(bool Success, UserDto? User, string? Error);
 
 public class GetUserQueryHandler(IUserRepository userRepository, IProjectMemberRepository projectMemberRepository) : IRequestHandler<GetUserQuery, GetUserResult>
 {
-    public async Task<GetUserResult> Handle(GetUserQuery request, CancellationToken cancellationToken)
+    public async ValueTask<GetUserResult> Handle(GetUserQuery request, CancellationToken cancellationToken)
     {
         var user = await userRepository.GetByIdAsync(request.Id, cancellationToken);
 

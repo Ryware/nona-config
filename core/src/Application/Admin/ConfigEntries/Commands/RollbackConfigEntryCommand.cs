@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using Nona.Application.Admin.ConfigEntries.DTOs;
 using Nona.Application.Admin.Projects;
 using Nona.Application.Common.Interfaces;
@@ -23,7 +23,7 @@ public class RollbackConfigEntryCommandHandler(
     ICurrentUserService? currentUserService = null)
     : IRequestHandler<RollbackConfigEntryCommand, RollbackConfigEntryResult>
 {
-    public async Task<RollbackConfigEntryResult> Handle(RollbackConfigEntryCommand request, CancellationToken cancellationToken)
+    public async ValueTask<RollbackConfigEntryResult> Handle(RollbackConfigEntryCommand request, CancellationToken cancellationToken)
     {
         if (request.Version <= 0)
             return new RollbackConfigEntryResult(false, null, "Version must be greater than zero");
