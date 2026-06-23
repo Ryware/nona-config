@@ -43,7 +43,11 @@ public sealed class LibsqlConfigEntryRepository : IConfigEntryRepository
         var savedRows = results[^1].Rows;
         if (savedRows.Count > 0)
         {
-            return Map(savedRows[0]);
+            var savedEntry = Map(savedRows[0]);
+            if (MatchesRequestedEntry(savedEntry, entry))
+            {
+                return savedEntry;
+            }
         }
 
         return await AddVersionSequentialAsync(entry, normalizedActor, ct);
@@ -218,6 +222,14 @@ public sealed class LibsqlConfigEntryRepository : IConfigEntryRepository
 
     private static DateTime ParseTimestamp(string value)
         => DateTime.Parse(value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+
+    private static bool MatchesRequestedEntry(ConfigEntry savedEntry, ConfigEntry requestedEntry)
+    {
+        return string.Equals(savedEntry.Value, requestedEntry.Value, StringComparison.Ordinal)
+            && string.Equals(savedEntry.ContentType, requestedEntry.ContentType, StringComparison.Ordinal)
+            && savedEntry.Scope == requestedEntry.Scope
+            && savedEntry.UpdatedAt == requestedEntry.UpdatedAt;
+    }
 
     private static object ToVersionParameters(ConfigEntry entry, string actor)
     {
