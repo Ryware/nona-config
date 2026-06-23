@@ -23,7 +23,7 @@ public sealed class LibsqlApiKeyRepository : IApiKeyRepository
             WHERE Id = @Id
             LIMIT 1
             """,
-            new { Id = id },
+            LibsqlParameters.Create(("Id", id)),
             ct);
 
         return result.Rows.Count == 0 ? null : MapApiKey(result.Rows[0]);
@@ -46,7 +46,7 @@ public sealed class LibsqlApiKeyRepository : IApiKeyRepository
             WHERE ak.Key = @Key
             LIMIT 1
             """,
-            new { Key = key },
+            LibsqlParameters.Create(("Key", key)),
             ct);
 
         if (result.Rows.Count == 0)
@@ -77,7 +77,7 @@ public sealed class LibsqlApiKeyRepository : IApiKeyRepository
             WHERE Project = @ProjectName COLLATE NOCASE
             ORDER BY Name
             """,
-            new { ProjectName = projectName },
+            LibsqlParameters.Create(("ProjectName", projectName)),
             ct);
 
         return result.Rows.Select(MapApiKey).ToList();
@@ -104,7 +104,7 @@ public sealed class LibsqlApiKeyRepository : IApiKeyRepository
             DELETE FROM ApiKeys
             WHERE Id = @Id
             """,
-            new { Id = id },
+            LibsqlParameters.Create(("Id", id)),
             ct);
     }
 
@@ -123,17 +123,15 @@ public sealed class LibsqlApiKeyRepository : IApiKeyRepository
         };
     }
 
-    private static object ToParameters(ApiKey apiKey)
+    private static IReadOnlyDictionary<string, object?> ToParameters(ApiKey apiKey)
     {
-        return new
-        {
-            apiKey.Name,
-            apiKey.Key,
-            apiKey.Project,
-            apiKey.Environment,
-            Scope = (int)apiKey.Scope,
-            CreatedAt = apiKey.CreatedAt.ToString("O"),
-            UpdatedAt = apiKey.UpdatedAt.ToString("O")
-        };
+        return LibsqlParameters.Create(
+            ("Name", apiKey.Name),
+            ("Key", apiKey.Key),
+            ("Project", apiKey.Project),
+            ("Environment", apiKey.Environment),
+            ("Scope", (int)apiKey.Scope),
+            ("CreatedAt", apiKey.CreatedAt.ToString("O")),
+            ("UpdatedAt", apiKey.UpdatedAt.ToString("O")));
     }
 }

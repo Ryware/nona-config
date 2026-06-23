@@ -25,42 +25,38 @@ public class LibsqlRemoteIntegrationTests
         {
             await client.ExecuteAsync(
                 $"INSERT INTO {WrapperSmokeTable} (Id, Value, UpdatedAt) VALUES (@Id, @Value, @UpdatedAt)",
-                new
-                {
-                    Id = id,
-                    Value = "remote-value",
-                    UpdatedAt = DateTime.UtcNow.ToString("O")
-                });
+                LibsqlParameters.Create(
+                    ("Id", id),
+                    ("Value", "remote-value"),
+                    ("UpdatedAt", DateTime.UtcNow.ToString("O"))));
 
             var stored = await client.ExecuteAsync(
                 $"SELECT Value FROM {WrapperSmokeTable} WHERE Id = @Id",
-                new { Id = id });
+                LibsqlParameters.Create(("Id", id)));
 
             await Assert.That(stored.Rows.Count).IsEqualTo(1);
             await Assert.That(stored.Rows[0].GetString("Value")).IsEqualTo("remote-value");
 
             await client.ExecuteAsync(
                 $"UPDATE {WrapperSmokeTable} SET Value = @Value, UpdatedAt = @UpdatedAt WHERE Id = @Id",
-                new
-                {
-                    Id = id,
-                    Value = "remote-value-updated",
-                    UpdatedAt = DateTime.UtcNow.ToString("O")
-                });
+                LibsqlParameters.Create(
+                    ("Id", id),
+                    ("Value", "remote-value-updated"),
+                    ("UpdatedAt", DateTime.UtcNow.ToString("O"))));
 
             var updated = await client.ExecuteAsync(
                 $"SELECT Value FROM {WrapperSmokeTable} WHERE Id = @Id",
-                new { Id = id });
+                LibsqlParameters.Create(("Id", id)));
 
             await Assert.That(updated.Rows[0].GetString("Value")).IsEqualTo("remote-value-updated");
 
             await client.ExecuteAsync(
                 $"DELETE FROM {WrapperSmokeTable} WHERE Id = @Id",
-                new { Id = id });
+                LibsqlParameters.Create(("Id", id)));
 
             var deleted = await client.ExecuteAsync(
                 $"SELECT COUNT(1) AS Count FROM {WrapperSmokeTable} WHERE Id = @Id",
-                new { Id = id });
+                LibsqlParameters.Create(("Id", id)));
 
             await Assert.That(deleted.Rows[0].GetInt32("Count")).IsEqualTo(0);
         }
@@ -70,7 +66,7 @@ public class LibsqlRemoteIntegrationTests
             {
                 await client.ExecuteAsync(
                     $"DELETE FROM {WrapperSmokeTable} WHERE Id = @Id",
-                    new { Id = id });
+                    LibsqlParameters.Create(("Id", id)));
             }
             catch
             {
@@ -106,19 +102,17 @@ public class LibsqlRemoteIntegrationTests
         {
             await directClient.ExecuteAsync(
                 $"INSERT INTO {WrapperSmokeTable} (Id, Value, UpdatedAt) VALUES (@Id, @Value, @UpdatedAt)",
-                new
-                {
-                    Id = id,
-                    Value = "embedded-value",
-                    UpdatedAt = DateTime.UtcNow.ToString("O")
-                });
+                LibsqlParameters.Create(
+                    ("Id", id),
+                    ("Value", "embedded-value"),
+                    ("UpdatedAt", DateTime.UtcNow.ToString("O"))));
 
             var deadline = DateTime.UtcNow.AddSeconds(10);
             while (DateTime.UtcNow < deadline)
             {
                 var stored = await replicaClient.ExecuteAsync(
                     $"SELECT Value FROM {WrapperSmokeTable} WHERE Id = @Id",
-                    new { Id = id });
+                    LibsqlParameters.Create(("Id", id)));
 
                 if (stored.Rows.Count == 1 && stored.Rows[0].GetString("Value") == "embedded-value")
                 {
@@ -136,7 +130,7 @@ public class LibsqlRemoteIntegrationTests
             {
                 await directClient.ExecuteAsync(
                     $"DELETE FROM {WrapperSmokeTable} WHERE Id = @Id",
-                    new { Id = id });
+                    LibsqlParameters.Create(("Id", id)));
             }
             catch
             {
@@ -179,11 +173,13 @@ public class LibsqlRemoteIntegrationTests
         {
             await client.ExecuteAsync(
                 $"INSERT INTO {NullSmokeTable} (Id, OptionalValue) VALUES (@Id, @OptionalValue)",
-                new { Id = id, OptionalValue = (string?)null });
+                LibsqlParameters.Create(
+                    ("Id", id),
+                    ("OptionalValue", (string?)null)));
 
             var stored = await client.ExecuteAsync(
                 $"SELECT COUNT(1) AS Count FROM {NullSmokeTable} WHERE Id = @Id AND OptionalValue IS NULL",
-                new { Id = id });
+                LibsqlParameters.Create(("Id", id)));
 
             await Assert.That(stored.Rows[0].GetInt32("Count")).IsEqualTo(1);
         }
@@ -193,7 +189,7 @@ public class LibsqlRemoteIntegrationTests
             {
                 await client.ExecuteAsync(
                     $"DELETE FROM {NullSmokeTable} WHERE Id = @Id",
-                    new { Id = id });
+                    LibsqlParameters.Create(("Id", id)));
             }
             catch
             {
@@ -237,22 +233,20 @@ public class LibsqlRemoteIntegrationTests
                 INSERT INTO __NonaLibsqlUserInsertSmoke (Email, Name, PasswordHash, PasswordSalt, Role, Scope, IsAdmin, CreatedAt, UpdatedAt)
                 VALUES (@Email, @Name, @PasswordHash, @PasswordSalt, @Role, @Scope, @IsAdmin, @CreatedAt, @UpdatedAt)
                 """,
-                new
-                {
-                    Email = email,
-                    Name = email,
-                    PasswordHash = "$2a$12$aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-                    PasswordSalt = string.Empty,
-                    Role = 0,
-                    Scope = 3,
-                    IsAdmin = true,
-                    CreatedAt = "2026-06-03T12:00:00.0000000Z",
-                    UpdatedAt = "2026-06-03T12:00:00.0000000Z"
-                });
+                LibsqlParameters.Create(
+                    ("Email", email),
+                    ("Name", email),
+                    ("PasswordHash", "$2a$12$aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+                    ("PasswordSalt", string.Empty),
+                    ("Role", 0),
+                    ("Scope", 3),
+                    ("IsAdmin", true),
+                    ("CreatedAt", "2026-06-03T12:00:00.0000000Z"),
+                    ("UpdatedAt", "2026-06-03T12:00:00.0000000Z")));
 
             var stored = await client.ExecuteAsync(
                 "SELECT COUNT(1) AS Count FROM __NonaLibsqlUserInsertSmoke WHERE Email = @Email",
-                new { Email = email });
+                LibsqlParameters.Create(("Email", email)));
 
             await Assert.That(insert.AffectedRowCount).IsEqualTo(1);
             await Assert.That(stored.Rows[0].GetInt32("Count")).IsEqualTo(1);
@@ -263,7 +257,7 @@ public class LibsqlRemoteIntegrationTests
             {
                 await client.ExecuteAsync(
                     "DELETE FROM __NonaLibsqlUserInsertSmoke WHERE Email = @Email",
-                    new { Email = email });
+                    LibsqlParameters.Create(("Email", email)));
             }
             catch
             {

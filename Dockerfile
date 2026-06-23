@@ -1,35 +1,40 @@
 FROM node:22-alpine AS frontend-build
 WORKDIR /frontend
+ARG FRONTEND_DIR=nona-config-admin
 
-COPY nona-config-admin/package.json nona-config-admin/package-lock.json ./
+COPY ${FRONTEND_DIR}/package.json ${FRONTEND_DIR}/package-lock.json ./
 RUN npm ci
 
-COPY nona-config-admin/ ./
+COPY ${FRONTEND_DIR}/ ./
 ARG FRONTEND_API_URL=
 RUN export VITE_API_BASE_URL="$FRONTEND_API_URL"; \
     npm exec vite -- build
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
+ARG BACKEND_DIR=nona-backend
 
-COPY nona-config/NonaConfig.slnx ./
-COPY nona-config/core/src/Domain/Domain.csproj core/src/Domain/
-COPY nona-config/core/src/Application/Application.csproj core/src/Application/
-COPY nona-config/core/src/Infrastructure/Infrastructure.csproj core/src/Infrastructure/
-COPY nona-config/libsql/src/Libsql/Libsql.csproj libsql/src/Libsql/
-COPY nona-config/core/src/WebApi/WebApi.csproj core/src/WebApi/
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends clang zlib1g-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY ${BACKEND_DIR}/NonaConfig.slnx ./
+COPY ${BACKEND_DIR}/core/src/Domain/Domain.csproj core/src/Domain/
+COPY ${BACKEND_DIR}/core/src/Application/Application.csproj core/src/Application/
+COPY ${BACKEND_DIR}/core/src/Infrastructure/Infrastructure.csproj core/src/Infrastructure/
+COPY ${BACKEND_DIR}/libsql/src/Libsql/Libsql.csproj libsql/src/Libsql/
+COPY ${BACKEND_DIR}/core/src/WebApi/WebApi.csproj core/src/WebApi/
 
 RUN dotnet restore core/src/WebApi/WebApi.csproj
 
-COPY nona-config/core/src/ core/src/
-COPY nona-config/libsql/src/ libsql/src/
+COPY ${BACKEND_DIR}/core/src/ core/src/
+COPY ${BACKEND_DIR}/libsql/src/ libsql/src/
 
 RUN dotnet publish core/src/WebApi/WebApi.csproj \
     -c Release \
     -r linux-x64 \
-    --self-contained false \
+    --self-contained true \
     -o /app/publish \
-    /p:UseAppHost=false \
     /p:DebugType=None \
     /p:DebugSymbols=false
 
@@ -50,7 +55,7 @@ RUN apt-get update \
     && install /tmp/libsql-server/libsql-server-x86_64-unknown-linux-gnu/sqld /usr/local/bin/sqld \
     && rm -rf /tmp/libsql-server /tmp/libsql-server.tar.xz /var/lib/apt/lists/*
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled-extra AS runtime
+FROM mcr.microsoft.com/dotnet/runtime-deps:10.0-noble-chiseled-extra AS runtime
 WORKDIR /app
 
 COPY --from=libsql /usr/local/bin/sqld /usr/local/bin/sqld
@@ -63,4 +68,4 @@ EXPOSE 9080
 
 ENV ASPNETCORE_URLS=http://0.0.0.0:8080
 
-ENTRYPOINT ["dotnet", "Nona.WebApi.dll"]
+ENTRYPOINT ["./Nona.WebApi"]

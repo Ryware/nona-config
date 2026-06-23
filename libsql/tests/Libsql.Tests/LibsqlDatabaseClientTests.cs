@@ -50,11 +50,11 @@ public class LibsqlDatabaseClientTests
 
             var insert = await client.ExecuteAsync(
                 "INSERT INTO SampleItems (Name) VALUES (@Name)",
-                new { Name = "alpha" });
+                LibsqlParameters.Create(("Name", "alpha")));
 
             var read = await client.ExecuteAsync(
                 "SELECT Id, Name FROM SampleItems WHERE Id = @Id",
-                new { Id = insert.LastInsertRowId });
+                LibsqlParameters.Create(("Id", insert.LastInsertRowId)));
 
             await Assert.That(insert.LastInsertRowId).IsNotNull();
             await Assert.That(read.Rows.Count).IsEqualTo(1);
@@ -85,7 +85,7 @@ public class LibsqlDatabaseClientTests
 
             await client.ExecuteAsync(
                 "INSERT INTO NullableItems (OptionalValue) VALUES (@OptionalValue)",
-                new { OptionalValue = (string?)null });
+                LibsqlParameters.Create(("OptionalValue", (string?)null)));
 
             var read = await client.ExecuteAsync("SELECT COUNT(1) AS Count FROM NullableItems WHERE OptionalValue IS NULL");
 
@@ -115,8 +115,8 @@ public class LibsqlDatabaseClientTests
                         Name TEXT NOT NULL
                     )
                     """),
-                new LibsqlStatement("INSERT INTO BatchItems (Name) VALUES (@Name)", new { Name = "one" }),
-                new LibsqlStatement("INSERT INTO BatchItems (Name) VALUES (@Name)", new { Name = "two" }),
+                new LibsqlStatement("INSERT INTO BatchItems (Name) VALUES (@Name)", LibsqlParameters.Create(("Name", "one"))),
+                new LibsqlStatement("INSERT INTO BatchItems (Name) VALUES (@Name)", LibsqlParameters.Create(("Name", "two"))),
                 new LibsqlStatement("SELECT COUNT(1) AS Count FROM BatchItems")
             ]);
 

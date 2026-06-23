@@ -23,22 +23,24 @@ public class LibsqlMultiInstanceTests
 
             await clientA.ExecuteAsync(
                 "INSERT INTO SharedItems (Id, Value) VALUES (@Id, @Value)",
-                new { Id = id, Value = "value-written-from-instance-a" });
+                LibsqlParameters.Create(
+                    ("Id", id),
+                    ("Value", "value-written-from-instance-a")));
 
             var readFromInstanceB = await clientB.ExecuteAsync(
                 "SELECT Value FROM SharedItems WHERE Id = @Id",
-                new { Id = id });
+                LibsqlParameters.Create(("Id", id)));
 
             await Assert.That(readFromInstanceB.Rows.Count).IsEqualTo(1);
             await Assert.That(readFromInstanceB.Rows[0].GetString("Value")).IsEqualTo("value-written-from-instance-a");
 
             await clientB.ExecuteAsync(
                 "DELETE FROM SharedItems WHERE Id = @Id",
-                new { Id = id });
+                LibsqlParameters.Create(("Id", id)));
 
             var readAgainFromInstanceA = await clientA.ExecuteAsync(
                 "SELECT COUNT(1) AS Count FROM SharedItems WHERE Id = @Id",
-                new { Id = id });
+                LibsqlParameters.Create(("Id", id)));
 
             await Assert.That(readAgainFromInstanceA.Rows[0].GetInt32("Count")).IsEqualTo(0);
         }

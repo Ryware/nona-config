@@ -54,17 +54,15 @@ public sealed class LibsqlAuditLogRepository : IAuditLogRepository
         };
     }
 
-    private static object ToParameters(AuditLogEntry entry)
+    private static IReadOnlyDictionary<string, object?> ToParameters(AuditLogEntry entry)
     {
-        return new
-        {
-            entry.Actor,
-            entry.ActorIsSystem,
-            entry.Action,
-            entry.Target,
-            entry.Project,
-            entry.Environment,
-            CreatedAt = entry.CreatedAt.ToString("O")
-        };
+        return LibsqlParameters.Create(
+            ("Actor", entry.Actor),
+            ("ActorIsSystem", entry.ActorIsSystem),
+            ("Action", entry.Action),
+            ("Target", entry.Target),
+            ("Project", entry.Project),
+            ("Environment", entry.Environment),
+            ("CreatedAt", entry.CreatedAt.ToString("O")));
     }
 }

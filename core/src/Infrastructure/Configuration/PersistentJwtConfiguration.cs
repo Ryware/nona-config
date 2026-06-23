@@ -1,10 +1,11 @@
 using Microsoft.Extensions.Configuration;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Nona.Infrastructure.Configuration;
 
-public static class PersistentJwtConfiguration
+public static partial class PersistentJwtConfiguration
 {
     private const string GeneratedFileName = "jwt.generated.json";
     private const string DefaultIssuer = "nona";
@@ -132,7 +133,9 @@ public static class PersistentJwtConfiguration
         try
         {
             using var stream = File.OpenRead(generatedConfigPath);
-            var persisted = JsonSerializer.Deserialize<PersistedJwtConfiguration>(stream);
+            var persisted = JsonSerializer.Deserialize(
+                stream,
+                PersistentJwtJsonSerializerContext.Default.PersistedJwtConfiguration);
 
             if (persisted is null || !IsComplete(persisted.Jwt))
             {
@@ -163,7 +166,7 @@ public static class PersistentJwtConfiguration
 
         var json = JsonSerializer.Serialize(
             new PersistedJwtConfiguration(settings),
-            new JsonSerializerOptions { WriteIndented = true });
+            PersistentJwtJsonSerializerContext.Default.PersistedJwtConfiguration);
 
         var temporaryPath = $"{generatedConfigPath}.{Guid.NewGuid():N}.tmp";
         File.WriteAllText(temporaryPath, json);
@@ -205,10 +208,10 @@ public static class PersistentJwtConfiguration
 
     private static bool ShouldPersistGeneratedSettings(IConfiguration configuration)
     {
-        var storageType = configuration.GetValue<string>("Storage:Type") ?? "InMemory";
+        var storageType = ConfigurationValueReader.GetString(configuration, "Storage:Type", "InMemory");
 
         return storageType.Equals("Libsql", StringComparison.OrdinalIgnoreCase)
-            && configuration.GetValue<bool>("Storage:Libsql:ManagedPrimary:Enabled");
+            && ConfigurationValueReader.GetBoolean(configuration, "Storage:Libsql:ManagedPrimary:Enabled");
     }
 
     private static bool TryResolveGeneratedConfigPath(IConfiguration configuration, out string generatedConfigPath)
@@ -249,7 +252,11 @@ public static class PersistentJwtConfiguration
             : directory;
     }
 
-    private sealed record PersistedJwtConfiguration(JwtSettings Jwt);
+    internal sealed record PersistedJwtConfiguration(JwtSettings Jwt);
 
-    private readonly record struct JwtSettings(string Key, string Issuer, string Audience);
+    internal readonly record struct JwtSettings(string Key, string Issuer, string Audience);
+
+    [JsonSourceGenerationOptions(WriteIndented = true)]
+    [JsonSerializable(typeof(PersistedJwtConfiguration))]
+    internal sealed partial class PersistentJwtJsonSerializerContext : JsonSerializerContext;
 }

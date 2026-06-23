@@ -2,8 +2,8 @@ using Nona.Application;
 using Nona.Infrastructure;
 using Nona.Infrastructure.Configuration;
 using Nona.WebApi;
-using Scalar.AspNetCore;
-using Serilog;
+using Nona.WebApi.Endpoints;
+using Nona.WebApi.Serialization;
 
 public partial class Program
 {
@@ -37,25 +37,10 @@ public partial class Program
                 .AllowCredentials());
         });
 
-        builder.Services.AddControllers();
-        builder.Services.AddOpenApi(o =>
+        builder.Services.ConfigureHttpJsonOptions(options =>
         {
-            o.AddDocumentTransformer((document, context, cancellationToken) =>
-            {
-                document.Servers = [new() { Url = "/" }];
-                return Task.CompletedTask;
-            });
-            o.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
-            o.AddDocumentTransformer<ConfigValueOpenApiTransformer>();
-        }
-        );
-
-        builder.Host.UseSerilog((context, services, configuration) => configuration
-                  .ReadFrom.Configuration(context.Configuration)
-                  .ReadFrom.Services(services)
-                  .Enrich.FromLogContext()
-                  .WriteTo.Console(outputTemplate: $$"""{Timestamp:u} {Timestamp:ffffff} {Level:u3} {Message:l}{NewLine}{Exception}"""));
-
+            options.SerializerOptions.TypeInfoResolverChain.Insert(0, NonaJsonSerializerContext.Default);
+        });
 
         builder.Services.AddInfrastructureServices(builder.Configuration);
         builder.Services.AddApplicationServices(builder.Configuration);
@@ -64,20 +49,13 @@ public partial class Program
 
     private static void ConfigureWebPipeline(WebApplication app)
     {
-        app.MapOpenApi(); app.MapScalarApiReference(o =>
-        {
-            o.WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient)
-                .WithTheme(ScalarTheme.Moon)
-                .WithTitle("Nona config API");
-        });
-
         app.UseCors(CorsPolicyName);
 
         app.UseDefaultFiles();
         app.UseStaticFiles();
         app.UseAuthentication();
         app.UseAuthorization();
-        app.MapControllers();
+        app.MapNonaEndpoints();
         app.MapFallbackToFile("index.html");
     }
 }

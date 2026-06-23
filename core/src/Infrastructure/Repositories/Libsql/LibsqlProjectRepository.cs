@@ -22,7 +22,7 @@ public sealed class LibsqlProjectRepository : IProjectRepository
             WHERE UrlSlug = @Name COLLATE NOCASE
             LIMIT 1
             """,
-            new { Name = name },
+            LibsqlParameters.Create(("Name", name)),
             ct);
 
         return result.Rows.Count == 0 ? null : Map(result.Rows[0]);
@@ -49,7 +49,7 @@ public sealed class LibsqlProjectRepository : IProjectRepository
             FROM Projects
             WHERE UrlSlug = @UrlSlug COLLATE NOCASE
             """,
-            new { UrlSlug = slug },
+            LibsqlParameters.Create(("UrlSlug", slug)),
             ct);
 
         return result.Rows[0].GetInt32(0) > 0;
@@ -78,7 +78,10 @@ public sealed class LibsqlProjectRepository : IProjectRepository
                 UpdatedAt = @UpdatedAt
             WHERE UrlSlug = @UrlSlug COLLATE NOCASE
             """,
-            ToParameters(project),
+            LibsqlParameters.Create(
+                ("Name", project.Name),
+                ("UrlSlug", project.UrlSlug),
+                ("UpdatedAt", project.UpdatedAt.ToString("O"))),
             ct);
     }
 
@@ -89,7 +92,7 @@ public sealed class LibsqlProjectRepository : IProjectRepository
             DELETE FROM Projects
             WHERE Name = @Name COLLATE NOCASE
             """,
-            new { Name = name },
+            LibsqlParameters.Create(("Name", name)),
             ct);
     }
 
@@ -111,14 +114,12 @@ public sealed class LibsqlProjectRepository : IProjectRepository
         };
     }
 
-    private static object ToParameters(Project project)
+    private static IReadOnlyDictionary<string, object?> ToParameters(Project project)
     {
-        return new
-        {
-            project.Name,
-            project.UrlSlug,
-            CreatedAt = project.CreatedAt.ToString("O"),
-            UpdatedAt = project.UpdatedAt.ToString("O")
-        };
+        return LibsqlParameters.Create(
+            ("Name", project.Name),
+            ("UrlSlug", project.UrlSlug),
+            ("CreatedAt", project.CreatedAt.ToString("O")),
+            ("UpdatedAt", project.UpdatedAt.ToString("O")));
     }
 }
