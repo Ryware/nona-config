@@ -9,8 +9,14 @@ public sealed class CliValueResolverTests
     [Test]
     public async Task BaseUrl_UsesSavedDefault_WhenNotProvided()
     {
-        var resolver = new CliValueResolver(new CliDefaults { BaseUrl = "http://saved.internal:18080" });
-        await Assert.That(resolver.BaseUrl(null)).IsEqualTo("http://saved.internal:18080");
+        await EnvironmentLock.WaitAsync();
+        try
+        {
+            using var env = new EnvironmentScope(new Dictionary<string, string?> { ["NONA_CLI_BASE_URL"] = null });
+            var resolver = new CliValueResolver(new CliDefaults { BaseUrl = "http://saved.internal:18080" });
+            await Assert.That(resolver.BaseUrl(null)).IsEqualTo("http://saved.internal:18080");
+        }
+        finally { EnvironmentLock.Release(); }
     }
 
     [Test]
@@ -29,8 +35,14 @@ public sealed class CliValueResolverTests
     [Test]
     public async Task Project_UsesSavedDefault_WhenNotProvided()
     {
-        var resolver = new CliValueResolver(new CliDefaults { Project = "saved-project" });
-        await Assert.That(resolver.Project(null)).IsEqualTo("saved-project");
+        await EnvironmentLock.WaitAsync();
+        try
+        {
+            using var env = new EnvironmentScope(new Dictionary<string, string?> { ["NONA_CLI_PROJECT_NAME"] = null });
+            var resolver = new CliValueResolver(new CliDefaults { Project = "saved-project" });
+            await Assert.That(resolver.Project(null)).IsEqualTo("saved-project");
+        }
+        finally { EnvironmentLock.Release(); }
     }
 
     [Test]

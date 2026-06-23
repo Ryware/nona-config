@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Nona.Application.Api.ConfigEntries.Queries;
@@ -44,20 +44,31 @@ public class ConfigApiEndpointTests
 
     private sealed class StubMediator(GetConfigEntryValueResult result) : IMediator
     {
-        public Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
+        public ValueTask<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
         {
-            return Task.FromResult((TResponse)(object)result);
+            return ValueTask.FromResult((TResponse)(object)result);
         }
 
-        public Task<object?> Send(object request, CancellationToken cancellationToken = default)
+        public ValueTask<TResponse> Send<TResponse>(ICommand<TResponse> command, CancellationToken cancellationToken = default)
         {
-            return Task.FromResult<object?>(result);
+            throw new NotSupportedException();
         }
 
-        public Task Send<TRequest>(TRequest request, CancellationToken cancellationToken = default)
-            where TRequest : IRequest
+        public ValueTask<TResponse> Send<TResponse>(IQuery<TResponse> query, CancellationToken cancellationToken = default)
         {
-            return Task.CompletedTask;
+            throw new NotSupportedException();
+        }
+
+        public ValueTask<object?> Send(object message, CancellationToken cancellationToken = default)
+        {
+            return ValueTask.FromResult<object?>(result);
+        }
+
+        public IAsyncEnumerable<TResponse> CreateStream<TResponse>(
+            IStreamQuery<TResponse> query,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
         }
 
         public IAsyncEnumerable<TResponse> CreateStream<TResponse>(
@@ -72,15 +83,22 @@ public class ConfigApiEndpointTests
             throw new NotSupportedException();
         }
 
-        public Task Publish(object notification, CancellationToken cancellationToken = default)
+        public IAsyncEnumerable<TResponse> CreateStream<TResponse>(
+            IStreamCommand<TResponse> command,
+            CancellationToken cancellationToken = default)
         {
-            return Task.CompletedTask;
+            throw new NotSupportedException();
         }
 
-        public Task Publish<TNotification>(TNotification notification, CancellationToken cancellationToken = default)
+        public ValueTask Publish(object notification, CancellationToken cancellationToken = default)
+        {
+            return ValueTask.CompletedTask;
+        }
+
+        public ValueTask Publish<TNotification>(TNotification notification, CancellationToken cancellationToken = default)
             where TNotification : INotification
         {
-            return Task.CompletedTask;
+            return ValueTask.CompletedTask;
         }
     }
 }
