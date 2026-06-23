@@ -39,73 +39,20 @@ public sealed class LibsqlConfigEntryRepository : IConfigEntryRepository
         var entryParameters = ToEntryParameters(entry);
         var keyParameters = ToEntryKeyParameters(entry);
 
-        var results = await _client.ExecuteBatchAsync(
-            [
-                new LibsqlStatement(
-                    """
-                    INSERT INTO ConfigEntryVersions (Project, Environment, Key, Version, Value, ContentType, Scope, CreatedAt, Actor)
-                    VALUES (
-                        @Project,
-                        @Environment,
-                        @Key,
-                        (
-                            SELECT COALESCE(MAX(Version), 0) + 1
-                            FROM ConfigEntryVersions
-                            WHERE Project = @Project COLLATE NOCASE
-                              AND Environment = @Environment COLLATE NOCASE
-                              AND Key = @Key COLLATE NOCASE
-                        ),
-                        @Value,
-                        @ContentType,
-                        @Scope,
-                        @VersionCreatedAt,
-                        @Actor
-                    )
-                    """,
-                    versionParameters),
-                new LibsqlStatement(
-                    """
-                    INSERT INTO ConfigEntries (Project, Environment, Key, Value, ContentType, Scope, ActiveVersion, CreatedAt, UpdatedAt)
-                    VALUES (
-                        @Project,
-                        @Environment,
-                        @Key,
-                        @Value,
-                        @ContentType,
-                        @Scope,
-                        (
-                            SELECT MAX(Version)
-                            FROM ConfigEntryVersions
-                            WHERE Project = @Project COLLATE NOCASE
-                              AND Environment = @Environment COLLATE NOCASE
-                              AND Key = @Key COLLATE NOCASE
-                        ),
-                        @CreatedAt,
-                        @UpdatedAt
-                    )
-                    ON CONFLICT(Project, Environment, Key) DO UPDATE SET
-                        Value = excluded.Value,
-                        ContentType = excluded.ContentType,
-                        Scope = excluded.Scope,
-                        ActiveVersion = excluded.ActiveVersion,
-                        UpdatedAt = excluded.UpdatedAt
-                    """,
-                    entryParameters),
-                new LibsqlStatement(
-                    """
-                    SELECT Project, Environment, Key, Value, ContentType, Scope, ActiveVersion, CreatedAt, UpdatedAt
-                    FROM ConfigEntries
-                    WHERE Project = @Project COLLATE NOCASE
-                      AND Environment = @Environment COLLATE NOCASE
-                      AND Key = @Key COLLATE NOCASE
-                    LIMIT 1
-                    """,
-                    keyParameters)
-            ],
-            ct);
+        var statements = CreateAddVersionStatements(versionParameters, entryParameters, keyParameters);
+        var results = await _client.ExecuteBatchAsync(statements, ct);
 
         var savedRows = results[^1].Rows;
-        return savedRows.Count == 0 ? null : Map(savedRows[0]);
+        if (savedRows.Count > 0)
+        {
+            var savedEntry = Map(savedRows[0]);
+            if (MatchesRequestedEntry(savedEntry, entry))
+            {
+                return savedEntry;
+            }
+        }
+
+        return await AddVersionSequentialAsync(entry, normalizedActor, ct);
     }
 
     public async Task<IReadOnlyList<ConfigEntryVersion>> ListVersionsAsync(string projectName, string environmentName, string key, CancellationToken ct = default)
@@ -284,6 +231,14 @@ public sealed class LibsqlConfigEntryRepository : IConfigEntryRepository
     private static DateTime ParseTimestamp(string value)
         => DateTime.Parse(value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
 
+    private static bool MatchesRequestedEntry(ConfigEntry savedEntry, ConfigEntry requestedEntry)
+    {
+        return string.Equals(savedEntry.Value, requestedEntry.Value, StringComparison.Ordinal)
+            && string.Equals(savedEntry.ContentType, requestedEntry.ContentType, StringComparison.Ordinal)
+            && savedEntry.Scope == requestedEntry.Scope
+            && savedEntry.UpdatedAt == requestedEntry.UpdatedAt;
+    }
+
     private static IReadOnlyDictionary<string, object?> CreateKeyParameters(
         string projectName,
         string environmentName,
@@ -327,5 +282,155 @@ public sealed class LibsqlConfigEntryRepository : IConfigEntryRepository
             ("Project", entry.Project),
             ("Environment", entry.Environment),
             ("Key", entry.Key));
+    }
+
+    private async Task<ConfigEntry?> AddVersionSequentialAsync(ConfigEntry entry, string actor, CancellationToken ct)
+    {
+        var currentVersionResult = await _client.ExecuteAsync(
+            """
+            SELECT COALESCE(MAX(Version), 0)
+            FROM ConfigEntryVersions
+            WHERE Project = @Project COLLATE NOCASE
+              AND Environment = @Environment COLLATE NOCASE
+              AND Key = @Key COLLATE NOCASE
+            """,
+            ToEntryKeyParameters(entry),
+            ct);
+
+        var nextVersion = currentVersionResult.Rows[0].GetInt32(0) + 1;
+
+        await _client.ExecuteAsync(
+            """
+            INSERT INTO ConfigEntryVersions (Project, Environment, Key, Version, Value, ContentType, Scope, CreatedAt, Actor)
+            VALUES (@Project, @Environment, @Key, @Version, @Value, @ContentType, @Scope, @VersionCreatedAt, @Actor)
+            """,
+            ToSequentialVersionParameters(entry, actor, nextVersion),
+            ct);
+
+        await _client.ExecuteAsync(
+            """
+            INSERT INTO ConfigEntries (Project, Environment, Key, Value, ContentType, Scope, ActiveVersion, CreatedAt, UpdatedAt)
+            VALUES (@Project, @Environment, @Key, @Value, @ContentType, @Scope, @ActiveVersion, @CreatedAt, @UpdatedAt)
+            ON CONFLICT(Project, Environment, Key) DO UPDATE SET
+                Value = excluded.Value,
+                ContentType = excluded.ContentType,
+                Scope = excluded.Scope,
+                ActiveVersion = excluded.ActiveVersion,
+                UpdatedAt = excluded.UpdatedAt
+            """,
+            ToSequentialEntryParameters(entry, nextVersion),
+            ct);
+
+        var savedResult = await _client.ExecuteAsync(
+            """
+            SELECT Project, Environment, Key, Value, ContentType, Scope, ActiveVersion, CreatedAt, UpdatedAt
+            FROM ConfigEntries
+            WHERE Project = @Project COLLATE NOCASE
+              AND Environment = @Environment COLLATE NOCASE
+              AND Key = @Key COLLATE NOCASE
+            LIMIT 1
+            """,
+            ToEntryKeyParameters(entry),
+            ct);
+
+        return savedResult.Rows.Count == 0 ? null : Map(savedResult.Rows[0]);
+    }
+
+    private static IReadOnlyDictionary<string, object?> ToSequentialVersionParameters(ConfigEntry entry, string actor, int version)
+    {
+        return LibsqlParameters.Create(
+            ("Project", entry.Project),
+            ("Environment", entry.Environment),
+            ("Key", entry.Key),
+            ("Value", entry.Value),
+            ("ContentType", entry.ContentType),
+            ("Scope", (int)entry.Scope),
+            ("Actor", actor),
+            ("Version", version),
+            ("VersionCreatedAt", entry.UpdatedAt.ToString("O")));
+    }
+
+    private static IReadOnlyDictionary<string, object?> ToSequentialEntryParameters(ConfigEntry entry, int version)
+    {
+        return LibsqlParameters.Create(
+            ("Project", entry.Project),
+            ("Environment", entry.Environment),
+            ("Key", entry.Key),
+            ("Value", entry.Value),
+            ("ContentType", entry.ContentType),
+            ("Scope", (int)entry.Scope),
+            ("ActiveVersion", version),
+            ("CreatedAt", entry.CreatedAt.ToString("O")),
+            ("UpdatedAt", entry.UpdatedAt.ToString("O")));
+    }
+
+    private static IReadOnlyList<LibsqlStatement> CreateAddVersionStatements(
+        IReadOnlyDictionary<string, object?> versionParameters,
+        IReadOnlyDictionary<string, object?> entryParameters,
+        IReadOnlyDictionary<string, object?> keyParameters)
+    {
+        return
+        [
+            new LibsqlStatement(
+                """
+                INSERT INTO ConfigEntryVersions (Project, Environment, Key, Version, Value, ContentType, Scope, CreatedAt, Actor)
+                VALUES (
+                    @Project,
+                    @Environment,
+                    @Key,
+                    (
+                        SELECT COALESCE(MAX(Version), 0) + 1
+                        FROM ConfigEntryVersions
+                        WHERE Project = @Project COLLATE NOCASE
+                          AND Environment = @Environment COLLATE NOCASE
+                          AND Key = @Key COLLATE NOCASE
+                    ),
+                    @Value,
+                    @ContentType,
+                    @Scope,
+                    @VersionCreatedAt,
+                    @Actor
+                )
+                """,
+                versionParameters),
+            new LibsqlStatement(
+                """
+                INSERT INTO ConfigEntries (Project, Environment, Key, Value, ContentType, Scope, ActiveVersion, CreatedAt, UpdatedAt)
+                VALUES (
+                    @Project,
+                    @Environment,
+                    @Key,
+                    @Value,
+                    @ContentType,
+                    @Scope,
+                    (
+                        SELECT MAX(Version)
+                        FROM ConfigEntryVersions
+                        WHERE Project = @Project COLLATE NOCASE
+                          AND Environment = @Environment COLLATE NOCASE
+                          AND Key = @Key COLLATE NOCASE
+                    ),
+                    @CreatedAt,
+                    @UpdatedAt
+                )
+                ON CONFLICT(Project, Environment, Key) DO UPDATE SET
+                    Value = excluded.Value,
+                    ContentType = excluded.ContentType,
+                    Scope = excluded.Scope,
+                    ActiveVersion = excluded.ActiveVersion,
+                    UpdatedAt = excluded.UpdatedAt
+                """,
+                entryParameters),
+            new LibsqlStatement(
+                """
+                SELECT Project, Environment, Key, Value, ContentType, Scope, ActiveVersion, CreatedAt, UpdatedAt
+                FROM ConfigEntries
+                WHERE Project = @Project COLLATE NOCASE
+                  AND Environment = @Environment COLLATE NOCASE
+                  AND Key = @Key COLLATE NOCASE
+                LIMIT 1
+                """,
+                keyParameters)
+        ];
     }
 }
