@@ -8,7 +8,69 @@ namespace Nona.Infrastructure.Tests;
 public class LibsqlConfigEntryRepositoryTests
 {
     [Test]
-    public async Task AddVersionAsync_ReturnsWrittenProjectionFromWriteBatch_WhenReadReplicaIsStale()
+    public async Task AddVersionAsync_LocalLibsqlFile_AppendsHistoryAndServesLatestActiveValue()
+    {
+        var databasePath = Path.Combine(Path.GetTempPath(), $"nona-config-entry-versions-{Guid.NewGuid():N}.db");
+
+        try
+        {
+            using var client = new NelknetLibsqlDatabaseClient($"Data Source={databasePath}");
+            var migrations = new LibsqlMigrationRunner(client, ResolveMigrationsFolder());
+            await migrations.RunMigrationsAsync();
+
+            var repository = new LibsqlConfigEntryRepository(client);
+            var createdAt = new DateTime(2026, 6, 21, 10, 0, 0, DateTimeKind.Utc);
+            var updatedAt = new DateTime(2026, 6, 22, 10, 0, 0, DateTimeKind.Utc);
+
+            await repository.AddVersionAsync(new ConfigEntry
+            {
+                Project = "test-project",
+                Environment = "production",
+                Key = "feature.enabled",
+                Value = "false",
+                ContentType = "boolean",
+                Scope = KeyScope.Frontend,
+                CreatedAt = createdAt,
+                UpdatedAt = createdAt
+            }, "alice");
+
+            var updated = await repository.AddVersionAsync(new ConfigEntry
+            {
+                Project = "test-project",
+                Environment = "production",
+                Key = "feature.enabled",
+                Value = "true",
+                ContentType = "boolean",
+                Scope = KeyScope.Frontend,
+                CreatedAt = createdAt,
+                UpdatedAt = updatedAt
+            }, "bob");
+
+            var current = await repository.GetAsync("test-project", "production", "feature.enabled");
+            var versions = await repository.ListVersionsAsync("test-project", "production", "feature.enabled");
+
+            await Assert.That(updated).IsNotNull();
+            await Assert.That(updated!.Value).IsEqualTo("true");
+            await Assert.That(updated.ActiveVersion).IsEqualTo(2);
+            await Assert.That(current).IsNotNull();
+            await Assert.That(current!.Value).IsEqualTo("true");
+            await Assert.That(current.ActiveVersion).IsEqualTo(2);
+            await Assert.That(versions).Count().IsEqualTo(2);
+            await Assert.That(versions[0].Version).IsEqualTo(2);
+            await Assert.That(versions[0].Value).IsEqualTo("true");
+            await Assert.That(versions[0].Actor).IsEqualTo("bob");
+            await Assert.That(versions[1].Version).IsEqualTo(1);
+            await Assert.That(versions[1].Value).IsEqualTo("false");
+            await Assert.That(versions[1].Actor).IsEqualTo("alice");
+        }
+        finally
+        {
+            TryDelete(databasePath);
+        }
+    }
+
+    [Test]
+    public async Task AddVersionAsync_ReturnsWrittenProjectionFromWriteBatch()
     {
         var client = new StaleReadLibsqlClient();
         var repository = new LibsqlConfigEntryRepository(client);
@@ -94,6 +156,42 @@ public class LibsqlConfigEntryRepositoryTests
                 ["CreatedAt"] = "2026-06-21T10:00:00.0000000Z",
                 ["UpdatedAt"] = updatedAt
             });
+        }
+    }
+
+    private static string ResolveMigrationsFolder()
+    {
+        var outputFolder = Path.Combine(AppContext.BaseDirectory, "Migrations");
+        if (Directory.Exists(outputFolder))
+        {
+            return outputFolder;
+        }
+
+        return Path.GetFullPath(Path.Combine(
+            AppContext.BaseDirectory,
+            "..",
+            "..",
+            "..",
+            "..",
+            "..",
+            "..",
+            "core",
+            "src",
+            "Infrastructure",
+            "Migrations"));
+    }
+
+    private static void TryDelete(string databasePath)
+    {
+        try
+        {
+            if (File.Exists(databasePath))
+            {
+                File.Delete(databasePath);
+            }
+        }
+        catch
+        {
         }
     }
 }
