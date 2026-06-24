@@ -21,6 +21,7 @@ Nona gives you the same feature flag and remote config capabilities as Firebase 
 
 ## Table of Contents
 
+- [Why We Open Sourced Nona](#why-we-open-sourced-nona)
 - [Why Nona](#why-nona)
 - [Quick Start](#quick-start)
 - [Client Libraries](#client-libraries)
@@ -29,6 +30,14 @@ Nona gives you the same feature flag and remote config capabilities as Firebase 
 - [Migrate from Firebase Remote Config](#migrate-from-firebase-remote-config)
 - [Performance](#performance)
 - [Architecture](#architecture)
+
+---
+
+## Why We Open Sourced Nona
+
+Remote configuration is too often bundled with platform lock-in. We wanted teams to be able to change application behavior quickly without giving up control of their own infrastructure, data ownership, or platform choice.
+
+Nona is our attempt to keep this part of the stack small and understandable: one Docker image, one HTTP API, official clients where they help, and a real migration path away from Firebase Remote Config. The longer story is here: [Why we open sourced Nona](https://nonaconfig.com/why-we-open-sourced-nona).
 
 ---
 
