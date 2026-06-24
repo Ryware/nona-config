@@ -23,7 +23,7 @@ internal static class Program
 
         var root = new RootCommand("Nona CLI for key management and Firebase Remote Config migrations.");
 
-        foreach (var type in Assembly.GetExecutingAssembly().GetTypes()
+        foreach (var type in System.Reflection.Assembly.GetExecutingAssembly().GetTypes()
             .Where(t => t.IsClass && !t.IsAbstract && typeof(ICliCommandGroup).IsAssignableFrom(t)))
         {
             var group = (ICliCommandGroup)Activator.CreateInstance(type, ctx)!;
