@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Options;
-using System.Diagnostics;
 using System.Globalization;
 using System.Net.Http.Headers;
 using System.Text;
@@ -10,10 +9,7 @@ namespace Nona.Libsql;
 
 public sealed partial class NelknetLibsqlDatabaseClient : ILibsqlDatabaseClient, IDisposable
 {
-    private readonly LibsqlOptions _options;
-    private readonly bool _useHttp;
-    private readonly HttpClient? _httpClient;
-    private readonly SemaphoreSlim _gate = new(1, 1);
+    private readonly HttpClient _httpClient;
     private bool _disposed;
 
     public NelknetLibsqlDatabaseClient(IOptions<LibsqlOptions> options)
@@ -34,31 +30,30 @@ public sealed partial class NelknetLibsqlDatabaseClient : ILibsqlDatabaseClient,
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(options.DataSource);
 
-        _options = options;
-        _useHttp = IsHttpDataSource(options.DataSource);
-
-        if (options.EnableLocalReplica && !string.IsNullOrWhiteSpace(options.LocalReplicaPath))
+        if (options.EnableLocalReplica)
         {
-            var directory = Path.GetDirectoryName(ResolveLocalPath(options.LocalReplicaPath));
-            if (!string.IsNullOrWhiteSpace(directory))
-            {
-                Directory.CreateDirectory(directory);
-            }
+            throw new NotSupportedException(
+                "Storage:Libsql:EnableLocalReplica is not supported by the AOT libSQL client. " +
+                "Use a managed sqld replica with --primary-grpc-url instead.");
         }
 
-        if (_useHttp)
+        if (!IsHttpDataSource(options.DataSource))
         {
-            _httpClient = new HttpClient
-            {
-                BaseAddress = new Uri(NormalizeHttpDataSource(options.DataSource)),
-                Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds)
-            };
+            throw new NotSupportedException(
+                "Nona requires a sqld/libSQL HTTP data source. Configure Storage:Libsql:ManagedPrimary:Enabled=true " +
+                "or set ConnectionStrings:Libsql / Storage:Libsql:DataSource to http(s):// or libsql://.");
+        }
 
-            if (!string.IsNullOrWhiteSpace(options.AuthToken))
-            {
-                _httpClient.DefaultRequestHeaders.Authorization =
-                    new AuthenticationHeaderValue("Bearer", options.AuthToken);
-            }
+        _httpClient = new HttpClient
+        {
+            BaseAddress = new Uri(NormalizeHttpDataSource(options.DataSource)),
+            Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds)
+        };
+
+        if (!string.IsNullOrWhiteSpace(options.AuthToken))
+        {
+            _httpClient.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", options.AuthToken);
         }
     }
 
@@ -67,13 +62,8 @@ public sealed partial class NelknetLibsqlDatabaseClient : ILibsqlDatabaseClient,
         ArgumentException.ThrowIfNullOrWhiteSpace(sql);
 
         var statement = new LibsqlStatement(sql, parameters);
-        if (_useHttp)
-        {
-            var results = await ExecuteHttpStatementsAsync([statement], useTransaction: false, ct);
-            return results[0];
-        }
-
-        return await ExecuteSqliteAsync(statement, ct);
+        var results = await ExecuteHttpStatementsAsync([statement], useTransaction: false, ct);
+        return results[0];
     }
 
     public async Task<IReadOnlyList<LibsqlQueryResult>> ExecuteBatchAsync(
@@ -88,9 +78,7 @@ public sealed partial class NelknetLibsqlDatabaseClient : ILibsqlDatabaseClient,
             return [];
         }
 
-        return _useHttp
-            ? await ExecuteHttpStatementsAsync(batch, useTransaction: true, ct)
-            : await ExecuteSqliteBatchAsync(batch, ct);
+        return await ExecuteHttpStatementsAsync(batch, useTransaction: true, ct);
     }
 
     public void Dispose()
@@ -101,222 +89,7 @@ public sealed partial class NelknetLibsqlDatabaseClient : ILibsqlDatabaseClient,
         }
 
         _disposed = true;
-        _httpClient?.Dispose();
-        _gate.Dispose();
-    }
-
-    private async Task<LibsqlQueryResult> ExecuteSqliteAsync(LibsqlStatement statement, CancellationToken ct)
-    {
-        var results = await ExecuteSqliteScriptAsync([statement], useTransaction: false, ct);
-        return results[0];
-    }
-
-    private async Task<IReadOnlyList<LibsqlQueryResult>> ExecuteSqliteBatchAsync(
-        IReadOnlyList<LibsqlStatement> statements,
-        CancellationToken ct)
-    {
-        return await ExecuteSqliteScriptAsync(statements, useTransaction: true, ct);
-    }
-
-    private async Task<IReadOnlyList<LibsqlQueryResult>> ExecuteSqliteScriptAsync(
-        IReadOnlyList<LibsqlStatement> statements,
-        bool useTransaction,
-        CancellationToken ct)
-    {
-        await _gate.WaitAsync(ct);
-        var dataSource = _options.EnableLocalReplica && !string.IsNullOrWhiteSpace(_options.LocalReplicaPath)
-            ? _options.LocalReplicaPath
-            : _options.DataSource;
-        var databasePath = ResolveSqliteCliDatabasePath(dataSource);
-        var script = BuildSqliteScript(statements, useTransaction);
-        var startInfo = new ProcessStartInfo
-        {
-            FileName = "sqlite3",
-            RedirectStandardInput = true,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false
-        };
-        startInfo.ArgumentList.Add(databasePath);
-
-        try
-        {
-            using var process = Process.Start(startInfo)
-                ?? throw new LibsqlException("Failed to start sqlite3 process.");
-            await process.StandardInput.WriteAsync(script.AsMemory(), ct);
-            process.StandardInput.Close();
-
-            var stdoutTask = process.StandardOutput.ReadToEndAsync(ct);
-            var stderrTask = process.StandardError.ReadToEndAsync(ct);
-
-            await process.WaitForExitAsync(ct);
-            var stdout = await stdoutTask;
-            var stderr = await stderrTask;
-
-            if (process.ExitCode != 0)
-            {
-                throw new LibsqlException($"sqlite3 execution failed: {stderr}");
-            }
-
-            return ParseSqliteOutput(stdout, statements);
-        }
-        catch (Exception ex) when (ex is not LibsqlException and not OperationCanceledException)
-        {
-            throw new LibsqlException($"SQLite execution failed: {ex.Message}", ex);
-        }
-        finally
-        {
-            _gate.Release();
-        }
-    }
-
-    private static string BuildSqliteScript(IReadOnlyList<LibsqlStatement> statements, bool useTransaction)
-    {
-        var script = new StringBuilder();
-        script.AppendLine(".bail on");
-        script.AppendLine(".mode json");
-        if (useTransaction)
-        {
-            script.AppendLine("BEGIN IMMEDIATE;");
-        }
-
-        for (var i = 0; i < statements.Count; i++)
-        {
-            var statement = statements[i];
-            script.AppendLine($".print __nona_result_{i}__");
-            script.AppendLine(EnsureSqlTerminated(LibsqlCommandHelpers.InlineParameters(statement.Sql, statement.Parameters)));
-            if (!LibsqlCommandHelpers.ReturnsRows(statement.Sql))
-            {
-                script.AppendLine($"SELECT changes() AS __affected_row_count_{i}, last_insert_rowid() AS __last_insert_rowid_{i};");
-            }
-        }
-
-        if (useTransaction)
-        {
-            script.AppendLine("COMMIT;");
-        }
-
-        return script.ToString();
-    }
-
-    private static IReadOnlyList<LibsqlQueryResult> ParseSqliteOutput(string output, IReadOnlyList<LibsqlStatement> statements)
-    {
-        var chunks = SplitSqliteOutput(output);
-        var results = new List<LibsqlQueryResult>(statements.Count);
-
-        for (var i = 0; i < statements.Count; i++)
-        {
-            if (!chunks.TryGetValue(i, out var chunk) || string.IsNullOrWhiteSpace(chunk))
-            {
-                results.Add(new LibsqlQueryResult([], 0, null));
-                continue;
-            }
-
-            if (LibsqlCommandHelpers.ReturnsRows(statements[i].Sql))
-            {
-                results.Add(ParseSqliteRows(chunk));
-                continue;
-            }
-
-            using var document = JsonDocument.Parse(chunk);
-            var row = document.RootElement.EnumerateArray().FirstOrDefault();
-            var affectedRowCount = row.ValueKind == JsonValueKind.Object
-                ? row.GetProperty($"__affected_row_count_{i}").GetInt32()
-                : 0;
-            var lastInsertRowId = row.ValueKind == JsonValueKind.Object
-                && row.TryGetProperty($"__last_insert_rowid_{i}", out var rowIdElement)
-                && rowIdElement.TryGetInt64(out var rowId)
-                    ? rowId
-                    : (long?)null;
-            results.Add(new LibsqlQueryResult([], affectedRowCount, lastInsertRowId));
-        }
-
-        return results;
-    }
-
-    private static IReadOnlyDictionary<int, string> SplitSqliteOutput(string output)
-    {
-        var chunks = new Dictionary<int, StringBuilder>();
-        var currentIndex = -1;
-
-        foreach (var rawLine in output.Split('\n'))
-        {
-            var line = rawLine.TrimEnd('\r');
-            if (line.StartsWith("__nona_result_", StringComparison.Ordinal)
-                && line.EndsWith("__", StringComparison.Ordinal)
-                && int.TryParse(
-                    line["__nona_result_".Length..^2],
-                    NumberStyles.Integer,
-                    CultureInfo.InvariantCulture,
-                    out var parsedIndex))
-            {
-                currentIndex = parsedIndex;
-                chunks[currentIndex] = new StringBuilder();
-                continue;
-            }
-
-            if (currentIndex >= 0)
-            {
-                chunks[currentIndex].AppendLine(line);
-            }
-        }
-
-        return chunks.ToDictionary(
-            pair => pair.Key,
-            pair => pair.Value.ToString().Trim(),
-            EqualityComparer<int>.Default);
-    }
-
-    private static LibsqlQueryResult ParseSqliteRows(string json)
-    {
-        using var document = JsonDocument.Parse(json);
-        var rows = new List<LibsqlRow>();
-        List<string>? columns = null;
-
-        foreach (var element in document.RootElement.EnumerateArray())
-        {
-            columns ??= element.EnumerateObject()
-                .Select(property => property.Name)
-                .ToList();
-            var values = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-            foreach (var property in element.EnumerateObject())
-            {
-                values[property.Name] = ReadJsonElementValue(property.Value);
-            }
-
-            rows.Add(new LibsqlRow(columns, values));
-        }
-
-        return new LibsqlQueryResult(rows, 0, null);
-    }
-
-    private static object? ReadJsonElementValue(JsonElement value)
-    {
-        return value.ValueKind switch
-        {
-            JsonValueKind.Null => null,
-            JsonValueKind.String => value.GetString(),
-            JsonValueKind.Number when value.TryGetInt64(out var longValue) => longValue,
-            JsonValueKind.Number => value.GetDouble(),
-            JsonValueKind.True => true,
-            JsonValueKind.False => false,
-            _ => value.GetRawText()
-        };
-    }
-
-    private static string EnsureSqlTerminated(string sql)
-    {
-        var trimmed = sql.TrimEnd();
-        return trimmed.EndsWith(';') ? trimmed : $"{trimmed};";
-    }
-
-    private static string ResolveSqliteCliDatabasePath(string dataSource)
-    {
-        const string dataSourcePrefix = "Data Source=";
-        var path = dataSource.StartsWith(dataSourcePrefix, StringComparison.OrdinalIgnoreCase)
-            ? dataSource[dataSourcePrefix.Length..]
-            : dataSource;
-        return ResolveLocalPath(path.Trim());
+        _httpClient.Dispose();
     }
 
     private async Task<IReadOnlyList<LibsqlQueryResult>> ExecuteHttpStatementsAsync(
@@ -473,12 +246,6 @@ public sealed partial class NelknetLibsqlDatabaseClient : ILibsqlDatabaseClient,
         return trimmed.StartsWith("libsql://", StringComparison.OrdinalIgnoreCase)
             ? $"https://{trimmed["libsql://".Length..]}"
             : trimmed;
-    }
-
-    private static string ResolveLocalPath(string path)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        return Path.IsPathRooted(path) ? path : Path.GetFullPath(path);
     }
 
     private sealed record HranaPipelineRequest(

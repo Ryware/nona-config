@@ -75,78 +75,28 @@ public class LibsqlRemoteIntegrationTests
     }
 
     [Test]
-    public async Task RemoteLibsql_EmbeddedReplica_ObservesRemoteWrites_WhenCredentialsProvided()
+    public async Task RemoteLibsql_LocalReplicaOption_IsRejected()
     {
-        var (url, authToken) = GetRemoteCredentials();
-        if (string.IsNullOrWhiteSpace(url) || string.IsNullOrWhiteSpace(authToken))
-        {
-            return;
-        }
-
-        var replicaPath = Path.Combine(Path.GetTempPath(), $"nona-libsql-embedded-{Guid.NewGuid():N}.db");
-        using var directClient = CreateDirectClient(url, authToken);
-        using var replicaClient = new NelknetLibsqlDatabaseClient(Options.Create(new LibsqlOptions
-        {
-            DataSource = url,
-            AuthToken = authToken ?? string.Empty,
-            EnableLocalReplica = true,
-            LocalReplicaPath = replicaPath,
-            LocalReplicaSyncIntervalSeconds = 0.2,
-            TimeoutSeconds = 30
-        }));
-
-        var id = Guid.NewGuid().ToString("N")[..16];
-        await EnsureSmokeTableAsync(directClient);
-
+        Exception? exception = null;
         try
         {
-            await directClient.ExecuteAsync(
-                $"INSERT INTO {WrapperSmokeTable} (Id, Value, UpdatedAt) VALUES (@Id, @Value, @UpdatedAt)",
-                LibsqlParameters.Create(
-                    ("Id", id),
-                    ("Value", "embedded-value"),
-                    ("UpdatedAt", DateTime.UtcNow.ToString("O"))));
-
-            var deadline = DateTime.UtcNow.AddSeconds(10);
-            while (DateTime.UtcNow < deadline)
+            using var _ = new NelknetLibsqlDatabaseClient(Options.Create(new LibsqlOptions
             {
-                var stored = await replicaClient.ExecuteAsync(
-                    $"SELECT Value FROM {WrapperSmokeTable} WHERE Id = @Id",
-                    LibsqlParameters.Create(("Id", id)));
-
-                if (stored.Rows.Count == 1 && stored.Rows[0].GetString("Value") == "embedded-value")
-                {
-                    return;
-                }
-
-                await Task.Delay(200);
-            }
-
-            throw new TimeoutException("Embedded replica did not observe remote write before deadline.");
+                DataSource = "http://primary.test",
+                EnableLocalReplica = true,
+                LocalReplicaPath = Path.Combine(Path.GetTempPath(), $"nona-libsql-embedded-{Guid.NewGuid():N}.db"),
+                LocalReplicaSyncIntervalSeconds = 0.2,
+                TimeoutSeconds = 30
+            }));
         }
-        finally
+        catch (Exception ex)
         {
-            try
-            {
-                await directClient.ExecuteAsync(
-                    $"DELETE FROM {WrapperSmokeTable} WHERE Id = @Id",
-                    LibsqlParameters.Create(("Id", id)));
-            }
-            catch
-            {
-            }
-
-            try
-            {
-                if (File.Exists(replicaPath))
-                {
-                    File.Delete(replicaPath);
-                }
-            }
-            catch
-            {
-            }
+            exception = ex;
         }
+
+        await Assert.That(exception).IsNotNull();
+        await Assert.That(exception).IsTypeOf<NotSupportedException>();
+        await Assert.That(exception!.Message.Contains("managed sqld replica", StringComparison.Ordinal)).IsTrue();
     }
 
     [Test]

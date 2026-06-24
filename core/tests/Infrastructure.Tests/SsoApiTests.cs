@@ -28,6 +28,13 @@ public class SsoApiTests
         await using var jwksServer = await LocalJwksServer.StartAsync(signingKey.CreateJwksDocument());
 
         var port = GetFreeTcpPort();
+        var libsqlPort = GetFreeTcpPort();
+        while (libsqlPort == port)
+        {
+            libsqlPort = GetFreeTcpPort();
+        }
+
+        var libsqlUrl = $"http://127.0.0.1:{libsqlPort}";
         var databasePath = Path.Combine(artifactsRoot, "nona-sso-api.db");
 
         try
@@ -50,8 +57,12 @@ public class SsoApiTests
                     ["ASPNETCORE_ENVIRONMENT"] = "Development",
                     ["ASPNETCORE_URLS"] = $"http://127.0.0.1:{port}",
                     ["Storage__Type"] = "Libsql",
-                    ["ConnectionStrings__Libsql"] = databasePath,
-                    ["Storage__Libsql__ManagedPrimary__Enabled"] = "false",
+                    ["Storage__Libsql__ManagedPrimary__Enabled"] = "true",
+                    ["Storage__Libsql__ManagedPrimary__ExecutablePath"] = "sqld",
+                    ["Storage__Libsql__ManagedPrimary__DatabasePath"] = databasePath,
+                    ["Storage__Libsql__ManagedPrimary__WorkingDirectory"] = artifactsRoot,
+                    ["Storage__Libsql__ManagedPrimary__HttpListenAddress"] = $"127.0.0.1:{libsqlPort}",
+                    ["Storage__Libsql__ManagedPrimary__LocalConnectUrl"] = libsqlUrl,
                     ["Jwt__Key"] = "sso-api-tests-signing-key-1234567890",
                     ["Jwt__Issuer"] = "sso-api-tests",
                     ["Jwt__Audience"] = "sso-api-tests",
@@ -116,7 +127,7 @@ public class SsoApiTests
                 await Assert.That(googleLogin.RootElement.GetProperty("token").GetString()).IsNotNull();
             }
 
-            await Assert.That(await CountExternalIdentitiesAsync(databasePath)).IsEqualTo(1);
+            await Assert.That(await CountExternalIdentitiesAsync(libsqlUrl)).IsEqualTo(1);
 
             using (var googleRelogin = await SendJsonAsync(
                 httpClient,
@@ -127,7 +138,7 @@ public class SsoApiTests
                 await Assert.That(googleRelogin.RootElement.GetProperty("token").GetString()).IsNotNull();
             }
 
-            await Assert.That(await CountExternalIdentitiesAsync(databasePath)).IsEqualTo(1);
+            await Assert.That(await CountExternalIdentitiesAsync(libsqlUrl)).IsEqualTo(1);
 
             var microsoftToken = signingKey.CreateToken(
                 issuer: "https://login.microsoftonline.com/allowed-tenant/v2.0",
@@ -149,7 +160,7 @@ public class SsoApiTests
                 await Assert.That(microsoftLogin.RootElement.GetProperty("token").GetString()).IsNotNull();
             }
 
-            await Assert.That(await CountExternalIdentitiesAsync(databasePath)).IsEqualTo(2);
+            await Assert.That(await CountExternalIdentitiesAsync(libsqlUrl)).IsEqualTo(2);
 
             var mismatchedGoogleToken = signingKey.CreateToken(
                 issuer: "https://accounts.google.com",
@@ -241,6 +252,13 @@ public class SsoApiTests
         await using var jwksServer = await LocalJwksServer.StartAsync(signingKey.CreateJwksDocument());
 
         var port = GetFreeTcpPort();
+        var libsqlPort = GetFreeTcpPort();
+        while (libsqlPort == port)
+        {
+            libsqlPort = GetFreeTcpPort();
+        }
+
+        var libsqlUrl = $"http://127.0.0.1:{libsqlPort}";
         var databasePath = Path.Combine(artifactsRoot, "nona-invite-api.db");
 
         try
@@ -263,8 +281,12 @@ public class SsoApiTests
                     ["ASPNETCORE_ENVIRONMENT"] = "Development",
                     ["ASPNETCORE_URLS"] = $"http://127.0.0.1:{port}",
                     ["Storage__Type"] = "Libsql",
-                    ["ConnectionStrings__Libsql"] = databasePath,
-                    ["Storage__Libsql__ManagedPrimary__Enabled"] = "false",
+                    ["Storage__Libsql__ManagedPrimary__Enabled"] = "true",
+                    ["Storage__Libsql__ManagedPrimary__ExecutablePath"] = "sqld",
+                    ["Storage__Libsql__ManagedPrimary__DatabasePath"] = databasePath,
+                    ["Storage__Libsql__ManagedPrimary__WorkingDirectory"] = artifactsRoot,
+                    ["Storage__Libsql__ManagedPrimary__HttpListenAddress"] = $"127.0.0.1:{libsqlPort}",
+                    ["Storage__Libsql__ManagedPrimary__LocalConnectUrl"] = libsqlUrl,
                     ["Jwt__Key"] = "invite-api-tests-signing-key-1234567890",
                     ["Jwt__Issuer"] = "invite-api-tests",
                     ["Jwt__Audience"] = "invite-api-tests",
@@ -620,9 +642,9 @@ public class SsoApiTests
         return await JsonDocument.ParseAsync(stream);
     }
 
-    private static async Task<int> CountExternalIdentitiesAsync(string databasePath)
+    private static async Task<int> CountExternalIdentitiesAsync(string libsqlUrl)
     {
-        using var client = new NelknetLibsqlDatabaseClient($"Data Source={databasePath}");
+        using var client = new NelknetLibsqlDatabaseClient(libsqlUrl);
         var result = await client.ExecuteAsync("SELECT COUNT(*) AS Count FROM ExternalIdentities");
         return result.Rows[0].GetInt32("Count");
     }

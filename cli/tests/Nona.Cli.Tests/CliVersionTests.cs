@@ -1,5 +1,6 @@
 namespace Nona.Cli.Tests;
 
+[NotInParallel]
 public sealed class CliVersionTests
 {
     [Test]

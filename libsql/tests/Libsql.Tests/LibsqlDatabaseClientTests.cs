@@ -1,147 +1,124 @@
+using Microsoft.Extensions.Options;
+using Nona.Libsql.Tests.Common;
+
 namespace Nona.Libsql.Tests;
 
 public class LibsqlDatabaseClientTests
 {
     [Test]
-    public async Task Constructor_CreatesLocalReplicaDirectory_WhenEmbeddedReplicaEnabled()
+    public async Task Constructor_RejectsLocalReplicaOption()
     {
-        var root = Path.Combine(Path.GetTempPath(), $"nona-libsql-replica-dir-{Guid.NewGuid():N}");
-        var replicaPath = Path.Combine(root, "nested", "replica.db");
-
+        Exception? exception = null;
         try
         {
-            using var client = new NelknetLibsqlDatabaseClient(Microsoft.Extensions.Options.Options.Create(new LibsqlOptions
+            using var _ = new NelknetLibsqlDatabaseClient(Options.Create(new LibsqlOptions
             {
                 DataSource = "http://primary.test",
-                AuthToken = "token",
                 EnableLocalReplica = true,
-                LocalReplicaPath = replicaPath,
-                LocalReplicaSyncIntervalSeconds = 1,
                 TimeoutSeconds = 30
             }));
-
-            await Assert.That(Directory.Exists(Path.GetDirectoryName(replicaPath))).IsTrue();
         }
-        finally
+        catch (Exception ex)
         {
-            if (Directory.Exists(root))
-            {
-                Directory.Delete(root, recursive: true);
-            }
+            exception = ex;
         }
+
+        await Assert.That(exception).IsNotNull();
+        await Assert.That(exception).IsTypeOf<NotSupportedException>();
+        await Assert.That(exception!.Message.Contains("managed sqld replica", StringComparison.Ordinal)).IsTrue();
     }
 
     [Test]
-    public async Task ExecuteAsync_PersistsAndReadsRows_AgainstLocalFile()
+    public async Task Constructor_RejectsFilePathDataSource()
     {
-        var databasePath = Path.Combine(Path.GetTempPath(), $"nona-libsql-local-{Guid.NewGuid():N}.db");
-
+        Exception? exception = null;
         try
         {
-            using var client = new NelknetLibsqlDatabaseClient($"Data Source={databasePath}");
-
-            await client.ExecuteAsync(
-                """
-                CREATE TABLE SampleItems (
-                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    Name TEXT NOT NULL
-                )
-                """);
-
-            var insert = await client.ExecuteAsync(
-                "INSERT INTO SampleItems (Name) VALUES (@Name)",
-                LibsqlParameters.Create(("Name", "alpha")));
-
-            var read = await client.ExecuteAsync(
-                "SELECT Id, Name FROM SampleItems WHERE Id = @Id",
-                LibsqlParameters.Create(("Id", insert.LastInsertRowId)));
-
-            await Assert.That(insert.LastInsertRowId).IsNotNull();
-            await Assert.That(read.Rows.Count).IsEqualTo(1);
-            await Assert.That(read.Rows[0].GetString("Name")).IsEqualTo("alpha");
+            using var _ = new NelknetLibsqlDatabaseClient($"Data Source={Path.Combine(Path.GetTempPath(), "nona.db")}");
         }
-        finally
+        catch (Exception ex)
         {
-            TryDelete(databasePath);
+            exception = ex;
         }
+
+        await Assert.That(exception).IsNotNull();
+        await Assert.That(exception).IsTypeOf<NotSupportedException>();
+        await Assert.That(exception!.Message.Contains("sqld/libSQL HTTP data source", StringComparison.Ordinal)).IsTrue();
     }
 
     [Test]
-    public async Task ExecuteAsync_InsertsNullParameters_AgainstLocalFile()
+    public async Task ExecuteAsync_PersistsAndReadsRows_AgainstSqld()
     {
-        var databasePath = Path.Combine(Path.GetTempPath(), $"nona-libsql-null-{Guid.NewGuid():N}.db");
+        await using var server = await LocalSqldTestServer.StartAsync();
+        using var client = server.CreateClient();
 
-        try
-        {
-            using var client = new NelknetLibsqlDatabaseClient($"Data Source={databasePath}");
+        await client.ExecuteAsync(
+            """
+            CREATE TABLE SampleItems (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                Name TEXT NOT NULL
+            )
+            """);
 
-            await client.ExecuteAsync(
-                """
-                CREATE TABLE NullableItems (
-                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    OptionalValue TEXT NULL
-                )
-                """);
+        var insert = await client.ExecuteAsync(
+            "INSERT INTO SampleItems (Name) VALUES (@Name)",
+            LibsqlParameters.Create(("Name", "alpha")));
 
-            await client.ExecuteAsync(
-                "INSERT INTO NullableItems (OptionalValue) VALUES (@OptionalValue)",
-                LibsqlParameters.Create(("OptionalValue", (string?)null)));
+        var read = await client.ExecuteAsync(
+            "SELECT Id, Name FROM SampleItems WHERE Id = @Id",
+            LibsqlParameters.Create(("Id", insert.LastInsertRowId)));
 
-            var read = await client.ExecuteAsync("SELECT COUNT(1) AS Count FROM NullableItems WHERE OptionalValue IS NULL");
+        await Assert.That(insert.LastInsertRowId).IsNotNull();
+        await Assert.That(read.Rows.Count).IsEqualTo(1);
+        await Assert.That(read.Rows[0].GetString("Name")).IsEqualTo("alpha");
+    }
 
-            await Assert.That(read.Rows[0].GetInt32("Count")).IsEqualTo(1);
-        }
-        finally
-        {
-            TryDelete(databasePath);
-        }
+    [Test]
+    public async Task ExecuteAsync_InsertsNullParameters_AgainstSqld()
+    {
+        await using var server = await LocalSqldTestServer.StartAsync();
+        using var client = server.CreateClient();
+
+        await client.ExecuteAsync(
+            """
+            CREATE TABLE NullableItems (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                OptionalValue TEXT NULL
+            )
+            """);
+
+        await client.ExecuteAsync(
+            "INSERT INTO NullableItems (OptionalValue) VALUES (@OptionalValue)",
+            LibsqlParameters.Create(("OptionalValue", (string?)null)));
+
+        var read = await client.ExecuteAsync("SELECT COUNT(1) AS Count FROM NullableItems WHERE OptionalValue IS NULL");
+
+        await Assert.That(read.Rows[0].GetInt32("Count")).IsEqualTo(1);
     }
 
     [Test]
     public async Task ExecuteBatchAsync_RunsStatementsInsideSingleClient()
     {
-        var databasePath = Path.Combine(Path.GetTempPath(), $"nona-libsql-batch-{Guid.NewGuid():N}.db");
+        await using var server = await LocalSqldTestServer.StartAsync();
+        using var client = server.CreateClient();
 
-        try
-        {
-            using var client = new NelknetLibsqlDatabaseClient($"Data Source={databasePath}");
+        var results = await client.ExecuteBatchAsync(
+        [
+            new LibsqlStatement(
+                """
+                CREATE TABLE BatchItems (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    Name TEXT NOT NULL
+                )
+                """),
+            new LibsqlStatement("INSERT INTO BatchItems (Name) VALUES (@Name)", LibsqlParameters.Create(("Name", "one"))),
+            new LibsqlStatement("INSERT INTO BatchItems (Name) VALUES (@Name)", LibsqlParameters.Create(("Name", "two"))),
+            new LibsqlStatement("SELECT COUNT(1) AS Count FROM BatchItems")
+        ]);
 
-            var results = await client.ExecuteBatchAsync(
-            [
-                new LibsqlStatement(
-                    """
-                    CREATE TABLE BatchItems (
-                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        Name TEXT NOT NULL
-                    )
-                    """),
-                new LibsqlStatement("INSERT INTO BatchItems (Name) VALUES (@Name)", LibsqlParameters.Create(("Name", "one"))),
-                new LibsqlStatement("INSERT INTO BatchItems (Name) VALUES (@Name)", LibsqlParameters.Create(("Name", "two"))),
-                new LibsqlStatement("SELECT COUNT(1) AS Count FROM BatchItems")
-            ]);
-
-            await Assert.That(results.Count).IsEqualTo(4);
-            await Assert.That(results[1].LastInsertRowId).IsNotNull();
-            await Assert.That(results[2].LastInsertRowId).IsNotNull();
-            await Assert.That(results[3].Rows[0].GetInt32("Count")).IsEqualTo(2);
-        }
-        finally
-        {
-            TryDelete(databasePath);
-        }
-    }
-
-    private static void TryDelete(string databasePath)
-    {
-        try
-        {
-            if (File.Exists(databasePath))
-            {
-                File.Delete(databasePath);
-            }
-        }
-        catch
-        {
-        }
+        await Assert.That(results.Count).IsEqualTo(4);
+        await Assert.That(results[1].LastInsertRowId).IsNotNull();
+        await Assert.That(results[2].LastInsertRowId).IsNotNull();
+        await Assert.That(results[3].Rows[0].GetInt32("Count")).IsEqualTo(2);
     }
 }

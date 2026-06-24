@@ -105,10 +105,13 @@ public static class ConfigureServices
             .Validate(
                 options => !string.IsNullOrWhiteSpace(options.DataSource),
                 "Storage:Libsql:DataSource or ConnectionStrings:Libsql must be configured.")
+            .Validate(
+                options => IsLibsqlHttpDataSource(options.DataSource),
+                "Nona requires a sqld/libSQL HTTP data source. Enable Storage:Libsql:ManagedPrimary or configure http(s):// / libsql://.")
             .Validate(options => options.TimeoutSeconds > 0, "Storage:Libsql:TimeoutSeconds must be greater than zero.")
             .Validate(
-                options => !options.ManagedPrimary.Enabled || !options.EnableLocalReplica,
-                "Storage:Libsql:ManagedPrimary:Enabled cannot be combined with Storage:Libsql:EnableLocalReplica.")
+                options => !options.EnableLocalReplica,
+                "Storage:Libsql:EnableLocalReplica is not supported. Use managed sqld replica options such as --primary-grpc-url.")
             .Validate(
                 options => !options.ManagedPrimary.Enabled || !string.IsNullOrWhiteSpace(options.ManagedPrimary.ExecutablePath),
                 "Storage:Libsql:ManagedPrimary:ExecutablePath must be configured when Storage:Libsql:ManagedPrimary:Enabled is true.")
@@ -121,12 +124,6 @@ public static class ConfigureServices
             .Validate(
                 options => !options.ManagedPrimary.Enabled || options.ManagedPrimary.StartTimeoutSeconds > 0,
                 "Storage:Libsql:ManagedPrimary:StartTimeoutSeconds must be greater than zero when Storage:Libsql:ManagedPrimary:Enabled is true.")
-            .Validate(
-                options => !options.EnableLocalReplica || !string.IsNullOrWhiteSpace(options.LocalReplicaPath),
-                "Storage:Libsql:LocalReplicaPath must be configured when Storage:Libsql:EnableLocalReplica is true.")
-            .Validate(
-                options => !options.EnableLocalReplica || options.LocalReplicaSyncIntervalSeconds > 0,
-                "Storage:Libsql:LocalReplicaSyncIntervalSeconds must be greater than zero when Storage:Libsql:EnableLocalReplica is true.")
             .ValidateOnStart();
 
         services.AddSingleton<NelknetLibsqlDatabaseClient>();
@@ -170,5 +167,12 @@ public static class ConfigureServices
         {
             options.Microsoft.Issuers = microsoftIssuers.ToList();
         }
+    }
+
+    private static bool IsLibsqlHttpDataSource(string dataSource)
+    {
+        return dataSource.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+            || dataSource.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
+            || dataSource.StartsWith("libsql://", StringComparison.OrdinalIgnoreCase);
     }
 }
