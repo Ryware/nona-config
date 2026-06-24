@@ -15,6 +15,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WEBAPI_PROJECT="$SCRIPT_DIR/core/src/WebApi/WebApi.csproj"
+WEBAPI_PROJECT_DIR="$(dirname "$WEBAPI_PROJECT")"
 OPENAPI_DIR="${OPENAPI_DIR:-"$SCRIPT_DIR/obj/openapi"}"
 SPEC="${SPEC:-"$OPENAPI_DIR/WebApi.json"}"
 SERVER_URL="${SERVER_URL:-}"
@@ -122,9 +123,13 @@ fi
 if [[ "$BUILD_SPEC" == "1" ]]; then
   echo "Building OpenAPI spec from $WEBAPI_PROJECT..."
   mkdir -p "$OPENAPI_DIR"
+  rm -f "$SPEC" "$WEBAPI_PROJECT_DIR/obj/openapi/WebApi.json" "$WEBAPI_PROJECT_DIR"/obj/*.OpenApiFiles.cache
   Storage__Type=InMemory dotnet build "$WEBAPI_PROJECT" \
     /p:OpenApiGenerateDocuments=true \
     /p:OpenApiDocumentsDirectory="$OPENAPI_DIR"
+  if [[ ! -f "$SPEC" && -f "$WEBAPI_PROJECT_DIR/obj/openapi/WebApi.json" ]]; then
+    cp "$WEBAPI_PROJECT_DIR/obj/openapi/WebApi.json" "$SPEC"
+  fi
   require_file "$SPEC" "generated OpenAPI spec"
   echo "  -> $SPEC"
 elif [[ "$FETCH_SPEC" == "1" ]]; then
@@ -151,12 +156,24 @@ with open(spec_path, encoding="utf-8") as spec_file:
 
 schemas = spec.setdefault("components", {}).setdefault("schemas", {})
 
+schemas.setdefault(
+    "ProblemDetails",
+    {
+        "type": "object",
+        "properties": {
+            "type": {"type": "string", "nullable": True},
+            "title": {"type": "string", "nullable": True},
+            "status": {"type": "integer", "format": "int32", "nullable": True},
+            "detail": {"type": "string", "nullable": True},
+            "instance": {"type": "string", "nullable": True},
+        },
+        "additionalProperties": {},
+    },
+)
+
 config_entry = schemas.get("ConfigEntryDto")
 if config_entry is not None:
-    config_entry.setdefault("properties", {}).setdefault(
-        "activeVersion",
-        {"type": "integer", "format": "int32"},
-    )
+    config_entry.setdefault("properties", {})["activeVersion"] = {"type": "integer", "format": "int32"}
     required = config_entry.setdefault("required", [])
     if "activeVersion" not in required:
         insert_at = required.index("scope") + 1 if "scope" in required else len(required)
@@ -191,6 +208,9 @@ schemas.setdefault(
     },
 )
 
+config_entry_version = schemas["ConfigEntryVersionDto"]
+config_entry_version.setdefault("properties", {})["version"] = {"type": "integer", "format": "int32"}
+
 schemas.setdefault(
     "RollbackConfigEntryRequest",
     {
@@ -201,6 +221,9 @@ schemas.setdefault(
         },
     },
 )
+
+rollback_request = schemas["RollbackConfigEntryRequest"]
+rollback_request.setdefault("properties", {})["version"] = {"type": "integer", "format": "int32"}
 
 paths = spec.setdefault("paths", {})
 config_entry_path = "/admin/projects/{projectId}/environments/{environmentName}/config-entries/{key}"

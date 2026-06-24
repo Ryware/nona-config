@@ -1,17 +1,23 @@
 using Mediator;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Nona.Application.Admin.ApiKeys.Commands;
+using Nona.Application.Admin.ApiKeys.DTOs;
 using Nona.Application.Admin.ApiKeys.Queries;
+using Nona.Application.Admin.AuditLogs.DTOs;
 using Nona.Application.Admin.Common;
 using Nona.Application.Admin.ConfigEntries.Commands;
 using Nona.Application.Admin.ConfigEntries.DTOs;
 using Nona.Application.Admin.ConfigEntries.Queries;
+using Nona.Application.Admin.Dashboard.DTOs;
 using Nona.Application.Admin.Dashboard.Queries;
 using Nona.Application.Admin.Environments.Commands;
+using Nona.Application.Admin.Environments.DTOs;
 using Nona.Application.Admin.Environments.Queries;
 using Nona.Application.Admin.Projects.Commands;
+using Nona.Application.Admin.Projects.DTOs;
 using Nona.Application.Admin.Projects.Queries;
 using Nona.Application.Admin.Users.Commands;
+using Nona.Application.Admin.Users.DTOs;
 using Nona.Application.Admin.Users.Queries;
 using Nona.Application.Api.ConfigEntries.Queries;
 using Nona.Application.Auth;
@@ -38,33 +44,49 @@ public static class NonaEndpointRouteBuilderExtensions
 
     private static void MapAuthEndpoints(RouteGroupBuilder auth)
     {
-        auth.MapPost("/login", LoginAsync);
-        auth.MapGet("/sso/config", GetSsoConfiguration);
-        auth.MapPost("/sso/google", LoginWithGoogleAsync);
-        auth.MapPost("/sso/microsoft", LoginWithMicrosoftAsync);
-        auth.MapGet("/first-time", CheckIfAnyUsersExistAsync);
-        auth.MapPost("/register", RegisterAsync);
-        auth.MapPost("/forgot-password", RequestPasswordResetAsync);
-        auth.MapGet("/invitations/{token}", GetInvitationAsync);
-        auth.MapPost("/invitations/{token}/password", CompleteInvitationWithPasswordAsync);
-        auth.MapPost("/invitations/{token}/sso/{provider}", CompleteInvitationWithSsoAsync);
+        auth.MapPost("/login", LoginAsync)
+            .Produces<LoginResponse>();
+        auth.MapGet("/sso/config", GetSsoConfiguration)
+            .Produces<SsoPublicConfigResponse>();
+        auth.MapPost("/sso/google", LoginWithGoogleAsync)
+            .Produces<LoginResponse>();
+        auth.MapPost("/sso/microsoft", LoginWithMicrosoftAsync)
+            .Produces<LoginResponse>();
+        auth.MapGet("/first-time", CheckIfAnyUsersExistAsync)
+            .Produces<bool>();
+        auth.MapPost("/register", RegisterAsync)
+            .Produces<RegisterResult>();
+        auth.MapPost("/forgot-password", RequestPasswordResetAsync)
+            .Produces(StatusCodes.Status204NoContent);
+        auth.MapGet("/invitations/{token}", GetInvitationAsync)
+            .Produces<InvitationDetailsResponse>();
+        auth.MapPost("/invitations/{token}/password", CompleteInvitationWithPasswordAsync)
+            .Produces<LoginResponse>();
+        auth.MapPost("/invitations/{token}/sso/{provider}", CompleteInvitationWithSsoAsync)
+            .Produces<LoginResponse>();
     }
 
     private static void MapAdminEndpoints(RouteGroupBuilder admin)
     {
         var projects = admin.MapGroup("/projects");
-        projects.MapPost("/", CreateProjectAsync);
-        projects.MapGet("/", ListProjectsAsync);
+        projects.MapPost("/", CreateProjectAsync)
+            .Produces<ProjectDto>(StatusCodes.Status201Created);
+        projects.MapGet("/", ListProjectsAsync)
+            .Produces<IReadOnlyList<ProjectDto>>();
         projects.MapDelete("/{projectId}", DeleteProjectAsync);
 
         var environments = projects.MapGroup("/{projectId}/environments");
-        environments.MapPost("/", CreateEnvironmentAsync);
-        environments.MapGet("/", ListEnvironmentsAsync);
+        environments.MapPost("/", CreateEnvironmentAsync)
+            .Produces<EnvironmentDto>(StatusCodes.Status201Created);
+        environments.MapGet("/", ListEnvironmentsAsync)
+            .Produces<IReadOnlyList<EnvironmentDto>>();
         environments.MapDelete("/{environmentId}", DeleteEnvironmentAsync);
 
         var apiKeys = projects.MapGroup("/{projectId}/api-keys");
-        apiKeys.MapGet("/", ListApiKeysAsync);
-        apiKeys.MapPost("/", CreateApiKeyAsync);
+        apiKeys.MapGet("/", ListApiKeysAsync)
+            .Produces<IReadOnlyList<ApiKeyDto>>();
+        apiKeys.MapPost("/", CreateApiKeyAsync)
+            .Produces<ApiKeyDto>(StatusCodes.Status201Created);
         apiKeys.MapDelete("/{apiKeyId}", DeleteApiKeyAsync);
 
         var configEntries = projects.MapGroup("/{projectId}/environments/{environmentName}/config-entries");
@@ -90,17 +112,25 @@ public static class NonaEndpointRouteBuilderExtensions
             .Produces<ConfigEntryDto>();
 
         var users = admin.MapGroup("/users");
-        users.MapPost("/", CreateUserAsync);
-        users.MapGet("/", ListUsersAsync);
-        users.MapGet("/{id}", GetUserAsync);
-        users.MapPut("/{id}", UpdateUserAsync);
+        users.MapPost("/", CreateUserAsync)
+            .Produces<CreateUserResponse>(StatusCodes.Status201Created);
+        users.MapGet("/", ListUsersAsync)
+            .Produces<IReadOnlyList<UserDto>>();
+        users.MapGet("/{id}", GetUserAsync)
+            .Produces<UserDto>();
+        users.MapPut("/{id}", UpdateUserAsync)
+            .Produces<UserDto>();
         users.MapDelete("/{id}", DeleteUserAsync);
-        users.MapGet("/{id}/projects", GetUserProjectsAsync);
-        users.MapPut("/{id}/projects/{projectName}", SetProjectAccessAsync);
+        users.MapGet("/{id}/projects", GetUserProjectsAsync)
+            .Produces<IReadOnlyList<ProjectAccessDto>>();
+        users.MapPut("/{id}/projects/{projectName}", SetProjectAccessAsync)
+            .Produces<ProjectAccessDto>();
         users.MapDelete("/{id}/projects/{projectName}", RemoveProjectAccessAsync);
 
-        admin.MapGet("/audit-logs", ListAuditLogsAsync);
-        admin.MapGet("/dashboard/counts", GetDashboardCountsAsync);
+        admin.MapGet("/audit-logs", ListAuditLogsAsync)
+            .Produces<IReadOnlyList<AuditLogDto>>();
+        admin.MapGet("/dashboard/counts", GetDashboardCountsAsync)
+            .Produces<DashboardCountDto>();
     }
 
     private static void MapConfigApiEndpoints(RouteGroupBuilder api)

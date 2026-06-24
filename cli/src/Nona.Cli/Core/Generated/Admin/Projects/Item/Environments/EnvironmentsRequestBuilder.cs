@@ -49,7 +49,6 @@ namespace Nona.Cli.Generated.Admin.Projects.Item.Environments
         /// <returns>A List&lt;global::Nona.Cli.Generated.Models.EnvironmentDto&gt;</returns>
         /// <param name="cancellationToken">Cancellation token to use when cancelling requests</param>
         /// <param name="requestConfiguration">Configuration for the request such as headers, query parameters, and middleware options.</param>
-        /// <exception cref="global::Nona.Cli.Generated.Models.ProblemDetails">When receiving a 404 status code</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public async Task<List<global::Nona.Cli.Generated.Models.EnvironmentDto>?> GetAsync(Action<RequestConfiguration<DefaultQueryParameters>>? requestConfiguration = default, CancellationToken cancellationToken = default)
@@ -60,20 +59,13 @@ namespace Nona.Cli.Generated.Admin.Projects.Item.Environments
         {
 #endif
             var requestInfo = ToGetRequestInformation(requestConfiguration);
-            var errorMapping = new Dictionary<string, ParsableFactory<IParsable>>
-            {
-                { "404", global::Nona.Cli.Generated.Models.ProblemDetails.CreateFromDiscriminatorValue },
-            };
-            var collectionResult = await RequestAdapter.SendCollectionAsync<global::Nona.Cli.Generated.Models.EnvironmentDto>(requestInfo, global::Nona.Cli.Generated.Models.EnvironmentDto.CreateFromDiscriminatorValue, errorMapping, cancellationToken).ConfigureAwait(false);
+            var collectionResult = await RequestAdapter.SendCollectionAsync<global::Nona.Cli.Generated.Models.EnvironmentDto>(requestInfo, global::Nona.Cli.Generated.Models.EnvironmentDto.CreateFromDiscriminatorValue, default, cancellationToken).ConfigureAwait(false);
             return collectionResult?.AsList();
         }
         /// <returns>A <see cref="global::Nona.Cli.Generated.Models.EnvironmentDto"/></returns>
         /// <param name="body">The request body</param>
         /// <param name="cancellationToken">Cancellation token to use when cancelling requests</param>
         /// <param name="requestConfiguration">Configuration for the request such as headers, query parameters, and middleware options.</param>
-        /// <exception cref="global::Nona.Cli.Generated.Models.ProblemDetails">When receiving a 400 status code</exception>
-        /// <exception cref="global::Nona.Cli.Generated.Models.ProblemDetails">When receiving a 404 status code</exception>
-        /// <exception cref="global::Nona.Cli.Generated.Models.ProblemDetails">When receiving a 409 status code</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public async Task<global::Nona.Cli.Generated.Models.EnvironmentDto?> PostAsync(global::Nona.Cli.Generated.Models.CreateEnvironmentRequest body, Action<RequestConfiguration<DefaultQueryParameters>>? requestConfiguration = default, CancellationToken cancellationToken = default)
@@ -85,13 +77,7 @@ namespace Nona.Cli.Generated.Admin.Projects.Item.Environments
 #endif
             if(ReferenceEquals(body, null)) throw new ArgumentNullException(nameof(body));
             var requestInfo = ToPostRequestInformation(body, requestConfiguration);
-            var errorMapping = new Dictionary<string, ParsableFactory<IParsable>>
-            {
-                { "400", global::Nona.Cli.Generated.Models.ProblemDetails.CreateFromDiscriminatorValue },
-                { "404", global::Nona.Cli.Generated.Models.ProblemDetails.CreateFromDiscriminatorValue },
-                { "409", global::Nona.Cli.Generated.Models.ProblemDetails.CreateFromDiscriminatorValue },
-            };
-            return await RequestAdapter.SendAsync<global::Nona.Cli.Generated.Models.EnvironmentDto>(requestInfo, global::Nona.Cli.Generated.Models.EnvironmentDto.CreateFromDiscriminatorValue, errorMapping, cancellationToken).ConfigureAwait(false);
+            return await RequestAdapter.SendAsync<global::Nona.Cli.Generated.Models.EnvironmentDto>(requestInfo, global::Nona.Cli.Generated.Models.EnvironmentDto.CreateFromDiscriminatorValue, default, cancellationToken).ConfigureAwait(false);
         }
         /// <returns>A <see cref="RequestInformation"/></returns>
         /// <param name="requestConfiguration">Configuration for the request such as headers, query parameters, and middleware options.</param>
@@ -106,7 +92,7 @@ namespace Nona.Cli.Generated.Admin.Projects.Item.Environments
 #endif
             var requestInfo = new RequestInformation(Method.GET, UrlTemplate, PathParameters);
             requestInfo.Configure(requestConfiguration);
-            requestInfo.Headers.TryAdd("Accept", "text/plain;q=0.9");
+            requestInfo.Headers.TryAdd("Accept", "application/json");
             return requestInfo;
         }
         /// <returns>A <see cref="RequestInformation"/></returns>
@@ -124,7 +110,7 @@ namespace Nona.Cli.Generated.Admin.Projects.Item.Environments
             if(ReferenceEquals(body, null)) throw new ArgumentNullException(nameof(body));
             var requestInfo = new RequestInformation(Method.POST, UrlTemplate, PathParameters);
             requestInfo.Configure(requestConfiguration);
-            requestInfo.Headers.TryAdd("Accept", "application/json, text/plain;q=0.9");
+            requestInfo.Headers.TryAdd("Accept", "application/json");
             requestInfo.SetContentFromParsable(RequestAdapter, "application/json", body);
             return requestInfo;
         }

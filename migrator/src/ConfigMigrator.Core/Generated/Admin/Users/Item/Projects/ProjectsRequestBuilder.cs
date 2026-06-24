@@ -49,7 +49,6 @@ namespace Nona.Migrator.Core.Generated.Admin.Users.Item.Projects
         /// <returns>A List&lt;global::Nona.Migrator.Core.Generated.Models.ProjectAccessDto&gt;</returns>
         /// <param name="cancellationToken">Cancellation token to use when cancelling requests</param>
         /// <param name="requestConfiguration">Configuration for the request such as headers, query parameters, and middleware options.</param>
-        /// <exception cref="global::Nona.Migrator.Core.Generated.Models.ProblemDetails">When receiving a 404 status code</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public async Task<List<global::Nona.Migrator.Core.Generated.Models.ProjectAccessDto>?> GetAsync(Action<RequestConfiguration<DefaultQueryParameters>>? requestConfiguration = default, CancellationToken cancellationToken = default)
@@ -60,11 +59,7 @@ namespace Nona.Migrator.Core.Generated.Admin.Users.Item.Projects
         {
 #endif
             var requestInfo = ToGetRequestInformation(requestConfiguration);
-            var errorMapping = new Dictionary<string, ParsableFactory<IParsable>>
-            {
-                { "404", global::Nona.Migrator.Core.Generated.Models.ProblemDetails.CreateFromDiscriminatorValue },
-            };
-            var collectionResult = await RequestAdapter.SendCollectionAsync<global::Nona.Migrator.Core.Generated.Models.ProjectAccessDto>(requestInfo, global::Nona.Migrator.Core.Generated.Models.ProjectAccessDto.CreateFromDiscriminatorValue, errorMapping, cancellationToken).ConfigureAwait(false);
+            var collectionResult = await RequestAdapter.SendCollectionAsync<global::Nona.Migrator.Core.Generated.Models.ProjectAccessDto>(requestInfo, global::Nona.Migrator.Core.Generated.Models.ProjectAccessDto.CreateFromDiscriminatorValue, default, cancellationToken).ConfigureAwait(false);
             return collectionResult?.AsList();
         }
         /// <returns>A <see cref="RequestInformation"/></returns>
@@ -80,7 +75,7 @@ namespace Nona.Migrator.Core.Generated.Admin.Users.Item.Projects
 #endif
             var requestInfo = new RequestInformation(Method.GET, UrlTemplate, PathParameters);
             requestInfo.Configure(requestConfiguration);
-            requestInfo.Headers.TryAdd("Accept", "text/plain;q=0.9");
+            requestInfo.Headers.TryAdd("Accept", "application/json");
             return requestInfo;
         }
         /// <summary>

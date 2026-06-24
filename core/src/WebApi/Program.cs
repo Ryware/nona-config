@@ -42,6 +42,8 @@ public partial class Program
             options.SerializerOptions.TypeInfoResolverChain.Insert(0, NonaJsonSerializerContext.Default);
         });
 
+        builder.Services.AddOpenApi();
+
         builder.Services.AddInfrastructureServices(builder.Configuration);
         builder.Services.AddApplicationServices(builder.Configuration);
         builder.Services.AddApiServices(builder.Configuration);
