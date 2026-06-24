@@ -4,6 +4,7 @@ using Nona.Application.Admin.ApiKeys.Commands;
 using Nona.Application.Admin.ApiKeys.Queries;
 using Nona.Application.Admin.Common;
 using Nona.Application.Admin.ConfigEntries.Commands;
+using Nona.Application.Admin.ConfigEntries.DTOs;
 using Nona.Application.Admin.ConfigEntries.Queries;
 using Nona.Application.Admin.Dashboard.Queries;
 using Nona.Application.Admin.Environments.Commands;
@@ -67,12 +68,26 @@ public static class NonaEndpointRouteBuilderExtensions
         apiKeys.MapDelete("/{apiKeyId}", DeleteApiKeyAsync);
 
         var configEntries = projects.MapGroup("/{projectId}/environments/{environmentName}/config-entries");
-        configEntries.MapGet("/", GetConfigEntriesAsync);
-        configEntries.MapGet("/{key}", GetConfigEntryAsync);
-        configEntries.MapGet("/{key}/history", GetConfigEntryHistoryAsync);
-        configEntries.MapPut("/{key}", UpsertConfigEntryAsync);
-        configEntries.MapPost("/{key}/rollback", RollbackConfigEntryAsync);
+        configEntries.MapGet("/", GetConfigEntriesAsync)
+            .Produces<IReadOnlyList<ConfigEntryDto>>();
+        configEntries.MapGet("/{key}", GetConfigEntryAsync)
+            .Produces<ConfigEntryDto>();
+        configEntries.MapPut("/{key}", UpsertConfigEntryAsync)
+            .Accepts<UpsertConfigEntryRequest>("application/json")
+            .Produces<ConfigEntryDto>();
         configEntries.MapDelete("/{key}", DeleteConfigEntryAsync);
+
+        configEntries.MapGet(
+                "/{key}/history",
+                async (string projectId, string environmentName, string key, IMediator mediator, CancellationToken cancellationToken) =>
+                    await GetConfigEntryHistoryAsync(projectId, environmentName, key, mediator, cancellationToken))
+            .Produces<IReadOnlyList<ConfigEntryVersionDto>>();
+        configEntries.MapPost(
+                "/{key}/rollback",
+                async (string projectId, string environmentName, string key, RollbackConfigEntryRequest request, IMediator mediator, CancellationToken cancellationToken) =>
+                    await RollbackConfigEntryAsync(projectId, environmentName, key, request, mediator, cancellationToken))
+            .Accepts<RollbackConfigEntryRequest>("application/json")
+            .Produces<ConfigEntryDto>();
 
         var users = admin.MapGroup("/users");
         users.MapPost("/", CreateUserAsync);

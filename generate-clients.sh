@@ -141,6 +141,141 @@ else
   echo "Using OpenAPI spec: $SPEC"
 fi
 
+SPEC="$SPEC" python3 - <<'PY'
+import json
+import os
+
+spec_path = os.environ["SPEC"]
+with open(spec_path, encoding="utf-8") as spec_file:
+    spec = json.load(spec_file)
+
+schemas = spec.setdefault("components", {}).setdefault("schemas", {})
+
+config_entry = schemas.get("ConfigEntryDto")
+if config_entry is not None:
+    config_entry.setdefault("properties", {}).setdefault(
+        "activeVersion",
+        {"type": "integer", "format": "int32"},
+    )
+    required = config_entry.setdefault("required", [])
+    if "activeVersion" not in required:
+        insert_at = required.index("scope") + 1 if "scope" in required else len(required)
+        required.insert(insert_at, "activeVersion")
+
+schemas.setdefault(
+    "ConfigEntryVersionDto",
+    {
+        "required": [
+            "project",
+            "environment",
+            "key",
+            "version",
+            "value",
+            "contentType",
+            "scope",
+            "createdAt",
+            "actor",
+        ],
+        "type": "object",
+        "properties": {
+            "project": {"type": "string"},
+            "environment": {"type": "string"},
+            "key": {"type": "string"},
+            "version": {"type": "integer", "format": "int32"},
+            "value": {"type": "string"},
+            "contentType": {"type": "string"},
+            "scope": {"type": "string"},
+            "createdAt": {"type": "string", "format": "date-time"},
+            "actor": {"type": "string", "nullable": True},
+        },
+    },
+)
+
+schemas.setdefault(
+    "RollbackConfigEntryRequest",
+    {
+        "required": ["version"],
+        "type": "object",
+        "properties": {
+            "version": {"type": "integer", "format": "int32"},
+        },
+    },
+)
+
+paths = spec.setdefault("paths", {})
+config_entry_path = "/admin/projects/{projectId}/environments/{environmentName}/config-entries/{key}"
+history_path = f"{config_entry_path}/history"
+rollback_path = f"{config_entry_path}/rollback"
+
+base_parameters = [
+    {"name": "projectId", "in": "path", "required": True, "schema": {"type": "string"}},
+    {"name": "environmentName", "in": "path", "required": True, "schema": {"type": "string"}},
+    {"name": "key", "in": "path", "required": True, "schema": {"type": "string"}},
+]
+
+def json_content(schema):
+    return {
+        media_type: {"schema": schema}
+        for media_type in ("text/plain", "application/json", "text/json")
+    }
+
+def json_request_body(schema):
+    return {
+        "content": {
+            "application/json": {"schema": schema},
+            "text/json": {"schema": schema},
+            "application/*+json": {"schema": schema},
+        },
+        "required": True,
+    }
+
+problem = {"$ref": "#/components/schemas/ProblemDetails"}
+config_entry_ref = {"$ref": "#/components/schemas/ConfigEntryDto"}
+version_ref = {"$ref": "#/components/schemas/ConfigEntryVersionDto"}
+rollback_ref = {"$ref": "#/components/schemas/RollbackConfigEntryRequest"}
+
+paths.setdefault(history_path, {})["get"] = {
+    "tags": ["AdminConfigEntries"],
+    "parameters": base_parameters,
+    "responses": {
+        "200": {
+            "description": "OK",
+            "content": json_content({"type": "array", "items": version_ref}),
+        },
+        "404": {
+            "description": "Not Found",
+            "content": json_content(problem),
+        },
+    },
+    "security": [{"Bearer": []}],
+}
+
+paths.setdefault(rollback_path, {})["post"] = {
+    "tags": ["AdminConfigEntries"],
+    "parameters": base_parameters,
+    "requestBody": json_request_body(rollback_ref),
+    "responses": {
+        "200": {
+            "description": "OK",
+            "content": json_content(config_entry_ref),
+        },
+        "400": {
+            "description": "Bad Request",
+            "content": json_content(problem),
+        },
+        "404": {
+            "description": "Not Found",
+            "content": json_content(problem),
+        },
+    },
+    "security": [{"Bearer": []}],
+}
+
+with open(spec_path, "w", encoding="utf-8") as spec_file:
+    json.dump(spec, spec_file, indent=2)
+    spec_file.write("\n")
+PY
+
 echo ""
 echo "Generating C# client for Migrator..."
 dotnet kiota generate \

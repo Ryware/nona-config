@@ -13,13 +13,7 @@ namespace Nona.Migrator.Core.Generated.Models
     #pragma warning restore CS1591
     {
         /// <summary>The activeVersion property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? ActiveVersion { get; set; }
-#nullable restore
-#else
-        public UntypedNode ActiveVersion { get; set; }
-#endif
+        public int? ActiveVersion { get; set; }
         /// <summary>Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.</summary>
         public IDictionary<string, object> AdditionalData { get; set; }
         /// <summary>The contentType property</summary>
@@ -99,7 +93,7 @@ namespace Nona.Migrator.Core.Generated.Models
         {
             return new Dictionary<string, Action<IParseNode>>
             {
-                { "activeVersion", n => { ActiveVersion = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
+                { "activeVersion", n => { ActiveVersion = n.GetIntValue(); } },
                 { "contentType", n => { ContentType = n.GetStringValue(); } },
                 { "createdAt", n => { CreatedAt = n.GetDateTimeOffsetValue(); } },
                 { "environment", n => { Environment = n.GetStringValue(); } },
@@ -117,7 +111,7 @@ namespace Nona.Migrator.Core.Generated.Models
         public virtual void Serialize(ISerializationWriter writer)
         {
             if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));
-            writer.WriteObjectValue<UntypedNode>("activeVersion", ActiveVersion);
+            writer.WriteIntValue("activeVersion", ActiveVersion);
             writer.WriteStringValue("contentType", ContentType);
             writer.WriteDateTimeOffsetValue("createdAt", CreatedAt);
             writer.WriteStringValue("environment", Environment);
