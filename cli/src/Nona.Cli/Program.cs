@@ -1,5 +1,4 @@
 using System.CommandLine;
-using System.Reflection;
 
 namespace Nona.Cli;
 
@@ -7,6 +6,12 @@ internal static class Program
 {
     private static async Task<int> Main(string[] args)
     {
+        if (CliVersion.IsVersionRequest(args))
+        {
+            Console.Out.WriteLine(CliVersion.GetDisplayVersion());
+            return 0;
+        }
+
         var defaultsStore = new CliDefaultsStore();
         var sessionStore = new CliSessionStore();
 

@@ -96,6 +96,7 @@ jobs:
             -p:PublishSingleFile=true \
             -p:DebugType=None \
             -p:DebugSymbols=false \
+            -p:InformationalVersion="${{ steps.meta.outputs.version }}" \
             -o "${GITHUB_WORKSPACE}/publish/${{ matrix.rid }}"
 
       - name: Package release asset

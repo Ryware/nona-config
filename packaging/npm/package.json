@@ -12,7 +12,11 @@
     "cli",
     "config",
     "remote-config",
-    "feature-flags"
+    "feature-flags",
+    "feature-toggles",
+    "self-hosted",
+    "firebase-remote-config",
+    "firebase-alternative"
   ],
   "homepage": "https://nonaconfig.com",
   "repository": {
