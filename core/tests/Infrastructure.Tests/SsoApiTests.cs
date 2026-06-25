@@ -14,6 +14,7 @@ using System.Text.Json;
 
 namespace Nona.Infrastructure.Tests;
 
+[NotInParallel]
 public class SsoApiTests
 {
     [Test]
