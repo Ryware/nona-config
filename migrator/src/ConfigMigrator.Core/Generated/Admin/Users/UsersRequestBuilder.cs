@@ -21,25 +21,12 @@ namespace Nona.Migrator.Core.Generated.Admin.Users
         /// <summary>Gets an item from the Nona.Migrator.Core.Generated.admin.users.item collection</summary>
         /// <param name="position">Unique identifier of the item</param>
         /// <returns>A <see cref="global::Nona.Migrator.Core.Generated.Admin.Users.Item.UsersItemRequestBuilder"/></returns>
-        public global::Nona.Migrator.Core.Generated.Admin.Users.Item.UsersItemRequestBuilder this[long position]
-        {
-            get
-            {
-                var urlTplParams = new Dictionary<string, object>(PathParameters);
-                urlTplParams.Add("id", position);
-                return new global::Nona.Migrator.Core.Generated.Admin.Users.Item.UsersItemRequestBuilder(urlTplParams, RequestAdapter);
-            }
-        }
-        /// <summary>Gets an item from the Nona.Migrator.Core.Generated.admin.users.item collection</summary>
-        /// <param name="position">Unique identifier of the item</param>
-        /// <returns>A <see cref="global::Nona.Migrator.Core.Generated.Admin.Users.Item.UsersItemRequestBuilder"/></returns>
-        [Obsolete("This indexer is deprecated and will be removed in the next major version. Use the one with the typed parameter instead.")]
         public global::Nona.Migrator.Core.Generated.Admin.Users.Item.UsersItemRequestBuilder this[string position]
         {
             get
             {
                 var urlTplParams = new Dictionary<string, object>(PathParameters);
-                if (!string.IsNullOrWhiteSpace(position)) urlTplParams.Add("id", position);
+                urlTplParams.Add("id", position);
                 return new global::Nona.Migrator.Core.Generated.Admin.Users.Item.UsersItemRequestBuilder(urlTplParams, RequestAdapter);
             }
         }
@@ -79,8 +66,6 @@ namespace Nona.Migrator.Core.Generated.Admin.Users
         /// <param name="body">The request body</param>
         /// <param name="cancellationToken">Cancellation token to use when cancelling requests</param>
         /// <param name="requestConfiguration">Configuration for the request such as headers, query parameters, and middleware options.</param>
-        /// <exception cref="global::Nona.Migrator.Core.Generated.Models.ProblemDetails">When receiving a 400 status code</exception>
-        /// <exception cref="global::Nona.Migrator.Core.Generated.Models.ProblemDetails">When receiving a 409 status code</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public async Task<global::Nona.Migrator.Core.Generated.Models.CreateUserResponse?> PostAsync(global::Nona.Migrator.Core.Generated.Models.CreateUserRequest body, Action<RequestConfiguration<DefaultQueryParameters>>? requestConfiguration = default, CancellationToken cancellationToken = default)
@@ -92,12 +77,7 @@ namespace Nona.Migrator.Core.Generated.Admin.Users
 #endif
             if(ReferenceEquals(body, null)) throw new ArgumentNullException(nameof(body));
             var requestInfo = ToPostRequestInformation(body, requestConfiguration);
-            var errorMapping = new Dictionary<string, ParsableFactory<IParsable>>
-            {
-                { "400", global::Nona.Migrator.Core.Generated.Models.ProblemDetails.CreateFromDiscriminatorValue },
-                { "409", global::Nona.Migrator.Core.Generated.Models.ProblemDetails.CreateFromDiscriminatorValue },
-            };
-            return await RequestAdapter.SendAsync<global::Nona.Migrator.Core.Generated.Models.CreateUserResponse>(requestInfo, global::Nona.Migrator.Core.Generated.Models.CreateUserResponse.CreateFromDiscriminatorValue, errorMapping, cancellationToken).ConfigureAwait(false);
+            return await RequestAdapter.SendAsync<global::Nona.Migrator.Core.Generated.Models.CreateUserResponse>(requestInfo, global::Nona.Migrator.Core.Generated.Models.CreateUserResponse.CreateFromDiscriminatorValue, default, cancellationToken).ConfigureAwait(false);
         }
         /// <returns>A <see cref="RequestInformation"/></returns>
         /// <param name="requestConfiguration">Configuration for the request such as headers, query parameters, and middleware options.</param>
@@ -112,7 +92,7 @@ namespace Nona.Migrator.Core.Generated.Admin.Users
 #endif
             var requestInfo = new RequestInformation(Method.GET, UrlTemplate, PathParameters);
             requestInfo.Configure(requestConfiguration);
-            requestInfo.Headers.TryAdd("Accept", "text/plain;q=0.9");
+            requestInfo.Headers.TryAdd("Accept", "application/json");
             return requestInfo;
         }
         /// <returns>A <see cref="RequestInformation"/></returns>
@@ -130,7 +110,7 @@ namespace Nona.Migrator.Core.Generated.Admin.Users
             if(ReferenceEquals(body, null)) throw new ArgumentNullException(nameof(body));
             var requestInfo = new RequestInformation(Method.POST, UrlTemplate, PathParameters);
             requestInfo.Configure(requestConfiguration);
-            requestInfo.Headers.TryAdd("Accept", "application/json, text/plain;q=0.9");
+            requestInfo.Headers.TryAdd("Accept", "application/json");
             requestInfo.SetContentFromParsable(RequestAdapter, "application/json", body);
             return requestInfo;
         }

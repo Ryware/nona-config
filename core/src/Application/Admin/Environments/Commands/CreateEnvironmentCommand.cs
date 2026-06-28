@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using Nona.Application.Admin.Environments.DTOs;
 using Nona.Application.Admin.Projects;
 using Nona.Application.Common.Interfaces;
@@ -19,7 +19,7 @@ public class CreateEnvironmentCommandHandler(
     IDateTime dateTime,
     IAuditLogService? auditLogService = null) : IRequestHandler<CreateEnvironmentCommand, CreateEnvironmentResult>
 {
-    public async Task<CreateEnvironmentResult> Handle(CreateEnvironmentCommand request, CancellationToken cancellationToken)
+    public async ValueTask<CreateEnvironmentResult> Handle(CreateEnvironmentCommand request, CancellationToken cancellationToken)
     {
         var project = await ProjectResolution.ResolveProjectAsync(projectRepository, request.ProjectId, cancellationToken);
         if (project is null)

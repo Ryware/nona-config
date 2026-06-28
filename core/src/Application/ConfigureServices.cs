@@ -1,9 +1,8 @@
 ﻿global using FluentValidation;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Mediator;
 using Nona.Application.Common.Interfaces;
-using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
-using System.Reflection;
 
 namespace Nona.Application;
 
@@ -11,15 +10,11 @@ public static class ConfigureServices
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(ConfigureServices).Assembly));
-
-        services.AddAutoMapper(cfg =>
+        services.AddMediator(options =>
         {
-            cfg.AddMaps(Assembly.GetExecutingAssembly());
+            options.ServiceLifetime = ServiceLifetime.Scoped;
+            options.Assemblies = [typeof(ConfigureServices).Assembly];
         });
-
-        services.AddFluentValidationAutoValidation();
-        services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 
         services.AddScoped<IProjectAccessService, ProjectAccessService>();
         services.AddScoped<IUserAuthorizationService, UserAuthorizationService>();

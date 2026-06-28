@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using Nona.Application.Admin.Projects;
 using Nona.Application.Admin.Users.DTOs;
 using Nona.Application.Common;
@@ -18,7 +18,7 @@ public class SetProjectAccessCommandHandler(
     IProjectMemberRepository projectMemberRepository,
     IUserAuthorizationService userAuthorizationService) : IRequestHandler<SetProjectAccessCommand, SetProjectAccessResult>
 {
-    public async Task<SetProjectAccessResult> Handle(SetProjectAccessCommand request, CancellationToken cancellationToken)
+    public async ValueTask<SetProjectAccessResult> Handle(SetProjectAccessCommand request, CancellationToken cancellationToken)
     {
         var currentUser = await userAuthorizationService.GetCurrentUserAsync(cancellationToken);
         var canManageUsers = currentUser?.IsAdmin == true || currentUser?.Role == UserRole.Editor;

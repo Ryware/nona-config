@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using Nona.Application.Admin.Common;
 using Nona.Application.Common.Interfaces;
 using Nona.Domain.Interfaces;
@@ -12,17 +12,18 @@ internal class RequestPasswordResetCommandHandler(
     IDateTime dateTime)
     : IRequestHandler<RequestPasswordResetCommand>
 {
-    public async Task Handle(RequestPasswordResetCommand request, CancellationToken cancellationToken)
+    public async ValueTask<Unit> Handle(RequestPasswordResetCommand request, CancellationToken cancellationToken)
     {
         var user = await userRepository.GetAsync(request.Email, cancellationToken);
         if (user is null)
         {
-            return;
+            return Unit.Value;
         }
 
         user.PasswordResetToken = TokenHelper.Hash(TokenHelper.Generate());
         user.UpdatedAt = dateTime.NowUtc;
 
         await userRepository.UpdateAsync(user, cancellationToken);
+        return Unit.Value;
     }
 }

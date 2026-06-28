@@ -17,12 +17,10 @@ public sealed class LibsqlExternalIdentityRepository(ILibsqlDatabaseClient clien
               AND Subject = @Subject COLLATE NOCASE
             LIMIT 1
             """,
-            new
-            {
-                Provider = provider,
-                Issuer = issuer,
-                Subject = subject
-            },
+            LibsqlParameters.Create(
+                ("Provider", provider),
+                ("Issuer", issuer),
+                ("Subject", subject)),
             ct);
 
         return result.Rows.Count == 0 ? null : Map(result.Rows[0]);
@@ -50,7 +48,7 @@ public sealed class LibsqlExternalIdentityRepository(ILibsqlDatabaseClient clien
             WHERE UserEmail = @UserEmail COLLATE NOCASE
             ORDER BY Provider, Issuer, Subject
             """,
-            new { UserEmail = userEmail },
+            LibsqlParameters.Create(("UserEmail", userEmail)),
             ct);
 
         return result.Rows.Select(Map).ToList();
@@ -81,7 +79,13 @@ public sealed class LibsqlExternalIdentityRepository(ILibsqlDatabaseClient clien
               AND Issuer = @Issuer COLLATE NOCASE
               AND Subject = @Subject COLLATE NOCASE
             """,
-            ToParameters(identity),
+            LibsqlParameters.Create(
+                ("Provider", identity.Provider),
+                ("Issuer", identity.Issuer),
+                ("Subject", identity.Subject),
+                ("UserEmail", identity.UserEmail),
+                ("UpdatedAt", identity.UpdatedAt.ToString("O")),
+                ("LastLoginAt", identity.LastLoginAt?.ToString("O"))),
             ct);
     }
 
@@ -108,17 +112,15 @@ public sealed class LibsqlExternalIdentityRepository(ILibsqlDatabaseClient clien
         };
     }
 
-    private static object ToParameters(ExternalIdentity identity)
+    private static IReadOnlyDictionary<string, object?> ToParameters(ExternalIdentity identity)
     {
-        return new
-        {
-            identity.Provider,
-            identity.Issuer,
-            identity.Subject,
-            identity.UserEmail,
-            CreatedAt = identity.CreatedAt.ToString("O"),
-            UpdatedAt = identity.UpdatedAt.ToString("O"),
-            LastLoginAt = identity.LastLoginAt?.ToString("O")
-        };
+        return LibsqlParameters.Create(
+            ("Provider", identity.Provider),
+            ("Issuer", identity.Issuer),
+            ("Subject", identity.Subject),
+            ("UserEmail", identity.UserEmail),
+            ("CreatedAt", identity.CreatedAt.ToString("O")),
+            ("UpdatedAt", identity.UpdatedAt.ToString("O")),
+            ("LastLoginAt", identity.LastLoginAt?.ToString("O")));
     }
 }

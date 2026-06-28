@@ -20,7 +20,7 @@ internal sealed class HistoryEntriesQueryHandler(Func<HttpClient>? httpClientFac
         }
 
         Console.WriteLine($"History — {query.Project} / {query.Environment} / {query.Key}");
-        foreach (var version in versions.OrderByDescending(v => CliUntypedNode.ToInt32(v.Version) ?? 0))
+        foreach (var version in versions.OrderByDescending(v => v.Version ?? 0))
             WriteVersion(version);
 
         return 0;
@@ -28,7 +28,7 @@ internal sealed class HistoryEntriesQueryHandler(Func<HttpClient>? httpClientFac
 
     private static void WriteVersion(ConfigEntryVersionDto version)
     {
-        Console.WriteLine($"  v{CliUntypedNode.FormatInteger(version.Version)}");
+        Console.WriteLine($"  v{version.Version}");
         Console.WriteLine($"    Date:         {version.CreatedAt:O}");
         Console.WriteLine($"    Actor:        {version.Actor}");
         Console.WriteLine($"    Value:        {version.Value}");

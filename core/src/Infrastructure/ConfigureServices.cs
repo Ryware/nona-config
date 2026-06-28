@@ -4,6 +4,7 @@ global using Nona.Infrastructure.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Nona.Domain.Interfaces;
+using Nona.Infrastructure.Configuration;
 using Nona.Infrastructure.Repositories.InMemory;
 using Nona.Infrastructure.Repositories.Libsql;
 using Nona.Libsql;
@@ -40,7 +41,7 @@ public static class ConfigureServices
 
     private static void ConfigurePersistence(IServiceCollection services, IConfiguration configuration)
     {
-        var storageType = configuration.GetValue<string>("Storage:Type") ?? "InMemory";
+        var storageType = ConfigurationValueReader.GetString(configuration, "Storage:Type", "InMemory");
 
         if (storageType.Equals("Libsql", StringComparison.OrdinalIgnoreCase))
         {
@@ -70,27 +71,25 @@ public static class ConfigureServices
     {
         var managedPrimary = new LibsqlManagedPrimaryOptions
         {
-            Enabled = configuration.GetValue<bool>("Storage:Libsql:ManagedPrimary:Enabled"),
+            Enabled = ConfigurationValueReader.GetBoolean(configuration, "Storage:Libsql:ManagedPrimary:Enabled"),
             ExecutablePath = configuration["Storage:Libsql:ManagedPrimary:ExecutablePath"] ?? "sqld",
             DatabasePath = configuration["Storage:Libsql:ManagedPrimary:DatabasePath"] ?? "nona-config-primary.db",
             HttpListenAddress = configuration["Storage:Libsql:ManagedPrimary:HttpListenAddress"] ?? "127.0.0.1:9080",
             LocalConnectUrl = configuration["Storage:Libsql:ManagedPrimary:LocalConnectUrl"] ?? string.Empty,
             WorkingDirectory = configuration["Storage:Libsql:ManagedPrimary:WorkingDirectory"] ?? string.Empty,
-            StartTimeoutSeconds = configuration.GetValue<int?>("Storage:Libsql:ManagedPrimary:StartTimeoutSeconds") ?? 30,
-            ExtraArgs = configuration
-                .GetSection("Storage:Libsql:ManagedPrimary:ExtraArgs")
-                .Get<string[]>() ?? []
+            StartTimeoutSeconds = ConfigurationValueReader.GetInt32(configuration, "Storage:Libsql:ManagedPrimary:StartTimeoutSeconds", 30),
+            ExtraArgs = ConfigurationValueReader.GetStringList(configuration, "Storage:Libsql:ManagedPrimary:ExtraArgs").ToArray()
         };
 
         var dataSource = managedPrimary.Enabled
             ? managedPrimary.ResolveLocalConnectUrl()
-            : configuration.GetConnectionString("Libsql")
+            : configuration["ConnectionStrings:Libsql"]
                 ?? configuration["Storage:Libsql:DataSource"];
         var authToken = configuration["Storage:Libsql:AuthToken"];
-        var timeoutSeconds = configuration.GetValue<int?>("Storage:Libsql:TimeoutSeconds") ?? 30;
-        var enableLocalReplica = configuration.GetValue<bool>("Storage:Libsql:EnableLocalReplica");
+        var timeoutSeconds = ConfigurationValueReader.GetInt32(configuration, "Storage:Libsql:TimeoutSeconds", 30);
+        var enableLocalReplica = ConfigurationValueReader.GetBoolean(configuration, "Storage:Libsql:EnableLocalReplica");
         var localReplicaPath = configuration["Storage:Libsql:LocalReplicaPath"];
-        var localReplicaSyncIntervalSeconds = configuration.GetValue<double?>("Storage:Libsql:LocalReplicaSyncIntervalSeconds") ?? 1;
+        var localReplicaSyncIntervalSeconds = ConfigurationValueReader.GetDouble(configuration, "Storage:Libsql:LocalReplicaSyncIntervalSeconds", 1);
 
         services.AddOptions<LibsqlOptions>()
             .Configure(options =>
@@ -106,10 +105,13 @@ public static class ConfigureServices
             .Validate(
                 options => !string.IsNullOrWhiteSpace(options.DataSource),
                 "Storage:Libsql:DataSource or ConnectionStrings:Libsql must be configured.")
+            .Validate(
+                options => IsLibsqlHttpDataSource(options.DataSource),
+                "Nona requires a sqld/libSQL HTTP data source. Enable Storage:Libsql:ManagedPrimary or configure http(s):// / libsql://.")
             .Validate(options => options.TimeoutSeconds > 0, "Storage:Libsql:TimeoutSeconds must be greater than zero.")
             .Validate(
-                options => !options.ManagedPrimary.Enabled || !options.EnableLocalReplica,
-                "Storage:Libsql:ManagedPrimary:Enabled cannot be combined with Storage:Libsql:EnableLocalReplica.")
+                options => !options.EnableLocalReplica,
+                "Storage:Libsql:EnableLocalReplica is not supported. Use managed sqld replica options such as --primary-grpc-url.")
             .Validate(
                 options => !options.ManagedPrimary.Enabled || !string.IsNullOrWhiteSpace(options.ManagedPrimary.ExecutablePath),
                 "Storage:Libsql:ManagedPrimary:ExecutablePath must be configured when Storage:Libsql:ManagedPrimary:Enabled is true.")
@@ -122,12 +124,6 @@ public static class ConfigureServices
             .Validate(
                 options => !options.ManagedPrimary.Enabled || options.ManagedPrimary.StartTimeoutSeconds > 0,
                 "Storage:Libsql:ManagedPrimary:StartTimeoutSeconds must be greater than zero when Storage:Libsql:ManagedPrimary:Enabled is true.")
-            .Validate(
-                options => !options.EnableLocalReplica || !string.IsNullOrWhiteSpace(options.LocalReplicaPath),
-                "Storage:Libsql:LocalReplicaPath must be configured when Storage:Libsql:EnableLocalReplica is true.")
-            .Validate(
-                options => !options.EnableLocalReplica || options.LocalReplicaSyncIntervalSeconds > 0,
-                "Storage:Libsql:LocalReplicaSyncIntervalSeconds must be greater than zero when Storage:Libsql:EnableLocalReplica is true.")
             .ValidateOnStart();
 
         services.AddSingleton<NelknetLibsqlDatabaseClient>();
@@ -153,8 +149,8 @@ public static class ConfigureServices
         options.Google.JwksUri = configuration["Sso:Google:JwksUri"]
             ?? options.Google.JwksUri;
 
-        var googleIssuers = configuration.GetSection("Sso:Google:Issuers").Get<string[]>();
-        if (googleIssuers is { Length: > 0 })
+        var googleIssuers = ConfigurationValueReader.GetStringList(configuration, "Sso:Google:Issuers");
+        if (googleIssuers.Count > 0)
         {
             options.Google.Issuers = googleIssuers.ToList();
         }
@@ -166,10 +162,17 @@ public static class ConfigureServices
         options.Microsoft.JwksUri = configuration["Sso:Microsoft:JwksUri"]
             ?? options.Microsoft.JwksUri;
 
-        var microsoftIssuers = configuration.GetSection("Sso:Microsoft:Issuers").Get<string[]>();
-        if (microsoftIssuers is { Length: > 0 })
+        var microsoftIssuers = ConfigurationValueReader.GetStringList(configuration, "Sso:Microsoft:Issuers");
+        if (microsoftIssuers.Count > 0)
         {
             options.Microsoft.Issuers = microsoftIssuers.ToList();
         }
+    }
+
+    private static bool IsLibsqlHttpDataSource(string dataSource)
+    {
+        return dataSource.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+            || dataSource.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
+            || dataSource.StartsWith("libsql://", StringComparison.OrdinalIgnoreCase);
     }
 }

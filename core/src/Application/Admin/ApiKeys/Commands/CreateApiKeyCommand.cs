@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using Nona.Application.Admin.ApiKeys.DTOs;
 using Nona.Application.Admin.Projects;
 using Nona.Application.Common.Interfaces;
@@ -23,7 +23,7 @@ public class CreateApiKeyCommandHandler(
     IProjectAccessService projectAccessService,
     IDateTime dateTime) : IRequestHandler<CreateApiKeyCommand, CreateApiKeyResult>
 {
-    public async Task<CreateApiKeyResult> Handle(CreateApiKeyCommand request, CancellationToken cancellationToken)
+    public async ValueTask<CreateApiKeyResult> Handle(CreateApiKeyCommand request, CancellationToken cancellationToken)
     {
         var project = await ProjectResolution.ResolveProjectAsync(projectRepository, request.ProjectId, cancellationToken);
         if (project is null)

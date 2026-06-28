@@ -1,4 +1,4 @@
-﻿using MediatR;
+﻿using Mediator;
 using Nona.Application.Admin.Dashboard.DTOs;
 using Nona.Domain.Interfaces;
 
@@ -8,7 +8,7 @@ public record GetDashboardCountsQuery : IRequest<DashboardCountDto>;
 
 internal class GetDashboardCountQueryHandler(IUserRepository userRepository, IProjectRepository projectRepository, IConfigEntryRepository configEntryRepository) : IRequestHandler<GetDashboardCountsQuery, DashboardCountDto>
 {
-    public async Task<DashboardCountDto> Handle(GetDashboardCountsQuery request, CancellationToken cancellationToken)
+    public async ValueTask<DashboardCountDto> Handle(GetDashboardCountsQuery request, CancellationToken cancellationToken)
     {
         var (userCount, projectCount, configEntryCount) = await GetCountsAsync(cancellationToken);
 

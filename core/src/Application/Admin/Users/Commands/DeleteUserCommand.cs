@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using Nona.Application.Common.Interfaces;
 using Nona.Domain.Entities;
 using Nona.Domain.Interfaces;
@@ -15,7 +15,7 @@ public class DeleteUserCommandHandler(
     IUserAuthorizationService userAuthorizationService,
     IAuditLogService? auditLogService = null) : IRequestHandler<DeleteUserCommand, DeleteUserResult>
 {
-    public async Task<DeleteUserResult> Handle(DeleteUserCommand request, CancellationToken cancellationToken)
+    public async ValueTask<DeleteUserResult> Handle(DeleteUserCommand request, CancellationToken cancellationToken)
     {
         var user = await userRepository.GetByIdAsync(request.Id, cancellationToken);
         if (user is null)

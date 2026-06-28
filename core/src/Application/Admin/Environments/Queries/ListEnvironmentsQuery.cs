@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using Nona.Application.Admin.Environments.DTOs;
 using Nona.Application.Admin.Projects;
 using Nona.Application.Common.Interfaces;
@@ -15,7 +15,7 @@ public class ListEnvironmentsQueryHandler(
     IEnvironmentRepository environmentRepository,
     IProjectAccessService projectAccessService) : IRequestHandler<ListEnvironmentsQuery, ListEnvironmentsResult>
 {
-    public async Task<ListEnvironmentsResult> Handle(ListEnvironmentsQuery request, CancellationToken cancellationToken)
+    public async ValueTask<ListEnvironmentsResult> Handle(ListEnvironmentsQuery request, CancellationToken cancellationToken)
     {
         var project = await ProjectResolution.ResolveProjectAsync(projectRepository, request.ProjectId, cancellationToken);
         if (project is null)

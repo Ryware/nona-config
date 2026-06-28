@@ -42,7 +42,9 @@ public sealed class LibsqlMigrationRunner
 
             statements.Add(new LibsqlStatement(
                 "INSERT OR IGNORE INTO __MigrationsHistory (MigrationId, AppliedAt) VALUES (@MigrationId, @AppliedAt)",
-                new { MigrationId = migrationName, AppliedAt = DateTime.UtcNow.ToString("O") }));
+                LibsqlParameters.Create(
+                    ("MigrationId", migrationName),
+                    ("AppliedAt", DateTime.UtcNow.ToString("O")))));
 
             await _client.ExecuteBatchAsync(statements, ct);
         }
@@ -52,7 +54,7 @@ public sealed class LibsqlMigrationRunner
     {
         var result = await _client.ExecuteAsync(
             "SELECT COUNT(1) FROM __MigrationsHistory WHERE MigrationId = @MigrationId",
-            new { MigrationId = migrationName },
+            LibsqlParameters.Create(("MigrationId", migrationName)),
             ct);
 
         return result.Rows.Count > 0 && result.Rows[0].GetInt32(0) > 0;

@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using Nona.Application.Admin.Projects;
 using Nona.Application.Common.Interfaces;
 using Nona.Domain.Interfaces;
@@ -14,7 +14,7 @@ public class DeleteApiKeyCommandHandler(
     IApiKeyRepository apiKeyRepository,
     IProjectAccessService projectAccessService) : IRequestHandler<DeleteApiKeyCommand, DeleteApiKeyResult>
 {
-    public async Task<DeleteApiKeyResult> Handle(DeleteApiKeyCommand request, CancellationToken cancellationToken)
+    public async ValueTask<DeleteApiKeyResult> Handle(DeleteApiKeyCommand request, CancellationToken cancellationToken)
     {
         var project = await ProjectResolution.ResolveProjectAsync(projectRepository, request.ProjectId, cancellationToken);
         if (project is null)

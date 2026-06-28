@@ -5,11 +5,8 @@ using System.Text.RegularExpressions;
 
 namespace Nona.Libsql;
 
-internal static class LibsqlCommandHelpers
+internal static partial class LibsqlCommandHelpers
 {
-    private static readonly Regex ParameterPattern = new(@"[@:$][A-Za-z_][A-Za-z0-9_]*", RegexOptions.Compiled);
-    private static readonly Regex ReturningPattern = new(@"\bRETURNING\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-
     public static IEnumerable<KeyValuePair<string, object?>> EnumerateParameters(object? parameters)
     {
         if (parameters is null)
@@ -37,13 +34,15 @@ internal static class LibsqlCommandHelpers
             yield break;
         }
 
-        foreach (var property in parameters.GetType().GetProperties().Where(property => property.CanRead))
-        {
-            yield return new KeyValuePair<string, object?>(property.Name, property.GetValue(parameters));
-        }
+        throw new ArgumentException(
+            "libSQL parameters must be supplied as a dictionary or key/value pair sequence.",
+            nameof(parameters));
     }
 
-    public static string BindParameters(DbCommand command, string sql, object? parameters)
+    public static string BindParameters(
+        DbCommand command,
+        string sql,
+        object? parameters)
     {
         var values = EnumerateParameters(parameters)
             .ToDictionary(pair => NormalizeParameterKey(pair.Key), pair => pair.Value, StringComparer.OrdinalIgnoreCase);
@@ -53,7 +52,7 @@ internal static class LibsqlCommandHelpers
             return sql;
         }
 
-        var matches = ParameterPattern.Matches(sql);
+        var matches = ParameterPattern().Matches(sql);
         if (matches.Count == 0)
         {
             return sql;
@@ -88,6 +87,28 @@ internal static class LibsqlCommandHelpers
         return sb.ToString();
     }
 
+    public static string InlineParameters(string sql, object? parameters)
+    {
+        var values = EnumerateParameters(parameters)
+            .ToDictionary(pair => NormalizeParameterKey(pair.Key), pair => pair.Value, StringComparer.OrdinalIgnoreCase);
+
+        if (values.Count == 0)
+        {
+            return sql;
+        }
+
+        return ParameterPattern().Replace(sql, match =>
+        {
+            var key = NormalizeParameterKey(match.Value);
+            if (!values.TryGetValue(key, out var value))
+            {
+                throw new KeyNotFoundException($"Parameter '{match.Value}' was not provided for libSQL statement.");
+            }
+
+            return ToSqlLiteral(NormalizeParameterValue(value));
+        });
+    }
+
     public static object? NormalizeParameterValue(object? value)
     {
         return value switch
@@ -119,6 +140,19 @@ internal static class LibsqlCommandHelpers
         return normalized[1..];
     }
 
+    private static string ToSqlLiteral(object? value)
+    {
+        return value switch
+        {
+            null or DBNull => "NULL",
+            byte[] bytes => $"X'{Convert.ToHexString(bytes)}'",
+            bool boolValue => boolValue ? "1" : "0",
+            sbyte or byte or short or ushort or int or uint or long or ulong => Convert.ToString(value, CultureInfo.InvariantCulture) ?? "0",
+            float or double or decimal => Convert.ToString(value, CultureInfo.InvariantCulture) ?? "0",
+            _ => $"'{Convert.ToString(value, CultureInfo.InvariantCulture)?.Replace("'", "''")}'"
+        };
+    }
+
     public static bool IsQuery(string sql)
     {
         var keyword = GetLeadingKeyword(sql);
@@ -127,7 +161,7 @@ internal static class LibsqlCommandHelpers
 
     public static bool ReturnsRows(string sql)
     {
-        return IsQuery(sql) || ReturningPattern.IsMatch(sql);
+        return IsQuery(sql) || ReturningPattern().IsMatch(sql);
     }
 
     public static bool IsInsertStatement(string sql)
@@ -149,4 +183,10 @@ internal static class LibsqlCommandHelpers
             ? string.Empty
             : trimmed[..index].ToUpperInvariant();
     }
+
+    [GeneratedRegex(@"[@:$][A-Za-z_][A-Za-z0-9_]*")]
+    private static partial Regex ParameterPattern();
+
+    [GeneratedRegex(@"\bRETURNING\b", RegexOptions.IgnoreCase)]
+    private static partial Regex ReturningPattern();
 }

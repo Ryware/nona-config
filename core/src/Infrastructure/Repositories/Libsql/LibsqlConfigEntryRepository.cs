@@ -26,7 +26,7 @@ public sealed class LibsqlConfigEntryRepository : IConfigEntryRepository
               AND Key = @Key COLLATE NOCASE
             LIMIT 1
             """,
-            new { ProjectName = projectName, EnvironmentName = environmentName, Key = key },
+            CreateKeyParameters(projectName, environmentName, key),
             ct);
 
         return result.Rows.Count == 0 ? null : Map(result.Rows[0]);
@@ -35,9 +35,11 @@ public sealed class LibsqlConfigEntryRepository : IConfigEntryRepository
     public async Task<ConfigEntry?> AddVersionAsync(ConfigEntry entry, string actor, CancellationToken ct = default)
     {
         var normalizedActor = string.IsNullOrWhiteSpace(actor) ? "System" : actor;
-        var parameters = ToVersionParameters(entry, normalizedActor);
+        var versionParameters = ToVersionParameters(entry, normalizedActor);
+        var entryParameters = ToEntryParameters(entry);
+        var keyParameters = ToEntryKeyParameters(entry);
 
-        var statements = CreateAddVersionStatements(parameters);
+        var statements = CreateAddVersionStatements(versionParameters, entryParameters, keyParameters);
         var results = await _client.ExecuteBatchAsync(statements, ct);
 
         var savedRows = results[^1].Rows;
@@ -64,7 +66,7 @@ public sealed class LibsqlConfigEntryRepository : IConfigEntryRepository
               AND Key = @Key COLLATE NOCASE
             ORDER BY Version DESC
             """,
-            new { ProjectName = projectName, EnvironmentName = environmentName, Key = key },
+            CreateKeyParameters(projectName, environmentName, key),
             ct);
 
         return result.Rows.Select(MapVersion).ToList();
@@ -82,7 +84,11 @@ public sealed class LibsqlConfigEntryRepository : IConfigEntryRepository
               AND Version = @Version
             LIMIT 1
             """,
-            new { ProjectName = projectName, EnvironmentName = environmentName, Key = key, Version = version },
+            LibsqlParameters.Create(
+                ("ProjectName", projectName),
+                ("EnvironmentName", environmentName),
+                ("Key", key),
+                ("Version", version)),
             ct);
 
         return result.Rows.Count == 0 ? null : MapVersion(result.Rows[0]);
@@ -98,7 +104,9 @@ public sealed class LibsqlConfigEntryRepository : IConfigEntryRepository
               AND Environment = @EnvironmentName COLLATE NOCASE
             ORDER BY Key
             """,
-            new { ProjectName = projectName, EnvironmentName = environmentName },
+            LibsqlParameters.Create(
+                ("ProjectName", projectName),
+                ("EnvironmentName", environmentName)),
             ct);
 
         return result.Rows.Select(Map).ToList();
@@ -113,7 +121,7 @@ public sealed class LibsqlConfigEntryRepository : IConfigEntryRepository
             WHERE Project = @ProjectName COLLATE NOCASE
             ORDER BY Environment, Key
             """,
-            new { ProjectName = projectName },
+            LibsqlParameters.Create(("ProjectName", projectName)),
             ct);
 
         return result.Rows.Select(Map).ToList();
@@ -129,7 +137,7 @@ public sealed class LibsqlConfigEntryRepository : IConfigEntryRepository
               AND Environment = @EnvironmentName COLLATE NOCASE
               AND Key = @Key COLLATE NOCASE
             """,
-            new { ProjectName = projectName, EnvironmentName = environmentName, Key = key },
+            CreateKeyParameters(projectName, environmentName, key),
             ct);
 
         return result.Rows[0].GetInt32(0) > 0;
@@ -161,7 +169,7 @@ public sealed class LibsqlConfigEntryRepository : IConfigEntryRepository
                       AND Environment = @EnvironmentName COLLATE NOCASE
                       AND Key = @Key COLLATE NOCASE
                     """,
-                    new { ProjectName = projectName, EnvironmentName = environmentName, Key = key }),
+                    CreateKeyParameters(projectName, environmentName, key)),
                 new LibsqlStatement(
                     """
                     DELETE FROM ConfigEntries
@@ -169,7 +177,7 @@ public sealed class LibsqlConfigEntryRepository : IConfigEntryRepository
                       AND Environment = @EnvironmentName COLLATE NOCASE
                       AND Key = @Key COLLATE NOCASE
                     """,
-                    new { ProjectName = projectName, EnvironmentName = environmentName, Key = key })
+                    CreateKeyParameters(projectName, environmentName, key))
             ],
             ct);
     }
@@ -231,21 +239,49 @@ public sealed class LibsqlConfigEntryRepository : IConfigEntryRepository
             && savedEntry.UpdatedAt == requestedEntry.UpdatedAt;
     }
 
-    private static object ToVersionParameters(ConfigEntry entry, string actor)
+    private static IReadOnlyDictionary<string, object?> CreateKeyParameters(
+        string projectName,
+        string environmentName,
+        string key)
     {
-        return new
-        {
-            entry.Project,
-            entry.Environment,
-            entry.Key,
-            entry.Value,
-            entry.ContentType,
-            Scope = (int)entry.Scope,
-            Actor = actor,
-            CreatedAt = entry.CreatedAt.ToString("O"),
-            UpdatedAt = entry.UpdatedAt.ToString("O"),
-            VersionCreatedAt = entry.UpdatedAt.ToString("O")
-        };
+        return LibsqlParameters.Create(
+            ("ProjectName", projectName),
+            ("EnvironmentName", environmentName),
+            ("Key", key));
+    }
+
+    private static IReadOnlyDictionary<string, object?> ToVersionParameters(ConfigEntry entry, string actor)
+    {
+        return LibsqlParameters.Create(
+            ("Project", entry.Project),
+            ("Environment", entry.Environment),
+            ("Key", entry.Key),
+            ("Value", entry.Value),
+            ("ContentType", entry.ContentType),
+            ("Scope", (int)entry.Scope),
+            ("Actor", actor),
+            ("VersionCreatedAt", entry.UpdatedAt.ToString("O")));
+    }
+
+    private static IReadOnlyDictionary<string, object?> ToEntryParameters(ConfigEntry entry)
+    {
+        return LibsqlParameters.Create(
+            ("Project", entry.Project),
+            ("Environment", entry.Environment),
+            ("Key", entry.Key),
+            ("Value", entry.Value),
+            ("ContentType", entry.ContentType),
+            ("Scope", (int)entry.Scope),
+            ("CreatedAt", entry.CreatedAt.ToString("O")),
+            ("UpdatedAt", entry.UpdatedAt.ToString("O")));
+    }
+
+    private static IReadOnlyDictionary<string, object?> ToEntryKeyParameters(ConfigEntry entry)
+    {
+        return LibsqlParameters.Create(
+            ("Project", entry.Project),
+            ("Environment", entry.Environment),
+            ("Key", entry.Key));
     }
 
     private async Task<ConfigEntry?> AddVersionSequentialAsync(ConfigEntry entry, string actor, CancellationToken ct)
@@ -258,18 +294,17 @@ public sealed class LibsqlConfigEntryRepository : IConfigEntryRepository
               AND Environment = @Environment COLLATE NOCASE
               AND Key = @Key COLLATE NOCASE
             """,
-            new { entry.Project, entry.Environment, entry.Key },
+            ToEntryKeyParameters(entry),
             ct);
 
         var nextVersion = currentVersionResult.Rows[0].GetInt32(0) + 1;
-        var parameters = ToSequentialVersionParameters(entry, actor, nextVersion);
 
         await _client.ExecuteAsync(
             """
             INSERT INTO ConfigEntryVersions (Project, Environment, Key, Version, Value, ContentType, Scope, CreatedAt, Actor)
             VALUES (@Project, @Environment, @Key, @Version, @Value, @ContentType, @Scope, @VersionCreatedAt, @Actor)
             """,
-            parameters,
+            ToSequentialVersionParameters(entry, actor, nextVersion),
             ct);
 
         await _client.ExecuteAsync(
@@ -283,7 +318,7 @@ public sealed class LibsqlConfigEntryRepository : IConfigEntryRepository
                 ActiveVersion = excluded.ActiveVersion,
                 UpdatedAt = excluded.UpdatedAt
             """,
-            parameters,
+            ToSequentialEntryParameters(entry, nextVersion),
             ct);
 
         var savedResult = await _client.ExecuteAsync(
@@ -295,32 +330,44 @@ public sealed class LibsqlConfigEntryRepository : IConfigEntryRepository
               AND Key = @Key COLLATE NOCASE
             LIMIT 1
             """,
-            parameters,
+            ToEntryKeyParameters(entry),
             ct);
 
         return savedResult.Rows.Count == 0 ? null : Map(savedResult.Rows[0]);
     }
 
-    private static object ToSequentialVersionParameters(ConfigEntry entry, string actor, int version)
+    private static IReadOnlyDictionary<string, object?> ToSequentialVersionParameters(ConfigEntry entry, string actor, int version)
     {
-        return new
-        {
-            entry.Project,
-            entry.Environment,
-            entry.Key,
-            entry.Value,
-            entry.ContentType,
-            Scope = (int)entry.Scope,
-            Actor = actor,
-            Version = version,
-            ActiveVersion = version,
-            CreatedAt = entry.CreatedAt.ToString("O"),
-            UpdatedAt = entry.UpdatedAt.ToString("O"),
-            VersionCreatedAt = entry.UpdatedAt.ToString("O")
-        };
+        return LibsqlParameters.Create(
+            ("Project", entry.Project),
+            ("Environment", entry.Environment),
+            ("Key", entry.Key),
+            ("Value", entry.Value),
+            ("ContentType", entry.ContentType),
+            ("Scope", (int)entry.Scope),
+            ("Actor", actor),
+            ("Version", version),
+            ("VersionCreatedAt", entry.UpdatedAt.ToString("O")));
     }
 
-    private static IReadOnlyList<LibsqlStatement> CreateAddVersionStatements(object parameters)
+    private static IReadOnlyDictionary<string, object?> ToSequentialEntryParameters(ConfigEntry entry, int version)
+    {
+        return LibsqlParameters.Create(
+            ("Project", entry.Project),
+            ("Environment", entry.Environment),
+            ("Key", entry.Key),
+            ("Value", entry.Value),
+            ("ContentType", entry.ContentType),
+            ("Scope", (int)entry.Scope),
+            ("ActiveVersion", version),
+            ("CreatedAt", entry.CreatedAt.ToString("O")),
+            ("UpdatedAt", entry.UpdatedAt.ToString("O")));
+    }
+
+    private static IReadOnlyList<LibsqlStatement> CreateAddVersionStatements(
+        IReadOnlyDictionary<string, object?> versionParameters,
+        IReadOnlyDictionary<string, object?> entryParameters,
+        IReadOnlyDictionary<string, object?> keyParameters)
     {
         return
         [
@@ -345,7 +392,7 @@ public sealed class LibsqlConfigEntryRepository : IConfigEntryRepository
                     @Actor
                 )
                 """,
-                parameters),
+                versionParameters),
             new LibsqlStatement(
                 """
                 INSERT INTO ConfigEntries (Project, Environment, Key, Value, ContentType, Scope, ActiveVersion, CreatedAt, UpdatedAt)
@@ -373,7 +420,7 @@ public sealed class LibsqlConfigEntryRepository : IConfigEntryRepository
                     ActiveVersion = excluded.ActiveVersion,
                     UpdatedAt = excluded.UpdatedAt
                 """,
-                parameters),
+                entryParameters),
             new LibsqlStatement(
                 """
                 SELECT Project, Environment, Key, Value, ContentType, Scope, ActiveVersion, CreatedAt, UpdatedAt
@@ -383,7 +430,7 @@ public sealed class LibsqlConfigEntryRepository : IConfigEntryRepository
                   AND Key = @Key COLLATE NOCASE
                 LIMIT 1
                 """,
-                parameters)
+                keyParameters)
         ];
     }
 }

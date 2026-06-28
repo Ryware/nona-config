@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using Nona.Application.Auth.Commands;
 using Nona.Application.Auth.DTOs;
 using Nona.Application.Common.Interfaces;
@@ -27,10 +27,10 @@ public class RegisterCommandTests
         _userRepository.ExistsAnyAsync(Arg.Any<CancellationToken>()).Returns(false);
         _mediator
             .Send(Arg.Any<LoginCommand>(), Arg.Any<CancellationToken>())
-            .Returns(new LoginResult(
+            .Returns(ValueTask.FromResult(new LoginResult(
                 true,
                 new LoginResponse("jwt-token", "admin@example.com", "editor", new DateTime(2026, 6, 4, 12, 0, 0, DateTimeKind.Utc)),
-                null));
+                null)));
 
         var handler = new RegisterCommandHandler(_mediator, _userRepository, _dateTime, _passwordHasher);
 
@@ -51,7 +51,7 @@ public class RegisterCommandTests
         _userRepository.ExistsAnyAsync(Arg.Any<CancellationToken>()).Returns(false);
         _mediator
             .Send(Arg.Any<LoginCommand>(), Arg.Any<CancellationToken>())
-            .Returns(new LoginResult(false, null, "Invalid username or password"));
+            .Returns(ValueTask.FromResult(new LoginResult(false, null, "Invalid username or password")));
 
         var handler = new RegisterCommandHandler(_mediator, _userRepository, _dateTime, _passwordHasher);
 

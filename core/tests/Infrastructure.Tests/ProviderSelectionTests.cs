@@ -40,7 +40,7 @@ public class ProviderSelectionTests
     }
 
     [Test]
-    public async Task ConfigureServices_SelectsEmbeddedReplicaClient_WhenConfigured()
+    public async Task ConfigureServices_RejectsLocalReplicaOption()
     {
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -57,10 +57,19 @@ public class ProviderSelectionTests
         services.AddInfrastructureServices(configuration);
 
         using var provider = services.BuildServiceProvider();
-        var client = provider.GetRequiredService<ILibsqlDatabaseClient>();
+        Exception? exception = null;
+        try
+        {
+            _ = provider.GetRequiredService<IOptions<LibsqlOptions>>().Value;
+        }
+        catch (Exception ex)
+        {
+            exception = ex;
+        }
 
-        await Assert.That(client.GetType().FullName)
-            .IsEqualTo(typeof(NelknetLibsqlDatabaseClient).FullName);
+        await Assert.That(exception).IsNotNull();
+        await Assert.That(exception).IsTypeOf<OptionsValidationException>();
+        await Assert.That(exception!.Message.Contains("EnableLocalReplica", StringComparison.Ordinal)).IsTrue();
     }
 
     [Test]
@@ -86,7 +95,7 @@ public class ProviderSelectionTests
     }
 
     [Test]
-    public async Task ConfigureServices_SelectsLocalLibsqlClient_WhenLibsqlDataSourceIsFilePath()
+    public async Task ConfigureServices_RejectsFilePathLibsqlDataSource()
     {
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -100,10 +109,19 @@ public class ProviderSelectionTests
         services.AddInfrastructureServices(configuration);
 
         using var provider = services.BuildServiceProvider();
-        var client = provider.GetRequiredService<ILibsqlDatabaseClient>();
+        Exception? exception = null;
+        try
+        {
+            _ = provider.GetRequiredService<IOptions<LibsqlOptions>>().Value;
+        }
+        catch (Exception ex)
+        {
+            exception = ex;
+        }
 
-        await Assert.That(client.GetType().FullName)
-            .IsEqualTo(typeof(NelknetLibsqlDatabaseClient).FullName);
+        await Assert.That(exception).IsNotNull();
+        await Assert.That(exception).IsTypeOf<OptionsValidationException>();
+        await Assert.That(exception!.Message.Contains("HTTP data source", StringComparison.OrdinalIgnoreCase)).IsTrue();
     }
 
     [Test]

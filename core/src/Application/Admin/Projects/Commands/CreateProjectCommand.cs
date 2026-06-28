@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using Microsoft.Extensions.Configuration;
 using Nona.Application.Admin.Projects.DTOs;
 using Nona.Application.Common.Interfaces;
@@ -20,7 +20,7 @@ public class CreateProjectCommandHandler(
     IDateTime dateTime,
     IAuditLogService? auditLogService = null) : IRequestHandler<CreateProjectCommand, CreateProjectResult>
 {
-    public async Task<CreateProjectResult> Handle(CreateProjectCommand request, CancellationToken cancellationToken)
+    public async ValueTask<CreateProjectResult> Handle(CreateProjectCommand request, CancellationToken cancellationToken)
     {
         var currentUser = await userAuthorizationService.GetCurrentUserAsync(cancellationToken);
         if (currentUser?.IsAdmin != true)
@@ -56,7 +56,7 @@ public class CreateProjectCommandHandler(
 
         await projectRepository.AddAsync(project, cancellationToken);
 
-        var defaultEnvironments = configuration.GetSection("Defaults:Environment").Get<string[]>() ?? [];
+        var defaultEnvironments = GetStringList(configuration, "Defaults:Environment");
         foreach (var env in defaultEnvironments)
         {
             await environmentRepository.AddAsync(new ProjectEnvironment
@@ -103,5 +103,22 @@ public class CreateProjectCommandHandler(
 
         var result = System.Text.RegularExpressions.Regex.Replace(sb.ToString(), "-+", "-").Trim('-');
         return result;
+    }
+
+    private static IReadOnlyList<string> GetStringList(IConfiguration configuration, string key)
+    {
+        var section = configuration.GetSection(key);
+        var values = section.GetChildren()
+            .Select(child => child.Value)
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value!)
+            .ToList();
+
+        if (values.Count == 0 && !string.IsNullOrWhiteSpace(section.Value))
+        {
+            values.Add(section.Value);
+        }
+
+        return values;
     }
 }
