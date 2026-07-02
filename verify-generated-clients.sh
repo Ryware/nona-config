@@ -4,7 +4,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ADMIN_PATH="${ADMIN_PATH:-"$SCRIPT_DIR/../nona-config-admin"}"
+ADMIN_PATH="${ADMIN_PATH:-"$SCRIPT_DIR/nona-config-admin"}"
 CHECK_ADMIN=1
 GENERATOR_ARGS=()
 
@@ -28,6 +28,10 @@ while [[ $# -gt 0 ]]; do
 done
 
 bash "$SCRIPT_DIR/generate-clients.sh" "${GENERATOR_ARGS[@]}"
+
+if [[ -d "$ADMIN_PATH" ]]; then
+  ADMIN_PATH="$(cd "$ADMIN_PATH" && pwd)"
+fi
 
 failed=0
 
@@ -53,8 +57,13 @@ check_clean "backend client" "$SCRIPT_DIR" \
 
 if [[ "$CHECK_ADMIN" == "1" ]]; then
   if [[ ! -d "$ADMIN_PATH/.git" ]]; then
-    echo ""
-    echo "::warning::Skipping admin generated file check because $ADMIN_PATH is not a git checkout."
+    admin_output="$ADMIN_PATH/src/generated/api.ts"
+    if [[ "$admin_output" == "$SCRIPT_DIR"/* ]]; then
+      check_clean "admin client" "$SCRIPT_DIR" "${admin_output#"$SCRIPT_DIR"/}"
+    else
+      echo ""
+      echo "::warning::Skipping admin generated file check because $ADMIN_PATH is not inside this git checkout."
+    fi
   else
     check_clean "admin client" "$ADMIN_PATH" src/generated/api.ts
   fi

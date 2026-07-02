@@ -1,0 +1,65 @@
+name: build-static-docs
+
+on:
+  push:
+    branches:
+      - master
+      - development
+    paths:
+      - nona-docs/**
+      - cli/**
+      - Directory.Build.props
+      - Directory.Build.targets
+      - .github/workflows/docs-static.yml
+  pull_request:
+    paths:
+      - nona-docs/**
+      - cli/**
+      - Directory.Build.props
+      - Directory.Build.targets
+      - .github/workflows/docs-static.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build HTML archive
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: nona-docs
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: nona-docs/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build static HTML
+        run: npm run build
+
+      - name: Create zip archive
+        run: npm run archive
+
+      - name: Upload HTML archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: nona-docs-html
+          path: nona-docs/artifacts/nona-docs-html.zip
+          if-no-files-found: error

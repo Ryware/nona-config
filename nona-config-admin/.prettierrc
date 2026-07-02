@@ -1,0 +1,15 @@
+{
+  "trailingComma": "none",
+  "tabWidth": 2,
+  "semi": true,
+  "singleQuote": false,
+  "arrowParens": "avoid",
+  "printWidth": 100,
+  "plugins": [
+    "prettier-plugin-organize-imports",
+    "@xeonlink/prettier-plugin-organize-attributes",
+    "prettier-plugin-tailwindcss"
+  ],
+  "attributeGroups": ["$KEY", "$REF", "^className$", "^id$", "^data-", "$DEFAULT"],
+  "attributeSort": "ASC"
+}

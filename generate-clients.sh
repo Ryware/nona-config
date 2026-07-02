@@ -19,7 +19,7 @@ WEBAPI_PROJECT_DIR="$(dirname "$WEBAPI_PROJECT")"
 OPENAPI_DIR="${OPENAPI_DIR:-"$SCRIPT_DIR/obj/openapi"}"
 SPEC="${SPEC:-"$OPENAPI_DIR/WebApi.json"}"
 SERVER_URL="${SERVER_URL:-}"
-ADMIN_PATH="${ADMIN_PATH:-"$SCRIPT_DIR/../nona-config-admin"}"
+ADMIN_PATH="${ADMIN_PATH:-"$SCRIPT_DIR/nona-config-admin"}"
 BUILD_SPEC=1
 FETCH_SPEC=0
 GENERATE_ADMIN=1
@@ -32,7 +32,7 @@ Usage:
   ./generate-clients.sh [options]
 
 Options:
-  --admin-path PATH        Path to nona-config-admin. Default: ../nona-config-admin
+  --admin-path PATH        Path to nona-config-admin. Default: ./nona-config-admin
   --server-url URL         Fetch OpenAPI from URL/openapi/v1.json instead of building it
   --spec PATH              Use an existing OpenAPI document instead of building one
   --skip-admin             Generate only backend C# clients
