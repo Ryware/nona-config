@@ -7,6 +7,7 @@
 [![NuGet](https://img.shields.io/nuget/v/Nona.Client?style=flat-square&logo=nuget)](https://www.nuget.org/packages/Nona.Client)
 [![Chocolatey](https://img.shields.io/chocolatey/v/nona-cli?style=flat-square&logo=chocolatey)](https://community.chocolatey.org/packages/nona-cli)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg?style=flat-square)](LICENSE.txt)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/Ryware/nona-config/badge)](https://scorecard.dev/viewer/?uri=github.com/Ryware/nona-config)
 
 Nona gives you the same feature flag and remote config capabilities as Firebase Remote Config — without the Google account, without the lock-in, and running entirely on your own infrastructure.
 
