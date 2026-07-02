@@ -5,6 +5,7 @@ using Microsoft.Kiota.Abstractions.Serialization;
 using Microsoft.Kiota.Abstractions;
 using Nona.Cli.Generated.Admin.Projects.Item.Environments.Item.ConfigEntries.Item.History;
 using Nona.Cli.Generated.Admin.Projects.Item.Environments.Item.ConfigEntries.Item.Rollback;
+using Nona.Cli.Generated.Admin.Projects.Item.Environments.Item.ConfigEntries.Item.ShareLinks;
 using Nona.Cli.Generated.Models;
 using System.Collections.Generic;
 using System.IO;
@@ -28,6 +29,11 @@ namespace Nona.Cli.Generated.Admin.Projects.Item.Environments.Item.ConfigEntries
         public global::Nona.Cli.Generated.Admin.Projects.Item.Environments.Item.ConfigEntries.Item.Rollback.RollbackRequestBuilder Rollback
         {
             get => new global::Nona.Cli.Generated.Admin.Projects.Item.Environments.Item.ConfigEntries.Item.Rollback.RollbackRequestBuilder(PathParameters, RequestAdapter);
+        }
+        /// <summary>The shareLinks property</summary>
+        public global::Nona.Cli.Generated.Admin.Projects.Item.Environments.Item.ConfigEntries.Item.ShareLinks.ShareLinksRequestBuilder ShareLinks
+        {
+            get => new global::Nona.Cli.Generated.Admin.Projects.Item.Environments.Item.ConfigEntries.Item.ShareLinks.ShareLinksRequestBuilder(PathParameters, RequestAdapter);
         }
         /// <summary>
         /// Instantiates a new <see cref="global::Nona.Cli.Generated.Admin.Projects.Item.Environments.Item.ConfigEntries.Item.WithKeyItemRequestBuilder"/> and sets the default values.

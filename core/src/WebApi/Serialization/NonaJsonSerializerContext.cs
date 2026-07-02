@@ -7,12 +7,16 @@ using Nona.Application.Admin.ConfigEntries.DTOs;
 using Nona.Application.Admin.Dashboard.DTOs;
 using Nona.Application.Admin.Environments.Commands;
 using Nona.Application.Admin.Environments.DTOs;
+using Nona.Application.Admin.ParameterShareLinks.Commands;
+using Nona.Application.Admin.ParameterShareLinks.DTOs;
 using Nona.Application.Admin.Projects.Commands;
 using Nona.Application.Admin.Projects.DTOs;
 using Nona.Application.Admin.Users.Commands;
 using Nona.Application.Admin.Users.DTOs;
 using Nona.Application.Auth.Commands;
 using Nona.Application.Auth.DTOs;
+using Nona.Application.Shared.ParameterShareLinks.Commands;
+using Nona.Application.Shared.ParameterShareLinks.DTOs;
 using Nona.WebApi.Endpoints;
 
 namespace Nona.WebApi.Serialization;
@@ -55,6 +59,12 @@ namespace Nona.WebApi.Serialization;
 [JsonSerializable(typeof(List<ConfigEntryDto>))]
 [JsonSerializable(typeof(ConfigEntryVersionDto))]
 [JsonSerializable(typeof(IReadOnlyList<ConfigEntryVersionDto>))]
+[JsonSerializable(typeof(CreateParameterShareLinkRequest))]
+[JsonSerializable(typeof(ParameterShareLinkDto))]
+[JsonSerializable(typeof(CreatedParameterShareLinkDto))]
+[JsonSerializable(typeof(IReadOnlyList<ParameterShareLinkDto>))]
+[JsonSerializable(typeof(UpdateSharedParameterRequest))]
+[JsonSerializable(typeof(SharedParameterDto))]
 [JsonSerializable(typeof(AuditLogDto))]
 [JsonSerializable(typeof(IReadOnlyList<AuditLogDto>))]
 [JsonSerializable(typeof(DashboardCountDto))]

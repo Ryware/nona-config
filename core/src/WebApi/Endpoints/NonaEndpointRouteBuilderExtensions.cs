@@ -13,6 +13,9 @@ using Nona.Application.Admin.Dashboard.Queries;
 using Nona.Application.Admin.Environments.Commands;
 using Nona.Application.Admin.Environments.DTOs;
 using Nona.Application.Admin.Environments.Queries;
+using Nona.Application.Admin.ParameterShareLinks.Commands;
+using Nona.Application.Admin.ParameterShareLinks.DTOs;
+using Nona.Application.Admin.ParameterShareLinks.Queries;
 using Nona.Application.Admin.Projects.Commands;
 using Nona.Application.Admin.Projects.DTOs;
 using Nona.Application.Admin.Projects.Queries;
@@ -26,6 +29,10 @@ using Nona.Application.Auth.DTOs;
 using Nona.Application.Auth.Queries;
 using Nona.Application.Common;
 using Nona.Application.Common.Interfaces;
+using Nona.Application.Shared.ParameterShareLinks;
+using Nona.Application.Shared.ParameterShareLinks.Commands;
+using Nona.Application.Shared.ParameterShareLinks.DTOs;
+using Nona.Application.Shared.ParameterShareLinks.Queries;
 using Nona.WebApi.Authentication;
 using Nona.WebApi.Serialization;
 
@@ -38,6 +45,7 @@ public static class NonaEndpointRouteBuilderExtensions
         MapAuthEndpoints(app.MapGroup("/auth"));
         MapAdminEndpoints(app.MapGroup("/admin").RequireAuthorization());
         MapConfigApiEndpoints(app.MapGroup("/api"));
+        MapSharedParameterEndpoints(app.MapGroup("/public/share-links"));
 
         return app;
     }
@@ -110,6 +118,21 @@ public static class NonaEndpointRouteBuilderExtensions
                     await RollbackConfigEntryAsync(projectId, environmentName, key, request, mediator, cancellationToken))
             .Accepts<RollbackConfigEntryRequest>("application/json")
             .Produces<ConfigEntryDto>();
+        configEntries.MapGet(
+                "/{key}/share-links",
+                async (string projectId, string environmentName, string key, IMediator mediator, CancellationToken cancellationToken) =>
+                    await ListParameterShareLinksAsync(projectId, environmentName, key, mediator, cancellationToken))
+            .Produces<IReadOnlyList<ParameterShareLinkDto>>();
+        configEntries.MapPost(
+                "/{key}/share-links",
+                async (string projectId, string environmentName, string key, CreateParameterShareLinkRequest request, IMediator mediator, CancellationToken cancellationToken) =>
+                    await CreateParameterShareLinkAsync(projectId, environmentName, key, request, mediator, cancellationToken))
+            .Accepts<CreateParameterShareLinkRequest>("application/json")
+            .Produces<CreatedParameterShareLinkDto>(StatusCodes.Status201Created);
+        configEntries.MapDelete(
+            "/{key}/share-links/{shareLinkId:long}",
+            async (string projectId, string environmentName, string key, long shareLinkId, IMediator mediator, CancellationToken cancellationToken) =>
+                await RevokeParameterShareLinkAsync(projectId, environmentName, key, shareLinkId, mediator, cancellationToken));
 
         var users = admin.MapGroup("/users");
         users.MapPost("/", CreateUserAsync)
@@ -137,6 +160,15 @@ public static class NonaEndpointRouteBuilderExtensions
     {
         api.MapGet("/{environmentId}/{key}", GetConfigValueAsync)
             .RequireAuthorization(ApiKeyAuthenticationHandler.SchemeName);
+    }
+
+    private static void MapSharedParameterEndpoints(RouteGroupBuilder shareLinks)
+    {
+        shareLinks.MapGet("/{token}", GetSharedParameterAsync)
+            .Produces<SharedParameterDto>();
+        shareLinks.MapPut("/{token}", UpdateSharedParameterAsync)
+            .Accepts<UpdateSharedParameterRequest>("application/json")
+            .Produces<SharedParameterDto>();
     }
 
     private static async Task<IResult> LoginAsync(
@@ -487,6 +519,87 @@ public static class NonaEndpointRouteBuilderExtensions
         };
     }
 
+    private static async Task<IResult> ListParameterShareLinksAsync(
+        string projectId,
+        string environmentName,
+        string key,
+        IMediator mediator,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(
+            new ListParameterShareLinksQuery(projectId, environmentName, key),
+            cancellationToken);
+
+        if (result.Success)
+        {
+            return Results.Ok(result.ShareLinks);
+        }
+
+        return result.Error switch
+        {
+            "Access denied" => Forbidden(result.Error),
+            "Project not found" or "Config entry not found" => NotFound(result.Error),
+            _ => BadRequest(result.Error ?? "Share links could not be listed")
+        };
+    }
+
+    private static async Task<IResult> CreateParameterShareLinkAsync(
+        string projectId,
+        string environmentName,
+        string key,
+        CreateParameterShareLinkRequest request,
+        IMediator mediator,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(
+            new CreateParameterShareLinkCommand(
+                projectId,
+                environmentName,
+                key,
+                request.Expiration,
+                request.CanEdit),
+            cancellationToken);
+
+        if (result.Success)
+        {
+            return Results.Created(
+                $"/admin/projects/{projectId}/environments/{environmentName}/config-entries/{key}/share-links/{result.ShareLink!.Id}",
+                result.ShareLink);
+        }
+
+        return result.Error switch
+        {
+            "Access denied" => Forbidden(result.Error),
+            "Project not found" or "Environment not found" or "Config entry not found" => NotFound(result.Error),
+            _ => BadRequest(result.Error ?? "Share link could not be created")
+        };
+    }
+
+    private static async Task<IResult> RevokeParameterShareLinkAsync(
+        string projectId,
+        string environmentName,
+        string key,
+        long shareLinkId,
+        IMediator mediator,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(
+            new RevokeParameterShareLinkCommand(projectId, environmentName, key, shareLinkId),
+            cancellationToken);
+
+        if (result.Success)
+        {
+            return Results.NoContent();
+        }
+
+        return result.Error switch
+        {
+            "Access denied" => Forbidden(result.Error),
+            "Project not found" or "Share link not found" => NotFound(result.Error),
+            _ => BadRequest(result.Error ?? "Share link could not be revoked")
+        };
+    }
+
     private static async Task<IResult> DeleteConfigEntryAsync(
         string projectId,
         string environmentName,
@@ -612,6 +725,29 @@ public static class NonaEndpointRouteBuilderExtensions
         return Results.Ok(await mediator.Send(new GetDashboardCountsQuery(), cancellationToken));
     }
 
+    public static async Task<IResult> GetSharedParameterAsync(
+        string token,
+        IMediator mediator,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new GetSharedParameterQuery(token), cancellationToken);
+        return result.Success
+            ? Results.Ok(result.Parameter)
+            : SharedLinkFailure(result.Error, result.ErrorCode);
+    }
+
+    public static async Task<IResult> UpdateSharedParameterAsync(
+        string token,
+        UpdateSharedParameterRequest request,
+        IMediator mediator,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new UpdateSharedParameterCommand(token, request.Value), cancellationToken);
+        return result.Success
+            ? Results.Ok(result.Parameter)
+            : SharedLinkFailure(result.Error, result.ErrorCode);
+    }
+
     public static async Task<IResult> GetConfigValueAsync(
         string environmentId,
         string key,
@@ -656,5 +792,34 @@ public static class NonaEndpointRouteBuilderExtensions
             new ErrorResponse(error, errorCode),
             NonaJsonSerializerContext.Default.ErrorResponse,
             statusCode: StatusCodes.Status401Unauthorized);
+    }
+
+    private static IResult Forbidden(string error, string? errorCode = null)
+    {
+        return Results.Json(
+            new ErrorResponse(error, errorCode),
+            NonaJsonSerializerContext.Default.ErrorResponse,
+            statusCode: StatusCodes.Status403Forbidden);
+    }
+
+    private static IResult Gone(string error, string? errorCode = null)
+    {
+        return Results.Json(
+            new ErrorResponse(error, errorCode),
+            NonaJsonSerializerContext.Default.ErrorResponse,
+            statusCode: StatusCodes.Status410Gone);
+    }
+
+    private static IResult SharedLinkFailure(string? error, string? errorCode)
+    {
+        var message = error ?? "Share link is not available.";
+
+        return errorCode switch
+        {
+            ParameterShareLinkErrorCodes.Expired or ParameterShareLinkErrorCodes.Revoked => Gone(message, errorCode),
+            ParameterShareLinkErrorCodes.ViewOnly => Forbidden(message, errorCode),
+            ParameterShareLinkErrorCodes.Invalid => NotFound(message, errorCode),
+            _ => BadRequest(message, errorCode)
+        };
     }
 }

@@ -9,6 +9,7 @@ using Microsoft.Kiota.Serialization.Text;
 using Nona.Cli.Generated.Admin;
 using Nona.Cli.Generated.Api;
 using Nona.Cli.Generated.Auth;
+using Nona.Cli.Generated.Public;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
@@ -35,6 +36,11 @@ namespace Nona.Cli.Generated
         public global::Nona.Cli.Generated.Auth.AuthRequestBuilder Auth
         {
             get => new global::Nona.Cli.Generated.Auth.AuthRequestBuilder(PathParameters, RequestAdapter);
+        }
+        /// <summary>The public property</summary>
+        public global::Nona.Cli.Generated.Public.PublicRequestBuilder Public
+        {
+            get => new global::Nona.Cli.Generated.Public.PublicRequestBuilder(PathParameters, RequestAdapter);
         }
         /// <summary>
         /// Instantiates a new <see cref="global::Nona.Cli.Generated.NonaApiClient"/> and sets the default values.

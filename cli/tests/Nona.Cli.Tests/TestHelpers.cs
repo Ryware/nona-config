@@ -83,6 +83,16 @@ internal static class Fixtures
 
     internal const string ConfigEntryVersionArrayJson = $"[{ConfigEntryVersionJson}]";
 
+    internal const string ParameterShareLinkJson = """
+        {"id":11,"project":"my-project","environment":"production","key":"my.key","canEdit":true,"createdBy":"alice","createdAt":"2024-01-01T00:00:00Z","expiresAt":"2024-01-01T01:00:00Z","revokedAt":null}
+        """;
+
+    internal const string ParameterShareLinkArrayJson = $"[{ParameterShareLinkJson}]";
+
+    internal const string CreatedParameterShareLinkJson = """
+        {"id":11,"token":"AbCdEf1234567890","project":"my-project","environment":"production","key":"my.key","canEdit":false,"createdBy":"alice","createdAt":"2024-01-01T00:00:00Z","expiresAt":"2024-01-01T01:00:00Z","revokedAt":null}
+        """;
+
     internal const string CreateUserResponseJson = """
         {"user":{"id":1,"email":"user@example.com","name":"Test User","role":"editor","scope":"all"},"invitationToken":"inv_token_abc123"}
         """;

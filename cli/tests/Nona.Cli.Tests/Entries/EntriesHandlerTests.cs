@@ -90,4 +90,38 @@ public sealed class EntriesHandlerTests
                 CancellationToken.None);
         await Assert.That(result).IsEqualTo(0);
     }
+
+    [Test]
+    public async Task ListEntryShareLinksQueryHandler_ReturnsZero_WithLinks()
+    {
+        var result = await new ListEntryShareLinksQueryHandler(MockHttp(HttpStatusCode.OK, ParameterShareLinkArrayJson))
+            .HandleAsync(new ListEntryShareLinksQuery(TestConnection, "my-project", "production", "my.key"),
+                CancellationToken.None);
+        await Assert.That(result).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task CreateEntryShareLinkCommandHandler_ReturnsZero_OnSuccess()
+    {
+        var result = await new CreateEntryShareLinkCommandHandler(MockHttp(HttpStatusCode.Created, CreatedParameterShareLinkJson))
+            .HandleAsync(new CreateEntryShareLinkCommand(
+                    TestConnection,
+                    "my-project",
+                    "production",
+                    "my.key",
+                    "1h",
+                    false,
+                    "https://admin.nona.test"),
+                CancellationToken.None);
+        await Assert.That(result).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task RevokeEntryShareLinkCommandHandler_ReturnsZero_OnSuccess()
+    {
+        var result = await new RevokeEntryShareLinkCommandHandler(MockHttp(HttpStatusCode.NoContent, string.Empty))
+            .HandleAsync(new RevokeEntryShareLinkCommand(TestConnection, "my-project", "production", "my.key", 11),
+                CancellationToken.None);
+        await Assert.That(result).IsEqualTo(0);
+    }
 }

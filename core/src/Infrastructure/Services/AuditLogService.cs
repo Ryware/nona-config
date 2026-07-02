@@ -18,11 +18,30 @@ public sealed class AuditLogService(
         var actor = currentUserService.Username;
         var isSystem = string.IsNullOrWhiteSpace(actor);
 
+        return WriteAsAsync(
+            isSystem ? "System" : actor!,
+            isSystem,
+            action,
+            target,
+            project,
+            environment,
+            cancellationToken);
+    }
+
+    public Task WriteAsAsync(
+        string actor,
+        bool actorIsSystem,
+        string action,
+        string target,
+        string? project = null,
+        string? environment = null,
+        CancellationToken cancellationToken = default)
+    {
         return auditLogRepository.AddAsync(
             new AuditLogEntry
             {
-                Actor = isSystem ? "System" : actor!,
-                ActorIsSystem = isSystem,
+                Actor = string.IsNullOrWhiteSpace(actor) ? "System" : actor,
+                ActorIsSystem = actorIsSystem,
                 Action = action,
                 Target = target,
                 Project = project,

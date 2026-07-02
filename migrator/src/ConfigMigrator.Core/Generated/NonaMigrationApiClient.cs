@@ -9,6 +9,7 @@ using Microsoft.Kiota.Serialization.Text;
 using Nona.Migrator.Core.Generated.Admin;
 using Nona.Migrator.Core.Generated.Api;
 using Nona.Migrator.Core.Generated.Auth;
+using Nona.Migrator.Core.Generated.Public;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
@@ -35,6 +36,11 @@ namespace Nona.Migrator.Core.Generated
         public global::Nona.Migrator.Core.Generated.Auth.AuthRequestBuilder Auth
         {
             get => new global::Nona.Migrator.Core.Generated.Auth.AuthRequestBuilder(PathParameters, RequestAdapter);
+        }
+        /// <summary>The public property</summary>
+        public global::Nona.Migrator.Core.Generated.Public.PublicRequestBuilder Public
+        {
+            get => new global::Nona.Migrator.Core.Generated.Public.PublicRequestBuilder(PathParameters, RequestAdapter);
         }
         /// <summary>
         /// Instantiates a new <see cref="global::Nona.Migrator.Core.Generated.NonaMigrationApiClient"/> and sets the default values.

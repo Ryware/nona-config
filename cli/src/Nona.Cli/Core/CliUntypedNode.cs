@@ -13,6 +13,12 @@ internal static class CliUntypedNode
         return value?.ToString(CultureInfo.InvariantCulture) ?? "?";
     }
 
+    public static string FormatInt64(UntypedNode? node)
+    {
+        var value = ToInt64(node);
+        return value?.ToString(CultureInfo.InvariantCulture) ?? "?";
+    }
+
     public static int? ToInt32(UntypedNode? node)
     {
         try
@@ -35,5 +41,22 @@ internal static class CliUntypedNode
         {
             return null;
         }
+    }
+
+    public static long? ToInt64(UntypedNode? node)
+    {
+        return node switch
+        {
+            UntypedInteger integer => integer.GetValue(),
+            UntypedLong integer => integer.GetValue(),
+            UntypedString text when long.TryParse(text.GetValue(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) => parsed,
+            _ => node?.GetValue() switch
+            {
+                int integer => integer,
+                long integer => integer,
+                string text when long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) => parsed,
+                _ => null
+            }
+        };
     }
 }

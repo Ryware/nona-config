@@ -63,6 +63,7 @@ public static class ConfigureServices
         services.AddSingleton<IEnvironmentRepository, InMemoryEnvironmentRepository>();
         services.AddSingleton<IConfigEntryRepository, InMemoryConfigEntryRepository>();
         services.AddSingleton<IProjectMemberRepository, InMemoryProjectMemberRepository>();
+        services.AddSingleton<IParameterShareLinkRepository, InMemoryParameterShareLinkRepository>();
     }
 
     private static void ConfigureLibsqlPersistence(
@@ -140,6 +141,7 @@ public static class ConfigureServices
         services.AddSingleton<IApiKeyRepository, LibsqlApiKeyRepository>();
         services.AddSingleton<IEnvironmentRepository, LibsqlEnvironmentRepository>();
         services.AddSingleton<IProjectMemberRepository, LibsqlProjectMemberRepository>();
+        services.AddSingleton<IParameterShareLinkRepository, LibsqlParameterShareLinkRepository>();
     }
 
     private static void ConfigureSsoOptions(SsoOptions options, IConfiguration configuration)

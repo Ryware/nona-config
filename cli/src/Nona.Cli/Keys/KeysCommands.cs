@@ -1,4 +1,3 @@
-using Nona.Cli.Keys.Queries;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.CommandLine.NamingConventionBinder;
