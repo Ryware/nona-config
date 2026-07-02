@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using Microsoft.Extensions.Logging;
 using Nona.Application.Admin.Common;
 using Nona.Application.Common.Interfaces;
@@ -16,7 +16,7 @@ public sealed class CompleteInvitationWithSsoCommandHandler(
     IDateTime dateTime,
     ILogger<CompleteInvitationWithSsoCommandHandler> logger) : IRequestHandler<CompleteInvitationWithSsoCommand, LoginResult>
 {
-    public async Task<LoginResult> Handle(CompleteInvitationWithSsoCommand request, CancellationToken cancellationToken)
+    public async ValueTask<LoginResult> Handle(CompleteInvitationWithSsoCommand request, CancellationToken cancellationToken)
     {
         var invitedUser = await userRepository.GetByInviteTokenHashAsync(TokenHelper.Hash(request.Token), cancellationToken);
         if (invitedUser is null)

@@ -1,6 +1,7 @@
 using Nona.Domain.Entities;
 using Nona.Domain.Enums;
 using Nona.Infrastructure.Repositories.Libsql;
+using Nona.Infrastructure.Tests.Common;
 using Nona.Libsql;
 
 namespace Nona.Infrastructure.Tests;
@@ -8,65 +9,57 @@ namespace Nona.Infrastructure.Tests;
 public class LibsqlConfigEntryRepositoryTests
 {
     [Test]
-    public async Task AddVersionAsync_LocalLibsqlFile_AppendsHistoryAndServesLatestActiveValue()
+    public async Task AddVersionAsync_Sqld_AppendsHistoryAndServesLatestActiveValue()
     {
-        var databasePath = Path.Combine(Path.GetTempPath(), $"nona-config-entry-versions-{Guid.NewGuid():N}.db");
+        await using var server = await LocalSqldTestServer.StartAsync();
+        using var client = server.CreateClient();
+        var migrations = new LibsqlMigrationRunner(client, ResolveMigrationsFolder());
+        await migrations.RunMigrationsAsync();
 
-        try
+        var repository = new LibsqlConfigEntryRepository(client);
+        var createdAt = new DateTime(2026, 6, 21, 10, 0, 0, DateTimeKind.Utc);
+        var updatedAt = new DateTime(2026, 6, 22, 10, 0, 0, DateTimeKind.Utc);
+
+        await repository.AddVersionAsync(new ConfigEntry
         {
-            using var client = new NelknetLibsqlDatabaseClient($"Data Source={databasePath}");
-            var migrations = new LibsqlMigrationRunner(client, ResolveMigrationsFolder());
-            await migrations.RunMigrationsAsync();
+            Project = "test-project",
+            Environment = "production",
+            Key = "feature.enabled",
+            Value = "false",
+            ContentType = "boolean",
+            Scope = KeyScope.Frontend,
+            CreatedAt = createdAt,
+            UpdatedAt = createdAt
+        }, "alice");
 
-            var repository = new LibsqlConfigEntryRepository(client);
-            var createdAt = new DateTime(2026, 6, 21, 10, 0, 0, DateTimeKind.Utc);
-            var updatedAt = new DateTime(2026, 6, 22, 10, 0, 0, DateTimeKind.Utc);
-
-            await repository.AddVersionAsync(new ConfigEntry
-            {
-                Project = "test-project",
-                Environment = "production",
-                Key = "feature.enabled",
-                Value = "false",
-                ContentType = "boolean",
-                Scope = KeyScope.Frontend,
-                CreatedAt = createdAt,
-                UpdatedAt = createdAt
-            }, "alice");
-
-            var updated = await repository.AddVersionAsync(new ConfigEntry
-            {
-                Project = "test-project",
-                Environment = "production",
-                Key = "feature.enabled",
-                Value = "true",
-                ContentType = "boolean",
-                Scope = KeyScope.Frontend,
-                CreatedAt = createdAt,
-                UpdatedAt = updatedAt
-            }, "bob");
-
-            var current = await repository.GetAsync("test-project", "production", "feature.enabled");
-            var versions = await repository.ListVersionsAsync("test-project", "production", "feature.enabled");
-
-            await Assert.That(updated).IsNotNull();
-            await Assert.That(updated!.Value).IsEqualTo("true");
-            await Assert.That(updated.ActiveVersion).IsEqualTo(2);
-            await Assert.That(current).IsNotNull();
-            await Assert.That(current!.Value).IsEqualTo("true");
-            await Assert.That(current.ActiveVersion).IsEqualTo(2);
-            await Assert.That(versions).Count().IsEqualTo(2);
-            await Assert.That(versions[0].Version).IsEqualTo(2);
-            await Assert.That(versions[0].Value).IsEqualTo("true");
-            await Assert.That(versions[0].Actor).IsEqualTo("bob");
-            await Assert.That(versions[1].Version).IsEqualTo(1);
-            await Assert.That(versions[1].Value).IsEqualTo("false");
-            await Assert.That(versions[1].Actor).IsEqualTo("alice");
-        }
-        finally
+        var updated = await repository.AddVersionAsync(new ConfigEntry
         {
-            TryDelete(databasePath);
-        }
+            Project = "test-project",
+            Environment = "production",
+            Key = "feature.enabled",
+            Value = "true",
+            ContentType = "boolean",
+            Scope = KeyScope.Frontend,
+            CreatedAt = createdAt,
+            UpdatedAt = updatedAt
+        }, "bob");
+
+        var current = await repository.GetAsync("test-project", "production", "feature.enabled");
+        var versions = await repository.ListVersionsAsync("test-project", "production", "feature.enabled");
+
+        await Assert.That(updated).IsNotNull();
+        await Assert.That(updated!.Value).IsEqualTo("true");
+        await Assert.That(updated.ActiveVersion).IsEqualTo(2);
+        await Assert.That(current).IsNotNull();
+        await Assert.That(current!.Value).IsEqualTo("true");
+        await Assert.That(current.ActiveVersion).IsEqualTo(2);
+        await Assert.That(versions).Count().IsEqualTo(2);
+        await Assert.That(versions[0].Version).IsEqualTo(2);
+        await Assert.That(versions[0].Value).IsEqualTo("true");
+        await Assert.That(versions[0].Actor).IsEqualTo("bob");
+        await Assert.That(versions[1].Version).IsEqualTo(1);
+        await Assert.That(versions[1].Value).IsEqualTo("false");
+        await Assert.That(versions[1].Actor).IsEqualTo("alice");
     }
 
     [Test]
@@ -383,17 +376,4 @@ public class LibsqlConfigEntryRepositoryTests
             "Migrations"));
     }
 
-    private static void TryDelete(string databasePath)
-    {
-        try
-        {
-            if (File.Exists(databasePath))
-            {
-                File.Delete(databasePath);
-            }
-        }
-        catch
-        {
-        }
-    }
 }

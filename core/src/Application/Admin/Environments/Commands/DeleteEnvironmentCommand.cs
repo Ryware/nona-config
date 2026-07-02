@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using Nona.Application.Admin.Projects;
 using Nona.Application.Common.Interfaces;
 using Nona.Domain.Interfaces;
@@ -16,7 +16,7 @@ public class DeleteEnvironmentCommandHandler(
     IProjectAccessService projectAccessService,
     IAuditLogService? auditLogService = null) : IRequestHandler<DeleteEnvironmentCommand, DeleteEnvironmentResult>
 {
-    public async Task<DeleteEnvironmentResult> Handle(DeleteEnvironmentCommand request, CancellationToken cancellationToken)
+    public async ValueTask<DeleteEnvironmentResult> Handle(DeleteEnvironmentCommand request, CancellationToken cancellationToken)
     {
         var project = await ProjectResolution.ResolveProjectAsync(projectRepository, request.ProjectId, cancellationToken);
         if (project is null)

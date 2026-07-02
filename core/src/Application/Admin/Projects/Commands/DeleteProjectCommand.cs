@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using Nona.Application.Common.Interfaces;
 using Nona.Domain.Entities;
 using Nona.Domain.Interfaces;
@@ -18,7 +18,7 @@ public class DeleteProjectCommandHandler(
     IAuditLogService? auditLogService = null)
     : IRequestHandler<DeleteProjectCommand, DeleteProjectResult>
 {
-    public async Task<DeleteProjectResult> Handle(DeleteProjectCommand request, CancellationToken cancellationToken)
+    public async ValueTask<DeleteProjectResult> Handle(DeleteProjectCommand request, CancellationToken cancellationToken)
     {
         // Resolve the project by name, id, or slug
         var project = await ResolveProjectAsync(request.ProjectId, cancellationToken);

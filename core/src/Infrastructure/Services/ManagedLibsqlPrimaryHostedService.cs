@@ -224,18 +224,40 @@ internal static class ManagedLibsqlPrimaryProcessArguments
         var arguments = new List<string>
         {
             "--db-path", options.ResolveDatabasePath(),
-            "--http-listen-addr", options.HttpListenAddress,
-            "--max-concurrent-connections", "512",
-            "--max-concurrent-requests", "512",
-            "--disable-intelligent-throttling",
-            "--connection-creation-timeout-sec", "4"
+            "--http-listen-addr", options.HttpListenAddress
         };
+        var extraArgs = options.ExtraArgs
+            .Where(argument => !string.IsNullOrWhiteSpace(argument))
+            .ToArray();
 
-        if (options.ExtraArgs.Length > 0)
+        AddDefaultOption(arguments, extraArgs, "--max-concurrent-connections", "512");
+        AddDefaultOption(arguments, extraArgs, "--max-concurrent-requests", "512");
+        AddDefaultOption(arguments, extraArgs, "--disable-intelligent-throttling");
+        AddDefaultOption(arguments, extraArgs, "--connection-creation-timeout-sec", "4");
+
+        if (extraArgs.Length > 0)
         {
-            arguments.AddRange(options.ExtraArgs.Where(argument => !string.IsNullOrWhiteSpace(argument)));
+            arguments.AddRange(extraArgs);
         }
 
         return arguments;
+    }
+
+    private static void AddDefaultOption(
+        List<string> arguments,
+        IReadOnlyCollection<string> extraArgs,
+        string option,
+        string? value = null)
+    {
+        if (extraArgs.Contains(option, StringComparer.Ordinal))
+        {
+            return;
+        }
+
+        arguments.Add(option);
+        if (value is not null)
+        {
+            arguments.Add(value);
+        }
     }
 }

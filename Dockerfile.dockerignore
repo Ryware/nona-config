@@ -4,6 +4,17 @@
 !nona-config/core/
 !nona-config/core/src/
 !nona-config/core/src/**
+!nona-config/libsql/
+!nona-config/libsql/src/
+!nona-config/libsql/src/**
+!nona-backend/
+!nona-backend/NonaConfig.slnx
+!nona-backend/core/
+!nona-backend/core/src/
+!nona-backend/core/src/**
+!nona-backend/libsql/
+!nona-backend/libsql/src/
+!nona-backend/libsql/src/**
 !nona-config-admin/
 !nona-config-admin/package.json
 !nona-config-admin/package-lock.json

@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using Nona.Application.Admin.AuditLogs.DTOs;
 using Nona.Domain.Interfaces;
 
@@ -9,7 +9,7 @@ public record ListAuditLogsQuery : IRequest<IReadOnlyList<AuditLogDto>>;
 public class ListAuditLogsQueryHandler(IAuditLogRepository auditLogRepository)
     : IRequestHandler<ListAuditLogsQuery, IReadOnlyList<AuditLogDto>>
 {
-    public async Task<IReadOnlyList<AuditLogDto>> Handle(ListAuditLogsQuery request, CancellationToken cancellationToken)
+    public async ValueTask<IReadOnlyList<AuditLogDto>> Handle(ListAuditLogsQuery request, CancellationToken cancellationToken)
     {
         var entries = await auditLogRepository.ListAsync(cancellationToken);
 

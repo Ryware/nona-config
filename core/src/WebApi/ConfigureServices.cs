@@ -15,8 +15,6 @@ public static class ConfigureServices
         services.AddHttpContextAccessor();
         services.AddHttpClient();
 
-        services.AddControllersWithViews();
-
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IApiKeyService, ApiKeyService>();
 
@@ -45,7 +43,10 @@ public static class ConfigureServices
         .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(
             ApiKeyAuthenticationHandler.SchemeName, null);
 
-        services.AddAuthorization();
+        services.AddAuthorizationBuilder()
+            .AddPolicy(ApiKeyAuthenticationHandler.SchemeName, policy => policy
+                .AddAuthenticationSchemes(ApiKeyAuthenticationHandler.SchemeName)
+                .RequireAuthenticatedUser());
 
         return services;
     }

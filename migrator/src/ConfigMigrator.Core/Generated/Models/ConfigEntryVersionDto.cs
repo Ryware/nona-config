@@ -73,13 +73,7 @@ namespace Nona.Migrator.Core.Generated.Models
         public string Value { get; set; }
 #endif
         /// <summary>The version property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? Version { get; set; }
-#nullable restore
-#else
-        public UntypedNode Version { get; set; }
-#endif
+        public int? Version { get; set; }
         /// <summary>
         /// Instantiates a new <see cref="global::Nona.Migrator.Core.Generated.Models.ConfigEntryVersionDto"/> and sets the default values.
         /// </summary>
@@ -113,7 +107,7 @@ namespace Nona.Migrator.Core.Generated.Models
                 { "project", n => { Project = n.GetStringValue(); } },
                 { "scope", n => { Scope = n.GetStringValue(); } },
                 { "value", n => { Value = n.GetStringValue(); } },
-                { "version", n => { Version = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
+                { "version", n => { Version = n.GetIntValue(); } },
             };
         }
         /// <summary>
@@ -131,7 +125,7 @@ namespace Nona.Migrator.Core.Generated.Models
             writer.WriteStringValue("project", Project);
             writer.WriteStringValue("scope", Scope);
             writer.WriteStringValue("value", Value);
-            writer.WriteObjectValue<UntypedNode>("version", Version);
+            writer.WriteIntValue("version", Version);
             writer.WriteAdditionalData(AdditionalData);
         }
     }

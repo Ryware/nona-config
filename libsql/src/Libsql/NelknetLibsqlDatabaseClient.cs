@@ -1,70 +1,69 @@
-using Nelknet.LibSQL.Data;
-using System.Data;
-using System.Data.Common;
+using Microsoft.Extensions.Options;
 using System.Globalization;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Nona.Libsql;
 
-public sealed class NelknetLibsqlDatabaseClient : ILibsqlDatabaseClient, IDisposable
+public sealed partial class NelknetLibsqlDatabaseClient : ILibsqlDatabaseClient, IDisposable
 {
-    private readonly string _readConnectionString;
-    private readonly string _writeConnectionString;
-    private readonly int _commandTimeoutSeconds;
-    private readonly bool _shareReadWriteConnection;
-    private readonly SemaphoreSlim _gate = new(1, 1);
-
-    private LibSQLConnection? _readConnection;
-    private LibSQLConnection? _writeConnection;
+    private readonly HttpClient _httpClient;
     private bool _disposed;
 
-    public NelknetLibsqlDatabaseClient(Microsoft.Extensions.Options.IOptions<LibsqlOptions> options)
-        : this(CreateConnectionStrings(options.Value), options.Value.TimeoutSeconds)
+    public NelknetLibsqlDatabaseClient(IOptions<LibsqlOptions> options)
+        : this(options.Value)
     {
     }
 
     public NelknetLibsqlDatabaseClient(string connectionString, int commandTimeoutSeconds = 30)
-        : this(new LibsqlConnectionStrings(connectionString, connectionString), commandTimeoutSeconds)
+        : this(new LibsqlOptions
+        {
+            DataSource = connectionString,
+            TimeoutSeconds = commandTimeoutSeconds
+        })
     {
     }
 
-    private NelknetLibsqlDatabaseClient(LibsqlConnectionStrings connectionStrings, int commandTimeoutSeconds)
+    private NelknetLibsqlDatabaseClient(LibsqlOptions options)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(connectionStrings.ReadConnectionString);
-        ArgumentException.ThrowIfNullOrWhiteSpace(connectionStrings.WriteConnectionString);
+        ArgumentException.ThrowIfNullOrWhiteSpace(options.DataSource);
 
-        if (commandTimeoutSeconds <= 0)
+        if (options.EnableLocalReplica)
         {
-            throw new ArgumentOutOfRangeException(nameof(commandTimeoutSeconds), "Timeout must be greater than zero.");
+            throw new NotSupportedException(
+                "Storage:Libsql:EnableLocalReplica is not supported by the AOT libSQL client. " +
+                "Use a managed sqld replica with --primary-grpc-url instead.");
         }
 
-        _readConnectionString = connectionStrings.ReadConnectionString;
-        _writeConnectionString = connectionStrings.WriteConnectionString;
-        _commandTimeoutSeconds = commandTimeoutSeconds;
-        _shareReadWriteConnection = string.Equals(
-            _readConnectionString,
-            _writeConnectionString,
-            StringComparison.Ordinal);
+        if (!IsHttpDataSource(options.DataSource))
+        {
+            throw new NotSupportedException(
+                "Nona requires a sqld/libSQL HTTP data source. Configure Storage:Libsql:ManagedPrimary:Enabled=true " +
+                "or set ConnectionStrings:Libsql / Storage:Libsql:DataSource to http(s):// or libsql://.");
+        }
+
+        _httpClient = new HttpClient
+        {
+            BaseAddress = new Uri(NormalizeHttpDataSource(options.DataSource)),
+            Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds)
+        };
+
+        if (!string.IsNullOrWhiteSpace(options.AuthToken))
+        {
+            _httpClient.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", options.AuthToken);
+        }
     }
 
     public async Task<LibsqlQueryResult> ExecuteAsync(string sql, object? parameters = null, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sql);
 
-        await _gate.WaitAsync(ct);
-        try
-        {
-            var connection = EnsureConnectionOpen(GetConnectionTarget(sql));
-            return await ExecuteStatementAsync(connection, new LibsqlStatement(sql, parameters), transaction: null, ct);
-        }
-        catch (Exception ex) when (ex is not LibsqlException and not OperationCanceledException)
-        {
-            ResetClosedConnections();
-            throw new LibsqlException($"libSQL execution failed: {ex.Message}", ex);
-        }
-        finally
-        {
-            _gate.Release();
-        }
+        var statement = new LibsqlStatement(sql, parameters);
+        var results = await ExecuteHttpStatementsAsync([statement], useTransaction: false, ct);
+        return results[0];
     }
 
     public async Task<IReadOnlyList<LibsqlQueryResult>> ExecuteBatchAsync(
@@ -79,33 +78,7 @@ public sealed class NelknetLibsqlDatabaseClient : ILibsqlDatabaseClient, IDispos
             return [];
         }
 
-        await _gate.WaitAsync(ct);
-        try
-        {
-            var target = batch.Any(statement => GetConnectionTarget(statement.Sql) == LibsqlConnectionTarget.Write)
-                ? LibsqlConnectionTarget.Write
-                : LibsqlConnectionTarget.Read;
-            var connection = EnsureConnectionOpen(target);
-            using var transaction = connection.BeginTransaction();
-            var results = new List<LibsqlQueryResult>(batch.Count);
-
-            foreach (var statement in batch)
-            {
-                results.Add(await ExecuteStatementAsync(connection, statement, transaction, ct));
-            }
-
-            transaction.Commit();
-            return results;
-        }
-        catch (Exception ex) when (ex is not LibsqlException and not OperationCanceledException)
-        {
-            ResetClosedConnections();
-            throw new LibsqlException($"libSQL batch execution failed: {ex.Message}", ex);
-        }
-        finally
-        {
-            _gate.Release();
-        }
+        return await ExecuteHttpStatementsAsync(batch, useTransaction: true, ct);
     }
 
     public void Dispose()
@@ -116,227 +89,379 @@ public sealed class NelknetLibsqlDatabaseClient : ILibsqlDatabaseClient, IDispos
         }
 
         _disposed = true;
-        _readConnection?.Dispose();
-        if (!ReferenceEquals(_writeConnection, _readConnection))
-        {
-            _writeConnection?.Dispose();
-        }
-
-        _gate.Dispose();
+        _httpClient.Dispose();
     }
 
-    private static LibsqlConnectionStrings CreateConnectionStrings(LibsqlOptions options)
-    {
-        var writeConnectionString = CreateDirectConnectionString(options.DataSource, options.AuthToken);
-
-        if (options.EnableLocalReplica)
-        {
-            if (string.IsNullOrWhiteSpace(options.LocalReplicaPath))
-            {
-                throw new InvalidOperationException("Storage:Libsql:LocalReplicaPath must be configured when Storage:Libsql:EnableLocalReplica is true.");
-            }
-
-            var builder = new LibSQLConnectionStringBuilder
-            {
-                DataSource = ResolveLocalReplicaPath(options.LocalReplicaPath),
-                SyncUrl = NormalizeDataSource(options.DataSource),
-                SyncInterval = checked((int)Math.Round(options.LocalReplicaSyncIntervalSeconds * 1000d, MidpointRounding.AwayFromZero)),
-                ReadYourWrites = true
-            };
-
-            if (!string.IsNullOrWhiteSpace(options.AuthToken))
-            {
-                builder.AuthToken = options.AuthToken;
-                builder.SyncAuthToken = options.AuthToken;
-            }
-
-            return new LibsqlConnectionStrings(builder.ConnectionString, writeConnectionString);
-        }
-
-        return new LibsqlConnectionStrings(writeConnectionString, writeConnectionString);
-    }
-
-    private static string CreateDirectConnectionString(string dataSource, string authToken)
-    {
-        var builder = new LibSQLConnectionStringBuilder
-        {
-            DataSource = NormalizeDataSource(dataSource)
-        };
-
-        if (!string.IsNullOrWhiteSpace(authToken))
-        {
-            builder.AuthToken = authToken;
-        }
-
-        return builder.ConnectionString;
-    }
-
-    private LibSQLConnection EnsureConnectionOpen(LibsqlConnectionTarget target)
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-
-        if (_shareReadWriteConnection)
-        {
-            var sharedConnection = _readConnection ?? _writeConnection;
-            if (sharedConnection is not null && sharedConnection.State == ConnectionState.Open)
-            {
-                _readConnection = sharedConnection;
-                _writeConnection = sharedConnection;
-                return sharedConnection;
-            }
-
-            sharedConnection?.Dispose();
-            sharedConnection = new LibSQLConnection(_readConnectionString);
-            sharedConnection.Open();
-
-            _readConnection = sharedConnection;
-            _writeConnection = sharedConnection;
-            return sharedConnection;
-        }
-
-        var connection = target == LibsqlConnectionTarget.Read
-            ? _readConnection
-            : _writeConnection;
-
-        if (connection is not null && connection.State == ConnectionState.Open)
-        {
-            return connection;
-        }
-
-        connection?.Dispose();
-        connection = new LibSQLConnection(target == LibsqlConnectionTarget.Read
-            ? _readConnectionString
-            : _writeConnectionString);
-        connection.Open();
-
-        if (target == LibsqlConnectionTarget.Read)
-        {
-            _readConnection = connection;
-        }
-        else
-        {
-            _writeConnection = connection;
-        }
-
-        return connection;
-    }
-
-    private void ResetClosedConnections()
-    {
-        ResetClosedConnection(ref _readConnection);
-        ResetClosedConnection(ref _writeConnection);
-    }
-
-    private static void ResetClosedConnection(ref LibSQLConnection? connection)
-    {
-        if (connection is null || connection.State == ConnectionState.Open)
-        {
-            return;
-        }
-
-        connection.Dispose();
-        connection = null;
-    }
-
-    private static LibsqlConnectionTarget GetConnectionTarget(string sql)
-        => LibsqlCommandHelpers.IsQuery(sql) ? LibsqlConnectionTarget.Read : LibsqlConnectionTarget.Write;
-
-    private async Task<LibsqlQueryResult> ExecuteStatementAsync(
-        LibSQLConnection connection,
-        LibsqlStatement statement,
-        DbTransaction? transaction,
+    private async Task<IReadOnlyList<LibsqlQueryResult>> ExecuteHttpStatementsAsync(
+        IReadOnlyList<LibsqlStatement> statements,
+        bool useTransaction,
         CancellationToken ct)
     {
-        using var command = connection.CreateCommand();
-        command.Transaction = transaction;
-        command.CommandTimeout = _commandTimeoutSeconds;
-        command.CommandText = LibsqlCommandHelpers.BindParameters(command, statement.Sql, statement.Parameters);
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        var httpClient = _httpClient ?? throw new InvalidOperationException("HTTP client was not initialized.");
 
-        if (LibsqlCommandHelpers.ReturnsRows(statement.Sql))
+        var requests = new List<HranaStreamRequest>(statements.Count + 3);
+        if (useTransaction)
         {
-            using var reader = await command.ExecuteReaderAsync(ct);
-            return await ReadQueryResultAsync(reader, ct);
+            requests.Add(CreateExecuteRequest("BEGIN IMMEDIATE"));
         }
 
-        var affectedRowCount = await command.ExecuteNonQueryAsync(ct);
-        long? lastInsertRowId = null;
-
-        if (LibsqlCommandHelpers.IsInsertStatement(statement.Sql))
+        foreach (var statement in statements)
         {
-            using var rowIdCommand = connection.CreateCommand();
-            rowIdCommand.Transaction = transaction;
-            rowIdCommand.CommandText = "SELECT last_insert_rowid()";
-            rowIdCommand.CommandTimeout = _commandTimeoutSeconds;
+            requests.Add(CreateExecuteRequest(statement));
+        }
 
-            var value = await rowIdCommand.ExecuteScalarAsync(ct);
-            if (value is not null and not DBNull)
+        if (useTransaction)
+        {
+            requests.Add(CreateExecuteRequest("COMMIT"));
+        }
+
+        requests.Add(new HranaStreamRequest { Type = "close" });
+
+        var requestBody = new HranaPipelineRequest(null, requests);
+        using var request = new HttpRequestMessage(HttpMethod.Post, "v2/pipeline")
+        {
+            Content = new StringContent(
+                JsonSerializer.Serialize(requestBody, HranaJsonSerializerContext.Default.HranaPipelineRequest),
+                Encoding.UTF8,
+                "application/json")
+        };
+
+        using var response = await httpClient.SendAsync(request, ct);
+        var responseBody = await response.Content.ReadAsStringAsync(ct);
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new LibsqlException($"libSQL HTTP execution failed with status {(int)response.StatusCode}: {responseBody}");
+        }
+
+        var pipeline = JsonSerializer.Deserialize(
+            responseBody,
+            HranaJsonSerializerContext.Default.HranaPipelineResponse);
+        if (pipeline is null)
+        {
+            throw new LibsqlException("libSQL HTTP response was empty.");
+        }
+
+        return MapHttpResults(pipeline, statements.Count, useTransaction);
+    }
+
+    private static HranaStreamRequest CreateExecuteRequest(string sql)
+    {
+        return new HranaStreamRequest
+        {
+            Type = "execute",
+            Stmt = new HranaStatement
             {
-                lastInsertRowId = Convert.ToInt64(value, CultureInfo.InvariantCulture);
+                Sql = sql,
+                WantRows = false
+            }
+        };
+    }
+
+    private static HranaStreamRequest CreateExecuteRequest(LibsqlStatement statement)
+    {
+        return new HranaStreamRequest
+        {
+            Type = "execute",
+            Stmt = new HranaStatement
+            {
+                Sql = statement.Sql,
+                NamedArgs = LibsqlCommandHelpers.EnumerateParameters(statement.Parameters)
+                    .Select(pair => new HranaNamedArg(
+                        LibsqlCommandHelpers.NormalizeParameterName(pair.Key)[1..],
+                        HranaValue.FromClrValue(LibsqlCommandHelpers.NormalizeParameterValue(pair.Value))))
+                    .ToList(),
+                WantRows = LibsqlCommandHelpers.ReturnsRows(statement.Sql)
+            }
+        };
+    }
+
+    private static IReadOnlyList<LibsqlQueryResult> MapHttpResults(
+        HranaPipelineResponse pipeline,
+        int statementCount,
+        bool usedTransaction)
+    {
+        var offset = usedTransaction ? 1 : 0;
+        var results = new List<LibsqlQueryResult>(statementCount);
+
+        for (var i = 0; i < pipeline.Results.Count; i++)
+        {
+            var streamResult = pipeline.Results[i];
+            if (string.Equals(streamResult.Type, "error", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new LibsqlException(streamResult.Error?.Message ?? "libSQL HTTP statement failed.");
             }
         }
 
-        return new LibsqlQueryResult([], affectedRowCount, lastInsertRowId);
+        for (var i = 0; i < statementCount; i++)
+        {
+            var streamResult = pipeline.Results[i + offset];
+            var statementResult = streamResult.Response?.Result
+                ?? throw new LibsqlException("libSQL HTTP response did not include a statement result.");
+            results.Add(MapStatementResult(statementResult));
+        }
+
+        return results;
     }
 
-    private static async Task<LibsqlQueryResult> ReadQueryResultAsync(DbDataReader reader, CancellationToken ct)
+    private static LibsqlQueryResult MapStatementResult(HranaStatementResult result)
     {
-        var columns = Enumerable.Range(0, reader.FieldCount)
-            .Select(reader.GetName)
+        var columns = result.Cols
+            .Select(column => column.Name ?? string.Empty)
             .ToList();
-        var rows = new List<LibsqlRow>();
+        var rows = new List<LibsqlRow>(result.Rows.Count);
 
-        while (await reader.ReadAsync(ct))
+        foreach (var row in result.Rows)
         {
             var values = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-            for (var index = 0; index < reader.FieldCount; index++)
+            for (var i = 0; i < columns.Count; i++)
             {
-                values[columns[index]] = await reader.IsDBNullAsync(index, ct)
-                    ? null
-                    : reader.GetValue(index);
+                values[columns[i]] = row[i].ToClrValue();
             }
 
             rows.Add(new LibsqlRow(columns, values));
         }
 
-        return new LibsqlQueryResult(rows, 0, null);
+        var lastInsertRowId = long.TryParse(
+            result.LastInsertRowId,
+            NumberStyles.Integer,
+            CultureInfo.InvariantCulture,
+            out var parsedRowId)
+            ? parsedRowId
+            : (long?)null;
+
+        return new LibsqlQueryResult(rows, checked((int)result.AffectedRowCount), lastInsertRowId);
     }
 
-    private static string NormalizeDataSource(string dataSource)
+    private static bool IsHttpDataSource(string dataSource)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(dataSource);
+        return dataSource.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+            || dataSource.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
+            || dataSource.StartsWith("libsql://", StringComparison.OrdinalIgnoreCase);
+    }
 
-        var trimmed = dataSource.Trim();
-        if (trimmed.StartsWith("libsql://", StringComparison.OrdinalIgnoreCase))
+    private static string NormalizeHttpDataSource(string dataSource)
+    {
+        var trimmed = dataSource.Trim().TrimEnd('/');
+        return trimmed.StartsWith("libsql://", StringComparison.OrdinalIgnoreCase)
+            ? $"https://{trimmed["libsql://".Length..]}"
+            : trimmed;
+    }
+
+    private sealed record HranaPipelineRequest(
+        [property: JsonPropertyName("baton")] string? Baton,
+        [property: JsonPropertyName("requests")] IReadOnlyList<HranaStreamRequest> Requests);
+
+    private sealed class HranaPipelineResponse
+    {
+        [JsonPropertyName("results")]
+        public List<HranaStreamResult> Results { get; set; } = [];
+    }
+
+    private sealed class HranaStreamRequest
+    {
+        [JsonPropertyName("type")]
+        public string Type { get; init; } = string.Empty;
+
+        [JsonPropertyName("stmt")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public HranaStatement? Stmt { get; init; }
+    }
+
+    private sealed class HranaStreamResult
+    {
+        [JsonPropertyName("type")]
+        public string Type { get; set; } = string.Empty;
+
+        [JsonPropertyName("response")]
+        public HranaStreamResponse? Response { get; set; }
+
+        [JsonPropertyName("error")]
+        public HranaError? Error { get; set; }
+    }
+
+    private sealed class HranaStreamResponse
+    {
+        [JsonPropertyName("result")]
+        public HranaStatementResult? Result { get; set; }
+    }
+
+    private sealed class HranaError
+    {
+        [JsonPropertyName("message")]
+        public string Message { get; set; } = string.Empty;
+    }
+
+    private sealed class HranaStatement
+    {
+        [JsonPropertyName("sql")]
+        public string Sql { get; init; } = string.Empty;
+
+        [JsonPropertyName("named_args")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public List<HranaNamedArg>? NamedArgs { get; init; }
+
+        [JsonPropertyName("want_rows")]
+        public bool WantRows { get; init; }
+    }
+
+    private sealed record HranaNamedArg(
+        [property: JsonPropertyName("name")] string Name,
+        [property: JsonPropertyName("value")] HranaValue Value);
+
+    private sealed class HranaStatementResult
+    {
+        [JsonPropertyName("cols")]
+        public List<HranaColumn> Cols { get; set; } = [];
+
+        [JsonPropertyName("rows")]
+        public List<List<HranaValue>> Rows { get; set; } = [];
+
+        [JsonPropertyName("affected_row_count")]
+        public long AffectedRowCount { get; set; }
+
+        [JsonPropertyName("last_insert_rowid")]
+        public string? LastInsertRowId { get; set; }
+    }
+
+    private sealed class HranaColumn
+    {
+        [JsonPropertyName("name")]
+        public string? Name { get; set; }
+    }
+
+    [JsonConverter(typeof(HranaValueJsonConverter))]
+    private sealed class HranaValue
+    {
+        public string Type { get; init; } = "null";
+        public object? Value { get; init; }
+
+        public static HranaValue FromClrValue(object? value)
         {
-            return $"https://{trimmed["libsql://".Length..]}";
+            return value switch
+            {
+                null or DBNull => new HranaValue(),
+                byte[] bytes => new HranaValue { Type = "blob", Value = bytes },
+                bool boolValue => new HranaValue { Type = "integer", Value = boolValue ? "1" : "0" },
+                sbyte or byte or short or ushort or int or uint or long or ulong => new HranaValue
+                {
+                    Type = "integer",
+                    Value = Convert.ToString(value, CultureInfo.InvariantCulture)
+                },
+                float or double or decimal => new HranaValue
+                {
+                    Type = "float",
+                    Value = Convert.ToDouble(value, CultureInfo.InvariantCulture)
+                },
+                _ => new HranaValue
+                {
+                    Type = "text",
+                    Value = Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty
+                }
+            };
         }
 
-        return trimmed;
-    }
-
-    private static string ResolveLocalPath(string path)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        return Path.IsPathRooted(path) ? path : Path.GetFullPath(path);
-    }
-
-    private static string ResolveLocalReplicaPath(string path)
-    {
-        var resolvedPath = ResolveLocalPath(path);
-        var directory = Path.GetDirectoryName(resolvedPath);
-        if (!string.IsNullOrWhiteSpace(directory))
+        public object? ToClrValue()
         {
-            Directory.CreateDirectory(directory);
+            return Type switch
+            {
+                "null" => null,
+                "integer" => Value is string integerText
+                    && long.TryParse(integerText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var integer)
+                        ? integer
+                        : 0L,
+                "float" => Value is double doubleValue
+                    ? doubleValue
+                    : Convert.ToDouble(Value, CultureInfo.InvariantCulture),
+                "text" => Value?.ToString(),
+                "blob" => Value is byte[] bytes ? bytes : [],
+                _ => Value
+            };
+        }
+    }
+
+    private sealed class HranaValueJsonConverter : JsonConverter<HranaValue>
+    {
+        public override HranaValue Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            string type = "null";
+            object? value = null;
+
+            if (reader.TokenType != JsonTokenType.StartObject)
+            {
+                throw new JsonException("Expected Hrana value object.");
+            }
+
+            while (reader.Read())
+            {
+                if (reader.TokenType == JsonTokenType.EndObject)
+                {
+                    return new HranaValue { Type = type, Value = value };
+                }
+
+                if (reader.TokenType != JsonTokenType.PropertyName)
+                {
+                    throw new JsonException("Expected Hrana value property.");
+                }
+
+                var propertyName = reader.GetString();
+                reader.Read();
+
+                switch (propertyName)
+                {
+                    case "type":
+                        type = reader.GetString() ?? "null";
+                        break;
+                    case "value":
+                        value = reader.TokenType switch
+                        {
+                            JsonTokenType.Number => reader.GetDouble(),
+                            JsonTokenType.String => reader.GetString(),
+                            JsonTokenType.Null => null,
+                            _ => throw new JsonException("Unsupported Hrana value token.")
+                        };
+                        break;
+                    case "base64":
+                        value = Convert.FromBase64String(reader.GetString() ?? string.Empty);
+                        break;
+                    default:
+                        reader.Skip();
+                        break;
+                }
+            }
+
+            throw new JsonException("Unexpected end of Hrana value.");
         }
 
-        return resolvedPath;
+        public override void Write(Utf8JsonWriter writer, HranaValue value, JsonSerializerOptions options)
+        {
+            writer.WriteStartObject();
+            writer.WriteString("type", value.Type);
+
+            switch (value.Type)
+            {
+                case "null":
+                    break;
+                case "integer":
+                case "text":
+                    writer.WriteString("value", Convert.ToString(value.Value, CultureInfo.InvariantCulture));
+                    break;
+                case "float":
+                    writer.WriteNumber("value", Convert.ToDouble(value.Value, CultureInfo.InvariantCulture));
+                    break;
+                case "blob":
+                    writer.WriteString("base64", Convert.ToBase64String((byte[])value.Value!));
+                    break;
+                default:
+                    throw new JsonException($"Unsupported Hrana value type '{value.Type}'.");
+            }
+
+            writer.WriteEndObject();
+        }
     }
 
-    private readonly record struct LibsqlConnectionStrings(string ReadConnectionString, string WriteConnectionString);
-
-    private enum LibsqlConnectionTarget
-    {
-        Read,
-        Write
-    }
+    [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
+    [JsonSerializable(typeof(HranaPipelineRequest))]
+    [JsonSerializable(typeof(HranaPipelineResponse))]
+    private sealed partial class HranaJsonSerializerContext : JsonSerializerContext;
 }

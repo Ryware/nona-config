@@ -34,13 +34,7 @@ namespace Nona.Migrator.Core.Generated.Models
         /// <summary>The primary error message.</summary>
         public override string Message { get => base.Message; }
         /// <summary>The status property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? Status { get; set; }
-#nullable restore
-#else
-        public UntypedNode Status { get; set; }
-#endif
+        public int? Status { get; set; }
         /// <summary>The title property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
@@ -84,7 +78,7 @@ namespace Nona.Migrator.Core.Generated.Models
             {
                 { "detail", n => { Detail = n.GetStringValue(); } },
                 { "instance", n => { Instance = n.GetStringValue(); } },
-                { "status", n => { Status = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
+                { "status", n => { Status = n.GetIntValue(); } },
                 { "title", n => { Title = n.GetStringValue(); } },
                 { "type", n => { Type = n.GetStringValue(); } },
             };
@@ -98,7 +92,7 @@ namespace Nona.Migrator.Core.Generated.Models
             if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));
             writer.WriteStringValue("detail", Detail);
             writer.WriteStringValue("instance", Instance);
-            writer.WriteObjectValue<UntypedNode>("status", Status);
+            writer.WriteIntValue("status", Status);
             writer.WriteStringValue("title", Title);
             writer.WriteStringValue("type", Type);
             writer.WriteAdditionalData(AdditionalData);

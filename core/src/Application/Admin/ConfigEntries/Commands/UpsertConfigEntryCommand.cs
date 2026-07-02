@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using Nona.Application.Admin.ConfigEntries;
 using Nona.Application.Admin.ConfigEntries.DTOs;
 using Nona.Application.Admin.Projects;
@@ -25,7 +25,7 @@ public class UpsertConfigEntryCommandHandler(
     ICurrentUserService? currentUserService = null)
     : IRequestHandler<UpsertConfigEntryCommand, UpsertConfigEntryResult>
 {
-    public async Task<UpsertConfigEntryResult> Handle(UpsertConfigEntryCommand request, CancellationToken cancellationToken)
+    public async ValueTask<UpsertConfigEntryResult> Handle(UpsertConfigEntryCommand request, CancellationToken cancellationToken)
     {
         var project = await ProjectResolution.ResolveProjectAsync(projectRepository, request.ProjectId, cancellationToken);
         if (project is null)

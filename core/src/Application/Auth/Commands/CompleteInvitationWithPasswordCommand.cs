@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using Nona.Application.Admin.Common;
 using Nona.Application.Auth.DTOs;
 using Nona.Application.Common.Interfaces;
@@ -14,7 +14,7 @@ public sealed class CompleteInvitationWithPasswordCommandHandler(
     IJwtTokenService jwtTokenService,
     IDateTime dateTime) : IRequestHandler<CompleteInvitationWithPasswordCommand, LoginResult>
 {
-    public async Task<LoginResult> Handle(CompleteInvitationWithPasswordCommand request, CancellationToken cancellationToken)
+    public async ValueTask<LoginResult> Handle(CompleteInvitationWithPasswordCommand request, CancellationToken cancellationToken)
     {
         var user = await userRepository.GetByInviteTokenHashAsync(TokenHelper.Hash(request.Token), cancellationToken);
         if (user is null)

@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using Microsoft.Extensions.Logging;
 using Nona.Application.Common.Interfaces;
 using Nona.Domain.Interfaces;
@@ -15,7 +15,7 @@ public sealed class LoginWithSsoCommandHandler(
     IDateTime dateTime,
     ILogger<LoginWithSsoCommandHandler> logger) : IRequestHandler<LoginWithSsoCommand, LoginResult>
 {
-    public async Task<LoginResult> Handle(LoginWithSsoCommand request, CancellationToken cancellationToken)
+    public async ValueTask<LoginResult> Handle(LoginWithSsoCommand request, CancellationToken cancellationToken)
     {
         return await SsoLoginWorkflow.AuthenticateAsync(
             request.Provider,

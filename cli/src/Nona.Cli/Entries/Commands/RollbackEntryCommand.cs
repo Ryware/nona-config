@@ -18,12 +18,12 @@ internal sealed class RollbackEntryCommandHandler(Func<HttpClient>? httpClientFa
             .Environments[command.Environment].ConfigEntries[command.Key]
             .Rollback.PostAsync(new RollbackConfigEntryRequest
             {
-                Version = CliUntypedNode.Integer(command.Version)
+                Version = command.Version
             }, cancellationToken: ct);
 
         Console.WriteLine($"Rolled back [{command.Environment}] {command.Key} to v{command.Version}");
         if (entry?.ActiveVersion is not null)
-            Console.WriteLine($"Active version: v{CliUntypedNode.FormatInteger(entry.ActiveVersion)}");
+            Console.WriteLine($"Active version: v{entry.ActiveVersion}");
 
         return 0;
     }

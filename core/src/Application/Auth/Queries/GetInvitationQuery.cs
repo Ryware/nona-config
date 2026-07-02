@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using Nona.Application.Admin.Common;
 using Nona.Application.Auth.DTOs;
 using Nona.Domain.Interfaces;
@@ -11,7 +11,7 @@ public record GetInvitationResult(bool Success, InvitationDetailsResponse? Invit
 
 public class GetInvitationQueryHandler(IUserRepository userRepository) : IRequestHandler<GetInvitationQuery, GetInvitationResult>
 {
-    public async Task<GetInvitationResult> Handle(GetInvitationQuery request, CancellationToken cancellationToken)
+    public async ValueTask<GetInvitationResult> Handle(GetInvitationQuery request, CancellationToken cancellationToken)
     {
         var user = await userRepository.GetByInviteTokenHashAsync(TokenHelper.Hash(request.Token), cancellationToken);
         if (user is null)

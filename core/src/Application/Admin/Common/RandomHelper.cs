@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.WebUtilities;
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Text;
 
 namespace Nona.Application.Admin.Common
@@ -9,7 +8,10 @@ namespace Nona.Application.Admin.Common
         internal static string Generate()
         {
             var bytes = RandomNumberGenerator.GetBytes(32);
-            return WebEncoders.Base64UrlEncode(bytes);
+            return Convert.ToBase64String(bytes)
+                .TrimEnd('=')
+                .Replace('+', '-')
+                .Replace('/', '_');
         }
 
         internal static string Hash(string token)

@@ -15,13 +15,7 @@ namespace Nona.Cli.Generated.Models
         /// <summary>Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.</summary>
         public IDictionary<string, object> AdditionalData { get; set; }
         /// <summary>The version property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? Version { get; set; }
-#nullable restore
-#else
-        public UntypedNode Version { get; set; }
-#endif
+        public int? Version { get; set; }
         /// <summary>
         /// Instantiates a new <see cref="global::Nona.Cli.Generated.Models.RollbackConfigEntryRequest"/> and sets the default values.
         /// </summary>
@@ -47,7 +41,7 @@ namespace Nona.Cli.Generated.Models
         {
             return new Dictionary<string, Action<IParseNode>>
             {
-                { "version", n => { Version = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
+                { "version", n => { Version = n.GetIntValue(); } },
             };
         }
         /// <summary>
@@ -57,7 +51,7 @@ namespace Nona.Cli.Generated.Models
         public virtual void Serialize(ISerializationWriter writer)
         {
             if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));
-            writer.WriteObjectValue<UntypedNode>("version", Version);
+            writer.WriteIntValue("version", Version);
             writer.WriteAdditionalData(AdditionalData);
         }
     }
