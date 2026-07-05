@@ -82,9 +82,11 @@ jobs:
             PRERELEASE="false"
           fi
 
-          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-          echo "prerelease=${PRERELEASE}" >> "$GITHUB_OUTPUT"
+          {
+            echo "tag=${TAG}"
+            echo "version=${VERSION}"
+            echo "prerelease=${PRERELEASE}"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Publish standalone binary
         shell: bash
@@ -166,9 +168,11 @@ jobs:
             PRERELEASE="false"
           fi
 
-          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-          echo "prerelease=${PRERELEASE}" >> "$GITHUB_OUTPUT"
+          {
+            echo "tag=${TAG}"
+            echo "version=${VERSION}"
+            echo "prerelease=${PRERELEASE}"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Download packaged assets
         uses: actions/download-artifact@v4
@@ -181,7 +185,7 @@ jobs:
         shell: bash
         run: |
           cd release-assets
-          sha256sum *.zip *.tar.gz > SHA256SUMS.txt
+          sha256sum ./*.zip ./*.tar.gz > SHA256SUMS.txt
 
       - name: Create or update GitHub release
         uses: softprops/action-gh-release@v2
@@ -215,7 +219,6 @@ jobs:
         with:
           node-version: '24'
           registry-url: 'https://registry.npmjs.org'
-          package-manager-cache: false
 
       - name: Stamp version
         run: |
