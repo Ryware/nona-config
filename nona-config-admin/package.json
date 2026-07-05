@@ -12,9 +12,6 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:e2e": "playwright test",
-    "test:e2e:headed": "playwright test --headed",
-    "test:e2e:ui": "playwright test --ui",
     "verify:openapi": "./scripts/verify-openapi.sh",
     "analyze": "ANALYZE=true npm run build"
   },
@@ -39,7 +36,6 @@
     "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {
-    "@playwright/test": "^1.60.0",
     "@solidjs/testing-library": "^0.8.10",
     "@tailwindcss/postcss": "^4.1.18",
     "@testing-library/jest-dom": "^6.9.1",

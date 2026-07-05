@@ -45,7 +45,7 @@ export default defineConfig(({ mode }) => {
     test: {
       environment: 'happy-dom',
       globals: true,
-      exclude: ['**/node_modules/**', '**/dist/**', 'tests/**/*.visual.spec.ts'],
+      exclude: ['**/node_modules/**', '**/dist/**'],
       setupFiles: ['./src/__tests__/setup.ts'],
       env: {
         VITE_API_BASE_URL: 'http://localhost:5027',
