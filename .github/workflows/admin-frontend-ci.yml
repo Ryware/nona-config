@@ -1,4 +1,4 @@
-name: admin-ci
+name: Admin frontend CI
 
 on:
   push:
@@ -7,11 +7,11 @@ on:
       - development
     paths:
       - nona-config-admin/**
-      - .github/workflows/admin-ci.yml
+      - .github/workflows/admin-frontend-ci.yml
   pull_request:
     paths:
       - nona-config-admin/**
-      - .github/workflows/admin-ci.yml
+      - .github/workflows/admin-frontend-ci.yml
   workflow_dispatch:
 
 permissions:
@@ -19,6 +19,7 @@ permissions:
 
 jobs:
   test:
+    name: Unit and integration tests
     runs-on: ubuntu-latest
 
     defaults:

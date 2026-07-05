@@ -1,4 +1,4 @@
-name: build-static-docs
+name: Docs static site
 
 on:
   push:
@@ -10,14 +10,14 @@ on:
       - cli/**
       - Directory.Build.props
       - Directory.Build.targets
-      - .github/workflows/docs-static.yml
+      - .github/workflows/docs-static-site.yml
   pull_request:
     paths:
       - nona-docs/**
       - cli/**
       - Directory.Build.props
       - Directory.Build.targets
-      - .github/workflows/docs-static.yml
+      - .github/workflows/docs-static-site.yml
   workflow_dispatch:
 
 permissions:

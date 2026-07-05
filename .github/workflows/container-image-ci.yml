@@ -1,4 +1,4 @@
-name: build-combined-container
+name: Container image CI
 
 on:
   push:
@@ -20,6 +20,7 @@ env:
 
 jobs:
   verify-generated-clients:
+    name: Verify generated clients
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -47,6 +48,7 @@ jobs:
         run: bash verify-generated-clients.sh
 
   build:
+    name: Build container image
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -67,6 +69,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   deploy:
+    name: Publish container image
     if: github.event_name != 'pull_request'
     needs: build
     runs-on: ubuntu-latest

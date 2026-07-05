@@ -1,4 +1,4 @@
-name: release-cli
+name: CLI release
 
 on:
   push:
