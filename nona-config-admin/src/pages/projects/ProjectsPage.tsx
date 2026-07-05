@@ -143,6 +143,7 @@ export default function ProjectsPage() {
             onCancel={() => setShowCreate(false)}
             onSubmit={data => createMutation.mutate(data)}
             isPending={createMutation.isPending}
+            projects={allProjects()}
           />
         </Show>
 

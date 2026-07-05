@@ -17,11 +17,20 @@ interface ProjectEnvironmentsProps {
 
 export function ProjectEnvironments(props: ProjectEnvironmentsProps) {
   const [envName, setEnvName] = createSignal("");
+  const [createError, setCreateError] = createSignal("");
 
   const handleSubmit = (e: Event) => {
     e.preventDefault();
     const trimmed = envName().trim();
-    if (!trimmed) return;
+    if (!trimmed) {
+      setCreateError("Environment name is required.");
+      return;
+    }
+    if (props.environments.some(env => env.name === trimmed)) {
+      setCreateError("Environment name already exists.");
+      return;
+    }
+    setCreateError("");
     props.onCreateEnv(trimmed);
     setEnvName("");
   };
@@ -87,13 +96,17 @@ export function ProjectEnvironments(props: ProjectEnvironmentsProps) {
               type="text"
               placeholder="production"
               value={envName()}
-              onInput={(e: InputEvent & { currentTarget: HTMLInputElement }) =>
-                setEnvName(e.currentTarget.value)
-              }
+              onInput={(e: InputEvent & { currentTarget: HTMLInputElement }) => {
+                setEnvName(e.currentTarget.value);
+                if (createError()) setCreateError("");
+              }}
               required
               leftIcon="dns"
               testId="environment-name-input"
             />
+            <Show when={createError()}>
+              <p class="text-error mt-2 text-[11px] font-bold">{createError()}</p>
+            </Show>
           </div>
           <div class="flex w-full gap-2 sm:w-auto">
             <button

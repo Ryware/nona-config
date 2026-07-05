@@ -1,11 +1,13 @@
 import { createSignal, Show } from "solid-js";
 import { MIcon } from "../../../shared/ui/icons";
 import { FormField } from "../../../widgets/auth-shell/FormField";
+import type { Project } from "../../../types";
 
 interface ProjectCreateFormProps {
   onCancel: () => void;
   onSubmit: (data: { name: string; description?: string }) => void;
   isPending: boolean;
+  projects: Project[];
 }
 
 const PROJECT_NAME_PATTERN = /^[a-zA-Z0-9-]+$/;
@@ -21,6 +23,11 @@ export function ProjectCreateForm(props: ProjectCreateFormProps) {
     const trimmedName = name().trim();
     if (!trimmedName) {
       setCreateError("Project name is required.");
+      return;
+    }
+
+    if (props.projects.some(project => project.name === trimmedName)) {
+      setCreateError("Project name already exists.");
       return;
     }
 

@@ -7,6 +7,7 @@ import { ProjectParamsTable } from "./ProjectParamsTable";
 interface ProjectParamsTabProps {
   activeEnvName: string;
   environments: Environment[];
+  configEntries: ConfigEntry[];
   filteredConfig: ConfigEntry[];
   isLoading: boolean;
   projectId: string;
@@ -78,6 +79,7 @@ export function ProjectParamsTab(props: ProjectParamsTabProps) {
           onCancel={props.onCancelCreate}
           onSubmit={props.onSubmitCreate}
           isPending={props.isCreatePending}
+          existingEntries={props.configEntries}
         />
       </Show>
 

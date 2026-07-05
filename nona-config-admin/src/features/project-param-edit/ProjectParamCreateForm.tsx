@@ -2,6 +2,7 @@ import { createSignal, Show } from "solid-js";
 import { Input } from "../../shared/ui/input";
 import { Select } from "../../shared/ui/select";
 import { VisualJsonEditor } from "../../shared/ui/visual-json-editor";
+import type { ConfigEntry } from "../../types";
 import { FormField } from "../../widgets/auth-shell/FormField";
 
 type ConfigEntryContentType = "text" | "number" | "boolean" | "json";
@@ -18,6 +19,7 @@ interface ProjectParamCreateFormProps {
     description: string;
   }) => void;
   isPending: boolean;
+  existingEntries: ConfigEntry[];
 }
 
 export function isValidConfigEntryValue(contentType: ConfigEntryContentType, value: string): boolean {
@@ -54,6 +56,7 @@ export function ProjectParamCreateForm(props: ProjectParamCreateFormProps) {
   const [cfgType, setCfgType] = createSignal<ConfigEntryContentType>("text");
   const [cfgDisplayName, setCfgDisplayName] = createSignal("");
   const [cfgDescription, setCfgDescription] = createSignal("");
+  const [createError, setCreateError] = createSignal("");
 
   const onKeyDownConfigKey = (e: KeyboardEvent) => {
     if (e.key === " ") {
@@ -65,10 +68,19 @@ export function ProjectParamCreateForm(props: ProjectParamCreateFormProps) {
 
   const handleSubmit = (e: Event) => {
     e.preventDefault();
-    if (!cfgKey().trim()) return;
+    const trimmedKey = cfgKey().trim();
+    if (!trimmedKey) {
+      setCreateError("Parameter key is required.");
+      return;
+    }
+    if (props.existingEntries.some(entry => entry.key === trimmedKey)) {
+      setCreateError("Parameter key already exists.");
+      return;
+    }
+    setCreateError("");
 
     props.onSubmit({
-      key: cfgKey().trim(),
+      key: trimmedKey,
       value: cfgValue().trim(),
       contentType: cfgType(),
       scope: "all",
@@ -93,14 +105,18 @@ export function ProjectParamCreateForm(props: ProjectParamCreateFormProps) {
               placeholder="CONFIG_KEY"
               value={cfgKey()}
               onKeyDown={onKeyDownConfigKey}
-              onInput={(e: InputEvent & { currentTarget: HTMLInputElement }) =>
-                setCfgKey(e.currentTarget.value)
-              }
+              onInput={(e: InputEvent & { currentTarget: HTMLInputElement }) => {
+                setCfgKey(e.currentTarget.value);
+                if (createError()) setCreateError("");
+              }}
               required
               autofocus
               leftIcon="code"
               testId="parameter-key-input"
             />
+            <Show when={createError()}>
+              <p class="text-error mt-2 text-[11px] font-bold">{createError()}</p>
+            </Show>
           </div>
           <div>
             <label class="text-on-surface-variant mb-1.5 block text-[11px] font-medium tracking-[0.05em]">

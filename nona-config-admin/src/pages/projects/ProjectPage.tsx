@@ -476,6 +476,7 @@ export default function ProjectPage() {
             environments={
               environmentsQuery.status === "success" ? (environmentsQuery.data ?? []) : []
             }
+            configEntries={configQuery.status === "success" ? (configQuery.data ?? []) : []}
             filteredConfig={filteredConfig()}
             isLoading={configQuery.isLoading}
             projectId={projectId()}
