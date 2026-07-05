@@ -1,4 +1,4 @@
-name: build-combined-container
+name: Container image CI
 
 on:
   push:
@@ -20,9 +20,10 @@ env:
 
 jobs:
   verify-generated-clients:
+    name: Verify generated clients
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout backend
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup .NET SDK
@@ -30,27 +31,53 @@ jobs:
         with:
           dotnet-version: 10.0.300
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: nona-config-admin/package-lock.json
+
       - name: Show .NET SDK
         run: dotnet --info
 
+      - name: Install admin client generator dependencies
+        run: npm ci --prefix nona-config-admin
+
       - name: Verify checked-in generated C# clients
-        # Admin TypeScript generation targets a separate repository; backend PRs
-        # can only enforce generated files committed to this repository.
-        run: bash verify-generated-clients.sh --skip-admin
+        run: bash verify-generated-clients.sh
+
+  test-admin-frontend:
+    name: Test admin frontend
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: nona-config-admin
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: nona-config-admin/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit and integration tests
+        run: npm run test:run
 
   build:
+    name: Build container image
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout backend
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          path: nona-config
-
-      - name: Checkout frontend
-        uses: actions/checkout@v4
-        with:
-          repository: Ryware/nona-config-admin
-          path: nona-config-admin
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -59,28 +86,24 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: nona-config/Dockerfile
+          file: Dockerfile
           build-args: |
-            BACKEND_DIR=nona-config
+            FRONTEND_DIR=nona-config-admin
           push: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
   deploy:
+    name: Publish container image
     if: github.event_name != 'pull_request'
-    needs: build
+    needs:
+      - verify-generated-clients
+      - test-admin-frontend
+      - build
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout backend
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          path: nona-config
-
-      - name: Checkout frontend
-        uses: actions/checkout@v4
-        with:
-          repository: Ryware/nona-config-admin
-          path: nona-config-admin
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -107,9 +130,9 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: nona-config/Dockerfile
+          file: Dockerfile
           build-args: |
-            BACKEND_DIR=nona-config
+            FRONTEND_DIR=nona-config-admin
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -123,4 +146,4 @@ jobs:
           username: ${{ env.DOCKERHUB_USERNAME }}
           password: ${{ env.DOCKERHUB_TOKEN }}
           repository: ${{ env.IMAGE_NAME }}
-          readme-filepath: nona-config/README.dockerhub.md
+          readme-filepath: README.dockerhub.md

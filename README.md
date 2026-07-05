@@ -25,6 +25,7 @@ Nona gives you the same feature flag and remote config capabilities as Firebase 
 - [Why We Open Sourced Nona](#why-we-open-sourced-nona)
 - [Why Nona](#why-nona)
 - [Quick Start](#quick-start)
+- [Repository Layout](#repository-layout)
 - [Client Libraries](#client-libraries)
 - [API](#api)
 - [Docker Compose](#docker-compose)
@@ -87,6 +88,17 @@ curl http://localhost:18080/v1/config/my-app/production \
   "max_upload_mb": 50
 }
 ```
+
+---
+
+## Repository Layout
+
+This repository is the Nona monorepo:
+
+- `core`, `cli`, `libsql`, `migrator`: backend API, CLI, storage library, and migration tooling
+- `nona-config-admin`: admin web UI
+- `nona-client`: JavaScript and .NET client SDKs
+- `nona-docs`: documentation site
 
 ---
 

@@ -12,13 +12,14 @@ RUN export VITE_API_BASE_URL="$FRONTEND_API_URL"; \
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
-ARG BACKEND_DIR=nona-backend
+ARG BACKEND_DIR=.
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends clang zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
 COPY ${BACKEND_DIR}/NonaConfig.slnx ./
+COPY ${BACKEND_DIR}/Directory.Build.props ${BACKEND_DIR}/Directory.Build.targets ./
 COPY ${BACKEND_DIR}/core/src/Domain/Domain.csproj core/src/Domain/
 COPY ${BACKEND_DIR}/core/src/Application/Application.csproj core/src/Application/
 COPY ${BACKEND_DIR}/core/src/Infrastructure/Infrastructure.csproj core/src/Infrastructure/

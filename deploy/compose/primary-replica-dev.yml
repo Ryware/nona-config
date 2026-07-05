@@ -2,8 +2,8 @@ services:
   nona-primary:
     image: nona-combined:dev
     build:
-      context: ${NONA_BUILD_CONTEXT:-../../..}
-      dockerfile: nona-config/Dockerfile
+      context: ${NONA_BUILD_CONTEXT:-../..}
+      dockerfile: Dockerfile
     ports:
       - "${NONA_PRIMARY_API_PORT:-18081}:8080"
       - "${NONA_PRIMARY_LIBSQL_PORT:-19080}:9080"
@@ -26,8 +26,8 @@ services:
   nona-replica:
     image: nona-combined:dev
     build:
-      context: ${NONA_BUILD_CONTEXT:-../../..}
-      dockerfile: nona-config/Dockerfile
+      context: ${NONA_BUILD_CONTEXT:-../..}
+      dockerfile: Dockerfile
     depends_on:
       - nona-primary
     ports:

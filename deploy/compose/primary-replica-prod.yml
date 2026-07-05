@@ -24,8 +24,8 @@ services:
   nona-replica:
     image: rywaredev/nona:latest
     build:
-      context: ${NONA_BUILD_CONTEXT:-../../..}
-      dockerfile: nona-config/Dockerfile
+      context: ${NONA_BUILD_CONTEXT:-../..}
+      dockerfile: Dockerfile
     restart: unless-stopped
     depends_on:
       - nona-primary
