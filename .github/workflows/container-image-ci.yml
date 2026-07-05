@@ -47,6 +47,31 @@ jobs:
       - name: Verify checked-in generated C# clients
         run: bash verify-generated-clients.sh
 
+  test-admin-frontend:
+    name: Test admin frontend
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: nona-config-admin
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: nona-config-admin/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit and integration tests
+        run: npm run test:run
+
   build:
     name: Build container image
     runs-on: ubuntu-latest
@@ -71,7 +96,10 @@ jobs:
   deploy:
     name: Publish container image
     if: github.event_name != 'pull_request'
-    needs: build
+    needs:
+      - verify-generated-clients
+      - test-admin-frontend
+      - build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
