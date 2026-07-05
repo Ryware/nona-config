@@ -4,6 +4,7 @@ using Nona.Infrastructure.Configuration;
 using Nona.WebApi;
 using Nona.WebApi.Endpoints;
 using Nona.WebApi.Serialization;
+using Scalar.AspNetCore;
 
 public partial class Program
 {
@@ -51,6 +52,14 @@ public partial class Program
 
     private static void ConfigureWebPipeline(WebApplication app)
     {
+        app.MapOpenApi();
+        app.MapScalarApiReference(options =>
+        {
+            options.WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient)
+                .WithTheme(ScalarTheme.Moon)
+                .WithTitle("Nona config API");
+        });
+
         app.UseCors(CorsPolicyName);
 
         app.UseDefaultFiles();

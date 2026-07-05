@@ -57,6 +57,7 @@ namespace Nona.WebApi.Serialization;
 [JsonSerializable(typeof(RollbackConfigEntryRequest))]
 [JsonSerializable(typeof(ConfigEntryDto))]
 [JsonSerializable(typeof(List<ConfigEntryDto>))]
+[JsonSerializable(typeof(IReadOnlyList<ConfigEntryDto>))]
 [JsonSerializable(typeof(ConfigEntryVersionDto))]
 [JsonSerializable(typeof(IReadOnlyList<ConfigEntryVersionDto>))]
 [JsonSerializable(typeof(CreateParameterShareLinkRequest))]
