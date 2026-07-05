@@ -1,8 +1,10 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/Nona.Client/Nona.Client.csproj" />
+    <Project Path="src/Nona.OpenFeature.Provider/Nona.OpenFeature.Provider.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Nona.Client.Tests/Nona.Client.Tests.csproj" />
+    <Project Path="tests/Nona.OpenFeature.Provider.Tests/Nona.OpenFeature.Provider.Tests.csproj" />
   </Folder>
 </Solution>

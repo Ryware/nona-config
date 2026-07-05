@@ -5,6 +5,8 @@ description: Read Nona config values from JavaScript or TypeScript.
 
 Package: `nona-client`
 
+OpenFeature provider package: `nona-openfeature-provider`
+
 Requirements:
 
 - Node.js 18 or newer, or a runtime with `fetch`, `Headers`, and `Response`
@@ -96,9 +98,15 @@ Use `invalidateTtlCache(environmentId, key)` to remove one cached value or `clea
 
 ## OpenFeature provider
 
+Install the optional provider package alongside the Nona client and OpenFeature server SDK:
+
+```bash
+npm install nona-client nona-openfeature-provider @openfeature/server-sdk
+```
+
 ```js
 import { OpenFeature } from "@openfeature/server-sdk";
-import { createNonaOpenFeatureProvider } from "nona-client";
+import { createNonaOpenFeatureProvider } from "nona-openfeature-provider";
 
 const domain = "nona-production";
 

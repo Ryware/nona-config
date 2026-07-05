@@ -2,9 +2,6 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Text.Json.Serialization;
 using Nona.Client;
-using OpenFeature;
-using OpenFeature.Constant;
-using OpenFeature.Model;
 
 namespace Nona.Client.Tests;
 
@@ -304,78 +301,6 @@ public sealed class NonaClientTests
 
         Assert.NotNull(value);
         Assert.True(value.Enabled);
-    }
-
-    [Fact]
-    public async Task OpenFeatureProvider_ResolvesTypedValuesThroughNonaClient()
-    {
-        var values = new Dictionary<string, (string Value, string ContentType)>(StringComparer.Ordinal)
-        {
-            ["enabled"] = ("true", "boolean"),
-            ["limit"] = ("42", "number"),
-            ["ratio"] = ("12.5", "number"),
-            ["title"] = ("Checkout", "text"),
-            ["settings"] = ("""{"color":"green","enabled":true}""", "json")
-        };
-        var handler = new StubHttpMessageHandler(request =>
-        {
-            var requestUri = request.RequestUri ?? throw new InvalidOperationException("Request URI was not set.");
-            var key = Uri.UnescapeDataString(requestUri.Segments.Last().TrimEnd('/'));
-            Assert.True(values.TryGetValue(key, out var value), $"Unexpected flag key '{key}'.");
-            return RawEntryValueResponse(value.Value, value.ContentType);
-        });
-
-        using var httpClient = new HttpClient(handler)
-        {
-            BaseAddress = new Uri("https://nona.test/")
-        };
-
-        using var nona = new NonaClient(httpClient, new NonaClientOptions
-        {
-            ApiKey = "api-key"
-        });
-        var domain = $"nona-dotnet-{Guid.NewGuid():N}";
-        await Api.Instance.SetProviderAsync(domain, new NonaOpenFeatureProvider(nona, "production"));
-        var client = Api.Instance.GetClient(domain);
-
-        Assert.True(await client.GetBooleanValueAsync("enabled", false));
-        Assert.Equal(42, await client.GetIntegerValueAsync("limit", 0));
-        Assert.Equal(12.5, await client.GetDoubleValueAsync("ratio", 0));
-        Assert.Equal("Checkout", await client.GetStringValueAsync("title", "fallback"));
-
-        var settings = await client.GetObjectValueAsync("settings", new Value());
-        Assert.True(settings.IsStructure);
-        var structure = settings.AsStructure ?? throw new InvalidOperationException("Expected structure value.");
-        Assert.Equal("green", structure.GetValue("color").AsString);
-        Assert.True(structure.GetValue("enabled").AsBoolean);
-        Assert.All(handler.Requests, request => Assert.Equal("api-key", request.GetHeader("X-Api-Key")));
-    }
-
-    [Fact]
-    public async Task OpenFeatureProvider_ReturnsDefaultAndFlagNotFoundForMissingNonaValue()
-    {
-        var handler = new StubHttpMessageHandler(_ => JsonResponse(
-            """{"error":"Config entry not found"}""",
-            HttpStatusCode.NotFound));
-
-        using var httpClient = new HttpClient(handler)
-        {
-            BaseAddress = new Uri("https://nona.test/")
-        };
-
-        using var nona = new NonaClient(httpClient, new NonaClientOptions
-        {
-            ApiKey = "api-key"
-        });
-        var domain = $"nona-dotnet-missing-{Guid.NewGuid():N}";
-        await Api.Instance.SetProviderAsync(domain, new NonaOpenFeatureProvider(nona, "production"));
-
-        var details = await Api.Instance
-            .GetClient(domain)
-            .GetBooleanDetailsAsync("missing", true);
-
-        Assert.True(details.Value);
-        Assert.Equal(ErrorType.FlagNotFound, details.ErrorType);
     }
 
     [Fact]

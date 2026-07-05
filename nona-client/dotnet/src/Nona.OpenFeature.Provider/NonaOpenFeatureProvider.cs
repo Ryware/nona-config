@@ -5,16 +5,17 @@ using System.Net;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Nona.Client;
 using OpenFeature;
 using OpenFeature.Constant;
 using OpenFeature.Model;
 
-namespace Nona.Client;
+namespace Nona.OpenFeature.Provider;
 
 public sealed class NonaOpenFeatureProvider : FeatureProvider
 {
     private const string DefaultProviderName = "nona";
-    private static readonly ImmutableMetadata EmptyMetadata = new();
+    private static readonly ImmutableMetadata EmptyMetadata = new ImmutableMetadata();
 
     private readonly NonaClient _client;
     private readonly string _environmentId;

@@ -5,6 +5,8 @@ description: Read Nona config values from .NET.
 
 Package: `Nona.Client`
 
+OpenFeature provider package: `Nona.OpenFeature.Provider`
+
 Targets:
 
 - `netstandard2.0`
@@ -87,8 +89,15 @@ var client = new NonaClient(new NonaClientOptions
 
 ## OpenFeature provider
 
+Install the optional provider package:
+
+```bash
+dotnet add package Nona.OpenFeature.Provider
+```
+
 ```csharp
 using Nona.Client;
+using Nona.OpenFeature.Provider;
 using OpenFeature;
 
 var nona = new NonaClient(

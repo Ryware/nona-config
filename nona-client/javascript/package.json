@@ -23,7 +23,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "prepack": "npm run build",
-    "test": "npm run build && node --test test/nona-client.core.test.mjs test/nona-client.dedup.test.mjs test/nona-client.ttl-cache.test.mjs test/nona-client.openfeature.test.mjs",
+    "test": "npm run build && node --test test/nona-client.core.test.mjs test/nona-client.dedup.test.mjs test/nona-client.ttl-cache.test.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "keywords": [
@@ -44,9 +44,6 @@
   "license": "Apache-2.0",
   "engines": {
     "node": ">=18"
-  },
-  "dependencies": {
-    "@openfeature/server-sdk": "^1.22.0"
   },
   "devDependencies": {
     "typescript": "^5.9.3"

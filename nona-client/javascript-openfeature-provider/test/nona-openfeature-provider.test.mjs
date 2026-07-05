@@ -1,11 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { ErrorCode, OpenFeature } from "@openfeature/server-sdk";
-import {
-  createNonaClient,
-  createNonaOpenFeatureProvider,
-} from "../dist/index.js";
-import { configValueResponse, jsonResponse } from "./helpers.mjs";
+import { createNonaClient } from "nona-client";
+import { createNonaOpenFeatureProvider } from "../dist/index.js";
 
 test("OpenFeature provider resolves typed values through the Nona client", async () => {
   const calls = [];
@@ -69,3 +66,22 @@ test("OpenFeature provider returns defaults and flag-not-found details for missi
   assert.equal(details.errorCode, ErrorCode.FLAG_NOT_FOUND);
   assert.equal(details.errorMessage, "Config entry not found");
 });
+
+function jsonResponse(body, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+}
+
+function configValueResponse(value, contentType = "text", status = 200) {
+  return new Response(value, {
+    status,
+    headers: {
+      "Content-Type": "application/json",
+      "X-Nona-Content-Type": contentType,
+    },
+  });
+}

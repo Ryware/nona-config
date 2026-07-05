@@ -7,9 +7,13 @@ import {
   type Provider,
   type ResolutionDetails,
 } from "@openfeature/server-sdk";
-import { NonaClientError } from "./errors.js";
-import { createNonaClient, type NonaClient } from "./nona-client.js";
-import type { NonaClientOptions, NonaConfigValue } from "./types.js";
+import {
+  createNonaClient,
+  NonaClientError,
+  type NonaClient,
+  type NonaClientOptions,
+  type NonaConfigValue,
+} from "nona-client";
 
 export interface NonaOpenFeatureProviderSettings {
   metadataName?: string;
