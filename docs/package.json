@@ -1,5 +1,5 @@
 {
-  "name": "nona-docs",
+  "name": "docs",
   "private": true,
   "type": "module",
   "version": "0.1.0",
@@ -7,7 +7,7 @@
     "dev": "astro dev",
     "start": "astro dev",
     "build": "npm run generate:cli && astro build",
-    "archive": "rm -rf artifacts && mkdir -p artifacts && cd dist && zip -qr ../artifacts/nona-docs-html.zip .",
+    "archive": "rm -rf artifacts && mkdir -p artifacts && cd dist && zip -qr ../artifacts/docs-html.zip .",
     "ci": "npm run build && npm run archive",
     "preview": "astro preview",
     "generate:cli": "node scripts/generate-cli-reference.mjs",

@@ -10,7 +10,7 @@ Official website:
 
 Nona monorepo:
 
-- https://github.com/Ryware/nona-config/tree/development/nona-client
+- https://github.com/Ryware/nona-config/tree/development/client
 
 ## SDK Documentation
 

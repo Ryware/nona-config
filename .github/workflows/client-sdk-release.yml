@@ -21,7 +21,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: nona-client/javascript
+        working-directory: client/javascript
 
     steps:
       - name: Checkout
@@ -32,7 +32,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: nona-client/javascript/package-lock.json
+          cache-dependency-path: client/javascript/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -54,17 +54,17 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: |
-            nona-client/javascript/package-lock.json
-            nona-client/javascript-openfeature-provider/package-lock.json
+            client/javascript/package-lock.json
+            client/javascript-openfeature-provider/package-lock.json
 
       - name: Install JavaScript SDK dependencies
-        run: npm ci --prefix nona-client/javascript
+        run: npm ci --prefix client/javascript
 
       - name: Install OpenFeature provider dependencies
-        run: npm ci --prefix nona-client/javascript-openfeature-provider
+        run: npm ci --prefix client/javascript-openfeature-provider
 
       - name: Test
-        run: npm test --prefix nona-client/javascript-openfeature-provider
+        run: npm test --prefix client/javascript-openfeature-provider
 
   publish-npm:
     name: Publish JavaScript packages to npm
@@ -87,8 +87,8 @@ jobs:
           registry-url: https://registry.npmjs.org
           cache: npm
           cache-dependency-path: |
-            nona-client/javascript/package-lock.json
-            nona-client/javascript-openfeature-provider/package-lock.json
+            client/javascript/package-lock.json
+            client/javascript-openfeature-provider/package-lock.json
 
       - name: Resolve package version
         id: version
@@ -101,27 +101,27 @@ jobs:
           echo "value=$version" >> "$GITHUB_OUTPUT"
 
       - name: Install JavaScript SDK dependencies
-        run: npm ci --prefix nona-client/javascript
+        run: npm ci --prefix client/javascript
 
       - name: Install OpenFeature provider dependencies
-        run: npm ci --prefix nona-client/javascript-openfeature-provider
+        run: npm ci --prefix client/javascript-openfeature-provider
 
       - name: Set package versions
         if: steps.version.outputs.value != ''
         shell: bash
         run: |
           version="${{ steps.version.outputs.value }}"
-          npm --prefix nona-client/javascript version "$version" --no-git-tag-version --allow-same-version
-          npm --prefix nona-client/javascript-openfeature-provider version "$version" --no-git-tag-version --allow-same-version
-          npm --prefix nona-client/javascript-openfeature-provider pkg set "peerDependencies.nona-client=^$version"
+          npm --prefix client/javascript version "$version" --no-git-tag-version --allow-same-version
+          npm --prefix client/javascript-openfeature-provider version "$version" --no-git-tag-version --allow-same-version
+          npm --prefix client/javascript-openfeature-provider pkg set "peerDependencies.nona-client=^$version"
 
       - name: Publish JavaScript SDK
         run: npm publish --access public --provenance
-        working-directory: nona-client/javascript
+        working-directory: client/javascript
 
       - name: Publish JavaScript OpenFeature provider
         run: npm publish --access public --provenance
-        working-directory: nona-client/javascript-openfeature-provider
+        working-directory: client/javascript-openfeature-provider
 
   publish-nuget:
     name: Test and publish .NET packages to NuGet
@@ -129,7 +129,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: nona-client/dotnet
+        working-directory: client/dotnet
 
     steps:
       - name: Checkout

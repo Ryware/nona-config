@@ -27,7 +27,7 @@ function Show-Usage {
     Write-Host '  .\generate-clients.ps1 [options]'
     Write-Host ''
     Write-Host 'Options:'
-    Write-Host '  --admin-path PATH        Path to nona-config-admin. Default: .\nona-config-admin'
+    Write-Host '  --admin-path PATH        Path to admin. Default: .\admin'
     Write-Host '  --server-url URL         Fetch OpenAPI from URL/openapi/v1.json instead of building it'
     Write-Host '  --spec PATH              Use an existing OpenAPI document instead of building one'
     Write-Host '  --skip-admin             Generate only backend C# clients'
@@ -79,7 +79,7 @@ for ($i = 0; $i -lt $args.Count; $i++) {
 }
 
 if ([string]::IsNullOrWhiteSpace($AdminPath)) {
-    $AdminPath = Join-Path $scriptDir 'nona-config-admin'
+    $AdminPath = Join-Path $scriptDir 'admin'
 }
 
 $lockDir = Join-Path $scriptDir '.nona-generate-clients.lock'

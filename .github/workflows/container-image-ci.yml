@@ -36,13 +36,13 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: nona-config-admin/package-lock.json
+          cache-dependency-path: admin/package-lock.json
 
       - name: Show .NET SDK
         run: dotnet --info
 
       - name: Install admin client generator dependencies
-        run: npm ci --prefix nona-config-admin
+        run: npm ci --prefix admin
 
       - name: Verify checked-in generated C# clients
         run: bash verify-generated-clients.sh
@@ -53,7 +53,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: nona-config-admin
+        working-directory: admin
 
     steps:
       - name: Checkout
@@ -64,7 +64,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: nona-config-admin/package-lock.json
+          cache-dependency-path: admin/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -88,7 +88,7 @@ jobs:
           context: .
           file: Dockerfile
           build-args: |
-            FRONTEND_DIR=nona-config-admin
+            FRONTEND_DIR=admin
           push: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -132,7 +132,7 @@ jobs:
           context: .
           file: Dockerfile
           build-args: |
-            FRONTEND_DIR=nona-config-admin
+            FRONTEND_DIR=admin
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

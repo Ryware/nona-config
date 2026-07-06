@@ -3,7 +3,7 @@
 **Self-hosted feature flags and remote configuration for web, mobile, and backend apps.**
 
 [![Docker Pulls](https://img.shields.io/docker/pulls/rywaredev/nona?style=flat-square&logo=docker)](https://hub.docker.com/r/rywaredev/nona)
-[![npm](https://img.shields.io/npm/v/nona-client?style=flat-square&logo=npm)](https://www.npmjs.com/package/nona-client)
+[![npm](https://img.shields.io/npm/v/client?style=flat-square&logo=npm)](https://www.npmjs.com/package/client)
 [![NuGet](https://img.shields.io/nuget/v/Nona.Client?style=flat-square&logo=nuget)](https://www.nuget.org/packages/Nona.Client)
 [![Chocolatey](https://img.shields.io/chocolatey/v/nona-cli?style=flat-square&logo=chocolatey)](https://community.chocolatey.org/packages/nona-cli)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg?style=flat-square)](LICENSE.txt)
@@ -16,7 +16,7 @@ Nona gives you the same feature flag and remote config capabilities as Firebase 
 - Use **kill switches** to disable broken features in seconds
 - Fetch everything via **one REST API call** — no SDK required in any language
 
-> 🌐 [nonaconfig.com](https://nonaconfig.com) &nbsp;·&nbsp; 🐳 [Docker Hub](https://hub.docker.com/r/rywaredev/nona) &nbsp;·&nbsp; 📦 [npm](https://www.npmjs.com/package/nona-client) &nbsp;·&nbsp; 📦 [NuGet](https://www.nuget.org/packages/Nona.Client)
+> 🌐 [nonaconfig.com](https://nonaconfig.com) &nbsp;·&nbsp; 🐳 [Docker Hub](https://hub.docker.com/r/rywaredev/nona) &nbsp;·&nbsp; 📦 [npm](https://www.npmjs.com/package/client) &nbsp;·&nbsp; 📦 [NuGet](https://www.nuget.org/packages/Nona.Client)
 
 ---
 
@@ -96,9 +96,9 @@ curl http://localhost:18080/v1/config/my-app/production \
 This repository is the Nona monorepo:
 
 - `core`, `cli`, `libsql`, `migrator`: backend API, CLI, storage library, and migration tooling
-- `nona-config-admin`: admin web UI
-- `nona-client`: JavaScript and .NET client SDKs
-- `nona-docs`: documentation site
+- `admin`: admin web UI
+- `client`: JavaScript and .NET client SDKs
+- `docs`: documentation site
 
 ---
 
@@ -121,7 +121,7 @@ if (config.checkout_v2) {
 }
 ```
 
-📦 [npmjs.com/package/nona-client](https://www.npmjs.com/package/nona-client)
+📦 [npmjs.com/package/client](https://www.npmjs.com/package/client)
 
 ---
 

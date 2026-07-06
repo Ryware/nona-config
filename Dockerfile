@@ -1,6 +1,6 @@
 FROM node:22-alpine AS frontend-build
 WORKDIR /frontend
-ARG FRONTEND_DIR=nona-config-admin
+ARG FRONTEND_DIR=admin
 
 COPY ${FRONTEND_DIR}/package.json ${FRONTEND_DIR}/package-lock.json ./
 RUN npm ci

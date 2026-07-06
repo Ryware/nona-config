@@ -5,7 +5,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Ryware/nona-config.git",
-    "directory": "nona-client/javascript"
+    "directory": "client/javascript"
   },
   "type": "module",
   "main": "./dist/index.js",

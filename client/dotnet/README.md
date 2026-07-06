@@ -3,7 +3,7 @@
 Official .NET/C# client for **Nona** — an open-source, self-hosted remote configuration and feature flag service, and a Firebase Remote Config alternative you run yourself. Read your config values and feature flags at runtime with a single typed call. Targets `netstandard2.0` and `net8.0`.
 
 - Website: https://nonaconfig.com
-- Source & docs: https://github.com/Ryware/nona-config/tree/development/nona-client/dotnet
+- Source & docs: https://github.com/Ryware/nona-config/tree/development/client/dotnet
 
 ## Project
 

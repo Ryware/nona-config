@@ -9,11 +9,11 @@ Starlight documentation site for Nona.
 | `npm run dev` | Start the local docs server. |
 | `npm run generate:cli` | Regenerate `src/content/docs/cli/reference.md` from the Nona CLI help output. |
 | `npm run build` | Regenerate CLI docs and build the static site. |
-| `npm run archive` | Create `artifacts/nona-docs-html.zip` from `dist/`. |
+| `npm run archive` | Create `artifacts/docs-html.zip` from `dist/`. |
 | `npm run ci` | Build and archive the docs site. |
 | `npm run preview` | Preview `dist/` locally. |
 
-`generate:cli` expects the monorepo root one directory above `nona-docs`. Override with `NONA_BACKEND_DIR=/path/to/nona-config`.
+`generate:cli` expects the monorepo root one directory above `docs`. Override with `NONA_BACKEND_DIR=/path/to/nona-config`.
 
 ## CI
 

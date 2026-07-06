@@ -4,7 +4,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ADMIN_PATH="${ADMIN_PATH:-"$SCRIPT_DIR/nona-config-admin"}"
+ADMIN_PATH="${ADMIN_PATH:-"$SCRIPT_DIR/admin"}"
 CHECK_ADMIN=1
 GENERATOR_ARGS=()
 
@@ -27,22 +27,28 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-bash "$SCRIPT_DIR/generate-clients.sh" "${GENERATOR_ARGS[@]}"
-
 if [[ -d "$ADMIN_PATH" ]]; then
   ADMIN_PATH="$(cd "$ADMIN_PATH" && pwd)"
 fi
 
 failed=0
 
-check_clean() {
+status_for() {
+  local repo=$1
+  shift
+
+  git -C "$repo" status --porcelain -- "$@"
+}
+
+check_unchanged() {
   local label=$1
   local repo=$2
-  shift 2
+  local before=$3
+  shift 3
 
   local status
-  status="$(git -C "$repo" status --porcelain -- "$@")"
-  if [[ -n "$status" ]]; then
+  status="$(status_for "$repo" "$@")"
+  if [[ "$status" != "$before" ]]; then
     echo ""
     echo "::error::Generated $label files are out of date. Run the generator and commit the changes."
     git -C "$repo" status --short -- "$@"
@@ -51,21 +57,41 @@ check_clean() {
   fi
 }
 
-check_clean "backend client" "$SCRIPT_DIR" \
-  cli/src/Nona.Cli/Core/Generated \
+backend_paths=(
+  cli/src/Nona.Cli/Core/Generated
   migrator/src/ConfigMigrator.Core/Generated
+)
+backend_before="$(status_for "$SCRIPT_DIR" "${backend_paths[@]}")"
 
 if [[ "$CHECK_ADMIN" == "1" ]]; then
   if [[ ! -d "$ADMIN_PATH/.git" ]]; then
     admin_output="$ADMIN_PATH/src/generated/api.ts"
     if [[ "$admin_output" == "$SCRIPT_DIR"/* ]]; then
-      check_clean "admin client" "$SCRIPT_DIR" "${admin_output#"$SCRIPT_DIR"/}"
+      admin_repo="$SCRIPT_DIR"
+      admin_paths=("${admin_output#"$SCRIPT_DIR"/}")
+      admin_before="$(status_for "$admin_repo" "${admin_paths[@]}")"
     else
-      echo ""
-      echo "::warning::Skipping admin generated file check because $ADMIN_PATH is not inside this git checkout."
+      admin_repo=""
+      admin_paths=()
+      admin_before=""
     fi
   else
-    check_clean "admin client" "$ADMIN_PATH" src/generated/api.ts
+    admin_repo="$ADMIN_PATH"
+    admin_paths=(src/generated/api.ts)
+    admin_before="$(status_for "$admin_repo" "${admin_paths[@]}")"
+  fi
+fi
+
+bash "$SCRIPT_DIR/generate-clients.sh" "${GENERATOR_ARGS[@]}"
+
+check_unchanged "backend client" "$SCRIPT_DIR" "$backend_before" "${backend_paths[@]}"
+
+if [[ "$CHECK_ADMIN" == "1" ]]; then
+  if [[ "${admin_repo:-}" != "" ]]; then
+    check_unchanged "admin client" "$admin_repo" "$admin_before" "${admin_paths[@]}"
+  else
+    echo ""
+    echo "::warning::Skipping admin generated file check because $ADMIN_PATH is not inside this git checkout."
   fi
 fi
 
