@@ -40,17 +40,41 @@ jobs:
       - name: Test
         run: npm test
 
-  publish-npm:
-    name: Publish JavaScript SDK to npm
+  test-javascript-openfeature:
+    name: Test JavaScript OpenFeature provider
     runs-on: ubuntu-latest
-    needs: test-javascript
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            nona-client/javascript/package-lock.json
+            nona-client/javascript-openfeature-provider/package-lock.json
+
+      - name: Install JavaScript SDK dependencies
+        run: npm ci --prefix nona-client/javascript
+
+      - name: Install OpenFeature provider dependencies
+        run: npm ci --prefix nona-client/javascript-openfeature-provider
+
+      - name: Test
+        run: npm test --prefix nona-client/javascript-openfeature-provider
+
+  publish-npm:
+    name: Publish JavaScript packages to npm
+    runs-on: ubuntu-latest
+    needs:
+      - test-javascript
+      - test-javascript-openfeature
     permissions:
       contents: read
       id-token: write
-
-    defaults:
-      run:
-        working-directory: nona-client/javascript
 
     steps:
       - name: Checkout
@@ -62,7 +86,9 @@ jobs:
           node-version: 24
           registry-url: https://registry.npmjs.org
           cache: npm
-          cache-dependency-path: nona-client/javascript/package-lock.json
+          cache-dependency-path: |
+            nona-client/javascript/package-lock.json
+            nona-client/javascript-openfeature-provider/package-lock.json
 
       - name: Resolve package version
         id: version
@@ -74,18 +100,31 @@ jobs:
           fi
           echo "value=$version" >> "$GITHUB_OUTPUT"
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Install JavaScript SDK dependencies
+        run: npm ci --prefix nona-client/javascript
 
-      - name: Set package version
+      - name: Install OpenFeature provider dependencies
+        run: npm ci --prefix nona-client/javascript-openfeature-provider
+
+      - name: Set package versions
         if: steps.version.outputs.value != ''
-        run: npm version "${{ steps.version.outputs.value }}" --no-git-tag-version
+        shell: bash
+        run: |
+          version="${{ steps.version.outputs.value }}"
+          npm --prefix nona-client/javascript version "$version" --no-git-tag-version --allow-same-version
+          npm --prefix nona-client/javascript-openfeature-provider version "$version" --no-git-tag-version --allow-same-version
+          npm --prefix nona-client/javascript-openfeature-provider pkg set "peerDependencies.nona-client=^$version"
 
-      - name: Publish
+      - name: Publish JavaScript SDK
         run: npm publish --access public --provenance
+        working-directory: nona-client/javascript
+
+      - name: Publish JavaScript OpenFeature provider
+        run: npm publish --access public --provenance
+        working-directory: nona-client/javascript-openfeature-provider
 
   publish-nuget:
-    name: Test and publish .NET SDK to NuGet
+    name: Test and publish .NET packages to NuGet
     runs-on: ubuntu-latest
 
     defaults:
@@ -120,11 +159,21 @@ jobs:
       - name: Pack
         shell: bash
         run: |
+          projects=(
+            "src/Nona.Client/Nona.Client.csproj"
+            "src/Nona.OpenFeature.Provider/Nona.OpenFeature.Provider.csproj"
+          )
+
+          mkdir -p artifacts/nuget
+
+          pack_args=(--configuration Release --no-restore --output artifacts/nuget)
           if [ -n "${{ steps.version.outputs.value }}" ]; then
-            dotnet pack src/Nona.Client/Nona.Client.csproj --configuration Release --no-restore --output artifacts/nuget -p:PackageVersion=${{ steps.version.outputs.value }}
-          else
-            dotnet pack src/Nona.Client/Nona.Client.csproj --configuration Release --no-restore --output artifacts/nuget
+            pack_args+=("-p:PackageVersion=${{ steps.version.outputs.value }}")
           fi
+
+          for project in "${projects[@]}"; do
+            dotnet pack "$project" "${pack_args[@]}"
+          done
 
       - name: Publish
         run: dotnet nuget push artifacts/nuget/*.nupkg --api-key "${{ secrets.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
