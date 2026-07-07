@@ -185,7 +185,7 @@ req.Header.Set("X-API-Key", apiKey)
 choco install nona-cli
 
 # Windows via WinGet
-winget install Ryware.NonaCLI
+winget install nona-cli
 ```
 
 Or download the binary from [GitHub Releases](https://github.com/ryware/nona-config/releases).

@@ -77,9 +77,10 @@ License: Apache-2.0
 LicenseUrl: https://github.com/Ryware/nona-config/blob/development/LICENSE.txt
 ShortDescription: Cross-platform CLI for Nona Config administration and migrations.
 Description: Nona CLI provides command-line access for Nona Config key management, authentication, saved defaults, and Firebase Remote Config migrations.
-Moniker: nona
+Moniker: nona-cli
 Tags:
 - cli
+- nona-cli
 - configuration
 - feature-flags
 - remote-config
