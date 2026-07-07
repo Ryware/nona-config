@@ -3,7 +3,7 @@
 **Self-hosted feature flags and remote configuration for web, mobile, and backend apps.**
 
 [![Docker Pulls](https://img.shields.io/docker/pulls/rywaredev/nona?style=flat-square&logo=docker)](https://hub.docker.com/r/rywaredev/nona)
-[![npm](https://img.shields.io/npm/v/client?style=flat-square&logo=npm)](https://www.npmjs.com/package/client)
+[![npm](https://img.shields.io/npm/v/nona-client?style=flat-square&logo=npm)](https://www.npmjs.com/package/nona-client)
 [![NuGet](https://img.shields.io/nuget/v/Nona.Client?style=flat-square&logo=nuget)](https://www.nuget.org/packages/Nona.Client)
 [![Chocolatey](https://img.shields.io/chocolatey/v/nona-cli?style=flat-square&logo=chocolatey)](https://community.chocolatey.org/packages/nona-cli)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg?style=flat-square)](LICENSE.txt)
@@ -16,7 +16,7 @@ Nona gives you the same feature flag and remote config capabilities as Firebase 
 - Use **kill switches** to disable broken features in seconds
 - Fetch everything via **one REST API call** — no SDK required in any language
 
-> 🌐 [nonaconfig.com](https://nonaconfig.com) &nbsp;·&nbsp; 🐳 [Docker Hub](https://hub.docker.com/r/rywaredev/nona) &nbsp;·&nbsp; 📦 [npm](https://www.npmjs.com/package/client) &nbsp;·&nbsp; 📦 [NuGet](https://www.nuget.org/packages/Nona.Client)
+> 🌐 [nonaconfig.com](https://nonaconfig.com) &nbsp;·&nbsp; 🐳 [Docker Hub](https://hub.docker.com/r/rywaredev/nona) &nbsp;·&nbsp; 📦 [npm](https://www.npmjs.com/package/nona-client) &nbsp;·&nbsp; 📦 [NuGet](https://www.nuget.org/packages/Nona.Client)
 
 ---
 
@@ -97,7 +97,7 @@ This repository is the Nona monorepo:
 
 - `core`, `cli`, `libsql`, `migrator`: backend API, CLI, storage library, and migration tooling
 - `admin`: admin web UI
-- `client`: JavaScript and .NET client SDKs
+- `client`: JavaScript SDK, .NET SDK, and JavaScript OpenFeature provider
 - `docs`: documentation site
 
 ---
@@ -111,17 +111,18 @@ npm install nona-client
 ```
 
 ```js
-import { createClient } from 'nona-client'
+import { createNonaClient } from "nona-client";
 
-const nona = createClient({ apiKey: process.env.NONA_API_KEY })
-const config = await nona.get('my-app', 'production')
+const nona = createNonaClient({
+  baseUrl: "https://nona.example.com",
+  apiKey: process.env.NONA_API_KEY
+});
 
-if (config.checkout_v2) {
-  // show new checkout UI
-}
+const value = await nona.getConfigValue("production", "Features:Checkout");
+console.log(value.value);
 ```
 
-📦 [npmjs.com/package/client](https://www.npmjs.com/package/client)
+📦 [npmjs.com/package/nona-client](https://www.npmjs.com/package/nona-client)
 
 ---
 
@@ -132,16 +133,24 @@ dotnet add package Nona.Client
 ```
 
 ```csharp
-var client = new NonaClient(apiKey);
-var config = await client.GetAsync("my-app", "production");
+using Nona.Client;
 
-if (config.GetBool("checkout_v2"))
-{
-    // show new checkout UI
-}
+var client = new NonaClient("https://nona.example.com", apiKey: "your-api-key");
+var value = await client.GetConfigValueAsync("production", "Features:Checkout");
+Console.WriteLine(value.Value);
 ```
 
 📦 [nuget.org/packages/Nona.Client](https://www.nuget.org/packages/Nona.Client)
+
+---
+
+### OpenFeature / JavaScript
+
+```bash
+npm install nona-client nona-openfeature-provider @openfeature/server-sdk
+```
+
+See [client/javascript-openfeature-provider/README.md](client/javascript-openfeature-provider/README.md) for setup and usage.
 
 ---
 
@@ -202,7 +211,7 @@ Authentication: `X-API-Key` request header.
 Copy [`deploy/compose/standalone-prod.yml`](deploy/compose/standalone-prod.yml) to your server:
 
 ```bash
-docker compose up -d
+docker compose -f standalone-prod.yml up -d
 ```
 
 Default host port: `http://localhost:18080`
@@ -219,7 +228,7 @@ Default host port: `http://localhost:18080`
 For read-heavy workloads or geographically distributed deployments, use [`deploy/compose/primary-replica-prod.yml`](deploy/compose/primary-replica-prod.yml):
 
 ```bash
-docker compose up -d
+docker compose -f primary-replica-prod.yml up -d
 ```
 
 | Service | API port | libSQL port | gRPC port |
@@ -248,19 +257,18 @@ docker run -d \
 
 ## Migrate from Firebase Remote Config
 
-The Nona CLI includes a built-in Firebase Remote Config migration command that imports all your existing parameters into a Nona project.
+The Nona CLI includes a built-in Firebase Remote Config migration command that imports your existing parameters using a migration config file.
 
-```powershell
+```bash
 # Install CLI
 choco install nona-cli
 
 # Run migration
 nona migrate firebase \
-  --firebase-project your-project-id \
-  --firebase-credentials path/to/service-account.json \
-  --nona-host http://localhost:18080 \
-  --nona-project my-app \
-  --nona-environment production
+  --config ./nona.migration.json \
+  --base-url http://localhost:18080 \
+  --email admin@example.com \
+  --password secret
 ```
 
 See [`cli/src/Nona.Cli/README.md`](cli/src/Nona.Cli/README.md) for the full CLI reference.
