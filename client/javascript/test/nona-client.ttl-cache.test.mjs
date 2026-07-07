@@ -6,6 +6,7 @@ import { configValueResponse, wait } from "./helpers.mjs";
 test("ttl cache is disabled by default", async () => {
   let calls = 0;
   const client = createNonaClient("https://nona.test", {
+    environmentId: "production",
     apiKey: "api-key",
     fetch: async () => {
       calls += 1;
@@ -13,8 +14,8 @@ test("ttl cache is disabled by default", async () => {
     }
   });
 
-  await client.getConfigValue("production", "homepage");
-  await client.getConfigValue("production", "homepage");
+  await client.getConfigValue("homepage");
+  await client.getConfigValue("homepage");
 
   assert.equal(calls, 2);
 });
@@ -22,6 +23,7 @@ test("ttl cache is disabled by default", async () => {
 test("ttl cache hit returns from memory when enabled", async () => {
   let calls = 0;
   const client = createNonaClient("https://nona.test", {
+    environmentId: "production",
     apiKey: "api-key",
     cacheTtlMs: 5000,
     fetch: async () => {
@@ -30,8 +32,8 @@ test("ttl cache hit returns from memory when enabled", async () => {
     }
   });
 
-  await client.getConfigValue("production", "homepage");
-  await client.getConfigValue("production", "homepage");
+  await client.getConfigValue("homepage");
+  await client.getConfigValue("homepage");
 
   assert.equal(calls, 1);
 });
@@ -39,6 +41,7 @@ test("ttl cache hit returns from memory when enabled", async () => {
 test("expired ttl cache performs a new network request", async () => {
   let calls = 0;
   const client = createNonaClient("https://nona.test", {
+    environmentId: "production",
     apiKey: "api-key",
     cacheTtlMs: 5,
     fetch: async () => {
@@ -47,9 +50,9 @@ test("expired ttl cache performs a new network request", async () => {
     }
   });
 
-  const first = await client.getConfigValue("production", "homepage");
+  const first = await client.getConfigValue("homepage");
   await wait(15);
-  const second = await client.getConfigValue("production", "homepage");
+  const second = await client.getConfigValue("homepage");
 
   assert.equal(first.value, "v1");
   assert.equal(second.value, "v2");
@@ -59,6 +62,7 @@ test("expired ttl cache performs a new network request", async () => {
 test("targeted cache invalidation removes only matching entry", async () => {
   let calls = 0;
   const client = createNonaClient("https://nona.test", {
+    environmentId: "production",
     apiKey: "api-key",
     cacheTtlMs: 5000,
     fetch: async (url) => {
@@ -67,15 +71,15 @@ test("targeted cache invalidation removes only matching entry", async () => {
     }
   });
 
-  await client.getConfigValue("production", "homepage");
-  await client.getConfigValue("production", "footer");
+  await client.getConfigValue("homepage");
+  await client.getConfigValue("footer");
   assert.equal(calls, 2);
 
-  assert.equal(client.invalidateTtlCache("production", "homepage"), true);
-  assert.equal(client.invalidateTtlCache("production", "missing"), false);
+  assert.equal(client.invalidateTtlCache("homepage"), true);
+  assert.equal(client.invalidateTtlCache("missing"), false);
 
-  await client.getConfigValue("production", "homepage");
-  await client.getConfigValue("production", "footer");
+  await client.getConfigValue("homepage");
+  await client.getConfigValue("footer");
 
   assert.equal(calls, 3);
 });
@@ -83,6 +87,7 @@ test("targeted cache invalidation removes only matching entry", async () => {
 test("clear cache removes all ttl entries", async () => {
   let calls = 0;
   const client = createNonaClient("https://nona.test", {
+    environmentId: "production",
     apiKey: "api-key",
     cacheTtlMs: 5000,
     fetch: async (url) => {
@@ -91,13 +96,13 @@ test("clear cache removes all ttl entries", async () => {
     }
   });
 
-  await client.getConfigValue("production", "homepage");
-  await client.getConfigValue("production", "footer");
+  await client.getConfigValue("homepage");
+  await client.getConfigValue("footer");
   assert.equal(calls, 2);
 
   client.clearTtlCache();
 
-  await client.getConfigValue("production", "homepage");
-  await client.getConfigValue("production", "footer");
+  await client.getConfigValue("homepage");
+  await client.getConfigValue("footer");
   assert.equal(calls, 4);
 });

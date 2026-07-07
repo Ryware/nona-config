@@ -19,15 +19,11 @@ export interface NonaOpenFeatureProviderSettings {
   metadataName?: string;
 }
 
-export interface NonaOpenFeatureProviderOptions
-  extends NonaClientOptions,
-    NonaOpenFeatureProviderSettings {
-  environmentId: string;
-}
+export type NonaOpenFeatureProviderOptions = NonaClientOptions &
+  NonaOpenFeatureProviderSettings;
 
 export function createNonaOpenFeatureProvider(
   client: NonaClient,
-  environmentId: string,
   settings?: NonaOpenFeatureProviderSettings,
 ): Provider;
 export function createNonaOpenFeatureProvider(
@@ -35,31 +31,24 @@ export function createNonaOpenFeatureProvider(
 ): Provider;
 export function createNonaOpenFeatureProvider(
   clientOrOptions: NonaClient | NonaOpenFeatureProviderOptions,
-  environmentId?: string,
-  settings: NonaOpenFeatureProviderSettings = {},
+  settings: NonaOpenFeatureProviderSettings | string = {},
 ): Provider {
+  if ("getConfigValue" in clientOrOptions && typeof settings === "string") {
+    throw new Error(
+      "createNonaOpenFeatureProvider reads environmentId from the Nona client. Pass environmentId to createNonaClient instead.",
+    );
+  }
+
   const client =
     "getConfigValue" in clientOrOptions
       ? clientOrOptions
       : createNonaClient(clientOrOptions);
-  const resolvedEnvironmentId =
-    "getConfigValue" in clientOrOptions
-      ? environmentId
-      : clientOrOptions.environmentId;
   const metadataName =
     "getConfigValue" in clientOrOptions
-      ? settings.metadataName
+      ? (settings as NonaOpenFeatureProviderSettings).metadataName
       : clientOrOptions.metadataName;
 
-  if (!resolvedEnvironmentId) {
-    throw new Error("createNonaOpenFeatureProvider requires an environmentId.");
-  }
-
-  return new NonaOpenFeatureProvider(
-    client,
-    resolvedEnvironmentId,
-    metadataName,
-  );
+  return new NonaOpenFeatureProvider(client, metadataName);
 }
 
 export class NonaOpenFeatureProvider implements Provider {
@@ -68,7 +57,6 @@ export class NonaOpenFeatureProvider implements Provider {
 
   constructor(
     private readonly client: NonaClient,
-    private readonly environmentId: string,
     metadataName = "nona",
   ) {
     this.metadata = { name: metadataName };
@@ -157,7 +145,7 @@ export class NonaOpenFeatureProvider implements Provider {
     resolve: (config: NonaConfigValue) => ResolutionDetails<T>,
   ): Promise<ResolutionDetails<T>> {
     try {
-      return resolve(await this.client.getConfigValue(this.environmentId, flagKey));
+      return resolve(await this.client.getConfigValue(flagKey));
     } catch (cause) {
       if (cause instanceof NonaClientError && cause.status === 404) {
         return error(

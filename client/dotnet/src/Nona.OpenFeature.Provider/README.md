@@ -19,17 +19,18 @@ using OpenFeature;
 using var nona = new NonaClient(new NonaClientOptions
 {
     BaseAddress = new Uri("https://nona.example.com"),
+    EnvironmentId = "production",
     ApiKey = "your-api-key"
 });
 
 await Api.Instance.SetProviderAsync(
-    new NonaOpenFeatureProvider(nona, "production"));
+    new NonaOpenFeatureProvider(nona));
 
 var client = Api.Instance.GetClient();
 var enabled = await client.GetBooleanValueAsync("Features:Checkout", false);
 ```
 
-Nona API keys are bound to a project, so provider configuration only needs the Nona client and environment id.
+Nona API keys are bound to a project, and the Nona client is bound to an environment, so provider configuration only needs the client.
 
 ## Integration test
 

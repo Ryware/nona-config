@@ -14,6 +14,8 @@ public sealed partial class NonaClient : IDisposable
     private readonly HttpClient _httpClient;
     private readonly bool _disposeHttpClient;
     private readonly NonaClientOptions _options;
+    private readonly string _environmentId;
+    private readonly string _environmentSegment;
     private readonly object _cacheLock = new object();
     private readonly Dictionary<string, CacheEntry> _cache = new(StringComparer.Ordinal);
     private readonly Dictionary<string, Task<NonaConfigValue>> _inFlightFetches = new(StringComparer.Ordinal);
@@ -22,19 +24,21 @@ public sealed partial class NonaClient : IDisposable
     private readonly bool _allowStaleCache;
     private long _cacheSizeBytes;
 
-    public NonaClient(string baseAddress, string? apiKey = null)
+    public NonaClient(string baseAddress, string environmentId, string? apiKey)
         : this(new NonaClientOptions
         {
             BaseAddress = new Uri(baseAddress, UriKind.Absolute),
+            EnvironmentId = environmentId,
             ApiKey = apiKey
         })
     {
     }
 
-    public NonaClient(Uri baseAddress, string? apiKey = null)
+    public NonaClient(Uri baseAddress, string environmentId, string? apiKey)
         : this(new NonaClientOptions
         {
             BaseAddress = baseAddress,
+            EnvironmentId = environmentId,
             ApiKey = apiKey
         })
     {
@@ -45,8 +49,8 @@ public sealed partial class NonaClient : IDisposable
     {
     }
 
-    public NonaClient(HttpClient httpClient)
-        : this(httpClient, new NonaClientOptions(), disposeHttpClient: false)
+    public NonaClient(HttpClient httpClient, string environmentId)
+        : this(httpClient, new NonaClientOptions { EnvironmentId = environmentId }, disposeHttpClient: false)
     {
     }
 
@@ -54,6 +58,8 @@ public sealed partial class NonaClient : IDisposable
     {
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         _options = options ?? throw new ArgumentNullException(nameof(options));
+        _environmentSegment = Segment(_options.EnvironmentId, nameof(NonaClientOptions.EnvironmentId));
+        _environmentId = _options.EnvironmentId!;
         _disposeHttpClient = disposeHttpClient;
         _cacheTtl = ValidateCacheTtl(options.CacheTtl);
         _cacheMemoryLimitBytes = ConvertMegabytesToBytes(ValidateCacheMemoryLimitMegabytes(options.CacheMemoryLimitMegabytes));
@@ -71,13 +77,14 @@ public sealed partial class NonaClient : IDisposable
         set => _options.ApiKey = value;
     }
 
+    public string EnvironmentId => _environmentId;
+
     public async Task<NonaConfigValue> GetConfigValueAsync(
-        string environmentId,
         string key,
         CancellationToken cancellationToken = default)
     {
-        var path = $"api/{Segment(environmentId, nameof(environmentId))}/{Segment(key, nameof(key))}";
-        var cacheKey = CreateCacheKey(environmentId, key);
+        var path = $"api/{_environmentSegment}/{Segment(key, nameof(key))}";
+        var cacheKey = CreateCacheKey(key);
         var cachedValue = TryGetCachedValue(cacheKey, path);
         if (cachedValue is not null)
         {
@@ -88,13 +95,12 @@ public sealed partial class NonaClient : IDisposable
     }
 
     public async Task<NonaConfigValue?> TryGetConfigValueAsync(
-        string environmentId,
         string key,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            return await GetConfigValueAsync(environmentId, key, cancellationToken).ConfigureAwait(false);
+            return await GetConfigValueAsync(key, cancellationToken).ConfigureAwait(false);
         }
         catch (NonaClientException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
@@ -103,16 +109,14 @@ public sealed partial class NonaClient : IDisposable
     }
 
     public async Task<string> GetStringValueAsync(
-        string environmentId,
         string key,
         CancellationToken cancellationToken = default)
     {
-        var configValue = await GetConfigValueAsync(environmentId, key, cancellationToken).ConfigureAwait(false);
+        var configValue = await GetConfigValueAsync(key, cancellationToken).ConfigureAwait(false);
         return configValue.Value;
     }
 
     public async Task<T?> GetJsonValueAsync<T>(
-        string environmentId,
         string key,
         JsonTypeInfo<T> jsonTypeInfo,
         CancellationToken cancellationToken = default)
@@ -122,7 +126,7 @@ public sealed partial class NonaClient : IDisposable
             throw new ArgumentNullException(nameof(jsonTypeInfo));
         }
 
-        var configValue = await GetConfigValueAsync(environmentId, key, cancellationToken).ConfigureAwait(false);
+        var configValue = await GetConfigValueAsync(key, cancellationToken).ConfigureAwait(false);
         return JsonSerializer.Deserialize(configValue.Value, jsonTypeInfo);
     }
 

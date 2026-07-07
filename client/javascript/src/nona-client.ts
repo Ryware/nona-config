@@ -20,45 +20,38 @@ interface SendOptions extends NonaRequestOptions {
 }
 
 export interface NonaClient {
+  readonly environmentId: string;
   getConfigValue(
-    environmentId: string,
     key: string,
     options?: NonaRequestOptions,
   ): Promise<NonaConfigValue>;
   tryGetConfigValue(
-    environmentId: string,
     key: string,
     options?: NonaRequestOptions,
   ): Promise<NonaConfigValue | null>;
-  getStringValue(
-    environmentId: string,
-    key: string,
-    options?: NonaRequestOptions,
-  ): Promise<string>;
-  getJsonValue<T>(
-    environmentId: string,
-    key: string,
-    options?: NonaRequestOptions,
-  ): Promise<T>;
-  invalidateTtlCache(environmentId: string, key: string): boolean;
+  getStringValue(key: string, options?: NonaRequestOptions): Promise<string>;
+  getJsonValue<T>(key: string, options?: NonaRequestOptions): Promise<T>;
+  invalidateTtlCache(key: string): boolean;
   clearTtlCache(): void;
 }
 
 export function createNonaClient(
   baseUrl: string | URL,
-  options?: Omit<NonaClientOptions, "baseUrl">,
+  options: Omit<NonaClientOptions, "baseUrl">,
 ): NonaClient;
 export function createNonaClient(options: NonaClientOptions): NonaClient;
 export function createNonaClient(
   baseUrlOrOptions: string | URL | NonaClientOptions,
-  options: Omit<NonaClientOptions, "baseUrl"> = {},
+  options?: Omit<NonaClientOptions, "baseUrl">,
 ): NonaClient {
-  const resolvedOptions =
+  const resolvedOptions: NonaClientOptions =
     typeof baseUrlOrOptions === "string" || baseUrlOrOptions instanceof URL
-      ? { ...options, baseUrl: baseUrlOrOptions }
+      ? ({ ...options, baseUrl: baseUrlOrOptions } as NonaClientOptions)
       : baseUrlOrOptions;
 
   const baseUrl = ensureTrailingSlash(new URL(resolvedOptions.baseUrl));
+  const environmentId = resolvedOptions.environmentId;
+  const environmentSegment = segment(environmentId, "environmentId");
   const defaultHeaders = resolvedOptions.defaultHeaders;
   const fetchImpl = resolvedOptions.fetch ?? globalThis.fetch?.bind(globalThis);
 
@@ -99,14 +92,14 @@ export function createNonaClient(
   }
 
   return {
+    environmentId,
     async getConfigValue(
-      environmentId: string,
       key: string,
       requestOptions: NonaRequestOptions = {},
     ): Promise<NonaConfigValue> {
       const request: SendOptions = {
         method: "GET",
-        path: `api/${segment(environmentId, "environmentId")}/${segment(key, "key")}`,
+        path: `api/${environmentSegment}/${segment(key, "key")}`,
         ...requestOptions,
       };
       const id = buildRequestKey(baseUrl, request.method, request.path, apiKey);
@@ -133,10 +126,10 @@ export function createNonaClient(
       pendingRequests.set(id, inFlight);
       return inFlight;
     },
-    invalidateTtlCache(environmentId: string, key: string): boolean {
+    invalidateTtlCache(key: string): boolean {
       const request: SendOptions = {
         method: "GET",
-        path: `api/${segment(environmentId, "environmentId")}/${segment(key, "key")}`,
+        path: `api/${environmentSegment}/${segment(key, "key")}`,
       };
       const id = buildRequestKey(baseUrl, request.method, request.path, apiKey);
       return cache.invalidate(id);
@@ -145,12 +138,11 @@ export function createNonaClient(
       cache.clear();
     },
     async tryGetConfigValue(
-      environmentId: string,
       key: string,
       requestOptions: NonaRequestOptions = {},
     ): Promise<NonaConfigValue | null> {
       try {
-        return await this.getConfigValue(environmentId, key, requestOptions);
+        return await this.getConfigValue(key, requestOptions);
       } catch (error) {
         if (error instanceof NonaClientError && error.status === 404) {
           return null;
@@ -160,24 +152,20 @@ export function createNonaClient(
       }
     },
     async getStringValue(
-      environmentId: string,
       key: string,
       requestOptions: NonaRequestOptions = {},
     ): Promise<string> {
       const configValue = await this.getConfigValue(
-        environmentId,
         key,
         requestOptions,
       );
       return configValue.value;
     },
     async getJsonValue<T>(
-      environmentId: string,
       key: string,
       requestOptions: NonaRequestOptions = {},
     ): Promise<T> {
       const configValue = await this.getConfigValue(
-        environmentId,
         key,
         requestOptions,
       );

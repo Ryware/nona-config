@@ -14,10 +14,10 @@ public sealed class NonaOpenFeatureProviderIntegrationTests
         var settings = NonaIntegrationSettings.Create();
         var domain = $"nona-dotnet-integration-{Guid.NewGuid():N}";
 
-        using var nona = new NonaClient(settings.BaseUrl, settings.ApiKey);
+        using var nona = new NonaClient(settings.BaseUrl, settings.EnvironmentId, settings.ApiKey);
         await Api.Instance.SetProviderAsync(
             domain,
-            new NonaOpenFeatureProvider(nona, settings.EnvironmentId));
+            new NonaOpenFeatureProvider(nona));
 
         var client = Api.Instance.GetClient(domain);
 

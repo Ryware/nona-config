@@ -4,7 +4,7 @@ namespace Nona.Client;
 
 public sealed partial class NonaClient
 {
-    private static string Segment(string value, string parameterName)
+    private static string Segment(string? value, string parameterName)
     {
         if (string.IsNullOrWhiteSpace(value))
         {
@@ -22,9 +22,9 @@ public sealed partial class NonaClient
             : new Uri(value + "/", UriKind.Absolute);
     }
 
-    private static string CreateCacheKey(string environmentId, string key)
+    private static string CreateCacheKey(string key)
     {
-        return environmentId + "\u001F" + key;
+        return key;
     }
 
     private static long EstimateCacheEntrySize(string cacheKey, NonaConfigValue value)

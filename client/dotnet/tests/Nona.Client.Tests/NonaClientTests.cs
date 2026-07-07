@@ -19,10 +19,13 @@ public sealed class NonaClientTests
 
         using var client = new NonaClient(httpClient, new NonaClientOptions
         {
+            EnvironmentId = "production",
             ApiKey = "api-key"
         });
 
-        var value = await client.GetConfigValueAsync("production", "Features:Checkout");
+        Assert.Equal("production", client.EnvironmentId);
+
+        var value = await client.GetConfigValueAsync("Features:Checkout");
 
         Assert.Equal("enabled", value.Value);
         Assert.Equal("text", value.ContentType);
@@ -31,6 +34,22 @@ public sealed class NonaClientTests
         Assert.Equal(HttpMethod.Get, request.Method);
         Assert.Equal("https://nona.test/api/production/Features%3ACheckout", request.Uri.AbsoluteUri);
         Assert.Equal("api-key", request.GetHeader("X-Api-Key"));
+    }
+
+    [Fact]
+    public void Constructor_RequiresEnvironmentId()
+    {
+        using var httpClient = new HttpClient
+        {
+            BaseAddress = new Uri("https://nona.test/")
+        };
+
+        var ex = Assert.Throws<ArgumentException>(() => new NonaClient(httpClient, new NonaClientOptions
+        {
+            ApiKey = "api-key"
+        }));
+
+        Assert.Equal(nameof(NonaClientOptions.EnvironmentId), ex.ParamName);
     }
 
     [Fact]
@@ -47,10 +66,11 @@ public sealed class NonaClientTests
 
         using var client = new NonaClient(httpClient, new NonaClientOptions
         {
+            EnvironmentId = "production",
             ApiKey = "api-key"
         });
 
-        var value = await client.TryGetConfigValueAsync("production", "missing");
+        var value = await client.TryGetConfigValueAsync("missing");
 
         Assert.Null(value);
     }
@@ -67,10 +87,11 @@ public sealed class NonaClientTests
 
         using var client = new NonaClient(httpClient, new NonaClientOptions
         {
+            EnvironmentId = "production",
             ApiKey = "api-key"
         });
 
-        Assert.Equal("enabled", await client.GetStringValueAsync("production", "flag"));
+        Assert.Equal("enabled", await client.GetStringValueAsync("flag"));
     }
 
     [Fact]
@@ -90,12 +111,13 @@ public sealed class NonaClientTests
 
         using var client = new NonaClient(httpClient, new NonaClientOptions
         {
+            EnvironmentId = "production",
             ApiKey = "api-key",
             CacheTtl = TimeSpan.FromMinutes(1)
         });
 
-        var first = await client.GetConfigValueAsync("production", "flag");
-        var second = await client.GetConfigValueAsync("production", "flag");
+        var first = await client.GetConfigValueAsync("flag");
+        var second = await client.GetConfigValueAsync("flag");
 
         Assert.Equal("value-1", first.Value);
         Assert.Equal("value-1", second.Value);
@@ -121,6 +143,7 @@ public sealed class NonaClientTests
 
         using var client = new NonaClient(httpClient, new NonaClientOptions
         {
+            EnvironmentId = "production",
             ApiKey = "api-key",
             CacheTtl = TimeSpan.FromMinutes(1)
         });
@@ -130,7 +153,7 @@ public sealed class NonaClientTests
             .Select(_ => Task.Run(async () =>
             {
                 await startRequests.Task;
-                return await client.GetConfigValueAsync("production", "flag");
+                return await client.GetConfigValueAsync("flag");
             }))
             .ToArray();
 
@@ -170,15 +193,16 @@ public sealed class NonaClientTests
 
         using var client = new NonaClient(httpClient, new NonaClientOptions
         {
+            EnvironmentId = "production",
             ApiKey = "api-key",
             CacheTtl = TimeSpan.FromMinutes(1)
         });
 
         var requests = new[]
         {
-            client.GetConfigValueAsync("production", "one"),
-            client.GetConfigValueAsync("production", "two"),
-            client.GetConfigValueAsync("production", "three")
+            client.GetConfigValueAsync("one"),
+            client.GetConfigValueAsync("two"),
+            client.GetConfigValueAsync("three")
         };
 
         await WaitForAsync(() => handler.Requests.Count == 3);
@@ -207,14 +231,15 @@ public sealed class NonaClientTests
 
         using var client = new NonaClient(httpClient, new NonaClientOptions
         {
+            EnvironmentId = "production",
             ApiKey = "api-key",
             CacheTtl = TimeSpan.FromMilliseconds(25)
         });
 
-        Assert.Equal("value-1", (await client.GetConfigValueAsync("production", "flag")).Value);
+        Assert.Equal("value-1", (await client.GetConfigValueAsync("flag")).Value);
         await Task.Delay(80);
 
-        Assert.Equal("value-2", (await client.GetConfigValueAsync("production", "flag")).Value);
+        Assert.Equal("value-2", (await client.GetConfigValueAsync("flag")).Value);
         Assert.Equal(2, handler.Requests.Count);
     }
 
@@ -235,19 +260,20 @@ public sealed class NonaClientTests
 
         using var client = new NonaClient(httpClient, new NonaClientOptions
         {
+            EnvironmentId = "production",
             ApiKey = "api-key",
             CacheTtl = TimeSpan.FromMilliseconds(25),
             AllowStaleCache = true
         });
 
-        Assert.Equal("value-1", (await client.GetConfigValueAsync("production", "flag")).Value);
+        Assert.Equal("value-1", (await client.GetConfigValueAsync("flag")).Value);
         await Task.Delay(80);
 
-        var stale = await client.GetConfigValueAsync("production", "flag");
+        var stale = await client.GetConfigValueAsync("flag");
         Assert.Equal("value-1", stale.Value);
 
         await WaitForAsync(() => handler.Requests.Count >= 2);
-        Assert.Equal("value-2", (await client.GetConfigValueAsync("production", "flag")).Value);
+        Assert.Equal("value-2", (await client.GetConfigValueAsync("flag")).Value);
     }
 
     [Fact]
@@ -267,14 +293,15 @@ public sealed class NonaClientTests
 
         using var client = new NonaClient(httpClient, new NonaClientOptions
         {
+            EnvironmentId = "production",
             ApiKey = "api-key",
             CacheTtl = TimeSpan.FromMinutes(1),
             CacheMemoryLimitMegabytes = 1
         });
 
-        Assert.StartsWith("one-", (await client.GetConfigValueAsync("production", "one")).Value);
-        Assert.StartsWith("two-", (await client.GetConfigValueAsync("production", "two")).Value);
-        Assert.StartsWith("one-", (await client.GetConfigValueAsync("production", "one")).Value);
+        Assert.StartsWith("one-", (await client.GetConfigValueAsync("one")).Value);
+        Assert.StartsWith("two-", (await client.GetConfigValueAsync("two")).Value);
+        Assert.StartsWith("one-", (await client.GetConfigValueAsync("one")).Value);
 
         Assert.Equal(3, handler.Requests.Count);
     }
@@ -291,11 +318,11 @@ public sealed class NonaClientTests
 
         using var client = new NonaClient(httpClient, new NonaClientOptions
         {
+            EnvironmentId = "production",
             ApiKey = "api-key"
         });
 
         var value = await client.GetJsonValueAsync(
-            "production",
             "settings",
             NonaClientTestsJsonContext.Default.JsonFlag);
 
@@ -317,10 +344,11 @@ public sealed class NonaClientTests
 
         using var client = new NonaClient(httpClient, new NonaClientOptions
         {
+            EnvironmentId = "production",
             ApiKey = "api-key"
         });
 
-        var value = await client.GetConfigValueAsync("production", "flag");
+        var value = await client.GetConfigValueAsync("flag");
 
         Assert.Equal("enabled", value.Value);
         Assert.Equal("text", value.ContentType);
@@ -338,10 +366,11 @@ public sealed class NonaClientTests
 
         using var client = new NonaClient(httpClient, new NonaClientOptions
         {
+            EnvironmentId = "production",
             ApiKey = "api-key"
         });
 
-        var value = await client.GetConfigValueAsync("production", "empty");
+        var value = await client.GetConfigValueAsync("empty");
 
         Assert.Equal(string.Empty, value.Value);
         Assert.Equal("text", value.ContentType);
@@ -361,11 +390,12 @@ public sealed class NonaClientTests
 
         using var client = new NonaClient(httpClient, new NonaClientOptions
         {
+            EnvironmentId = "production",
             ApiKey = "api-key"
         });
 
         var ex = await Assert.ThrowsAsync<NonaClientException>(() =>
-            client.GetConfigValueAsync("production", "missing"));
+            client.GetConfigValueAsync("missing"));
 
         Assert.Equal(HttpStatusCode.NotFound, ex.StatusCode);
         Assert.Equal("Config entry not found", ex.Message);

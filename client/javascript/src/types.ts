@@ -4,6 +4,7 @@ export type NonaUserRole = "viewer" | "editor";
 
 export interface NonaClientOptions {
   baseUrl: string | URL;
+  environmentId: string;
   apiKey?: string;
   fetch?: typeof fetch;
   defaultHeaders?: HeadersInit;

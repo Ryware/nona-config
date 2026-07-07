@@ -25,10 +25,11 @@ import { createNonaClient } from "nona-client";
 
 const nona = createNonaClient({
   baseUrl: "https://nona.example.com",
+  environmentId: "production",
   apiKey: process.env.NONA_API_KEY
 });
 
-const checkout = await nona.getStringValue("production", "Features:Checkout");
+const checkout = await nona.getStringValue("Features:Checkout");
 
 const checkoutEnabled = checkout === "true";
 ```
@@ -36,7 +37,7 @@ const checkoutEnabled = checkout === "true";
 ## Read value metadata
 
 ```js
-const value = await nona.getConfigValue("production", "Features:Checkout");
+const value = await nona.getConfigValue("Features:Checkout");
 
 console.log(value.value);
 console.log(value.contentType);
@@ -47,13 +48,13 @@ console.log(value.contentType);
 ## Read JSON
 
 ```js
-const settings = await nona.getJsonValue("production", "App:Settings");
+const settings = await nona.getJsonValue("App:Settings");
 ```
 
 ## Return `null` for missing keys
 
 ```js
-const value = await nona.tryGetConfigValue("production", "Missing:Key");
+const value = await nona.tryGetConfigValue("Missing:Key");
 
 if (value === null) {
   console.log("Key was not found");
@@ -67,11 +68,12 @@ import { createNonaClient, NonaClientError } from "nona-client";
 
 const nona = createNonaClient({
   baseUrl: "https://nona.example.com",
+  environmentId: "production",
   apiKey: process.env.NONA_API_KEY
 });
 
 try {
-  await nona.getConfigValue("production", "Missing:Key");
+  await nona.getConfigValue("Missing:Key");
 } catch (error) {
   if (error instanceof NonaClientError) {
     console.error(error.status);
@@ -88,13 +90,14 @@ try {
 ```js
 const nona = createNonaClient({
   baseUrl: "https://nona.example.com",
+  environmentId: "production",
   apiKey: process.env.NONA_API_KEY,
   cacheTtlMs: 30_000,
   cacheMemoryLimitMegabytes: 5
 });
 ```
 
-Use `invalidateTtlCache(environmentId, key)` to remove one cached value or `clearTtlCache()` to clear all cached values.
+Use `invalidateTtlCache(key)` to remove one cached value or `clearTtlCache()` to clear all cached values.
 
 ## OpenFeature provider
 

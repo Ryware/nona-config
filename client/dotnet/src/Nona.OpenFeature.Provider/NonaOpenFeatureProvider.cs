@@ -18,21 +18,15 @@ public sealed class NonaOpenFeatureProvider : FeatureProvider
     private static readonly ImmutableMetadata EmptyMetadata = new ImmutableMetadata();
 
     private readonly NonaClient _client;
-    private readonly string _environmentId;
     private readonly Metadata _metadata;
 
     public NonaOpenFeatureProvider(
         NonaClient client,
-        string environmentId,
-        string providerName = DefaultProviderName)
+        NonaOpenFeatureProviderOptions? options = null)
     {
         _client = client ?? throw new ArgumentNullException(nameof(client));
-        if (string.IsNullOrWhiteSpace(environmentId))
-        {
-            throw new ArgumentException("Environment id is required.", nameof(environmentId));
-        }
 
-        _environmentId = environmentId;
+        var providerName = options?.ProviderName;
         _metadata = new Metadata(string.IsNullOrWhiteSpace(providerName) ? DefaultProviderName : providerName);
     }
 
@@ -155,7 +149,7 @@ public sealed class NonaOpenFeatureProvider : FeatureProvider
     {
         try
         {
-            var config = await _client.GetConfigValueAsync(_environmentId, flagKey, cancellationToken)
+            var config = await _client.GetConfigValueAsync(flagKey, cancellationToken)
                 .ConfigureAwait(false);
             return resolve(config);
         }
@@ -244,4 +238,9 @@ public sealed class NonaOpenFeatureProvider : FeatureProvider
                 return new Value();
         }
     }
+}
+
+public sealed class NonaOpenFeatureProviderOptions
+{
+    public string? ProviderName { get; set; }
 }

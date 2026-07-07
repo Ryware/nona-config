@@ -24,6 +24,7 @@ import { createNonaClient, NonaClientError } from "nona-client";
 ```js
 const nona = createNonaClient({
   baseUrl: "https://nona.example.com",
+  environmentId: "production",
   apiKey: "your-api-key"
 });
 ```
@@ -32,16 +33,17 @@ You can also pass the base URL as the first argument:
 
 ```js
 const nona = createNonaClient("https://nona.example.com", {
+  environmentId: "production",
   apiKey: "your-api-key"
 });
 ```
 
 ## Read config values
 
-API keys are bound to one project, so config reads only take an environment and key.
+API keys are bound to one project, and the client is bound to one environment, so config reads only take a key.
 
 ```js
-const value = await nona.getConfigValue("production", "Features:Checkout");
+const value = await nona.getConfigValue("Features:Checkout");
 console.log(value.value);
 console.log(value.contentType);
 ```
@@ -49,20 +51,20 @@ console.log(value.contentType);
 If you only want the string value:
 
 ```js
-const checkoutEnabled = await nona.getStringValue("production", "Features:Checkout");
+const checkoutEnabled = await nona.getStringValue("Features:Checkout");
 ```
 
 If the value contains JSON:
 
 ```js
-const settings = await nona.getJsonValue("production", "App:Settings");
+const settings = await nona.getJsonValue("App:Settings");
 console.log(settings);
 ```
 
 If a key might not exist, use `tryGetConfigValue`:
 
 ```js
-const maybeValue = await nona.tryGetConfigValue("production", "Missing:Key");
+const maybeValue = await nona.tryGetConfigValue("Missing:Key");
 
 if (maybeValue === null) {
   console.log("No value found");
@@ -75,7 +77,7 @@ Requests that fail with an HTTP error throw `NonaClientError`:
 
 ```js
 try {
-  await nona.getConfigValue("production", "Missing:Key");
+  await nona.getConfigValue("Missing:Key");
 } catch (error) {
   if (error instanceof NonaClientError) {
     console.error(error.status);
@@ -93,6 +95,7 @@ try {
 `createNonaClient` accepts these options:
 
 - `baseUrl`: the Nona server URL
+- `environmentId`: environment used for config reads
 - `apiKey`: API key for config reads
 - `fetch`: custom fetch implementation
 - `defaultHeaders`: headers added to every request
@@ -101,7 +104,7 @@ try {
 
 Cache helpers:
 
-- `invalidateTtlCache(environmentId, key)`: removes only the matching cached request
+- `invalidateTtlCache(key)`: removes only the matching cached request
 - `clearTtlCache()`: removes all TTL cache entries
 
 ## Runtime requirements

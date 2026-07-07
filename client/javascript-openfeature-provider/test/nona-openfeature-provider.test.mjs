@@ -13,6 +13,7 @@ test("OpenFeature provider resolves typed values through the Nona client", async
     ["settings", ['{"color":"green","enabled":true}', "json"]],
   ]);
   const nona = createNonaClient("https://nona.test", {
+    environmentId: "production",
     apiKey: "api-key",
     fetch: async (url, init) => {
       calls.push({ url, init });
@@ -26,7 +27,7 @@ test("OpenFeature provider resolves typed values through the Nona client", async
 
   await OpenFeature.setProviderAndWait(
     domain,
-    createNonaOpenFeatureProvider(nona, "production"),
+    createNonaOpenFeatureProvider(nona),
   );
 
   const client = OpenFeature.getClient(domain);
@@ -43,6 +44,7 @@ test("OpenFeature provider resolves typed values through the Nona client", async
     calls[0].init.headers.get("X-Api-Key"),
     "api-key",
   );
+  assert.equal(new URL(calls[0].url).pathname, "/api/production/enabled");
 });
 
 test("OpenFeature provider returns defaults and flag-not-found details for missing Nona values", async () => {

@@ -7,6 +7,7 @@ test("three concurrent identical requests deduplicate to one HTTP call", async (
   const pending = deferred();
   let calls = 0;
   const client = createNonaClient("https://nona.test", {
+    environmentId: "production",
     apiKey: "api-key",
     fetch: async () => {
       calls += 1;
@@ -14,9 +15,9 @@ test("three concurrent identical requests deduplicate to one HTTP call", async (
     }
   });
 
-  const a = client.getConfigValue("production", "homepage");
-  const b = client.getConfigValue("production", "homepage");
-  const c = client.getConfigValue("production", "homepage");
+  const a = client.getConfigValue("homepage");
+  const b = client.getConfigValue("homepage");
+  const c = client.getConfigValue("homepage");
 
   assert.equal(calls, 1);
 
@@ -31,6 +32,7 @@ test("three concurrent identical requests deduplicate to one HTTP call", async (
 test("three concurrent different requests result in three HTTP calls", async () => {
   let calls = 0;
   const client = createNonaClient("https://nona.test", {
+    environmentId: "production",
     apiKey: "api-key",
     fetch: async (url) => {
       calls += 1;
@@ -39,9 +41,9 @@ test("three concurrent different requests result in three HTTP calls", async () 
   });
 
   await Promise.all([
-    client.getConfigValue("production", "homepage"),
-    client.getConfigValue("production", "footer"),
-    client.getConfigValue("staging", "homepage")
+    client.getConfigValue("homepage"),
+    client.getConfigValue("footer"),
+    client.getConfigValue("sidebar")
   ]);
 
   assert.equal(calls, 3);
@@ -51,6 +53,7 @@ test("failed in-flight request propagates same error to all callers", async () =
   const pending = deferred();
   let calls = 0;
   const client = createNonaClient("https://nona.test", {
+    environmentId: "production",
     apiKey: "api-key",
     fetch: async () => {
       calls += 1;
@@ -58,9 +61,9 @@ test("failed in-flight request propagates same error to all callers", async () =
     }
   });
 
-  const a = client.getConfigValue("production", "homepage");
-  const b = client.getConfigValue("production", "homepage");
-  const c = client.getConfigValue("production", "homepage");
+  const a = client.getConfigValue("homepage");
+  const b = client.getConfigValue("homepage");
+  const c = client.getConfigValue("homepage");
 
   assert.equal(calls, 1);
 
@@ -76,6 +79,7 @@ test("failed in-flight request propagates same error to all callers", async () =
 test("failed request cleanup allows subsequent retries", async () => {
   let calls = 0;
   const client = createNonaClient("https://nona.test", {
+    environmentId: "production",
     apiKey: "api-key",
     fetch: async () => {
       calls += 1;
@@ -88,11 +92,11 @@ test("failed request cleanup allows subsequent retries", async () => {
   });
 
   await assert.rejects(
-    () => client.getConfigValue("production", "homepage"),
+    () => client.getConfigValue("homepage"),
     isNonaError(500, "boom")
   );
 
-  const second = await client.getConfigValue("production", "homepage");
+  const second = await client.getConfigValue("homepage");
   assert.equal(second.value, "ok");
   assert.equal(calls, 2);
 });

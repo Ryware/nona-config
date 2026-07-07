@@ -115,10 +115,11 @@ import { createNonaClient } from "nona-client";
 
 const nona = createNonaClient({
   baseUrl: "https://nona.example.com",
+  environmentId: "production",
   apiKey: process.env.NONA_API_KEY
 });
 
-const value = await nona.getConfigValue("production", "Features:Checkout");
+const value = await nona.getConfigValue("Features:Checkout");
 console.log(value.value);
 ```
 
@@ -135,8 +136,8 @@ dotnet add package Nona.Client
 ```csharp
 using Nona.Client;
 
-var client = new NonaClient("https://nona.example.com", apiKey: "your-api-key");
-var value = await client.GetConfigValueAsync("production", "Features:Checkout");
+var client = new NonaClient("https://nona.example.com", "production", apiKey: "your-api-key");
+var value = await client.GetConfigValueAsync("Features:Checkout");
 Console.WriteLine(value.Value);
 ```
 

@@ -36,10 +36,11 @@ public sealed class NonaOpenFeatureProviderTests
 
         using var nona = new NonaClient(httpClient, new NonaClientOptions
         {
+            EnvironmentId = "production",
             ApiKey = "api-key"
         });
         var domain = $"nona-dotnet-{Guid.NewGuid():N}";
-        await Api.Instance.SetProviderAsync(domain, new NonaOpenFeatureProvider(nona, "production"));
+        await Api.Instance.SetProviderAsync(domain, new NonaOpenFeatureProvider(nona));
         var client = Api.Instance.GetClient(domain);
 
         Assert.True(await client.GetBooleanValueAsync("enabled", false));
@@ -53,6 +54,7 @@ public sealed class NonaOpenFeatureProviderTests
         Assert.Equal("green", structure.GetValue("color").AsString);
         Assert.True(structure.GetValue("enabled").AsBoolean);
         Assert.All(handler.Requests, request => Assert.Equal("api-key", request.GetHeader("X-Api-Key")));
+        Assert.All(handler.Requests, request => Assert.StartsWith("/api/production/", request.Uri.AbsolutePath, StringComparison.Ordinal));
     }
 
     [Fact]
@@ -69,10 +71,11 @@ public sealed class NonaOpenFeatureProviderTests
 
         using var nona = new NonaClient(httpClient, new NonaClientOptions
         {
+            EnvironmentId = "production",
             ApiKey = "api-key"
         });
         var domain = $"nona-dotnet-missing-{Guid.NewGuid():N}";
-        await Api.Instance.SetProviderAsync(domain, new NonaOpenFeatureProvider(nona, "production"));
+        await Api.Instance.SetProviderAsync(domain, new NonaOpenFeatureProvider(nona));
 
         var details = await Api.Instance
             .GetClient(domain)

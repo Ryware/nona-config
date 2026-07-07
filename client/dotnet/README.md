@@ -21,25 +21,26 @@ Official .NET/C# client for **Nona** — an open-source, self-hosted remote conf
 ```csharp
 using Nona.Client;
 
-var client = new NonaClient("https://nona.example.com", apiKey: "your-api-key");
-var value = await client.GetConfigValueAsync("production", "Features:Checkout");
+var client = new NonaClient("https://nona.example.com", "production", apiKey: "your-api-key");
+var value = await client.GetConfigValueAsync("Features:Checkout");
 Console.WriteLine(value.Value);
 ```
 
-API keys are bound to one project, so config reads only take an environment and key.
+API keys are bound to one project, and the client is bound to one environment, so config reads only take a key.
 
 ## Available Methods
 
-- `GetConfigValueAsync(environmentId, key, cancellationToken)`
-- `TryGetConfigValueAsync(environmentId, key, cancellationToken)`
-- `GetStringValueAsync(environmentId, key, cancellationToken)`
-- `GetJsonValueAsync<T>(environmentId, key, jsonTypeInfo, cancellationToken)`
+- `GetConfigValueAsync(key, cancellationToken)`
+- `TryGetConfigValueAsync(key, cancellationToken)`
+- `GetStringValueAsync(key, cancellationToken)`
+- `GetJsonValueAsync<T>(key, jsonTypeInfo, cancellationToken)`
 
 ## Options
 
 Use `NonaClientOptions` to configure:
 
 - `BaseAddress`
+- `EnvironmentId`
 - `ApiKey`
 - `CacheTtl`
 - `CacheMemoryLimitMegabytes`

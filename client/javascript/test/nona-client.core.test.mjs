@@ -6,6 +6,7 @@ import { capture, configValueResponse, jsonResponse } from "./helpers.mjs";
 test("getConfigValue sends API key and parses the value", async () => {
   const calls = [];
   const client = createNonaClient("https://nona.test", {
+    environmentId: "production",
     apiKey: "api-key",
     fetch: async (url, init) => {
       calls.push(capture(url, init));
@@ -13,7 +14,7 @@ test("getConfigValue sends API key and parses the value", async () => {
     }
   });
 
-  const value = await client.getConfigValue("production", "Features:Checkout");
+  const value = await client.getConfigValue("Features:Checkout");
 
   assert.equal(value.value, "enabled");
   assert.equal(value.contentType, "text");
@@ -23,11 +24,12 @@ test("getConfigValue sends API key and parses the value", async () => {
 
 test("getConfigValue accepts legacy JSON responses", async () => {
   const client = createNonaClient("https://nona.test", {
+    environmentId: "production",
     apiKey: "api-key",
     fetch: async () => jsonResponse({ value: "enabled", contentType: "text" })
   });
 
-  const value = await client.getConfigValue("production", "Features:Checkout");
+  const value = await client.getConfigValue("Features:Checkout");
 
   assert.equal(value.value, "enabled");
   assert.equal(value.contentType, "text");
@@ -35,11 +37,12 @@ test("getConfigValue accepts legacy JSON responses", async () => {
 
 test("getConfigValue allows empty raw values", async () => {
   const client = createNonaClient("https://nona.test", {
+    environmentId: "production",
     apiKey: "api-key",
     fetch: async () => configValueResponse("", "text")
   });
 
-  const value = await client.getConfigValue("production", "Empty");
+  const value = await client.getConfigValue("Empty");
 
   assert.equal(value.value, "");
   assert.equal(value.contentType, "text");
@@ -47,12 +50,13 @@ test("getConfigValue allows empty raw values", async () => {
 
 test("failed requests throw NonaClientError with backend error message", async () => {
   const client = createNonaClient("https://nona.test", {
+    environmentId: "production",
     apiKey: "api-key",
     fetch: async () => jsonResponse({ error: "Config entry not found" }, 404)
   });
 
   await assert.rejects(
-    () => client.getConfigValue("production", "missing"),
+    () => client.getConfigValue("missing"),
     error => {
       assert.ok(error instanceof NonaClientError);
       assert.equal(error.status, 404);
@@ -64,17 +68,32 @@ test("failed requests throw NonaClientError with backend error message", async (
 
 test("missing apiKey throws before request execution", async () => {
   const client = createNonaClient("https://nona.test", {
+    environmentId: "production",
     fetch: async () => configValueResponse("enabled", "text")
   });
 
   await assert.rejects(
-    () => client.getConfigValue("production", "Features:Checkout"),
+    () => client.getConfigValue("Features:Checkout"),
     (error) => {
       assert.equal(error instanceof Error, true);
       assert.equal(
         error.message,
         "Nona API-key calls require createNonaClient(...).apiKey."
       );
+      return true;
+    }
+  );
+});
+
+test("missing environmentId throws before request execution", async () => {
+  assert.throws(
+    () => createNonaClient("https://nona.test", {
+      apiKey: "api-key",
+      fetch: async () => configValueResponse("enabled", "text")
+    }),
+    (error) => {
+      assert.equal(error instanceof Error, true);
+      assert.equal(error.message, "environmentId cannot be empty.");
       return true;
     }
   );
