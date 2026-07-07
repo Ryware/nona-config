@@ -25,7 +25,6 @@ Windows options:
 
 ```powershell
 choco install nona-cli
-winget install nona-cli
 ```
 
 Release archives are also published for Windows, Linux, and macOS.

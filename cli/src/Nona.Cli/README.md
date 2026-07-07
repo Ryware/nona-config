@@ -33,16 +33,6 @@ choco install nona-cli
 
 The Chocolatey package installs the Windows x64 or Windows ARM64 release asset automatically based on the local machine architecture.
 
-### Windows via WinGet
-
-Once the package is approved on Windows Package Manager Community Repository:
-
-```powershell
-winget install Ryware.NonaCLI
-```
-
-The WinGet package installs the Windows x64 or Windows ARM64 release asset automatically based on the local machine architecture.
-
 ### Local Build
 
 ```bash
