@@ -266,9 +266,7 @@ choco install nona-cli
 # Run migration
 nona migrate firebase \
   --config ./nona.migration.json \
-  --base-url http://localhost:18080 \
-  --email admin@example.com \
-  --password secret
+  --base-url http://localhost:18080
 ```
 
 See [`cli/src/Nona.Cli/README.md`](cli/src/Nona.Cli/README.md) for the full CLI reference.
