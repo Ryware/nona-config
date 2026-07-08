@@ -83,6 +83,35 @@ public sealed class CliValueResolverTests
     }
 
     [Test]
+    public async Task ResolveConnection_UsesSavedSessionBaseUrl_WhenNoBaseUrlProvided()
+    {
+        await EnvironmentLock.WaitAsync();
+        try
+        {
+            using var env = new EnvironmentScope(new Dictionary<string, string?>
+            {
+                ["NONA_CLI_BASE_URL"] = null,
+                ["NONA_CLI_BEARER_TOKEN"] = null
+            });
+            var session = new CliAuthSession
+            {
+                BaseUrl = "http://saved.internal:18080",
+                Token = "saved-token",
+                Username = "admin@example.com",
+                Role = "Admin",
+                ExpiresAt = DateTime.UtcNow.AddHours(1),
+                SavedAtUtc = DateTime.UtcNow
+            };
+            var result = new CliValueResolver(CliDefaults.Empty, session)
+                .ResolveConnection(null, null);
+            await Assert.That(result.Success).IsTrue();
+            await Assert.That(result.Connection!.BaseUrl).IsEqualTo("http://saved.internal:18080");
+            await Assert.That(result.Connection!.BearerToken).IsEqualTo("saved-token");
+        }
+        finally { EnvironmentLock.Release(); }
+    }
+
+    [Test]
     public async Task ResolveConnection_UsesEnvironmentBearerToken()
     {
         await EnvironmentLock.WaitAsync();
