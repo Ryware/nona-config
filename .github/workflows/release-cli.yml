@@ -17,7 +17,7 @@ on:
         type: boolean
 
 permissions:
-  contents: write
+  contents: read
 
 env:
   CLI_PROJECT: cli/src/Nona.Cli/Nona.Cli.csproj
@@ -143,6 +143,8 @@ jobs:
   release:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     outputs:
       prerelease: ${{ steps.meta.outputs.prerelease }}
       tag: ${{ steps.meta.outputs.tag }}
