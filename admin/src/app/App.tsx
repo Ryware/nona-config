@@ -43,6 +43,11 @@ export default function App(): JSX.Element {
                   />
                 </Route>
 
+                <Route
+                  path="/cli-login"
+                  component={lazy(() => import("../pages/auth/CliLoginPage"))}
+                />
+
                 <Route component={InvitationRoute}>
                   <Route
                     path="/invite/:token"

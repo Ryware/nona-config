@@ -22,10 +22,13 @@ internal sealed class CliValueResolver(CliDefaults defaults, CliAuthSession? ses
         string? parsedToken)
     {
         var baseUrl = BaseUrl(parsedBaseUrl);
+        var token = Token(parsedToken);
+
+        if (string.IsNullOrWhiteSpace(baseUrl) && session is not null && !session.IsExpired)
+            baseUrl = session.BaseUrl;
+
         if (string.IsNullOrWhiteSpace(baseUrl))
             return ConnectionResolutionResult.Fail("Set --base-url/--api-url, NONA_CLI_BASE_URL, or a saved default base-url.");
-
-        var token = Token(parsedToken);
 
         var hasToken = !string.IsNullOrWhiteSpace(token);
 

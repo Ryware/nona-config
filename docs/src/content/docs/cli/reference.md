@@ -17,7 +17,7 @@ The command help below omits repeated common options from individual option list
 
 - `-?, -h, --help` is accepted by every command and subcommand.
 - Commands that connect to the Nona API may also accept `--api-url, --base-url <base-url>` and `--bearer-token, --token <bearer-token>`.
-- Connection values can come from flags, `NONA_CLI_*` environment variables, saved defaults, or a matching `nona auth login` session.
+- Connection values can come from flags, `NONA_CLI_*` environment variables, saved defaults, or a saved `nona auth login` session.
 
 ## `nona`
 

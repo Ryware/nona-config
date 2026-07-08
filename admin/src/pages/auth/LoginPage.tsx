@@ -1,4 +1,4 @@
-import { A, useNavigate } from "@solidjs/router";
+import { A, type RouteSectionProps, useNavigate } from "@solidjs/router";
 import { useMutation, useQuery } from "@tanstack/solid-query";
 import { createEffect, createSignal, Show } from "solid-js";
 import { authService } from "../../entities/auth/api/auth.service";
@@ -10,7 +10,11 @@ import { AuthCard } from "../../widgets/auth-shell/AuthCard";
 import { FormField } from "../../widgets/auth-shell/FormField";
 import { SsoSection } from "../../widgets/auth-shell/SsoSection";
 
-export default function LoginPage() {
+interface LoginPageProps extends Partial<RouteSectionProps> {
+  onLoginSuccess?: (result: LoginResponse) => void;
+}
+
+export default function LoginPage(props: LoginPageProps = {}) {
   const navigate = useNavigate();
   const [email, setEmail] = createSignal("");
   const [password, setPassword] = createSignal("");
@@ -26,6 +30,11 @@ export default function LoginPage() {
       { email: result.username ?? "", role: result.role },
       rememberMe()
     );
+    if (props.onLoginSuccess) {
+      props.onLoginSuccess(result);
+      return;
+    }
+
     navigate("/projects");
   };
 
