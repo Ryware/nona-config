@@ -48,7 +48,7 @@ The published executable is the `nona` command.
 Authenticate and persist a session token:
 
 ```bash
-nona auth login --base-url http://nona.internal:18080 --email admin@example.com
+nona auth login --base-url http://nona.internal:18080
 nona auth whoami
 nona auth logout
 ```
@@ -111,5 +111,5 @@ Resolution order is:
 
 1. Explicit command-line flags
 2. `NONA_CLI_*` environment variables
-3. Saved auth session from `nona auth login` for bearer token reuse
-4. Saved CLI defaults from `nona config set`
+3. Saved CLI defaults from `nona config set`
+4. Saved auth session from `nona auth login` for base URL and bearer token reuse
