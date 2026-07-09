@@ -19,7 +19,7 @@ public sealed class LibsqlProjectRepository : IProjectRepository
             """
             SELECT rowid AS Id, Name, UrlSlug, CreatedAt, UpdatedAt
             FROM Projects
-            WHERE UrlSlug = @Name COLLATE NOCASE
+            WHERE Name = @Name COLLATE NOCASE
             LIMIT 1
             """,
             LibsqlParameters.Create(("Name", name)),
@@ -41,15 +41,15 @@ public sealed class LibsqlProjectRepository : IProjectRepository
         return result.Rows.Select(Map).ToList();
     }
 
-    public async Task<bool> ExistsAsync(string slug, CancellationToken ct = default)
+    public async Task<bool> ExistsAsync(string name, CancellationToken ct = default)
     {
         var result = await _client.ExecuteAsync(
             """
             SELECT COUNT(1)
             FROM Projects
-            WHERE UrlSlug = @UrlSlug COLLATE NOCASE
+            WHERE Name = @Name COLLATE NOCASE
             """,
-            LibsqlParameters.Create(("UrlSlug", slug)),
+            LibsqlParameters.Create(("Name", name)),
             ct);
 
         return result.Rows[0].GetInt32(0) > 0;
