@@ -1,3 +1,4 @@
+using FluentValidation;
 using Mediator;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Nona.Application.Admin.ApiKeys.Commands;
@@ -173,9 +174,15 @@ public static class NonaEndpointRouteBuilderExtensions
 
     private static async Task<IResult> LoginAsync(
         LoginRequest request,
+        IValidator<LoginRequest> validator,
         IMediator mediator,
         CancellationToken cancellationToken)
     {
+        if (await ValidateRequestAsync(request, validator, cancellationToken) is { } validationResult)
+        {
+            return validationResult;
+        }
+
         var result = await mediator.Send(new LoginCommand(request.Email, request.Password), cancellationToken);
         return result.Success
             ? Results.Ok(result.Response)
@@ -218,9 +225,15 @@ public static class NonaEndpointRouteBuilderExtensions
 
     private static async Task<IResult> RequestPasswordResetAsync(
         RequestPasswordResetCommand command,
+        IValidator<RequestPasswordResetCommand> validator,
         IMediator mediator,
         CancellationToken cancellationToken)
     {
+        if (await ValidateRequestAsync(command, validator, cancellationToken) is { } validationResult)
+        {
+            return validationResult;
+        }
+
         await mediator.Send(command, cancellationToken);
         return Results.NoContent();
     }
@@ -239,9 +252,15 @@ public static class NonaEndpointRouteBuilderExtensions
     private static async Task<IResult> CompleteInvitationWithPasswordAsync(
         string token,
         CompleteInvitationPasswordRequest request,
+        IValidator<CompleteInvitationPasswordRequest> validator,
         IMediator mediator,
         CancellationToken cancellationToken)
     {
+        if (await ValidateRequestAsync(request, validator, cancellationToken) is { } validationResult)
+        {
+            return validationResult;
+        }
+
         var result = await mediator.Send(
             new CompleteInvitationWithPasswordCommand(token, request.NewPassword),
             cancellationToken);
@@ -291,9 +310,15 @@ public static class NonaEndpointRouteBuilderExtensions
 
     private static async Task<IResult> CreateProjectAsync(
         CreateProjectRequest request,
+        IValidator<CreateProjectRequest> validator,
         IMediator mediator,
         CancellationToken cancellationToken)
     {
+        if (await ValidateRequestAsync(request, validator, cancellationToken) is { } validationResult)
+        {
+            return validationResult;
+        }
+
         var result = await mediator.Send(new CreateProjectCommand(request.Name), cancellationToken);
         if (result.Success)
         {
@@ -324,9 +349,15 @@ public static class NonaEndpointRouteBuilderExtensions
     private static async Task<IResult> CreateEnvironmentAsync(
         string projectId,
         CreateEnvironmentRequest request,
+        IValidator<CreateEnvironmentRequest> validator,
         IMediator mediator,
         CancellationToken cancellationToken)
     {
+        if (await ValidateRequestAsync(request, validator, cancellationToken) is { } validationResult)
+        {
+            return validationResult;
+        }
+
         var result = await mediator.Send(new CreateEnvironmentCommand(projectId, request.Name), cancellationToken);
         if (result.Success)
         {
@@ -386,9 +417,15 @@ public static class NonaEndpointRouteBuilderExtensions
     private static async Task<IResult> CreateApiKeyAsync(
         string projectId,
         CreateApiKeyRequest request,
+        IValidator<CreateApiKeyRequest> validator,
         IMediator mediator,
         CancellationToken cancellationToken)
     {
+        if (await ValidateRequestAsync(request, validator, cancellationToken) is { } validationResult)
+        {
+            return validationResult;
+        }
+
         var result = await mediator.Send(
             new CreateApiKeyCommand(projectId, request.Name, request.Environment, request.Scope),
             cancellationToken);
@@ -466,9 +503,15 @@ public static class NonaEndpointRouteBuilderExtensions
         string environmentName,
         string key,
         UpsertConfigEntryRequest request,
+        IValidator<UpsertConfigEntryRequest> validator,
         IMediator mediator,
         CancellationToken cancellationToken)
     {
+        if (await ValidateRequestAsync(request, validator, cancellationToken) is { } validationResult)
+        {
+            return validationResult;
+        }
+
         if (!ValidationHelpers.IsValidKey(key))
         {
             return BadRequest("Key must be non-empty and contain no spaces");
@@ -615,9 +658,15 @@ public static class NonaEndpointRouteBuilderExtensions
 
     private static async Task<IResult> CreateUserAsync(
         CreateUserRequest request,
+        IValidator<CreateUserRequest> validator,
         IMediator mediator,
         CancellationToken cancellationToken)
     {
+        if (await ValidateRequestAsync(request, validator, cancellationToken) is { } validationResult)
+        {
+            return validationResult;
+        }
+
         var result = await mediator.Send(
             new CreateUserCommand(request.Name, request.Email, request.Role, request.Scope),
             cancellationToken);
@@ -648,9 +697,15 @@ public static class NonaEndpointRouteBuilderExtensions
     private static async Task<IResult> UpdateUserAsync(
         long id,
         UpdateUserRequest request,
+        IValidator<UpdateUserRequest> validator,
         IMediator mediator,
         CancellationToken cancellationToken)
     {
+        if (await ValidateRequestAsync(request, validator, cancellationToken) is { } validationResult)
+        {
+            return validationResult;
+        }
+
         var result = await mediator.Send(new UpdateUserCommand(id, request.Name, request.Role, request.Scope), cancellationToken);
         if (result.Success)
         {
@@ -687,9 +742,15 @@ public static class NonaEndpointRouteBuilderExtensions
         long id,
         string projectName,
         ProjectAccessRequest request,
+        IValidator<ProjectAccessRequest> validator,
         IMediator mediator,
         CancellationToken cancellationToken)
     {
+        if (await ValidateRequestAsync(request, validator, cancellationToken) is { } validationResult)
+        {
+            return validationResult;
+        }
+
         var result = await mediator.Send(new SetProjectAccessCommand(id, projectName, request.Role), cancellationToken);
         if (result.Success)
         {
@@ -769,6 +830,21 @@ public static class NonaEndpointRouteBuilderExtensions
             result.LogicalContentType ?? ConfigEntryContentTypes.Text;
 
         return Results.Content(result.Value!, "application/json");
+    }
+
+    private static async Task<IResult?> ValidateRequestAsync<TRequest>(
+        TRequest request,
+        IValidator<TRequest> validator,
+        CancellationToken cancellationToken)
+    {
+        var result = await validator.ValidateAsync(request, cancellationToken);
+        if (result.IsValid)
+        {
+            return null;
+        }
+
+        var error = string.Join("; ", result.Errors.Select(failure => failure.ErrorMessage).Distinct());
+        return BadRequest(error);
     }
 
     private static IResult BadRequest(string error, string? errorCode = null)
