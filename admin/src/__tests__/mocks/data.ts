@@ -105,6 +105,7 @@ export const mockConfigEntries: ConfigEntry[] = [
 export const mockShareLinks: ParameterShareLink[] = [
   {
     id: 1,
+    token: 'HistoryToken1234',
     project: 'my-app',
     environment: 'production',
     key: 'API_URL',

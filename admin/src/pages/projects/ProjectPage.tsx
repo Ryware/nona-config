@@ -168,6 +168,9 @@ export default function ProjectPage() {
     }
   };
 
+  const buildShareUrl = (token: string) =>
+    `${window.location.origin}/share/${encodeURIComponent(token)}`;
+
   // Close drawers on Escape
   useEscapeKey(() => {
     setEditingEntry(null);
@@ -350,7 +353,7 @@ export default function ProjectPage() {
       queryClient.invalidateQueries({
         queryKey: projectKeys.configEntryShareLinks(params.slug, activeEnvName(), shareLink.key)
       });
-      setGeneratedShareUrl(`${window.location.origin}/share/${shareLink.token}`);
+      setGeneratedShareUrl(buildShareUrl(shareLink.token));
       addToast(MSG.SHARE_LINK_CREATED, "success");
     },
     onError: error => addToast(errorMessage(error, MSG.SHARE_LINK_CREATE_FAILED), "error")
@@ -552,6 +555,7 @@ export default function ProjectPage() {
               revokeShareLinkMutation.mutate(shareLinkId);
             }}
             onCopy={copyShareUrl}
+            buildShareUrl={buildShareUrl}
           />
         </Show>
       </div>

@@ -22,6 +22,7 @@ interface ParameterShareDialogProps {
   onCreate: (data: CreateParameterShareLinkRequest) => void;
   onRevoke: (id: number) => void;
   onCopy: (value: string) => void;
+  buildShareUrl: (token: string) => string;
 }
 
 const EXPIRATION_OPTIONS: { value: ExpirationOption; label: string }[] = [
@@ -211,17 +212,31 @@ export function ParameterShareDialog(props: ParameterShareDialogProps) {
                                   Created by {link.createdBy}
                                 </p>
                               </div>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                disabled={status() !== "active" || props.revokingId === link.id}
-                                onClick={() => props.onRevoke(link.id)}
-                                data-testid={`parameter-share-revoke-${link.id}`}
-                              >
-                                <MIcon name="link_off" class="text-[16px]" />
-                                {props.revokingId === link.id ? "Revoking..." : "Revoke"}
-                              </Button>
+                              <div class="flex shrink-0 items-center gap-2">
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  size="icon"
+                                  disabled={!link.token}
+                                  onClick={() => props.onCopy(props.buildShareUrl(link.token))}
+                                  aria-label="Copy share link"
+                                  title={link.token ? "Copy share link" : "Copy unavailable"}
+                                  data-testid={`parameter-share-copy-${link.id}`}
+                                >
+                                  <MIcon name="content_copy" class="text-[18px]" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={status() !== "active" || props.revokingId === link.id}
+                                  onClick={() => props.onRevoke(link.id)}
+                                  data-testid={`parameter-share-revoke-${link.id}`}
+                                >
+                                  <MIcon name="link_off" class="text-[16px]" />
+                                  {props.revokingId === link.id ? "Revoking..." : "Revoke"}
+                                </Button>
+                              </div>
                             </div>
                           );
                         }}

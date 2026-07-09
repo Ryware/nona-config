@@ -4,6 +4,7 @@ namespace Nona.Application.Admin.ParameterShareLinks.DTOs;
 
 public record ParameterShareLinkDto(
     long Id,
+    string Token,
     string Project,
     string Environment,
     string Key,
@@ -31,6 +32,7 @@ internal static class ParameterShareLinkMapping
     {
         return new ParameterShareLinkDto(
             shareLink.Id,
+            shareLink.Token,
             shareLink.Project,
             shareLink.Environment,
             shareLink.Key,

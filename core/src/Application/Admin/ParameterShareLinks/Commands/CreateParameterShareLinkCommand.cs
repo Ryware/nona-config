@@ -61,6 +61,7 @@ public class CreateParameterShareLinkCommandHandler(
         var shareLink = new ParameterShareLink
         {
             TokenHash = TokenHelper.Hash(token),
+            Token = token,
             Project = projectName,
             Environment = request.EnvironmentName,
             Key = request.Key,

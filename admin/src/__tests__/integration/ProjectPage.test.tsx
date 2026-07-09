@@ -4,10 +4,15 @@ import { Router, Route } from '@solidjs/router';
 import { QueryClient, QueryClientProvider } from '@tanstack/solid-query';
 import { MetaProvider } from '@solidjs/meta';
 import { http, HttpResponse } from 'msw';
+import { writeClipboard } from '@solid-primitives/clipboard';
 import { server } from '../mocks/server';
 import { ToastProvider } from '../../shared/ui/toast';
 import ProjectPage from '../../pages/projects/ProjectPage';
 import { mockToken } from '../mocks/data';
+
+vi.mock('@solid-primitives/clipboard', () => ({
+  writeClipboard: vi.fn(() => Promise.resolve()),
+}));
 
 function renderProjectPage(slug = 'my-app') {
   const queryClient = new QueryClient({
@@ -35,6 +40,7 @@ describe('ProjectPage', () => {
     localStorage.setItem('auth_token', mockToken);
     localStorage.setItem('auth_session', JSON.stringify({ email: 'admin@example.com', role: 'admin', isAdmin: true }));
     vi.restoreAllMocks();
+    vi.mocked(writeClipboard).mockResolvedValue(undefined);
     window.history.pushState({}, '', '/');
   });
 
@@ -185,5 +191,22 @@ describe('ProjectPage', () => {
 
     const generatedUrl = await screen.findByTestId('parameter-share-generated-url');
     expect(generatedUrl).toHaveValue(`${window.location.origin}/share/AbCdEf1234567890`);
+  });
+
+  it('copies a share link from history', async () => {
+    renderProjectPage('my-app');
+
+    expect(await screen.findByText('API_URL')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('parameter-share-API_URL'));
+
+    expect(await screen.findByTestId('parameter-share-dialog')).toBeInTheDocument();
+    fireEvent.click(await screen.findByTestId('parameter-share-copy-1'));
+
+    await waitFor(() => {
+      expect(writeClipboard).toHaveBeenCalledWith(
+        `${window.location.origin}/share/HistoryToken1234`,
+      );
+    });
   });
 });

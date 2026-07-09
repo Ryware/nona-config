@@ -1,0 +1,2 @@
+ALTER TABLE ParameterShareLinks
+    ADD COLUMN Token TEXT NOT NULL DEFAULT '';

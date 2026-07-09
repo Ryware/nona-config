@@ -191,6 +191,7 @@ public class SharedParameterCommandTests
         {
             Id = 7,
             TokenHash = new string('A', 64),
+            Token = Token,
             Project = ProjectName,
             Environment = EnvironmentName,
             Key = ConfigKey,

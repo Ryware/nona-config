@@ -18,7 +18,7 @@ public sealed class LibsqlParameterShareLinkRepository : IParameterShareLinkRepo
     {
         var result = await _client.ExecuteAsync(
             """
-            SELECT Id, TokenHash, Project, Environment, Key, CanEdit, CreatedBy, CreatedAt, ExpiresAt, RevokedAt
+            SELECT Id, TokenHash, Token, Project, Environment, Key, CanEdit, CreatedBy, CreatedAt, ExpiresAt, RevokedAt
             FROM ParameterShareLinks
             WHERE Id = @Id
             LIMIT 1
@@ -33,7 +33,7 @@ public sealed class LibsqlParameterShareLinkRepository : IParameterShareLinkRepo
     {
         var result = await _client.ExecuteAsync(
             """
-            SELECT Id, TokenHash, Project, Environment, Key, CanEdit, CreatedBy, CreatedAt, ExpiresAt, RevokedAt
+            SELECT Id, TokenHash, Token, Project, Environment, Key, CanEdit, CreatedBy, CreatedAt, ExpiresAt, RevokedAt
             FROM ParameterShareLinks
             WHERE TokenHash = @TokenHash
             LIMIT 1
@@ -52,7 +52,7 @@ public sealed class LibsqlParameterShareLinkRepository : IParameterShareLinkRepo
     {
         var result = await _client.ExecuteAsync(
             """
-            SELECT Id, TokenHash, Project, Environment, Key, CanEdit, CreatedBy, CreatedAt, ExpiresAt, RevokedAt
+            SELECT Id, TokenHash, Token, Project, Environment, Key, CanEdit, CreatedBy, CreatedAt, ExpiresAt, RevokedAt
             FROM ParameterShareLinks
             WHERE Project = @Project COLLATE NOCASE
               AND Environment = @Environment COLLATE NOCASE
@@ -71,6 +71,7 @@ public sealed class LibsqlParameterShareLinkRepository : IParameterShareLinkRepo
             """
             INSERT INTO ParameterShareLinks (
                 TokenHash,
+                Token,
                 Project,
                 Environment,
                 Key,
@@ -82,6 +83,7 @@ public sealed class LibsqlParameterShareLinkRepository : IParameterShareLinkRepo
             )
             VALUES (
                 @TokenHash,
+                @Token,
                 @Project,
                 @Environment,
                 @Key,
@@ -132,6 +134,7 @@ public sealed class LibsqlParameterShareLinkRepository : IParameterShareLinkRepo
         {
             Id = row.GetInt64("Id"),
             TokenHash = row.GetString("TokenHash"),
+            Token = row.GetNullableString("Token") ?? string.Empty,
             Project = row.GetString("Project"),
             Environment = row.GetString("Environment"),
             Key = row.GetString("Key"),
@@ -147,6 +150,7 @@ public sealed class LibsqlParameterShareLinkRepository : IParameterShareLinkRepo
     {
         return LibsqlParameters.Create(
             ("TokenHash", shareLink.TokenHash),
+            ("Token", shareLink.Token),
             ("Project", shareLink.Project),
             ("Environment", shareLink.Environment),
             ("Key", shareLink.Key),

@@ -58,6 +58,7 @@ export interface ConfigEntryVersion {
 
 export interface ParameterShareLink {
   id: number;
+  token: string;
   project: string;
   environment: string;
   key: string;

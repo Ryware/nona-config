@@ -6,6 +6,8 @@ public class ParameterShareLink
 
     public required string TokenHash { get; set; }
 
+    public required string Token { get; set; }
+
     public required string Project { get; set; }
 
     public required string Environment { get; set; }

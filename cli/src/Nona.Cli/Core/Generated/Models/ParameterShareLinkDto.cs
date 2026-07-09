@@ -62,6 +62,14 @@ namespace Nona.Cli.Generated.Models
 #endif
         /// <summary>The revokedAt property</summary>
         public DateTimeOffset? RevokedAt { get; set; }
+        /// <summary>The token property</summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
+#nullable enable
+        public string? Token { get; set; }
+#nullable restore
+#else
+        public string Token { get; set; }
+#endif
         /// <summary>
         /// Instantiates a new <see cref="global::Nona.Cli.Generated.Models.ParameterShareLinkDto"/> and sets the default values.
         /// </summary>
@@ -96,6 +104,7 @@ namespace Nona.Cli.Generated.Models
                 { "key", n => { Key = n.GetStringValue(); } },
                 { "project", n => { Project = n.GetStringValue(); } },
                 { "revokedAt", n => { RevokedAt = n.GetDateTimeOffsetValue(); } },
+                { "token", n => { Token = n.GetStringValue(); } },
             };
         }
         /// <summary>
@@ -114,6 +123,7 @@ namespace Nona.Cli.Generated.Models
             writer.WriteStringValue("key", Key);
             writer.WriteStringValue("project", Project);
             writer.WriteDateTimeOffsetValue("revokedAt", RevokedAt);
+            writer.WriteStringValue("token", Token);
             writer.WriteAdditionalData(AdditionalData);
         }
     }

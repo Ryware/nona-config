@@ -1567,6 +1567,7 @@ export interface components {
         ParameterShareLinkDto: {
             /** Format: int64 */
             id: number | string;
+            token: string;
             project: string;
             environment: string;
             key: string;

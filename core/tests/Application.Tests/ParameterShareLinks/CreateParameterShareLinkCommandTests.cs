@@ -57,6 +57,7 @@ public class CreateParameterShareLinkCommandTests
         await Assert.That(result.ShareLink!.Token).Length().IsEqualTo(16);
         await Assert.That(result.ShareLink.ExpiresAt).IsEqualTo(now.AddHours(1));
         await Assert.That(savedLink).IsNotNull();
+        await Assert.That(savedLink!.Token).IsEqualTo(result.ShareLink.Token);
         await Assert.That(savedLink!.TokenHash).IsNotEqualTo(result.ShareLink.Token);
         await Assert.That(savedLink.TokenHash).Length().IsEqualTo(64);
         await Assert.That(savedLink.Project).IsEqualTo(ProjectName);

@@ -29,6 +29,7 @@ public class RevokeParameterShareLinkCommandTests
             {
                 Id = 7,
                 TokenHash = new string('A', 64),
+                Token = "AbCdEf1234567890",
                 Project = ProjectName,
                 Environment = EnvironmentName,
                 Key = ConfigKey,
