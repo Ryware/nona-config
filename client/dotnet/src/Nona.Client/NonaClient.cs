@@ -14,6 +14,7 @@ public sealed partial class NonaClient : IDisposable
     private readonly HttpClient _httpClient;
     private readonly bool _disposeHttpClient;
     private readonly NonaClientOptions _options;
+    private readonly string? _apiKey;
     private readonly string _environmentId;
     private readonly string _environmentSegment;
     private readonly object _cacheLock = new object();
@@ -60,6 +61,7 @@ public sealed partial class NonaClient : IDisposable
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _environmentSegment = Segment(_options.EnvironmentId, nameof(NonaClientOptions.EnvironmentId));
         _environmentId = _options.EnvironmentId!;
+        _apiKey = _options.ApiKey;
         _disposeHttpClient = disposeHttpClient;
         _cacheTtl = ValidateCacheTtl(options.CacheTtl);
         _cacheMemoryLimitBytes = ConvertMegabytesToBytes(ValidateCacheMemoryLimitMegabytes(options.CacheMemoryLimitMegabytes));
@@ -71,11 +73,7 @@ public sealed partial class NonaClient : IDisposable
         }
     }
 
-    public string? ApiKey
-    {
-        get => _options.ApiKey;
-        set => _options.ApiKey = value;
-    }
+    public string? ApiKey => _apiKey;
 
     public string EnvironmentId => _environmentId;
 

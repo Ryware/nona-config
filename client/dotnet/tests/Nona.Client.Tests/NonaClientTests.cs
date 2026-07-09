@@ -37,6 +37,32 @@ public sealed class NonaClientTests
     }
 
     [Fact]
+    public async Task GetConfigValueAsync_UsesApiKeyCapturedAtConstruction()
+    {
+        var handler = new StubHttpMessageHandler(_ => RawEntryValueResponse("enabled", "text"));
+
+        using var httpClient = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://nona.test/")
+        };
+
+        var options = new NonaClientOptions
+        {
+            EnvironmentId = "production",
+            ApiKey = "original-key"
+        };
+
+        using var client = new NonaClient(httpClient, options);
+        options.ApiKey = "changed-key";
+
+        await client.GetConfigValueAsync("flag");
+
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal("original-key", client.ApiKey);
+        Assert.Equal("original-key", request.GetHeader("X-Api-Key"));
+    }
+
+    [Fact]
     public void Constructor_RequiresEnvironmentId()
     {
         using var httpClient = new HttpClient
