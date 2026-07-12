@@ -29,4 +29,4 @@ Nona gives you a runtime configuration system you host yourself, with:
 - client/server scope on entries
 - history and rollback
 
-For first implementation steps, go to [Get started](/get-started/).
+For first implementation steps, go to [Get started](/docs/get-started/).

@@ -28,4 +28,4 @@ Projects and environments are the base for:
 - migration targets
 - rollback and audit history
 
-Next: [Add your first parameter](/get-started/first-parameter/)
+Next: [Add your first parameter](/docs/get-started/first-parameter/)

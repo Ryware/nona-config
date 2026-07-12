@@ -7,7 +7,7 @@ For most teams, Docker is the fastest way to start Nona.
 
 Use the standalone production guide as the base deployment path:
 
-- [Standalone production](/deployment/standalone/)
+- [Standalone production](/docs/deployment/standalone/)
 
 That guide covers:
 
@@ -17,4 +17,4 @@ That guide covers:
 - JWT settings
 - operational commands
 
-After the container is running, continue with [Create your first project](/get-started/first-project/).
+After the container is running, continue with [Create your first project](/docs/get-started/first-project/).

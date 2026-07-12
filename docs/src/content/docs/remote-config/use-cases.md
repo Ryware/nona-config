@@ -30,4 +30,4 @@ Use different values for `development`, `staging`, and `production`.
 
 Keep frontend-readable entries scoped to `client`, and backend-only entries scoped to `server`.
 
-For a concrete walkthrough, continue with [Get started](/get-started/).
+For a concrete walkthrough, continue with [Get started](/docs/get-started/).

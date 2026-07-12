@@ -40,4 +40,4 @@ It is:
 - open source
 - usable over plain HTTP
 
-If you want to see where that matters, read [Firebase Remote Config alternative](/comparisons/firebase-remote-config-alternative/).
+If you want to see where that matters, read [Firebase Remote Config alternative](/docs/comparisons/firebase-remote-config-alternative/).

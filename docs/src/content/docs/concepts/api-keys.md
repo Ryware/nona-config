@@ -12,4 +12,4 @@ An API key belongs to one project and can optionally be restricted to:
 
 This model keeps reads narrow by default and helps you avoid overexposing config values.
 
-For a first setup flow, see [Create an API key](/get-started/api-keys/).
+For a first setup flow, see [Create an API key](/docs/get-started/api-keys/).

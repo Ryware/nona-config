@@ -28,35 +28,35 @@ Core product traits:
 - config history and rollback
 - Firebase migration tooling
 
-If you are evaluating alternatives, start with [Firebase Remote Config alternative](/comparisons/firebase-remote-config-alternative/).
+If you are evaluating alternatives, start with [Firebase Remote Config alternative](/docs/comparisons/firebase-remote-config-alternative/).
 
 ## Start here
 
-- [Get started](/get-started/)
-- [Remote config](/remote-config/)
-- [Firebase Remote Config alternative](/comparisons/firebase-remote-config-alternative/)
-- [Deployment](/deployment/)
-- [Migration](/migration/)
+- [Get started](/docs/get-started/)
+- [Remote config](/docs/remote-config/)
+- [Firebase Remote Config alternative](/docs/comparisons/firebase-remote-config-alternative/)
+- [Deployment](/docs/deployment/)
+- [Migration](/docs/migration/)
 
 ## Quick path
 
 If you want the shortest route to a working setup:
 
-1. [Deploy with Docker](/get-started/docker/)
-2. [Create your first project](/get-started/first-project/)
-3. [Add your first parameter](/get-started/first-parameter/)
-4. [Create an API key](/get-started/api-keys/)
-5. [Fetch your first config value](/get-started/first-api-call/)
+1. [Deploy with Docker](/docs/get-started/docker/)
+2. [Create your first project](/docs/get-started/first-project/)
+3. [Add your first parameter](/docs/get-started/first-parameter/)
+4. [Create an API key](/docs/get-started/api-keys/)
+5. [Fetch your first config value](/docs/get-started/first-api-call/)
 
 ## Core paths
 
-- [Deploy with Docker](/get-started/docker/)
-- [Create your first project](/get-started/first-project/)
-- [Create an API key](/get-started/api-keys/)
-- [Fetch your first config value](/get-started/first-api-call/)
-- [HTTP client](/clients/http/)
-- [JavaScript client](/clients/javascript/)
-- [.NET client](/clients/dotnet/)
+- [Deploy with Docker](/docs/get-started/docker/)
+- [Create your first project](/docs/get-started/first-project/)
+- [Create an API key](/docs/get-started/api-keys/)
+- [Fetch your first config value](/docs/get-started/first-api-call/)
+- [HTTP client](/docs/clients/http/)
+- [JavaScript client](/docs/clients/javascript/)
+- [.NET client](/docs/clients/dotnet/)
 
 ## What you can do with Nona
 
@@ -69,44 +69,44 @@ Common remote config and feature flag use cases:
 - keep client-readable config separate from server-only config
 - roll back a bad parameter change quickly
 
-See [Remote config use cases](/remote-config/use-cases/) for more examples.
+See [Remote config use cases](/docs/remote-config/use-cases/) for more examples.
 
 ## Key concepts
 
-- [Client vs server scope](/concepts/client-vs-server-scope/)
-- [Parameters and content types](/concepts/parameters-and-content-types/)
-- [Projects](/concepts/projects/)
-- [Environments](/concepts/environments/)
-- [API keys](/concepts/api-keys/)
-- [History and rollback](/concepts/history-and-rollback/)
-- [Parameter share links](/parameter-share-links/)
-- [Users and project access](/concepts/users-and-project-access/)
+- [Client vs server scope](/docs/concepts/client-vs-server-scope/)
+- [Parameters and content types](/docs/concepts/parameters-and-content-types/)
+- [Projects](/docs/concepts/projects/)
+- [Environments](/docs/concepts/environments/)
+- [API keys](/docs/concepts/api-keys/)
+- [History and rollback](/docs/concepts/history-and-rollback/)
+- [Parameter share links](/docs/parameter-share-links/)
+- [Users and project access](/docs/concepts/users-and-project-access/)
 
 ## Integration paths
 
 Use the smallest integration path that fits your app:
 
-- [HTTP](/clients/http/) for direct reads without an SDK
-- [JavaScript](/clients/javascript/) for Node.js and TypeScript apps
-- [.NET](/clients/dotnet/) for C# services and applications
-- [OpenFeature](/clients/openfeature/) if you want a vendor-neutral application interface
-- [CLI](/cli/) for admin workflows and migration work
+- [HTTP](/docs/clients/http/) for direct reads without an SDK
+- [JavaScript](/docs/clients/javascript/) for Node.js and TypeScript apps
+- [.NET](/docs/clients/dotnet/) for C# services and applications
+- [OpenFeature](/docs/clients/openfeature/) if you want a vendor-neutral application interface
+- [CLI](/docs/cli/) for admin workflows and migration work
 
 ## Migration and comparisons
 
 If you are replacing an existing hosted setup:
 
-- [Migrate from Firebase Remote Config](/migration/firebase-remote-config/)
-- [Firebase concept mapping](/migration/firebase-concept-mapping/)
-- [Migration validation](/migration/validation/)
-- [Firebase Remote Config alternative](/comparisons/firebase-remote-config-alternative/)
+- [Migrate from Firebase Remote Config](/docs/migration/firebase-remote-config/)
+- [Firebase concept mapping](/docs/migration/firebase-concept-mapping/)
+- [Migration validation](/docs/migration/validation/)
+- [Firebase Remote Config alternative](/docs/comparisons/firebase-remote-config-alternative/)
 
 ## Production and operations
 
 For production deployment and operations:
 
-- [Deployment overview](/deployment/)
-- [Standalone production](/deployment/standalone/)
-- [Primary/replica production](/deployment/primary-replica/)
-- [Audit logs](/concepts/audit-logs/)
-- [Users and project access](/concepts/users-and-project-access/)
+- [Deployment overview](/docs/deployment/)
+- [Standalone production](/docs/deployment/standalone/)
+- [Primary/replica production](/docs/deployment/primary-replica/)
+- [Audit logs](/docs/concepts/audit-logs/)
+- [Users and project access](/docs/concepts/users-and-project-access/)

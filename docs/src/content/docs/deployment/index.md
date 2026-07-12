@@ -9,7 +9,7 @@ Use this section for production deployment guidance.
 
 ## Paths
 
-- [Standalone production](/deployment/standalone/)
-- [Primary/replica production](/deployment/primary-replica/)
+- [Standalone production](/docs/deployment/standalone/)
+- [Primary/replica production](/docs/deployment/primary-replica/)
 
 For most teams, standalone is the right starting point.

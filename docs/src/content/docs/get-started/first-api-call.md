@@ -26,6 +26,6 @@ curl "https://nona.example.com/api/production/Features%3ACheckout" \
   -H "X-Api-Key: $NONA_API_KEY"
 ```
 
-For the full endpoint behavior, see [HTTP](/clients/http/).
+For the full endpoint behavior, see [HTTP](/docs/clients/http/).
 
-Next: [Add a kill switch](/get-started/kill-switch/)
+Next: [Add a kill switch](/docs/get-started/kill-switch/)

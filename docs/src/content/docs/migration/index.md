@@ -13,6 +13,6 @@ The built-in CLI migrator helps you move Firebase Remote Config parameters into:
 
 ## Start here
 
-- [Migrate from Firebase Remote Config](/migration/firebase-remote-config/)
-- [Firebase concept mapping](/migration/firebase-concept-mapping/)
-- [Migration validation](/migration/validation/)
+- [Migrate from Firebase Remote Config](/docs/migration/firebase-remote-config/)
+- [Firebase concept mapping](/docs/migration/firebase-concept-mapping/)
+- [Migration validation](/docs/migration/validation/)

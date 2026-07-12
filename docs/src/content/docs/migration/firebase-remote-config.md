@@ -24,9 +24,9 @@ Use it when you want to:
 
 The CLI-specific migration guide is here:
 
-- [CLI Firebase migration reference](/cli/firebase-migration/)
+- [CLI Firebase migration reference](/docs/cli/firebase-migration/)
 
 Continue with:
 
-- [Firebase concept mapping](/migration/firebase-concept-mapping/)
-- [Migration validation](/migration/validation/)
+- [Firebase concept mapping](/docs/migration/firebase-concept-mapping/)
+- [Migration validation](/docs/migration/validation/)

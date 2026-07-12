@@ -26,4 +26,4 @@ Nona supports:
 - `server` for backend-only values
 - `all` for values both sides can read
 
-Next: [Create an API key](/get-started/api-keys/)
+Next: [Create an API key](/docs/get-started/api-keys/)

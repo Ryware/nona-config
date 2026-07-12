@@ -24,4 +24,4 @@ For a simple first test:
 - limit it to `production` if that is your target environment
 - match the key scope to the config entry scope
 
-Next: [Fetch your first config value](/get-started/first-api-call/)
+Next: [Fetch your first config value](/docs/get-started/first-api-call/)

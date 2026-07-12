@@ -16,14 +16,14 @@ Use this section to understand the problem space before you pick an implementati
 
 ## In this section
 
-- [What is remote config?](/remote-config/what-is-remote-config/)
-- [Remote config vs feature flags](/remote-config/remote-config-vs-feature-flags/)
-- [Remote config vs environment variables](/remote-config/remote-config-vs-environment-variables/)
-- [Remote config use cases](/remote-config/use-cases/)
-- [Firebase Remote Config alternative](/comparisons/firebase-remote-config-alternative/)
+- [What is remote config?](/docs/remote-config/what-is-remote-config/)
+- [Remote config vs feature flags](/docs/remote-config/remote-config-vs-feature-flags/)
+- [Remote config vs environment variables](/docs/remote-config/remote-config-vs-environment-variables/)
+- [Remote config use cases](/docs/remote-config/use-cases/)
+- [Firebase Remote Config alternative](/docs/comparisons/firebase-remote-config-alternative/)
 
 ## Next steps
 
-- Start with [Get started](/get-started/)
-- Compare [Nona vs Firebase Remote Config](/comparisons/firebase-remote-config-alternative/)
-- Read [HTTP](/clients/http/) if you want the smallest integration path
+- Start with [Get started](/docs/get-started/)
+- Compare [Nona vs Firebase Remote Config](/docs/comparisons/firebase-remote-config-alternative/)
+- Read [HTTP](/docs/clients/http/) if you want the smallest integration path

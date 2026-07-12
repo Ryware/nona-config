@@ -37,6 +37,6 @@ Usually one or more of these:
 
 ## Migration
 
-If you are already on Firebase, start with [Migrate from Firebase Remote Config](/migration/firebase-remote-config/).
+If you are already on Firebase, start with [Migrate from Firebase Remote Config](/docs/migration/firebase-remote-config/).
 
-If you want to try Nona first, go to [Get started](/get-started/).
+If you want to try Nona first, go to [Get started](/docs/get-started/).

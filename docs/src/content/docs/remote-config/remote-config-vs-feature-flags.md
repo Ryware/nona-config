@@ -30,4 +30,4 @@ Most teams end up using both patterns together:
 - `Checkout:BannerText` as text
 - `Checkout:Settings` as JSON
 
-Next: [Remote config vs environment variables](/remote-config/remote-config-vs-environment-variables/)
+Next: [Remote config vs environment variables](/docs/remote-config/remote-config-vs-environment-variables/)

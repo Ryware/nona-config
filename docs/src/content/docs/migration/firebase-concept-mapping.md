@@ -19,4 +19,4 @@ The important migration shift is that Nona is not Firebase with renamed screens.
 - `NUMBER` -> `number`
 - `JSON` -> `json`
 
-For the command and config details, use [CLI Firebase migration reference](/cli/firebase-migration/).
+For the command and config details, use [CLI Firebase migration reference](/docs/cli/firebase-migration/).

@@ -13,7 +13,7 @@ Use OpenFeature when you want:
 
 ## Existing client docs
 
-- JavaScript OpenFeature usage is included in [JavaScript client](/clients/javascript/)
-- .NET OpenFeature usage is included in [.NET client](/clients/dotnet/)
+- JavaScript OpenFeature usage is included in [JavaScript client](/docs/clients/javascript/)
+- .NET OpenFeature usage is included in [.NET client](/docs/clients/dotnet/)
 
 This page is the landing point for OpenFeature-focused documentation and examples.

@@ -23,5 +23,5 @@ When something goes wrong, set it to `false`.
 
 Related docs:
 
-- [Remote config vs feature flags](/remote-config/remote-config-vs-feature-flags/)
-- [History and rollback](/concepts/history-and-rollback/)
+- [Remote config vs feature flags](/docs/remote-config/remote-config-vs-feature-flags/)
+- [History and rollback](/docs/concepts/history-and-rollback/)
