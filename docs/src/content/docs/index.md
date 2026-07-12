@@ -33,6 +33,7 @@ If you are evaluating alternatives, start with [Firebase Remote Config alternati
 ## Start here
 
 - [Get started](/docs/get-started/)
+- [Feature flags](/docs/feature-flags/)
 - [Remote config](/docs/remote-config/)
 - [Firebase Remote Config alternative](/docs/comparisons/firebase-remote-config-alternative/)
 - [Deployment](/docs/deployment/)
@@ -70,6 +71,24 @@ Common remote config and feature flag use cases:
 - roll back a bad parameter change quickly
 
 See [Remote config use cases](/docs/remote-config/use-cases/) for more examples.
+
+## Feature flags
+
+Nona is not only a remote config tool. It is also a feature flag system for teams that want:
+
+- self-hosted flags
+- kill switches
+- frontend and backend flag separation
+- OpenFeature support
+- simple boolean rollout gates without a hosted control plane
+
+Start here:
+
+- [Feature flags overview](/docs/feature-flags/)
+- [What are feature flags?](/docs/feature-flags/what-are-feature-flags/)
+- [Feature flags vs remote config](/docs/feature-flags/feature-flags-vs-remote-config/)
+- [Kill switches](/docs/feature-flags/kill-switches/)
+- [OpenFeature](/docs/clients/openfeature/)
 
 ## Key concepts
 

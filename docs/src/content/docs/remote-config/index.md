@@ -17,7 +17,7 @@ Use this section to understand the problem space before you pick an implementati
 ## In this section
 
 - [What is remote config?](/docs/remote-config/what-is-remote-config/)
-- [Remote config vs feature flags](/docs/remote-config/remote-config-vs-feature-flags/)
+- [Feature flags vs remote config](/docs/feature-flags/feature-flags-vs-remote-config/)
 - [Remote config vs environment variables](/docs/remote-config/remote-config-vs-environment-variables/)
 - [Remote config use cases](/docs/remote-config/use-cases/)
 - [Firebase Remote Config alternative](/docs/comparisons/firebase-remote-config-alternative/)

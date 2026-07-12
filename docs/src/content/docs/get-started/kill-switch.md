@@ -23,5 +23,6 @@ When something goes wrong, set it to `false`.
 
 Related docs:
 
-- [Remote config vs feature flags](/docs/remote-config/remote-config-vs-feature-flags/)
+- [Feature flags vs remote config](/docs/feature-flags/feature-flags-vs-remote-config/)
+- [Kill switches](/docs/feature-flags/kill-switches/)
 - [History and rollback](/docs/concepts/history-and-rollback/)

@@ -31,10 +31,23 @@ export default defineConfig({
 					],
 				},
 				{
+					label: 'Feature Flags',
+					items: [
+						{ label: 'Overview', slug: 'feature-flags' },
+						{ label: 'What are feature flags?', slug: 'feature-flags/what-are-feature-flags' },
+						{ label: 'Feature flags vs remote config', slug: 'feature-flags/feature-flags-vs-remote-config' },
+						{ label: 'Kill switches', slug: 'feature-flags/kill-switches' },
+						{ label: 'Feature flags for mobile apps', slug: 'feature-flags/mobile-app-feature-flags' },
+						{ label: 'Feature flags for backend services', slug: 'feature-flags/backend-feature-flags' },
+						{ label: 'OpenFeature with Nona', slug: 'clients/openfeature' },
+					],
+				},
+				{
 					label: 'Remote Config',
 					items: [
+						{ label: 'Overview', slug: 'remote-config' },
 						{ label: 'What is remote config?', slug: 'remote-config/what-is-remote-config' },
-						{ label: 'Remote config vs feature flags', slug: 'remote-config/remote-config-vs-feature-flags' },
+						{ label: 'Remote config vs feature flags', slug: 'feature-flags/feature-flags-vs-remote-config' },
 						{ label: 'Remote config vs environment variables', slug: 'remote-config/remote-config-vs-environment-variables' },
 						{ label: 'Remote config use cases', slug: 'remote-config/use-cases' },
 						{ label: 'Firebase Remote Config alternative', slug: 'comparisons/firebase-remote-config-alternative' },
