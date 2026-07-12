@@ -5,6 +5,7 @@ import starlight from '@astrojs/starlight';
 // https://astro.build/config
 export default defineConfig({
 	site: 'https://nonaconfig.com',
+	base: '/docs',
 	vite: {
 		server: {
 			allowedHosts: ['nona-standalone--nona--cutehorse256.dev3.ahorse.top'],
