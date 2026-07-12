@@ -61,6 +61,8 @@ nona entries share list \
   --key Features:Checkout
 ```
 
+Admin API list responses include each link token, so the admin UI can copy existing links.
+
 Revoke a link:
 
 ```bash
@@ -91,7 +93,7 @@ PUT /public/share-links/{token}
 
 ## Security notes
 
-- Tokens are shown only when a link is created.
-- Nona stores a hash of the token, not the token itself.
+- Nona stores the share-link token itself and returns it to authorized admin list requests.
+- Treat share-link tokens as secrets. Anyone with the token can use the public endpoint until the link expires or is revoked.
 - Expired or revoked links cannot read or update the parameter.
 - Link creation and revocation are written to the audit log.

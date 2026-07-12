@@ -74,7 +74,11 @@ internal partial class AppJsonContext : JsonSerializerContext
 }
 ```
 
-## Optional cache
+## Default cache
+
+The .NET client caches values in memory by default for 30 seconds. `CacheTtl` changes the cache lifetime and must be greater than zero; `CacheMemoryLimitMegabytes` defaults to `5` and must also be greater than zero. The current client does not expose a cache-disable option.
+
+Set `AllowStaleCache` to return an expired cached value while the client refreshes it in the background.
 
 ```csharp
 var client = new NonaClient(new NonaClientOptions
