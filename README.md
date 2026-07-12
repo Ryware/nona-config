@@ -204,7 +204,7 @@ Authentication: `X-API-Key` request header.
 
 ## Docker Compose
 
-### Standalone (recommended for most deployments)
+### Standalone 
 
 Copy [`deploy/compose/standalone-prod.yml`](deploy/compose/standalone-prod.yml) to your server:
 
