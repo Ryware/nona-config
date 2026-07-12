@@ -96,32 +96,13 @@ jobs:
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
 
-      - name: Pull Vercel preview settings
-        if: github.event_name == 'pull_request' || github.ref_name != 'master'
-        run: vercel pull --yes --environment=preview
-
-      - name: Build Vercel preview deployment
-        if: github.event_name == 'pull_request' || github.ref_name != 'master'
-        run: vercel build
-
-      - name: Deploy preview to Vercel
-        if: github.event_name == 'pull_request' || github.ref_name != 'master'
-        id: deploy-preview
-        run: |
-          deployment_url="$(vercel deploy --prebuilt --archive=tgz)"
-          echo "deployment_url=$deployment_url" >> "$GITHUB_OUTPUT"
-          echo "Preview deployment: $deployment_url" >> "$GITHUB_STEP_SUMMARY"
-
       - name: Pull Vercel production settings
-        if: github.event_name != 'pull_request' && github.ref_name == 'master'
         run: vercel pull --yes --environment=production
 
       - name: Build Vercel production deployment
-        if: github.event_name != 'pull_request' && github.ref_name == 'master'
         run: vercel build --prod
 
       - name: Deploy production to Vercel
-        if: github.event_name != 'pull_request' && github.ref_name == 'master'
         id: deploy-production
         run: |
           deployment_url="$(vercel deploy --prebuilt --archive=tgz --prod)"
