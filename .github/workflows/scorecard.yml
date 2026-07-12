@@ -10,6 +10,8 @@ on:
     - cron: '20 7 * * 1'
   push:
     branches: [ "development" ]
+    paths-ignore:
+      - "docs/**"
 
 # Declare default permissions as read only.
 permissions: read-all
