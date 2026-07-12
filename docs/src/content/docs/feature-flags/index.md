@@ -37,6 +37,29 @@ A typical feature flag looks like this:
 
 That same model also supports more than flags. If a value needs to become text, numeric, or JSON later, you are still inside the same system.
 
+## Quick start for flags
+
+In admin:
+
+1. open `Projects`
+2. open the project
+3. select the environment
+4. click `Add Parameter`
+5. create a boolean key such as `Features:Checkout`
+6. choose `client` or `server`
+
+With the CLI:
+
+```bash
+nona entries set \
+  --project storefront \
+  --environment production \
+  --key Features:Checkout \
+  --value true \
+  --scope client \
+  --content-type boolean
+```
+
 ## Use cases
 
 Common feature flag use cases in Nona:
@@ -47,6 +70,16 @@ Common feature flag use cases in Nona:
 - hiding incomplete UI
 - operational toggles
 - environment-specific enablement
+
+## How teams usually progress
+
+Most teams start with:
+
+1. one kill switch
+2. one staged release flag
+3. one backend operational toggle
+
+That is usually enough to establish a real feature-flag workflow before expanding further.
 
 ## Start here
 

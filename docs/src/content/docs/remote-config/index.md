@@ -45,6 +45,29 @@ Nona keeps the model small and explicit:
 
 That makes remote config easier to reason about than a vague "dynamic settings" layer.
 
+## Quick start for remote config
+
+In admin:
+
+1. open `Projects`
+2. open the project
+3. create or select an environment
+4. click `Add Parameter`
+5. create a value such as `App:BannerText` or `Limits:MaxItems`
+6. create an API key for the runtime that should read it
+
+With the CLI:
+
+```bash
+nona entries set \
+  --project storefront \
+  --environment production \
+  --key App:BannerText \
+  --value "Free shipping this week" \
+  --scope client \
+  --content-type text
+```
+
 ## In this section
 
 - [What is remote config?](/docs/remote-config/what-is-remote-config/)
@@ -61,5 +84,7 @@ That makes remote config easier to reason about than a vague "dynamic settings" 
 - Start with [Get started](/docs/get-started/)
 - Compare [Nona vs Firebase Remote Config](/docs/comparisons/firebase-remote-config-alternative/)
 - Read [HTTP](/docs/clients/http/) if you want the smallest integration path
+
+If you want the backend-only path first, jump directly to [Server-side remote config](/docs/remote-config/server-side-remote-config/).
 
 If your main use case is flags rather than broader runtime values, continue with [Feature flags](/docs/feature-flags/).

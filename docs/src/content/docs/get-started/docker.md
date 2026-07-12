@@ -7,17 +7,7 @@ For most teams, Docker is the fastest way to start Nona.
 
 That is also one of the clearest product differences between Nona and a hosted control plane. You run the service yourself, then point your apps at it.
 
-Use the standalone production guide as the base deployment path:
-
-- [Standalone production](/docs/deployment/standalone/)
-
-That guide covers:
-
-- the compose file
-- exposed API port
-- persistent data volume
-- JWT settings
-- operational commands
+Nona runs as a single Docker image, so the simplest deployment path is one container with a persisted `/var/lib/nona` volume.
 
 ## Why Docker is the default starting point
 
@@ -38,11 +28,15 @@ For most teams, the right flow is:
 
 ## Start the container
 
-From the `nona-config` repository root:
+The preferred first deployment path is a single container:
 
 ```bash
-docker compose -f deploy/compose/standalone-prod.yml up -d
-docker compose -f deploy/compose/standalone-prod.yml ps
+docker run -d \
+  --name nona \
+  --restart unless-stopped \
+  -p 18080:8080 \
+  -v nona-data:/var/lib/nona \
+  rywaredev/nona:latest
 ```
 
 The default admin UI and API base URL are:
@@ -50,6 +44,28 @@ The default admin UI and API base URL are:
 ```text
 http://localhost:18080
 ```
+
+This matches the repository's published quick-start deployment model: one Docker image, one HTTP port, one persistent data volume.
+
+## When to use Docker Compose
+
+Docker Compose is still useful, but it is not required for the normal first deployment.
+
+Use Compose when:
+
+- you want the repo's ready-made examples
+- you want to manage environment variables through a compose file
+- you are using the documented primary/replica topology
+- you are running a local or team-managed setup where Compose is convenient
+
+If you want the repo example:
+
+```bash
+docker compose -f deploy/compose/standalone-prod.yml up -d
+docker compose -f deploy/compose/standalone-prod.yml ps
+```
+
+The standalone compose file still runs the same single `rywaredev/nona:latest` container.
 
 ## Create the first admin account
 
@@ -80,7 +96,7 @@ After you sign in:
 These commands are enough for a first smoke test:
 
 ```bash
-docker compose -f deploy/compose/standalone-prod.yml logs -f nona
+docker logs -f nona
 curl http://localhost:18080/auth/first-time
 ```
 
@@ -95,5 +111,31 @@ If you can bring the service up successfully, you have already validated the mos
 - you have a base URL for the rest of the setup flow
 
 That is why Docker is the best first step for both evaluation and real self-hosted adoption.
+
+## Production notes
+
+For a real deployment, keep these two things from day one:
+
+- a persistent Docker volume mounted to `/var/lib/nona`
+- stable JWT settings if you want to pin them explicitly
+
+Example with explicit JWT values:
+
+```bash
+docker run -d \
+  --name nona \
+  --restart unless-stopped \
+  -p 18080:8080 \
+  -v nona-data:/var/lib/nona \
+  -e Jwt__Key=<your-secret-key> \
+  -e Jwt__Issuer=nona \
+  -e Jwt__Audience=nona \
+  rywaredev/nona:latest
+```
+
+For more detailed topology and operations guidance, see:
+
+- [Standalone production](/docs/deployment/standalone/)
+- [Deployment](/docs/deployment/)
 
 After the container is running, continue with [Create your first project](/docs/get-started/first-project/).

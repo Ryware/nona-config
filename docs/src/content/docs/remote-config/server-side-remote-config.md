@@ -51,6 +51,59 @@ That gives backend teams a straightforward operating model without forcing them 
 - keep environments aligned with real deployment stages
 - scope keys to the environment they actually need
 
+## How to create the values
+
+In admin:
+
+1. open `Projects`
+2. open the backend service project
+3. select the target environment
+4. click `Add Parameter`
+5. create values such as `Features:UseLegacySearch`, `Limits:MaxItems`, or `App:Settings`
+6. choose `server` scope
+
+With the CLI:
+
+```bash
+nona entries set \
+  --project payments-api \
+  --environment production \
+  --key Limits:MaxItems \
+  --value 50 \
+  --scope server \
+  --content-type number
+```
+
+## How a backend reads the values
+
+In .NET:
+
+```csharp
+using Nona.Client;
+using System.Globalization;
+
+using var client = new NonaClient(
+    "https://nona.example.com",
+    "production",
+    apiKey: Environment.GetEnvironmentVariable("NONA_API_KEY"));
+
+var maxItemsValue = await client.GetConfigValueAsync("Limits:MaxItems");
+var maxItems = int.Parse(maxItemsValue.Value, CultureInfo.InvariantCulture);
+```
+
+For a full JSON example, see [.NET client](/docs/clients/dotnet/).
+
+If the service is not in .NET, the same values can be fetched with [HTTP](/docs/clients/http/).
+
+## Operating model
+
+A practical backend remote-config flow looks like this:
+
+1. keep sensitive runtime values on `server` scope
+2. read only the values the service actually needs
+3. verify one production-safe read path before widening usage
+4. use history and rollback when an operational change goes wrong
+
 ## Related docs
 
 - [Feature flags for backend services](/docs/feature-flags/backend-feature-flags/)

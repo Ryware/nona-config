@@ -47,6 +47,43 @@ That model gives you a few practical advantages:
 - the same scopes and API keys model for controlling reads
 - the same audit and rollback behavior as other config entries
 
+## How to create a flag
+
+In admin:
+
+1. open `Projects`
+2. open the project
+3. select the environment such as `staging` or `production`
+4. click `Add Parameter`
+5. choose a key such as `Features:Checkout`
+6. set the content type to `boolean`
+7. choose the right scope
+8. click `Create`
+
+With the CLI:
+
+```bash
+nona entries set \
+  --project storefront \
+  --environment production \
+  --key Features:Checkout \
+  --value true \
+  --scope client \
+  --content-type boolean
+```
+
+To turn it off later:
+
+```bash
+nona entries set \
+  --project storefront \
+  --environment production \
+  --key Features:Checkout \
+  --value false \
+  --scope client \
+  --content-type boolean
+```
+
 ## Good flag examples
 
 - `Features:Checkout`
@@ -55,6 +92,15 @@ That model gives you a few practical advantages:
 - `Features:DisablePayments`
 
 Keep names descriptive. Most teams do better with names that explain the behavior, not the implementation detail.
+
+## How to verify it works
+
+After creating the flag:
+
+1. read it once from the app, client SDK, or [HTTP](/docs/clients/http/)
+2. flip the value in admin
+3. confirm the application behavior changes as expected
+4. check `History` if you want to verify the change timeline
 
 ## Next steps
 

@@ -29,6 +29,32 @@ That means remote config in Nona is not a vague concept. It is a concrete model 
 - store typed values
 - read them over HTTP or an official client
 
+## What it looks like in practice
+
+In admin:
+
+1. open `Projects`
+2. create or open the project
+3. click `Add Environment`
+4. select the environment
+5. click `Add Parameter`
+6. choose the key, content type, and scope
+7. create an API key for the runtime that will read it
+
+With the CLI:
+
+```bash
+nona entries set \
+  --project storefront \
+  --environment production \
+  --key App:BannerText \
+  --value "Free shipping this week" \
+  --scope client \
+  --content-type text
+```
+
+That is remote config in its simplest operational form: define the value once, then let the app read it at runtime.
+
 ## Why teams use it
 
 Remote config helps when you need to:
@@ -44,6 +70,16 @@ Remote config is especially useful when:
 - a backend service needs operational tuning without a redeploy
 - one product uses both feature flags and broader runtime values
 - teams want rollback and auditability around runtime changes
+
+## Common first values
+
+Good first remote-config entries include:
+
+- `App:BannerText`
+- `App:MinimumSupportedVersion`
+- `Limits:MaxItems`
+- `App:Settings`
+- `Features:Checkout`
 
 ## What makes Nona different
 

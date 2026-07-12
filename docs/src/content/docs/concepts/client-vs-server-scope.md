@@ -58,6 +58,23 @@ That helps with:
 - narrower API keys
 - clearer operational intent when reading config
 
+## How to choose scope in admin
+
+When you create a parameter:
+
+1. open `Projects`
+2. open the project
+3. select the environment
+4. click `Add Parameter`
+5. choose the content type
+6. choose the scope based on who should read it
+
+A practical rule:
+
+- choose `client` if the app itself reads the value
+- choose `server` if only backend services should read it
+- choose `all` only when both truly need the same entry
+
 ## API keys and scope
 
 Scope also matters when you create API keys. Match key scope to the values that app should read.
@@ -69,6 +86,39 @@ A few practical examples:
 - `all` should be the exception, not the default
 
 If a key is narrower than the entry scope relationship allows, the read will fail.
+
+## CLI examples
+
+Client-readable flag:
+
+```bash
+nona entries set \
+  --project mobile-app \
+  --environment production \
+  --key Features:PromoBanner \
+  --value true \
+  --scope client \
+  --content-type boolean
+```
+
+Server-only threshold:
+
+```bash
+nona entries set \
+  --project payments-api \
+  --environment production \
+  --key Limits:RetryCount \
+  --value 5 \
+  --scope server \
+  --content-type number
+```
+
+Then create matching keys:
+
+```bash
+nona keys create --project mobile-app --name "Mobile app" --scope client --environment production
+nona keys create --project payments-api --name "Payments API" --scope server --environment production
+```
 
 ## Good habits
 

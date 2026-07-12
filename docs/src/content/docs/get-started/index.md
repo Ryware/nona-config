@@ -25,6 +25,19 @@ If you are evaluating the product, this path is the fastest way to understand th
 5. [Fetch your first config value](/docs/get-started/first-api-call/)
 6. [Add a kill switch](/docs/get-started/kill-switch/)
 
+## Fastest first run
+
+If you want the shortest possible path:
+
+1. start Nona with Docker
+2. open `/register` or `/login`
+3. create a project
+4. add one `boolean` parameter
+5. create one API key
+6. test one read with `curl`
+
+That is enough to prove the whole runtime model end to end.
+
 ## What this path teaches
 
 By the end of this flow, you will have touched the core Nona concepts:
@@ -60,3 +73,14 @@ After the first successful setup, most teams continue into one of these:
 - one config entry
 - one API key
 - one successful read from an app or terminal
+
+## If you prefer CLI-driven setup
+
+After the instance is running and you have signed in once:
+
+```bash
+nona auth login --base-url https://nona.example.com
+nona projects create --name storefront
+nona entries set --project storefront --environment production --key Features:Checkout --value true --scope client --content-type boolean
+nona keys create --project storefront --name "Web app" --scope client --environment production
+```

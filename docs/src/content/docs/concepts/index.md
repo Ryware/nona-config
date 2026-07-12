@@ -25,6 +25,18 @@ On top of that, Nona adds the operational pieces teams need in practice:
 - user and project access
 - parameter share links
 
+## How to learn the model quickly
+
+The fastest way to internalize these concepts is:
+
+1. create one project
+2. create `staging` and `production`
+3. add one boolean flag and one text value
+4. create one API key
+5. read both values from a client or `curl`
+
+After that, the terms in this section stop being abstract because you have already used them.
+
 ## In this section
 
 - [Projects](/docs/concepts/projects/)

@@ -57,11 +57,60 @@ Nona works well for mobile remote config because it is:
 
 These show how mobile remote config and mobile feature flags often live together in one system.
 
+## How to create the values
+
+In admin:
+
+1. open `Projects`
+2. open the mobile app project
+3. select the environment
+4. click `Add Parameter`
+5. create values such as `App:MinimumSupportedVersion`, `App:BannerText`, or `App:Settings`
+6. choose `client` scope for values the app reads directly
+
+With the CLI:
+
+```bash
+nona entries set \
+  --project mobile-app \
+  --environment production \
+  --key App:BannerText \
+  --value "Free shipping this week" \
+  --scope client \
+  --content-type text
+```
+
+## How a mobile app reads the values
+
+```js
+import { createNonaClient } from "nona-client";
+
+const nona = createNonaClient({
+  baseUrl: "https://nona.example.com",
+  environmentId: "production",
+  apiKey: process.env.NONA_API_KEY
+});
+
+const bannerText = await nona.getStringValue("App:BannerText");
+const settings = await nona.getJsonValue("App:Settings");
+```
+
+This is the basic mobile remote-config path: small text or numeric values directly, and grouped settings through JSON when they naturally belong together.
+
 ## Scope guidance
 
 Use `client` scope for values the mobile app should read directly.
 
 Keep truly sensitive logic or backend-only values in `server` scope and let the server evaluate them instead.
+
+## Operational pattern
+
+For most mobile teams:
+
+1. start with one or two directly visible values such as banner text
+2. add one kill switch for a risky flow
+3. keep production and staging separate
+4. use JSON only when the values truly belong together
 
 ## Why this matters in Nona
 

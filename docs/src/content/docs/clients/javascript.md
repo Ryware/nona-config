@@ -25,6 +25,37 @@ The JavaScript client is a good fit for:
 npm install nona-client
 ```
 
+## Prepare the value in admin
+
+Before writing app code:
+
+1. open `Projects`
+2. open the project the app belongs to
+3. select the target environment such as `production`
+4. create the parameter or flag you want to read
+5. create an API key in the `API Keys` section
+6. choose `client` scope for React Native or other app-side reads
+
+For a first test, create a boolean parameter such as `Features:Checkout`.
+
+## Prepare the value with the CLI
+
+```bash
+nona entries set \
+  --project storefront \
+  --environment production \
+  --key Features:Checkout \
+  --value true \
+  --scope client \
+  --content-type boolean
+
+nona keys create \
+  --project storefront \
+  --name "React Native app" \
+  --scope client \
+  --environment production
+```
+
 ## Read a string
 
 ```js
@@ -42,6 +73,17 @@ const checkoutEnabled = checkout === "true";
 ```
 
 For actual feature flags, it is usually better to keep the entry typed as `boolean`, then inspect the metadata or use OpenFeature if you want a flag-oriented interface.
+
+## Read a boolean flag cleanly
+
+```js
+const checkout = await nona.getConfigValue("Features:Checkout");
+
+const checkoutEnabled =
+  checkout.contentType === "boolean" && checkout.value === "true";
+```
+
+That keeps the application aligned with Nona's real content type instead of treating every flag as a plain string.
 
 ## Read value metadata
 
@@ -61,6 +103,12 @@ This is useful when one application needs to inspect the logical type before dec
 ```js
 const settings = await nona.getJsonValue("App:Settings");
 ```
+
+Example setup in Nona:
+
+- key: `App:Settings`
+- content type: `json`
+- scope: `client`
 
 Use JSON when related settings belong together and your application naturally consumes them as one object.
 
@@ -125,6 +173,8 @@ const nona = createNonaClient({
 
 Use `invalidateTtlCache(key)` to remove one cached value or `clearTtlCache()` to clear all cached values.
 
+The JavaScript client cache is optional and disabled by default. Set a positive `cacheTtlMs` value to enable it.
+
 Cache is useful when:
 
 - the same keys are read repeatedly
@@ -132,6 +182,24 @@ Cache is useful when:
 - the application can tolerate slightly older values for a short TTL
 
 Keep the TTL short for operational flags and kill switches unless you are sure longer cache windows are acceptable.
+
+## Basic troubleshooting
+
+If a JavaScript read fails:
+
+1. confirm `environmentId` matches the environment name in Nona
+2. confirm the API key belongs to the same project as the parameter
+3. confirm the parameter scope is readable by that key
+4. try the same key once with [HTTP](/docs/clients/http/) to isolate client-code issues
+
+## Good first app flow
+
+For a mobile or JavaScript app, the usual sequence is:
+
+1. fetch one kill switch or banner text on startup
+2. confirm the value changes when you edit it in admin
+3. add TTL cache only if repeated reads justify it
+4. move to OpenFeature when the app becomes flag-heavy
 
 ## OpenFeature provider
 

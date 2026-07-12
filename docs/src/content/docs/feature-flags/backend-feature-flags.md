@@ -42,6 +42,61 @@ These names are useful because they describe the behavior the operator is contro
 - validate the default behavior when the flag is off
 - treat history and rollback as part of your incident path
 
+## How to create one
+
+In admin:
+
+1. open `Projects`
+2. open the backend service project
+3. select the target environment
+4. click `Add Parameter`
+5. create a boolean entry such as `Features:DisablePayments`
+6. choose `server` scope
+7. click `Create`
+
+With the CLI:
+
+```bash
+nona entries set \
+  --project payments-api \
+  --environment production \
+  --key Features:DisablePayments \
+  --value false \
+  --scope server \
+  --content-type boolean
+```
+
+## How a backend service reads it
+
+In .NET:
+
+```csharp
+using Nona.Client;
+
+using var client = new NonaClient(
+    "https://nona.example.com",
+    "production",
+    apiKey: Environment.GetEnvironmentVariable("NONA_API_KEY"));
+
+var flag = await client.GetConfigValueAsync("Features:DisablePayments");
+var paymentsDisabled =
+    flag.ContentType == "boolean" &&
+    string.Equals(flag.Value, "true", StringComparison.OrdinalIgnoreCase);
+```
+
+A service in another language can use [HTTP](/docs/clients/http/) against the same key.
+
+## How to operate it
+
+When a backend path needs to be disabled:
+
+1. open the parameter row
+2. change the value
+3. click `Save`
+4. review the `History` tab if you need to roll back
+
+For high-risk flags, keep the flag names explicit enough that an operator can safely understand them during an incident.
+
 ## Why backend flags pair well with Nona
 
 Nona gives backend teams a practical combination:

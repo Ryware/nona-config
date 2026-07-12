@@ -68,6 +68,31 @@ Use `json` when multiple related values belong together, for example:
 | `Checkout:MaxItems` | `50` | `number` |
 | `Checkout:Settings` | `{"color":"green","enabled":true}` | `json` |
 
+## How to create one
+
+In admin:
+
+1. open `Projects`
+2. open the project
+3. select the environment
+4. click `Add Parameter`
+5. enter the key and value
+6. pick the content type that matches the value shape
+7. pick the scope
+8. click `Create`
+
+With the CLI:
+
+```bash
+nona entries set \
+  --project storefront \
+  --environment production \
+  --key Checkout:MaxItems \
+  --value 50 \
+  --scope server \
+  --content-type number
+```
+
 ## Choosing between separate keys and JSON
 
 Use separate keys when:
@@ -92,6 +117,13 @@ For example:
 - a `json` settings object can also be `client`, `server`, or `all`
 
 Choose the content type based on the value shape, then choose scope based on who should read it.
+
+## Easy mistakes to avoid
+
+- using `text` for a real boolean flag
+- putting unrelated values into one large JSON object
+- using `json` just to avoid creating separate keys
+- choosing `all` scope when only the backend needs the value
 
 ## Related docs
 

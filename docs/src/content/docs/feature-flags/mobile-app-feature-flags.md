@@ -54,6 +54,58 @@ Keep truly sensitive decisions on the server where possible. A mobile app can st
 - `Features:UseNewOnboarding`
 - `Features:DisablePayments`
 
+## How to create one
+
+In admin:
+
+1. open `Projects`
+2. open the mobile app project
+3. select the environment such as `staging` or `production`
+4. click `Add Parameter`
+5. create a boolean entry such as `Features:UseNewOnboarding`
+6. choose `client` scope
+7. click `Create`
+
+With the CLI:
+
+```bash
+nona entries set \
+  --project mobile-app \
+  --environment production \
+  --key Features:UseNewOnboarding \
+  --value false \
+  --scope client \
+  --content-type boolean
+```
+
+## How a mobile app reads it
+
+React Native or other JavaScript-based mobile runtimes can read the flag with the JavaScript client:
+
+```js
+import { createNonaClient } from "nona-client";
+
+const nona = createNonaClient({
+  baseUrl: "https://nona.example.com",
+  environmentId: "production",
+  apiKey: process.env.NONA_API_KEY
+});
+
+const flag = await nona.getConfigValue("Features:UseNewOnboarding");
+const enabled = flag.contentType === "boolean" && flag.value === "true";
+```
+
+## How to operate it
+
+When a mobile feature needs to be disabled quickly:
+
+1. open the parameter row in admin
+2. switch the value from `true` to `false`
+3. click `Save`
+4. verify the app sees the updated value
+
+For risky features, also confirm the `false` path works before release day.
+
 ## Related docs
 
 - [Kill switches](/docs/feature-flags/kill-switches/)

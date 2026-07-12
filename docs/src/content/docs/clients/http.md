@@ -19,6 +19,34 @@ This makes HTTP the smallest possible integration path for:
 - languages without an official client
 - quick validation during setup or migration
 
+## Prepare the value in admin
+
+1. open `Projects`
+2. open the project
+3. create the target environment such as `production`
+4. click `Add Parameter`
+5. create a key such as `Features:Checkout`
+6. create an API key in the `API Keys` section
+7. keep the key scope aligned with the entry scope
+
+## Prepare the value with the CLI
+
+```bash
+nona entries set \
+  --project storefront \
+  --environment production \
+  --key Features:Checkout \
+  --value true \
+  --scope client \
+  --content-type boolean
+
+nona keys create \
+  --project storefront \
+  --name "HTTP smoke test" \
+  --scope client \
+  --environment production
+```
+
 ## Request
 
 ```bash
@@ -27,6 +55,13 @@ curl "https://nona.example.com/api/production/Features%3ACheckout" \
 ```
 
 Encode the key path segment. For example, `Features:Checkout` becomes `Features%3ACheckout`.
+
+If you want to see the response headers too:
+
+```bash
+curl -i "https://nona.example.com/api/production/Features%3ACheckout" \
+  -H "X-Api-Key: $NONA_API_KEY"
+```
 
 ## Response
 
@@ -91,6 +126,16 @@ Before calling the endpoint:
 3. Create a config entry, for example `Features:Checkout`.
 4. Create an API key with a scope that can read the entry.
 5. Store the API key in your app's secrets, not in source code.
+
+## Why HTTP is still important
+
+Even if you plan to use the JavaScript or .NET client later, HTTP is still the best first diagnostic step because it proves:
+
+- the environment exists
+- the key exists
+- the API key is valid
+- the public read path works
+- the issue is not hidden inside client code
 
 ## When to use the official client instead
 
