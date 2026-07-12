@@ -53,3 +53,9 @@ Choose [Primary/replica production](/docs/deployment/primary-replica/) when:
 If you are unsure, start with [Standalone production](/docs/deployment/standalone/).
 
 It is simpler to operate and usually the correct first production topology unless you already know that a replica model is necessary.
+
+## Related operations docs
+
+- [Security and authentication](/docs/operations/security-and-authentication/)
+- [Backups](/docs/operations/backups/)
+- [Upgrades](/docs/operations/upgrades/)

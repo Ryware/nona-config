@@ -13,6 +13,11 @@ That can include:
 - grouped JSON settings
 - feature flags
 
+That makes mobile remote config broader than feature flags alone. A mobile app often needs both:
+
+- boolean release gates
+- non-boolean runtime values
+
 ## Why mobile teams need remote config
 
 Mobile apps move more slowly than web applications because shipping changes usually means going through an app-store release cycle.
@@ -23,6 +28,16 @@ Remote config helps mobile teams:
 - separate staging and production behavior
 - roll out new settings gradually
 - pair feature flags with broader runtime settings
+
+## Typical mobile remote config values
+
+Examples:
+
+- minimum supported version
+- banner text or in-app copy
+- module-specific JSON settings
+- numeric limits or thresholds
+- feature flags for incomplete or risky flows
 
 ## Where Nona fits
 
@@ -47,6 +62,17 @@ These show how mobile remote config and mobile feature flags often live together
 Use `client` scope for values the mobile app should read directly.
 
 Keep truly sensitive logic or backend-only values in `server` scope and let the server evaluate them instead.
+
+## Why this matters in Nona
+
+Nona is useful here because it does not force mobile teams into a hosted platform model just to get runtime values.
+
+You can keep:
+
+- self-hosted deployment
+- official client access where it helps
+- plain HTTP as a fallback
+- one system for both mobile flags and mobile remote config
 
 ## Related docs
 

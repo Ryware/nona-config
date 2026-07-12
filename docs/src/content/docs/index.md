@@ -32,6 +32,7 @@ If you are evaluating alternatives, start with [Firebase Remote Config alternati
 
 ## Start here
 
+- [Why Nona](/docs/why-nona/)
 - [Get started](/docs/get-started/)
 - [Feature flags](/docs/feature-flags/)
 - [Remote config](/docs/remote-config/)
@@ -149,5 +150,8 @@ For production deployment and operations:
 - [Deployment overview](/docs/deployment/)
 - [Standalone production](/docs/deployment/standalone/)
 - [Primary/replica production](/docs/deployment/primary-replica/)
+- [Security and authentication](/docs/operations/security-and-authentication/)
+- [Backups](/docs/operations/backups/)
+- [Upgrades](/docs/operations/upgrades/)
 - [Audit logs](/docs/concepts/audit-logs/)
 - [Users and project access](/docs/concepts/users-and-project-access/)

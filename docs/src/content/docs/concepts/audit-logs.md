@@ -40,6 +40,15 @@ Even when rollback solves the immediate issue, audit logs help with the follow-u
 - improving runbooks
 - reducing repeated mistakes
 
+## Where they matter most
+
+Audit logs are especially useful around:
+
+- production feature flags
+- incident-driven parameter changes
+- temporary share-link usage
+- team environments with more than one editor
+
 ## Related docs
 
 - [History and rollback](/docs/concepts/history-and-rollback/)

@@ -19,6 +19,15 @@ export default defineConfig({
 			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/Ryware/nona-config' }],
 			sidebar: [
 				{
+					label: 'Overview',
+					items: [
+						{ label: 'Why Nona', slug: 'why-nona' },
+						{ label: 'Open source feature flags', slug: 'comparisons/open-source-feature-flags' },
+						{ label: 'Open source remote config', slug: 'comparisons/open-source-remote-config' },
+						{ label: 'Firebase Remote Config alternative', slug: 'comparisons/firebase-remote-config-alternative' },
+					],
+				},
+				{
 					label: 'Get Started',
 					items: [
 						{ label: 'Overview', slug: 'get-started' },
@@ -61,6 +70,7 @@ export default defineConfig({
 				{
 					label: 'Core Concepts',
 					items: [
+						{ label: 'Overview', slug: 'concepts' },
 						{ label: 'Projects', slug: 'concepts/projects' },
 						{ label: 'Environments', slug: 'concepts/environments' },
 						{ label: 'Parameters and content types', slug: 'concepts/parameters-and-content-types' },
@@ -75,6 +85,7 @@ export default defineConfig({
 				{
 					label: 'Clients and API',
 					items: [
+						{ label: 'Overview', slug: 'clients' },
 						{ label: 'HTTP', slug: 'clients/http' },
 						{ label: 'JavaScript', slug: 'clients/javascript' },
 						{ label: '.NET', slug: 'clients/dotnet' },
@@ -98,6 +109,16 @@ export default defineConfig({
 						{ label: 'Overview', slug: 'deployment' },
 						{ label: 'Standalone production', slug: 'deployment/standalone' },
 						{ label: 'Primary/replica production', slug: 'deployment/primary-replica' },
+					],
+				},
+				{
+					label: 'Operations',
+					items: [
+						{ label: 'Overview', slug: 'operations' },
+						{ label: 'Security and authentication', slug: 'operations/security-and-authentication' },
+						{ label: 'Single sign-on (SSO)', slug: 'operations/sso' },
+						{ label: 'Backups', slug: 'operations/backups' },
+						{ label: 'Upgrades', slug: 'operations/upgrades' },
 					],
 				},
 			],

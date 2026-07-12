@@ -35,4 +35,14 @@ For most teams, the right flow is:
 4. create an API key
 5. verify a read over HTTP or a client SDK
 
+## What this first Docker setup proves
+
+If you can bring the service up successfully, you have already validated the most important part of the product model:
+
+- Nona can run on infrastructure you control
+- the service is reachable
+- you have a base URL for the rest of the setup flow
+
+That is why Docker is the best first step for both evaluation and real self-hosted adoption.
+
 After the container is running, continue with [Create your first project](/docs/get-started/first-project/).

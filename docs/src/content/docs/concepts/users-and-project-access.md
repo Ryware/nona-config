@@ -28,7 +28,17 @@ Per-user access and project-level permissions help teams:
 
 The repo shows invitation-based onboarding support.
 
-That matters because it gives teams a cleaner way to add people than manually handing around one credential. A new user can be invited into the system and then granted access based on the projects they actually need.
+That matters because it gives teams a cleaner way to add people than manually handing around one credential.
+
+A new user can be invited into the system and then granted access based on the projects they actually need.
+
+In the current repo, an invitation can be completed through:
+
+- password setup
+- Google SSO
+- Microsoft SSO
+
+That is useful when you want onboarding to match the identity system your team already uses.
 
 ## Project access
 
@@ -51,8 +61,21 @@ The current repo shows support for:
 
 That helps teams fit Nona into existing identity workflows instead of forcing password-only administration for every user.
 
+SSO does not bypass access control. It only changes how a user authenticates.
+
+After sign-in, project access still determines what that user can see and edit.
+
+## How SSO and invitations work together
+
+The repo's SSO flow is stricter than "any valid Google or Microsoft account can log in."
+
+The system matches the SSO identity to a Nona user account by email. During invitation completion, the SSO email must match the invited email. On the first successful SSO login, Nona links that provider identity to the user for future sign-ins.
+
+That gives you a safer model than open self-registration with external identity alone.
+
 ## Related docs
 
 - [Projects](/docs/concepts/projects/)
+- [Single sign-on (SSO)](/docs/operations/sso/)
 - [Parameter share links](/docs/parameter-share-links/)
 - [Audit logs](/docs/concepts/audit-logs/)
