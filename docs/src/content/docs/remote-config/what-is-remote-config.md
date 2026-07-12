@@ -13,12 +13,21 @@ Typical examples:
 - switch between old and new flows
 - add a kill switch for a broken feature
 
+The key idea is that the application behavior can change without shipping a new build for every small adjustment.
+
 In Nona, remote config is built from a few core pieces:
 
 - a project
 - one or more environments such as `development` or `production`
 - config entries stored per environment
 - API keys and scopes that control what can be read
+
+That means remote config in Nona is not a vague concept. It is a concrete model your team can operate:
+
+- create a project
+- define environments
+- store typed values
+- read them over HTTP or an official client
 
 ## Why teams use it
 
@@ -28,6 +37,13 @@ Remote config helps when you need to:
 - separate environment-specific values
 - roll out behavior safely
 - keep client-readable and server-only values distinct
+
+Remote config is especially useful when:
+
+- a mobile app should react without waiting for an app-store release
+- a backend service needs operational tuning without a redeploy
+- one product uses both feature flags and broader runtime values
+- teams want rollback and auditability around runtime changes
 
 ## What makes Nona different
 
@@ -39,5 +55,12 @@ It is:
 - Docker-first
 - open source
 - usable over plain HTTP
+
+That makes Nona a good fit for teams that want:
+
+- self-hosted remote config
+- server-side remote config
+- open source feature flags and runtime settings in one product
+- a model that is smaller and easier to reason about than a larger hosted platform
 
 If you want to see where that matters, read [Firebase Remote Config alternative](/docs/comparisons/firebase-remote-config-alternative/).

@@ -12,6 +12,13 @@ Requirements:
 - Node.js 18 or newer, or a runtime with `fetch`, `Headers`, and `Response`
 - ESM imports
 
+The JavaScript client is a good fit for:
+
+- Node.js services
+- server-side JavaScript applications
+- React Native and similar environments that can use `fetch`
+- teams that want a lighter integration than OpenFeature but more convenience than raw HTTP
+
 ## Install
 
 ```bash
@@ -34,6 +41,8 @@ const checkout = await nona.getStringValue("Features:Checkout");
 const checkoutEnabled = checkout === "true";
 ```
 
+For actual feature flags, it is usually better to keep the entry typed as `boolean`, then inspect the metadata or use OpenFeature if you want a flag-oriented interface.
+
 ## Read value metadata
 
 ```js
@@ -45,11 +54,15 @@ console.log(value.contentType);
 
 `contentType` is one of `text`, `number`, `boolean`, or `json`.
 
+This is useful when one application needs to inspect the logical type before deciding how to handle the value.
+
 ## Read JSON
 
 ```js
 const settings = await nona.getJsonValue("App:Settings");
 ```
+
+Use JSON when related settings belong together and your application naturally consumes them as one object.
 
 ## Return `null` for missing keys
 
@@ -60,6 +73,8 @@ if (value === null) {
   console.log("Key was not found");
 }
 ```
+
+This is helpful for optional settings or cases where a key may not exist in every environment yet.
 
 ## Handle HTTP errors
 
@@ -85,6 +100,17 @@ try {
 }
 ```
 
+## When to use the JavaScript client
+
+Use the JavaScript client when you want:
+
+- a straightforward Nona-specific API
+- runtime reads in JavaScript or TypeScript
+- optional in-memory caching
+- a smaller abstraction layer than OpenFeature
+
+Use [HTTP](/docs/clients/http/) instead when the app only needs one very small direct read path.
+
 ## Optional cache
 
 ```js
@@ -98,6 +124,14 @@ const nona = createNonaClient({
 ```
 
 Use `invalidateTtlCache(key)` to remove one cached value or `clearTtlCache()` to clear all cached values.
+
+Cache is useful when:
+
+- the same keys are read repeatedly
+- you want to reduce request volume
+- the application can tolerate slightly older values for a short TTL
+
+Keep the TTL short for operational flags and kill switches unless you are sure longer cache windows are acceptable.
 
 ## OpenFeature provider
 
@@ -122,3 +156,5 @@ await OpenFeature.setProviderAndWait(domain, createNonaOpenFeatureProvider({
 const client = OpenFeature.getClient(domain);
 const enabled = await client.getBooleanValue("Features:Checkout", false);
 ```
+
+If your team thinks in terms of feature flags more than direct config reads, see [OpenFeature](/docs/clients/openfeature/).

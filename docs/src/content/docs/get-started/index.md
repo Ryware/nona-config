@@ -5,6 +5,17 @@ description: Deploy Nona, create a project, add a parameter, create an API key, 
 
 This path gets you from zero to a working Nona setup quickly.
 
+It is designed for the smallest successful first run:
+
+- one self-hosted Nona instance
+- one project
+- one environment
+- one parameter or feature flag
+- one API key
+- one successful read
+
+If you are evaluating the product, this path is the fastest way to understand the Nona model in practice.
+
 ## Recommended order
 
 1. [Deploy with Docker](/docs/get-started/docker/)
@@ -13,6 +24,33 @@ This path gets you from zero to a working Nona setup quickly.
 4. [Create an API key](/docs/get-started/api-keys/)
 5. [Fetch your first config value](/docs/get-started/first-api-call/)
 6. [Add a kill switch](/docs/get-started/kill-switch/)
+
+## What this path teaches
+
+By the end of this flow, you will have touched the core Nona concepts:
+
+- projects
+- environments
+- typed config entries
+- scopes
+- API keys
+- runtime reads
+
+That makes it the best starting point before you go deeper into:
+
+- feature flags
+- remote config architecture
+- migration
+- deployment topologies
+
+## Choose your follow-up path
+
+After the first successful setup, most teams continue into one of these:
+
+- [Feature flags](/docs/feature-flags/) if the main use case is boolean rollout control
+- [Remote config](/docs/remote-config/) if the main use case is runtime values and settings
+- [Migration](/docs/migration/) if you are moving from Firebase Remote Config
+- [Deployment](/docs/deployment/) if you are preparing a real production rollout
 
 ## What you will end up with
 

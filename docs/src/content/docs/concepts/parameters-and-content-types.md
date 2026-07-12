@@ -12,6 +12,11 @@ Each entry has:
 - a content type
 - a scope
 
+This is the core building block behind both major Nona use cases:
+
+- feature flags
+- broader remote config
+
 ## Supported content types
 
 - `text`
@@ -19,4 +24,77 @@ Each entry has:
 - `boolean`
 - `json`
 
-Use `boolean` for feature flags, `json` for structured settings, and `text` or `number` for simpler runtime values.
+## When to use each type
+
+### `boolean`
+
+Use `boolean` for:
+
+- feature flags
+- kill switches
+- on/off rollout gates
+
+### `text`
+
+Use `text` for:
+
+- labels and copy
+- simple string values
+- identifiers that do not need to be parsed as numbers or JSON
+
+### `number`
+
+Use `number` for:
+
+- limits
+- thresholds
+- percentages
+- retry counts
+
+### `json`
+
+Use `json` when multiple related values belong together, for example:
+
+- structured module settings
+- grouped UI options
+- objects a client can deserialize directly
+
+## Practical examples
+
+| Key | Example value | Good content type |
+|---|---|---|
+| `Features:Checkout` | `true` | `boolean` |
+| `App:BannerText` | `Hello` | `text` |
+| `Checkout:MaxItems` | `50` | `number` |
+| `Checkout:Settings` | `{"color":"green","enabled":true}` | `json` |
+
+## Choosing between separate keys and JSON
+
+Use separate keys when:
+
+- values change independently
+- you want smaller, clearer reads
+- a single setting is operationally important on its own
+
+Use JSON when:
+
+- the values belong together
+- the client naturally consumes them as one object
+- keeping the structure together makes the configuration easier to reason about
+
+## Scope still matters
+
+Content type and scope are different decisions.
+
+For example:
+
+- a `boolean` flag can be `client`, `server`, or `all`
+- a `json` settings object can also be `client`, `server`, or `all`
+
+Choose the content type based on the value shape, then choose scope based on who should read it.
+
+## Related docs
+
+- [Client vs server scope](/docs/concepts/client-vs-server-scope/)
+- [Feature flags](/docs/feature-flags/)
+- [Remote config](/docs/remote-config/)

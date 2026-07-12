@@ -12,6 +12,13 @@ Targets:
 - `netstandard2.0`
 - `net8.0`
 
+The .NET client is a good fit for:
+
+- ASP.NET applications
+- worker services
+- console tools
+- backend services that want a direct typed integration
+
 ## Install
 
 ```bash
@@ -32,6 +39,8 @@ var checkout = await client.GetStringValueAsync("Features:Checkout");
 var checkoutEnabled = checkout == "true";
 ```
 
+For feature flags, you will often prefer `boolean` entries and either metadata inspection or OpenFeature depending on how your application is structured.
+
 ## Read value metadata
 
 ```csharp
@@ -43,6 +52,8 @@ Console.WriteLine(value.ContentType);
 
 `ContentType` is one of `text`, `number`, `boolean`, or `json`.
 
+This is useful when one service reads mixed config and needs to branch on the value type.
+
 ## Return `null` for missing keys
 
 ```csharp
@@ -53,6 +64,8 @@ if (value is null)
     Console.WriteLine("Key was not found");
 }
 ```
+
+This is helpful for optional settings or for gradual rollout of new keys across environments.
 
 ## Read JSON
 
@@ -74,6 +87,8 @@ internal partial class AppJsonContext : JsonSerializerContext
 }
 ```
 
+JSON works well when a backend service consumes a cluster of related settings together.
+
 ## Default cache
 
 The .NET client caches values in memory by default for 30 seconds. `CacheTtl` changes the cache lifetime and must be greater than zero; `CacheMemoryLimitMegabytes` defaults to `5` and must also be greater than zero. The current client does not expose a cache-disable option.
@@ -91,6 +106,19 @@ var client = new NonaClient(new NonaClientOptions
     AllowStaleCache = true
 });
 ```
+
+Use `AllowStaleCache` carefully. It can improve resilience and smooth over transient failures, but it also means the application may temporarily serve an older value while refresh happens in the background.
+
+## When to use the .NET client
+
+Use the .NET client when you want:
+
+- a direct Nona integration in C#
+- built-in cache behavior
+- typed JSON reads
+- a simpler path than building your own HTTP wrapper
+
+Use [HTTP](/docs/clients/http/) instead when you only need a minimal raw request path.
 
 ## OpenFeature provider
 
@@ -119,3 +147,5 @@ await Api.Instance.SetProviderAsync(
 var featureClient = Api.Instance.GetClient(domain);
 var enabled = await featureClient.GetBooleanValueAsync("Features:Checkout", false);
 ```
+
+If your team wants a more flag-oriented, vendor-neutral integration surface, continue with [OpenFeature](/docs/clients/openfeature/).

@@ -5,6 +5,8 @@ description: Configure the production primary and replica Docker Compose deploym
 
 Use primary/replica mode for read-heavy deployments where eventual consistency is acceptable.
 
+This topology is for teams that need more than the simplest single-instance model and are willing to trade simplicity for a dedicated read path.
+
 Compose file:
 
 ```text
@@ -19,6 +21,16 @@ From the repository root:
 docker compose -f deploy/compose/primary-replica-prod.yml up -d
 ```
 
+## When to choose primary/replica
+
+Choose this mode when:
+
+- admin and write traffic should stay on the primary
+- read-heavy workloads benefit from a separate replica
+- eventual consistency is acceptable for replicated reads
+
+Do not choose it just because it sounds more production-like. For many teams, standalone remains the better operational choice.
+
 ## Services and ports
 
 | Service | API | libSQL HTTP | Replication gRPC |
@@ -29,6 +41,10 @@ docker compose -f deploy/compose/primary-replica-prod.yml up -d
 Use the primary API for admin and write workflows. Use the replica API for read-heavy clients when eventual consistency is acceptable.
 
 Replication is asynchronous. A value written to the primary may not be immediately visible from the replica.
+
+That tradeoff is the most important operational fact in this topology.
+
+If your application requires an immediately visible write before the next read, keep that read path on the primary.
 
 ## Configure ports
 
@@ -94,6 +110,8 @@ The compose file creates two Docker volumes:
 
 Keep these volumes when upgrading containers.
 
+Treat both volumes as production data.
+
 ## JWT settings
 
 If you pin JWT values, use the same values on both services:
@@ -113,3 +131,8 @@ docker compose -f deploy/compose/primary-replica-prod.yml ps
 docker compose -f deploy/compose/primary-replica-prod.yml logs -f nona-primary nona-replica
 docker compose -f deploy/compose/primary-replica-prod.yml down
 ```
+
+## Related docs
+
+- [Deployment overview](/docs/deployment/)
+- [Standalone production](/docs/deployment/standalone/)

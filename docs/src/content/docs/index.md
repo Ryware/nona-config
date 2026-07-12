@@ -36,6 +36,8 @@ If you are evaluating alternatives, start with [Firebase Remote Config alternati
 - [Feature flags](/docs/feature-flags/)
 - [Remote config](/docs/remote-config/)
 - [Firebase Remote Config alternative](/docs/comparisons/firebase-remote-config-alternative/)
+- [Open source feature flags](/docs/comparisons/open-source-feature-flags/)
+- [Open source remote config](/docs/comparisons/open-source-remote-config/)
 - [Deployment](/docs/deployment/)
 - [Migration](/docs/migration/)
 
@@ -88,7 +90,27 @@ Start here:
 - [What are feature flags?](/docs/feature-flags/what-are-feature-flags/)
 - [Feature flags vs remote config](/docs/feature-flags/feature-flags-vs-remote-config/)
 - [Kill switches](/docs/feature-flags/kill-switches/)
+- [Open source feature flags](/docs/comparisons/open-source-feature-flags/)
+- [Self-hosted feature flags](/docs/comparisons/self-hosted-feature-flags/)
 - [OpenFeature](/docs/clients/openfeature/)
+
+## Remote config
+
+Nona also works as a self-hosted remote config system for teams that want:
+
+- runtime values outside deploy-time env vars
+- environment-specific behavior
+- client and server scope separation
+- server-side remote config
+- one system for config and feature flags
+
+Start here:
+
+- [Remote config overview](/docs/remote-config/)
+- [What is remote config?](/docs/remote-config/what-is-remote-config/)
+- [Remote config vs environment variables](/docs/remote-config/remote-config-vs-environment-variables/)
+- [Server-side remote config](/docs/remote-config/server-side-remote-config/)
+- [Open source remote config](/docs/comparisons/open-source-remote-config/)
 
 ## Key concepts
 
