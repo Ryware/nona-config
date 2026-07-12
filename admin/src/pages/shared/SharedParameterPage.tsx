@@ -1,4 +1,4 @@
-import { Title } from "@solidjs/meta";
+import { Meta, Title } from "@solidjs/meta";
 import { useParams } from "@solidjs/router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/solid-query";
 import { createEffect, createMemo, createSignal, Show } from "solid-js";
@@ -101,6 +101,7 @@ export default function SharedParameterPage() {
   return (
     <>
       <Title>Shared Parameter | Nona</Title>
+      <Meta name="robots" content="noindex,nofollow" />
       <main class="bg-surface text-on-surface flex min-h-screen items-center justify-center px-4 py-8">
         <div class="w-full max-w-xl">
           <Show when={query.isLoading}>
