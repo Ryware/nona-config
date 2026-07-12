@@ -1,5 +1,6 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
+import sitemap from '@astrojs/sitemap';
 import starlight from '@astrojs/starlight';
 
 // https://astro.build/config
@@ -12,6 +13,7 @@ export default defineConfig({
 		},
 	},
 	integrations: [
+		sitemap(),
 		starlight({
 			title: 'Nona Docs',
 			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/Ryware/nona-config' }],
