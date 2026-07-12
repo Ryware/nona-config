@@ -51,6 +51,43 @@ If your app is frontend-facing, `client` is usually the easiest first scope.
 
 If the value should only exist on the server, use `server` from the start instead of widening it later.
 
+## In admin
+
+1. open `Projects`
+2. open your project
+3. select the target environment tab such as `production`
+4. click `Add Parameter`
+5. enter a key such as `Features:Checkout`
+6. pick `boolean` as the datatype
+7. set the scope to `client` or `server`
+8. enter the value
+9. click `Create`
+
+After creation, the parameter appears in the table for the active environment.
+
+## With the CLI
+
+Create the same entry from a terminal:
+
+```bash
+nona entries set \
+  --project storefront \
+  --environment production \
+  --key Features:Checkout \
+  --value true \
+  --scope client \
+  --content-type boolean
+```
+
+Then verify it:
+
+```bash
+nona entries get --project storefront --environment production --key Features:Checkout
+nona entries list --project storefront --environment production
+```
+
+If you already saved the project with `nona config set project storefront`, you can omit `--project`.
+
 ## Common mistakes
 
 - storing a feature flag as `text` instead of `boolean`

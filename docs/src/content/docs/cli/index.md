@@ -52,6 +52,22 @@ nona auth whoami
 
 That makes it easier to work interactively without pasting a bearer token into every command.
 
+## Create a project
+
+```bash
+nona projects create --name mobile-app
+nona projects list
+```
+
+Use the CLI when you want a repeatable way to create a project from a terminal.
+
+Environment creation is currently an admin-UI workflow, so the usual sequence is:
+
+1. create the project with the CLI
+2. open the admin UI
+3. open the project
+4. click `Add Environment`
+
 ## Save defaults
 
 ```bash
@@ -65,6 +81,17 @@ After defaults are saved, commands can omit `--base-url` and `--project`.
 This is helpful when you are doing repeated work on the same Nona instance and project.
 
 ## Manage config entries
+
+```bash
+nona entries list --project mobile-app --environment production
+nona entries get --project mobile-app --environment production --key Features:Checkout
+nona entries set --project mobile-app --environment production --key Features:Checkout --value true --scope client --content-type boolean
+nona entries history --project mobile-app --environment production --key Features:Checkout
+nona entries rollback --project mobile-app --environment production --key Features:Checkout --version 2
+nona entries delete --project mobile-app --environment production --key Features:Checkout
+```
+
+If you already saved a default project with `nona config set project mobile-app`, the same commands can omit `--project`.
 
 ```bash
 nona entries list --environment production
@@ -98,14 +125,24 @@ This is one of the more distinctive Nona workflows because it gives teams a narr
 ## Manage API keys
 
 ```bash
-nona keys create --name "Web app" --scope client --environment production
-nona keys list
-nona keys delete --id 42
+nona keys create --project mobile-app --name "Web app" --scope client --environment production
+nona keys list --project mobile-app
+nona keys delete --project mobile-app --id 42
 ```
+
+`nona keys show --project mobile-app` also works. `show` is an alias for `list`.
 
 Use client-scoped API keys for frontend/mobile apps.
 
 Use server-scoped keys for backend-only reads whenever possible.
+
+## Invite a user
+
+```bash
+nona users create --name "Jane Doe" --user-email jane@example.com --role editor
+```
+
+The CLI returns the invitation result so you can hand the invite link or token to the teammate who needs access.
 
 ## Migrate from Firebase Remote Config
 

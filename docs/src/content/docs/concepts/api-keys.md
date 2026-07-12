@@ -29,6 +29,34 @@ That makes API keys a central part of the runtime security model.
 - a backend service usually gets a `server` key
 - a shared read path across frontend and backend may need `all`
 
+## How to create one
+
+In admin:
+
+1. open `Projects`
+2. open the project
+3. use the `API Keys` section
+4. enter a key name
+5. choose the scope
+6. optionally choose one environment
+7. click `Create`
+
+With the CLI:
+
+```bash
+nona keys create \
+  --project storefront \
+  --name "Backend worker" \
+  --scope server \
+  --environment production
+```
+
+List keys later with:
+
+```bash
+nona keys list --project storefront
+```
+
 ## Why narrower keys are better
 
 Narrow keys reduce blast radius.
@@ -45,6 +73,16 @@ For example:
 - scope them as narrowly as possible
 - store them in environment variables or a secrets system
 - rotate them when access patterns change
+
+## Common operating pattern
+
+A typical production workflow looks like this:
+
+1. create one project per app or service
+2. create one key per deployable runtime
+3. keep frontend keys on `client`
+4. keep backend-only values behind `server`
+5. test a real read before shipping the key to the app
 
 ## Related docs
 

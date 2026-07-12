@@ -30,10 +30,61 @@ Docker is the simplest way to:
 For most teams, the right flow is:
 
 1. start Nona with Docker
-2. create a project and environment
-3. add a parameter or feature flag
-4. create an API key
-5. verify a read over HTTP or a client SDK
+2. create the first admin account
+3. create a project and environment
+4. add a parameter or feature flag
+5. create an API key
+6. verify a read over HTTP or a client SDK
+
+## Start the container
+
+From the `nona-config` repository root:
+
+```bash
+docker compose -f deploy/compose/standalone-prod.yml up -d
+docker compose -f deploy/compose/standalone-prod.yml ps
+```
+
+The default admin UI and API base URL are:
+
+```text
+http://localhost:18080
+```
+
+## Create the first admin account
+
+Open:
+
+```text
+http://localhost:18080/register
+```
+
+If the instance already has users, sign in at:
+
+```text
+http://localhost:18080/login
+```
+
+## What to click next in admin
+
+After you sign in:
+
+1. open `Projects`
+2. create or open the project you want to configure
+3. click `Add Environment`
+4. create `staging` or `production`
+5. click `Add Parameter`
+
+## Basic health checks
+
+These commands are enough for a first smoke test:
+
+```bash
+docker compose -f deploy/compose/standalone-prod.yml logs -f nona
+curl http://localhost:18080/auth/first-time
+```
+
+If the UI loads and the container stays healthy, you can move on to [Create your first project](/docs/get-started/first-project/).
 
 ## What this first Docker setup proves
 

@@ -32,6 +32,63 @@ For backend-only behavior, use `server` scope instead.
 
 The best kill switches guard code paths that are valuable to disable quickly under real production pressure.
 
+## In admin
+
+1. open `Projects`
+2. open the target project
+3. select the environment you want to protect, usually `production`
+4. click `Add Parameter`
+5. create a boolean parameter such as `Features:Checkout`
+6. set the initial value to `true`
+7. choose `client`, `server`, or `all` based on where the flag is evaluated
+8. click `Create`
+
+When you need to disable the feature later:
+
+1. click the parameter row
+2. stay on the `Settings` tab
+3. change the boolean value to `false`
+4. click `Save`
+
+To review or undo a change:
+
+1. open the same parameter
+2. switch to the `History` tab
+3. click `Rollback to v...` on the version you want to restore
+
+## With the CLI
+
+Create the kill switch:
+
+```bash
+nona entries set \
+  --project storefront \
+  --environment production \
+  --key Features:Checkout \
+  --value true \
+  --scope client \
+  --content-type boolean
+```
+
+Disable it during an incident:
+
+```bash
+nona entries set \
+  --project storefront \
+  --environment production \
+  --key Features:Checkout \
+  --value false \
+  --scope client \
+  --content-type boolean
+```
+
+Inspect history and roll back if needed:
+
+```bash
+nona entries history --project storefront --environment production --key Features:Checkout
+nona entries rollback --project storefront --environment production --key Features:Checkout --version 2
+```
+
 ## What a good kill switch does
 
 A good kill switch should:
