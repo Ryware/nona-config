@@ -27,10 +27,18 @@ Supported expirations:
 
 Choose the shortest lifetime that still fits the task. In most cases, short-lived links are safer than leaving long-running access around.
 
+The admin dialog also lets you:
+
+- generate a new link
+- copy the generated URL
+- review existing links for that parameter
+- revoke an active link
+
 ## Create a link with the CLI
 
 ```bash
 nona entries share create \
+  --project storefront \
   --environment production \
   --key Features:Checkout \
   --expiration 1h
@@ -40,6 +48,7 @@ Create a view-only link:
 
 ```bash
 nona entries share create \
+  --project storefront \
   --environment production \
   --key Features:Checkout \
   --expiration 3d \
@@ -50,10 +59,13 @@ The CLI prints the token and browser link. If the public admin app is not hosted
 
 ```bash
 nona entries share create \
+  --project storefront \
   --environment production \
   --key Features:Checkout \
   --share-base-url https://admin.nona.example.com
 ```
+
+If you already saved the default project with `nona config set project storefront`, you can omit `--project`.
 
 ## Manage existing links
 
@@ -61,6 +73,7 @@ List links for a parameter:
 
 ```bash
 nona entries share list \
+  --project storefront \
   --environment production \
   --key Features:Checkout
 ```
@@ -71,10 +84,13 @@ Revoke a link:
 
 ```bash
 nona entries share revoke \
+  --project storefront \
   --environment production \
   --key Features:Checkout \
   --id 11
 ```
+
+In admin, revocation is handled from the same share dialog that lists the existing links.
 
 ## Good use cases
 
@@ -84,6 +100,16 @@ Parameter share links are useful when:
 - someone outside the usual operator group needs temporary visibility
 - an incident requires fast collaboration on one parameter
 - editable access should be limited to one entry instead of a whole project
+
+## Good operating pattern
+
+Use share links when the access need is:
+
+- narrow
+- temporary
+- tied to one parameter
+
+Use normal user or project access when the person needs ongoing access to a broader part of the system.
 
 ## HTTP endpoints
 
@@ -110,6 +136,13 @@ PUT /public/share-links/{token}
 - Treat share-link tokens as secrets. Anyone with the token can use the public endpoint until the link expires or is revoked.
 - Expired or revoked links cannot read or update the parameter.
 - Link creation and revocation are written to the audit log.
+
+## Practical safety rules
+
+- prefer short expirations by default
+- use view-only links unless edit access is actually needed
+- revoke the link once the task is done
+- avoid sharing long-lived links in permanent chat history or documentation
 
 ## Related docs
 

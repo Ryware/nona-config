@@ -25,6 +25,25 @@ Examples:
 - one backend API
 - one internal admin tool
 
+## How to create a project
+
+In admin:
+
+1. sign in
+2. open `Projects`
+3. create the project if it does not exist yet
+4. open the project page
+5. add the environments the app needs
+
+With the CLI:
+
+```bash
+nona projects create --name storefront
+nona projects list
+```
+
+After the project exists, that becomes the boundary for later `nona entries ...` and `nona keys ...` commands.
+
 ## Why project boundaries matter
 
 Projects are not only for organization. They also shape:
@@ -55,6 +74,17 @@ Split into multiple projects when:
 Do not create lots of projects just because different keys exist.
 
 If the same app and team own the values, one project with clear environments is usually better than many tiny projects.
+
+## A good first model
+
+For many teams, a strong first structure is:
+
+- project: `storefront`
+- environments: `staging`, `production`
+- one `client` API key for the frontend
+- one `server` API key for the backend
+
+That is usually enough structure to get started without over-partitioning the system.
 
 ## Related docs
 

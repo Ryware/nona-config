@@ -42,6 +42,37 @@ That means a team can store all of these together:
 - `Checkout:MaxItems` as `number`
 - `Checkout:Settings` as `json`
 
+## How this looks in practice
+
+In admin:
+
+1. open `Projects`
+2. open the project
+3. select the environment
+4. click `Add Parameter`
+5. choose `boolean` for a flag or `text` / `number` / `json` for broader config
+6. choose the right scope
+
+With the CLI:
+
+```bash
+nona entries set \
+  --project storefront \
+  --environment production \
+  --key Features:Checkout \
+  --value true \
+  --scope client \
+  --content-type boolean
+
+nona entries set \
+  --project storefront \
+  --environment production \
+  --key Checkout:MaxItems \
+  --value 50 \
+  --scope server \
+  --content-type number
+```
+
 ## Why this model is useful
 
 You do not need one system for feature flags and another for runtime settings.
@@ -53,6 +84,15 @@ Instead, you get:
 - one audit trail
 - one rollback path
 - one client integration surface
+
+## A practical rule
+
+Ask this first:
+
+- if the answer is on/off, start with a feature flag
+- if the answer is a value, start with remote config
+
+That avoids over-modeling simple flags as JSON and avoids forcing every runtime value into a boolean-shaped workflow.
 
 ## When feature flags should stay simple
 
@@ -76,6 +116,17 @@ That is where Nona fits best today.
 | Numeric runtime threshold | Remote config |
 | Structured application settings | Remote config |
 | One unified system for both | Nona |
+
+## What to do first
+
+If you are still deciding where to begin:
+
+1. create one kill switch as a boolean
+2. create one text or number setting
+3. read both from the app
+4. edit both once in admin
+
+That gives you the clearest real-world feel for the difference.
 
 ## Related docs
 

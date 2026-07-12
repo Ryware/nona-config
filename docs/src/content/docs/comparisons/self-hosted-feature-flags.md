@@ -36,6 +36,27 @@ That means:
 - you manage the surrounding infrastructure
 - your applications read flags from your Nona instance
 
+## Fastest self-hosted path
+
+The shortest deployment path is one container:
+
+```bash
+docker run -d \
+  --name nona \
+  --restart unless-stopped \
+  -p 18080:8080 \
+  -v nona-data:/var/lib/nona \
+  rywaredev/nona:latest
+```
+
+Then:
+
+1. open `/register`
+2. create a project
+3. add a boolean flag
+4. create an API key
+5. verify one read from the app or `curl`
+
 ## Flag model
 
 In Nona, a flag is usually a config entry with:
@@ -51,6 +72,18 @@ That model supports:
 - mobile flags
 - backend flags
 
+## Why this matters operationally
+
+Self-hosted flags are only useful if the runtime path stays simple.
+
+Nona keeps that path small:
+
+- one Docker image
+- one persistent data directory
+- one admin UI
+- one HTTP API
+- one model for flags and broader runtime config
+
 ## Why this model is practical
 
 Many teams do not need a large experimentation platform to get value from feature flags.
@@ -64,6 +97,17 @@ They need:
 - a deployment model they control
 
 That is where Nona fits best.
+
+## Good fit checklist
+
+Nona is a strong fit for self-hosted feature flags when you want:
+
+- infrastructure control
+- Docker-first deployment
+- kill switches
+- scoped frontend and backend reads
+- history and rollback
+- OpenFeature support without a hosted flag control plane
 
 ## Related docs
 

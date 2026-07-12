@@ -39,6 +39,27 @@ Nona gives you:
 - scopes for client and server reads
 - history and rollback
 
+## How to try it quickly
+
+The fastest real test is:
+
+1. run the Docker image
+2. create one text or number setting
+3. create one API key
+4. read the value over [HTTP](/docs/clients/http/)
+
+For example:
+
+```bash
+nona entries set \
+  --project storefront \
+  --environment production \
+  --key App:BannerText \
+  --value "Free shipping this week" \
+  --scope client \
+  --content-type text
+```
+
 ## Remote config and feature flags together
 
 Nona is not only a remote config system.
@@ -51,6 +72,17 @@ It also supports feature flags through the same model:
 
 That is useful when a team wants one operational surface instead of separate tools for flags and configuration.
 
+## Good fit checklist
+
+Nona is a strong fit if you want:
+
+- open source remote config
+- self-hosted deployment
+- runtime values for web, mobile, and backend apps
+- plain HTTP access
+- feature flags in the same product
+- a smaller model than a larger hosted platform
+
 ## Where Nona fits best
 
 Nona is strongest when you want:
@@ -60,6 +92,15 @@ Nona is strongest when you want:
 - plain HTTP access from any language
 - server-side remote config as well as frontend/mobile reads
 - a migration path away from Firebase Remote Config
+
+## Practical examples
+
+Good first Nona remote-config values:
+
+- `App:BannerText`
+- `App:MinimumSupportedVersion`
+- `Limits:MaxItems`
+- `App:Settings`
 
 ## What to read next
 

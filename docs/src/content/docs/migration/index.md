@@ -35,6 +35,16 @@ The migration docs help you reason about:
 - how boolean flags remain feature flags after import
 - how to validate the result before cutover
 
+## First command to run
+
+If you are already at the evaluation stage, start with:
+
+```bash
+nona migrate firebase --config ./nona.migration.json --dry-run
+```
+
+Then continue with [Migration validation](/docs/migration/validation/) before production cutover.
+
 ## Migration mindset
 
 The safest way to approach migration is:
@@ -50,6 +60,16 @@ The safest way to approach migration is:
 1. [Migrate from Firebase Remote Config](/docs/migration/firebase-remote-config/)
 2. [Firebase concept mapping](/docs/migration/firebase-concept-mapping/)
 3. [Migration validation](/docs/migration/validation/)
+
+## Recommended migration sequence
+
+1. map the Firebase concepts into Nona's model
+2. prepare the migration config file
+3. run a dry run
+4. apply the migration
+5. validate the imported environments and keys
+
+That keeps migration as an operator workflow instead of an ad hoc manual rewrite.
 
 ## Start here
 

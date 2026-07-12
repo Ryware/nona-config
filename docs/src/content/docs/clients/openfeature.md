@@ -13,6 +13,18 @@ Use OpenFeature when you want:
 
 OpenFeature is especially useful when your team thinks in feature flags first but still wants access to the same underlying Nona values and scopes.
 
+## What to set up first
+
+Before wiring OpenFeature into the app:
+
+1. open `Projects`
+2. open the project
+3. select the target environment
+4. create a boolean parameter such as `Features:Checkout`
+5. create an API key with the right scope
+
+That gives the provider one real flag to resolve before you expand into broader usage.
+
 ## Why use OpenFeature with Nona
 
 Nona already works through plain HTTP and official clients. OpenFeature adds a different benefit:
@@ -40,6 +52,20 @@ That maps cleanly to common OpenFeature value patterns:
 - object values
 
 In practice, most teams start with boolean flags such as `Features:Checkout`, then add more typed values as needed.
+
+## Why this pairing works
+
+OpenFeature gives you the application-side abstraction.
+
+Nona still provides the operational model underneath:
+
+- projects
+- environments
+- scopes
+- API keys
+- history and rollback
+
+That means you can keep a vendor-neutral read API without giving up a practical self-hosted operations model.
 
 ## JavaScript
 
@@ -129,6 +155,16 @@ Use the direct Nona client when:
 - you want the smallest dependency surface
 - the app already uses Nona-specific reads directly
 - you need typed Nona value access without the OpenFeature abstraction
+
+## Good first rollout
+
+A practical adoption path is:
+
+1. resolve one boolean flag through OpenFeature
+2. confirm the value changes when you edit it in Nona
+3. add more flags only after the first path is working
+
+That keeps the OpenFeature adoption grounded in one real runtime path.
 
 ## Related docs
 

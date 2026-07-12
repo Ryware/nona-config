@@ -33,6 +33,21 @@ That means you need to think about:
 
 For most teams, standalone is the right starting point.
 
+## Recommended first deployment
+
+If you are deploying Nona for the first time, start with one container:
+
+```bash
+docker run -d \
+  --name nona \
+  --restart unless-stopped \
+  -p 18080:8080 \
+  -v nona-data:/var/lib/nona \
+  rywaredev/nona:latest
+```
+
+Only move to the replica topology if you already know you need it.
+
 ## How to choose
 
 Choose [Standalone production](/docs/deployment/standalone/) when:
@@ -53,6 +68,16 @@ Choose [Primary/replica production](/docs/deployment/primary-replica/) when:
 If you are unsure, start with [Standalone production](/docs/deployment/standalone/).
 
 It is simpler to operate and usually the correct first production topology unless you already know that a replica model is necessary.
+
+## After deployment
+
+Once the instance is live:
+
+1. create the first admin account
+2. create a project and environments
+3. create one parameter and API key
+4. validate a real read path
+5. set up backups before relying on the instance operationally
 
 ## Related operations docs
 

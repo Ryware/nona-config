@@ -44,6 +44,28 @@ That means you can use Nona for:
 - kill switches
 - environment-specific enablement
 
+## How to try it quickly
+
+In admin:
+
+1. open `Projects`
+2. create or open the project
+3. create `staging` and `production`
+4. add a boolean parameter such as `Features:Checkout`
+5. create an API key
+
+With the CLI:
+
+```bash
+nona entries set \
+  --project storefront \
+  --environment production \
+  --key Features:Checkout \
+  --value true \
+  --scope client \
+  --content-type boolean
+```
+
 ## Why this model works
 
 Nona keeps feature flags inside the same system as runtime configuration.
@@ -57,6 +79,17 @@ That gives you:
 - one deployment surface
 
 For many teams, that is more valuable than a bigger but more complex flag platform.
+
+## Good fit checklist
+
+Nona is a strong fit if you want:
+
+- open source feature flags
+- self-hosted deployment
+- simple kill switches
+- client/server separation through scope
+- OpenFeature compatibility
+- one system for flags and broader runtime config
 
 ## Open source and self-hosted
 
@@ -95,6 +128,14 @@ The current repo points to a simpler and more focused model:
 - migration tooling
 
 That is often exactly what teams want when they search for open source feature flags. They want control and simplicity, not more platform sprawl.
+
+## Next practical step
+
+If this is the page that matches your search intent, continue with:
+
+1. [Get started](/docs/get-started/)
+2. [Kill switches](/docs/feature-flags/kill-switches/)
+3. [OpenFeature](/docs/clients/openfeature/)
 
 ## Related docs
 

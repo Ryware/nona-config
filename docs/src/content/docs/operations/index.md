@@ -19,6 +19,18 @@ This section covers the core operational topics that sit next to deployment:
 - [Backups](/docs/operations/backups/)
 - [Upgrades](/docs/operations/upgrades/)
 
+## Typical operator tasks
+
+Once Nona is live, the usual operational work is:
+
+1. secure admin access
+2. manage users and project access
+3. back up `/var/lib/nona`
+4. review audit history after sensitive changes
+5. upgrade the container without losing persistent data
+
+That is the sequence this section is designed to support.
+
 ## When to read this section
 
 Use these docs when:
@@ -27,6 +39,14 @@ Use these docs when:
 - multiple teams or users will operate the service
 - you are planning maintenance work
 - you want a safer self-hosted operating model
+
+## Start here
+
+If you are setting up a real production instance, begin with:
+
+1. [Security and authentication](/docs/operations/security-and-authentication/)
+2. [Backups](/docs/operations/backups/)
+3. [Upgrades](/docs/operations/upgrades/)
 
 ## Related docs
 

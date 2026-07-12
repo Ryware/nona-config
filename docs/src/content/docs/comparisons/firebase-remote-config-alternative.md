@@ -37,6 +37,18 @@ Usually one or more of these:
 | Feature flags | Part of the broader remote-config workflow | First-class use case through boolean entries and OpenFeature |
 | Migration path | N/A | Built-in CLI migration |
 
+## Decision shortcuts
+
+Nona is usually the better fit when you want:
+
+- one Docker-deployable service you run yourself
+- feature flags and remote config in the same self-hosted system
+- plain HTTP reads from any language
+- backend-friendly runtime config, not only mobile-SDK-centric flows
+- a Firebase exit path with migration tooling
+
+Firebase Remote Config is still the more natural fit when your team wants to stay deeply inside the broader Firebase and Google-hosted model.
+
 ## Where Nona fits best
 
 Nona is strongest when your team wants:
@@ -56,6 +68,17 @@ Nona is a good fit for:
 - backend services
 - teams moving off Firebase
 - teams that want simpler infrastructure than a large hosted feature-flag platform
+
+## How to try Nona first
+
+The fastest evaluation path is:
+
+1. run the Docker image
+2. create one project and environment
+3. create one boolean flag and one non-boolean value
+4. read them over HTTP
+
+If that works, you have already validated the core replacement path.
 
 ## What Nona emphasizes
 
@@ -77,6 +100,18 @@ That changes how you think about the product:
 - Nona is designed around your own deployment and your own infrastructure.
 - Firebase pushes you toward its SDK and console model.
 - Nona lets you use plain HTTP, official clients, the CLI, or OpenFeature.
+
+## Example mapping
+
+A practical Nona project after migration might look like:
+
+- project: `mobile-app`
+- environments: `staging`, `production`
+- `Features:Checkout` as `boolean`
+- `App:BannerText` as `text`
+- `App:Settings` as `json`
+
+That is the shape to compare against your current Firebase usage, not just a one-to-one UI comparison.
 
 ## Remote config and feature flags in one system
 
@@ -106,6 +141,16 @@ It is better described as:
 - strong on core runtime config and feature flags
 
 The current repo does not present Nona as a full experimentation, personalization, or analytics-targeting platform. That is an important product distinction.
+
+## Migration first step
+
+If you are evaluating migration seriously, start with a dry run:
+
+```bash
+nona migrate firebase --config ./nona.migration.json --dry-run
+```
+
+Then continue with [Migration validation](/docs/migration/validation/) before production cutover.
 
 ## Migration path
 

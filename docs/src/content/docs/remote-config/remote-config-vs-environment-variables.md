@@ -40,6 +40,22 @@ Use remote config for things like:
 - JSON settings
 - runtime behavior that may change after deploy
 
+## A good Nona split
+
+Keep these in environment variables:
+
+- `NONA_API_KEY` in the consuming app
+- database or infrastructure connection strings
+- deployment-specific hostnames
+- secret material
+
+Keep these in Nona:
+
+- `Features:Checkout`
+- `App:BannerText`
+- `Limits:MaxItems`
+- `App:Settings`
+
 ## Why teams outgrow env vars for runtime behavior
 
 Environment variables become awkward when:
@@ -52,6 +68,16 @@ Environment variables become awkward when:
 
 At that point, remote config is usually the cleaner model.
 
+## How this works in practice
+
+A common production pattern is:
+
+1. the app gets its Nona API key from environment variables or a secret manager
+2. the app reads runtime values from Nona
+3. operators change runtime values in Nona without redeploying the app
+
+That means environment variables and remote config are complementary, not competing systems.
+
 ## Nona-specific advantage
 
 Nona gives you a runtime configuration system you host yourself, with:
@@ -62,5 +88,21 @@ Nona gives you a runtime configuration system you host yourself, with:
 - history and rollback
 
 That means Nona can sit beside your deployment-time configuration instead of trying to replace it entirely.
+
+## First implementation step
+
+Keep the application wiring in env vars, then move one runtime value into Nona:
+
+```bash
+nona entries set \
+  --project storefront \
+  --environment production \
+  --key App:BannerText \
+  --value "Free shipping this week" \
+  --scope client \
+  --content-type text
+```
+
+Then read that value from the app through [HTTP](/docs/clients/http/) or an official client.
 
 For first implementation steps, go to [Get started](/docs/get-started/).

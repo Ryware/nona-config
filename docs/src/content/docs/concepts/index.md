@@ -1,6 +1,6 @@
 ---
 title: Core concepts
-description: Understand the Nona model: projects, environments, typed config entries, scopes, API keys, rollback, audit logs, and team access.
+description: "Understand the Nona model: projects, environments, typed config entries, scopes, API keys, rollback, audit logs, and team access."
 ---
 
 Nona stays understandable by using a small set of core concepts.
