@@ -63,3 +63,67 @@ jobs:
           name: docs-html
           path: docs/artifacts/docs-html.zip
           if-no-files-found: error
+
+  deploy:
+    name: Deploy docs to Vercel
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false
+
+    defaults:
+      run:
+        working-directory: docs
+
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel preview settings
+        if: github.event_name == 'pull_request' || github.ref_name != 'master'
+        run: vercel pull --yes --environment=preview
+
+      - name: Build Vercel preview deployment
+        if: github.event_name == 'pull_request' || github.ref_name != 'master'
+        run: vercel build
+
+      - name: Deploy preview to Vercel
+        if: github.event_name == 'pull_request' || github.ref_name != 'master'
+        id: deploy-preview
+        run: |
+          deployment_url="$(vercel deploy --prebuilt --archive=tgz)"
+          echo "deployment_url=$deployment_url" >> "$GITHUB_OUTPUT"
+          echo "Preview deployment: $deployment_url" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Pull Vercel production settings
+        if: github.event_name != 'pull_request' && github.ref_name == 'master'
+        run: vercel pull --yes --environment=production
+
+      - name: Build Vercel production deployment
+        if: github.event_name != 'pull_request' && github.ref_name == 'master'
+        run: vercel build --prod
+
+      - name: Deploy production to Vercel
+        if: github.event_name != 'pull_request' && github.ref_name == 'master'
+        id: deploy-production
+        run: |
+          deployment_url="$(vercel deploy --prebuilt --archive=tgz --prod)"
+          echo "deployment_url=$deployment_url" >> "$GITHUB_OUTPUT"
+          echo "Production deployment: $deployment_url" >> "$GITHUB_STEP_SUMMARY"
