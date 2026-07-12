@@ -22,9 +22,6 @@ export default defineConfig({
 					label: 'Overview',
 					items: [
 						{ label: 'Why Nona', slug: 'why-nona' },
-						{ label: 'Open source feature flags', slug: 'comparisons/open-source-feature-flags' },
-						{ label: 'Open source remote config', slug: 'comparisons/open-source-remote-config' },
-						{ label: 'Firebase Remote Config alternative', slug: 'comparisons/firebase-remote-config-alternative' },
 					],
 				},
 				{
@@ -48,9 +45,6 @@ export default defineConfig({
 						{ label: 'Kill switches', slug: 'feature-flags/kill-switches' },
 						{ label: 'Feature flags for mobile apps', slug: 'feature-flags/mobile-app-feature-flags' },
 						{ label: 'Feature flags for backend services', slug: 'feature-flags/backend-feature-flags' },
-						{ label: 'Open source feature flags', slug: 'comparisons/open-source-feature-flags' },
-						{ label: 'Self-hosted feature flags', slug: 'comparisons/self-hosted-feature-flags' },
-						{ label: 'OpenFeature with Nona', slug: 'clients/openfeature' },
 					],
 				},
 				{
@@ -58,13 +52,10 @@ export default defineConfig({
 					items: [
 						{ label: 'Overview', slug: 'remote-config' },
 						{ label: 'What is remote config?', slug: 'remote-config/what-is-remote-config' },
-						{ label: 'Remote config vs feature flags', slug: 'feature-flags/feature-flags-vs-remote-config' },
 						{ label: 'Remote config vs environment variables', slug: 'remote-config/remote-config-vs-environment-variables' },
 						{ label: 'Remote config for mobile apps', slug: 'remote-config/mobile-app-remote-config' },
 						{ label: 'Remote config use cases', slug: 'remote-config/use-cases' },
 						{ label: 'Server-side remote config', slug: 'remote-config/server-side-remote-config' },
-						{ label: 'Open source remote config', slug: 'comparisons/open-source-remote-config' },
-						{ label: 'Firebase Remote Config alternative', slug: 'comparisons/firebase-remote-config-alternative' },
 					],
 				},
 				{
@@ -109,6 +100,15 @@ export default defineConfig({
 						{ label: 'Overview', slug: 'deployment' },
 						{ label: 'Standalone production', slug: 'deployment/standalone' },
 						{ label: 'Primary/replica production', slug: 'deployment/primary-replica' },
+					],
+				},
+				{
+					label: 'Comparisons',
+					items: [
+						{ label: 'Open source feature flags', slug: 'comparisons/open-source-feature-flags' },
+						{ label: 'Self-hosted feature flags', slug: 'comparisons/self-hosted-feature-flags' },
+						{ label: 'Open source remote config', slug: 'comparisons/open-source-remote-config' },
+						{ label: 'Firebase Remote Config alternative', slug: 'comparisons/firebase-remote-config-alternative' },
 					],
 				},
 				{
