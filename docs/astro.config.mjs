@@ -19,17 +19,6 @@ export default defineConfig({
 			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/Ryware/nona-config' }],
 			sidebar: [
 				{
-					label: 'Overview',
-					items: [
-						{ label: 'Remote config', slug: 'remote-config' },
-						{ label: 'What is remote config?', slug: 'remote-config/what-is-remote-config' },
-						{ label: 'Remote config vs feature flags', slug: 'remote-config/remote-config-vs-feature-flags' },
-						{ label: 'Remote config vs environment variables', slug: 'remote-config/remote-config-vs-environment-variables' },
-						{ label: 'Remote config use cases', slug: 'remote-config/use-cases' },
-						{ label: 'Firebase Remote Config alternative', slug: 'comparisons/firebase-remote-config-alternative' },
-					],
-				},
-				{
 					label: 'Get Started',
 					items: [
 						{ label: 'Overview', slug: 'get-started' },
@@ -39,6 +28,16 @@ export default defineConfig({
 						{ label: 'Create an API key', slug: 'get-started/api-keys' },
 						{ label: 'Fetch your first config value', slug: 'get-started/first-api-call' },
 						{ label: 'Add a kill switch', slug: 'get-started/kill-switch' },
+					],
+				},
+				{
+					label: 'Remote Config',
+					items: [
+						{ label: 'What is remote config?', slug: 'remote-config/what-is-remote-config' },
+						{ label: 'Remote config vs feature flags', slug: 'remote-config/remote-config-vs-feature-flags' },
+						{ label: 'Remote config vs environment variables', slug: 'remote-config/remote-config-vs-environment-variables' },
+						{ label: 'Remote config use cases', slug: 'remote-config/use-cases' },
+						{ label: 'Firebase Remote Config alternative', slug: 'comparisons/firebase-remote-config-alternative' },
 					],
 				},
 				{
