@@ -111,3 +111,25 @@ For risky features, also confirm the `false` path works before release day.
 - [Kill switches](/docs/feature-flags/kill-switches/)
 - [JavaScript client](/docs/clients/javascript/)
 - [Client vs server scope](/docs/concepts/client-vs-server-scope/)
+
+## FAQ
+
+### Why do mobile apps benefit so much from feature flags?
+
+Because mobile release cycles are slower than web deploys, and flags let teams change behavior without waiting for another store release.
+
+### Should mobile flags use `client` scope?
+
+Usually yes for values the app reads directly.
+
+Keep sensitive decisions on the server when possible.
+
+### What is a good first mobile feature flag?
+
+A flag such as `Features:UseNewOnboarding` or `Features:Checkout` is usually a good first test because the behavior is easy to see.
+
+### Can mobile feature flags also work as kill switches?
+
+Yes.
+
+That is one of the strongest uses of flags in mobile applications.

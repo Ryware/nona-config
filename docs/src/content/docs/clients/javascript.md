@@ -226,3 +226,35 @@ const enabled = await client.getBooleanValue("Features:Checkout", false);
 ```
 
 If your team thinks in terms of feature flags more than direct config reads, see [OpenFeature](/docs/clients/openfeature/).
+
+## Step-by-step JavaScript client summary
+
+Use this sequence for the fastest JavaScript integration:
+
+1. install `nona-client`
+2. create one parameter and API key
+3. configure `baseUrl`, `environmentId`, and `apiKey`
+4. read one value with `getConfigValue()` or a typed helper
+5. verify the value changes when you edit it in Nona
+
+## JavaScript client FAQ
+
+### When should I use the JavaScript client instead of raw HTTP?
+
+Use the JavaScript client when you want a direct client API, optional TTL cache behavior, and less manual request handling than raw HTTP.
+
+### Should I read feature flags as strings?
+
+Usually no.
+
+For real flags, it is better to read the config value and inspect `contentType` so the application stays aligned with Nona's logical type model.
+
+### Is caching required?
+
+No.
+
+The JavaScript client cache is optional and disabled by default. Only enable it when repeated reads justify it.
+
+### When should I move to OpenFeature?
+
+Move to OpenFeature when the app becomes more flag-oriented and you want a vendor-neutral interface instead of direct Nona-specific reads.

@@ -139,3 +139,23 @@ If that flow feels right, the rest of the product model will probably fit too.
 - [Remote config](/docs/remote-config/)
 - [OpenFeature](/docs/clients/openfeature/)
 - [Migrate from Firebase Remote Config](/docs/migration/firebase-remote-config/)
+
+## FAQ
+
+### Why do teams choose Nona instead of a hosted control plane?
+
+Usually because they want runtime control, self-hosting, open source visibility, and a smaller product model that they can operate directly.
+
+### Is Nona only for remote config?
+
+No.
+
+Nona supports feature flags and broader remote config in the same system.
+
+### What is the fastest way to evaluate Nona?
+
+Run the Docker image, create one project, add one boolean flag and one text value, then read them over HTTP.
+
+### What kind of team is Nona best for?
+
+Teams that want self-hosted feature flags and remote config, plain HTTP access, and a Docker-first operating model are usually a strong fit.

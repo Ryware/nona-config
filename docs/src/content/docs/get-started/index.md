@@ -84,3 +84,23 @@ nona projects create --name storefront
 nona entries set --project storefront --environment production --key Features:Checkout --value true --scope client --content-type boolean
 nona keys create --project storefront --name "Web app" --scope client --environment production
 ```
+
+## FAQ
+
+### What is the shortest path to a working Nona setup?
+
+Deploy the container, create one project, add one boolean parameter, create one API key, and verify one read.
+
+### Do I need to understand the whole product before starting?
+
+No.
+
+The get-started path is designed to teach the core model while you are using it.
+
+### Should I start with feature flags or remote config first?
+
+Either is fine, but many teams start with one boolean flag because it is the easiest thing to verify quickly.
+
+### What should I read after the first successful setup?
+
+Most teams continue into feature flags, remote config, migration, or deployment depending on what they are trying to do next.

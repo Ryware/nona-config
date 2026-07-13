@@ -64,3 +64,29 @@ They shape everything else in the product:
 - [Get started](/docs/get-started/)
 - [Feature flags](/docs/feature-flags/)
 - [Remote config](/docs/remote-config/)
+
+## FAQ
+
+### What is the most important Nona concept to understand first?
+
+Start with the project, environment, entry, scope, and API key model.
+
+Once those are clear, the rest of the product becomes much easier to reason about.
+
+### Are these concepts only for remote config?
+
+No.
+
+They support both major Nona use cases: feature flags and broader remote config.
+
+### Why does Nona emphasize a small core model?
+
+Because a smaller model is easier to operate, document, and reason about in production.
+
+That is part of the product position, not an accident.
+
+### What should I do if the concepts still feel abstract?
+
+Run through one real setup flow with a project, two environments, one flag, one text value, and one API key.
+
+That usually makes the terminology concrete very quickly.

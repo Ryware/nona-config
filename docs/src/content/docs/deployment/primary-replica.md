@@ -132,6 +132,41 @@ docker compose -f deploy/compose/primary-replica-prod.yml logs -f nona-primary n
 docker compose -f deploy/compose/primary-replica-prod.yml down
 ```
 
+## Step-by-step primary/replica summary
+
+Use this sequence for the normal primary/replica deployment path:
+
+1. start the compose topology
+2. confirm the primary and replica services are both running
+3. keep persistent data for both services
+4. pin the same JWT settings on both services if you pin them at all
+5. use the primary for admin and write workflows
+6. validate that replica reads behave as expected with eventual consistency
+
+## FAQ
+
+### Should I use primary/replica just because it sounds more production-like?
+
+No.
+
+For many teams, standalone is still the better production choice.
+
+### What is the biggest tradeoff in primary/replica mode?
+
+Eventual consistency on the replica read path.
+
+Writes on the primary may not be visible on the replica immediately.
+
+### Should admin and write traffic go to the replica?
+
+No.
+
+Admin and write workflows should stay on the primary.
+
+### What should I validate after bringing up this topology?
+
+Validate the primary admin and write path, the replica read path, the expected ports, and the replication relationship.
+
 ## Related docs
 
 - [Deployment overview](/docs/deployment/)

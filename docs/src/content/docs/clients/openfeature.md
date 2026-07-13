@@ -178,3 +178,36 @@ That keeps the OpenFeature adoption grounded in one real runtime path.
 
 - JavaScript OpenFeature usage is included in [JavaScript client](/docs/clients/javascript/)
 - .NET OpenFeature usage is included in [.NET client](/docs/clients/dotnet/)
+
+## Step-by-step OpenFeature summary
+
+Use this sequence for the fastest OpenFeature integration:
+
+1. create one boolean parameter
+2. create one API key with the correct scope
+3. install the Nona provider package for your runtime
+4. register the provider
+5. resolve one boolean flag through OpenFeature
+6. confirm the flag changes when you edit it in Nona
+
+## OpenFeature FAQ
+
+### When is OpenFeature a better fit than the direct client?
+
+OpenFeature is a better fit when your team already uses OpenFeature or wants a vendor-neutral feature-flag interface instead of direct Nona-specific reads.
+
+### Does OpenFeature replace Nona's operational model?
+
+No.
+
+OpenFeature only changes the application-side interface. Nona still provides the projects, environments, scopes, API keys, and history underneath.
+
+### Should I start with OpenFeature immediately?
+
+Usually only if your team already thinks in OpenFeature terms.
+
+Otherwise, many teams start with the direct client or raw HTTP first, then add OpenFeature once the basic read path is proven.
+
+### What is the best first OpenFeature test?
+
+Resolve one boolean flag such as `Features:Checkout` and verify that the application sees the value change after you edit it in Nona.

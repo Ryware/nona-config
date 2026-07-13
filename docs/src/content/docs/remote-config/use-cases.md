@@ -95,3 +95,23 @@ That same sequence works whether you are building a kill switch, a mobile settin
 - [Client vs server scope](/docs/concepts/client-vs-server-scope/)
 
 For a concrete walkthrough, continue with [Get started](/docs/get-started/).
+
+## FAQ
+
+### What are the most common Nona remote-config use cases?
+
+Kill switches, mobile app settings, backend thresholds, environment-specific values, and structured JSON settings are some of the most common.
+
+### Can Nona handle both feature flags and broader settings?
+
+Yes.
+
+That is one of the product’s main strengths: one system for boolean flags and non-boolean runtime values.
+
+### What is the best first use case to implement?
+
+A simple kill switch or one runtime text value is usually the easiest first use case to validate.
+
+### Why do these use cases matter for docs SEO?
+
+Because they map the product model to concrete operator and developer problems instead of only describing the tool abstractly.

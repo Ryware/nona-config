@@ -84,6 +84,32 @@ A typical production workflow looks like this:
 4. keep backend-only values behind `server`
 5. test a real read before shipping the key to the app
 
+## FAQ
+
+### Does an API key belong to one project?
+
+Yes.
+
+An API key is bound to one project and can also be narrowed by environment and scope.
+
+### Should I create one key per app or service?
+
+Usually yes.
+
+Separate runtimes should usually get separate keys so access stays narrower and easier to reason about.
+
+### Should frontend keys use `client` scope?
+
+Yes, in most cases.
+
+Frontend and mobile apps should usually use `client` scope unless there is a real need for broader access.
+
+### What is the most common API key mistake?
+
+Using keys that are broader than they need to be.
+
+That increases blast radius and makes accidental exposure harder to contain.
+
 ## Related docs
 
 - [Create an API key](/docs/get-started/api-keys/)
