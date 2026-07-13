@@ -27,14 +27,7 @@ Common reasons:
 
 ## What self-hosting looks like with Nona
 
-Nona runs as a self-hosted service that your team deploys and operates.
-
-That means:
-
-- you decide where it runs
-- you control upgrade timing
-- you manage the surrounding infrastructure
-- your applications read flags from your Nona instance
+Nona runs as a self-hosted service that your team deploys and operates, which means you decide where it runs, control upgrade timing, manage the surrounding infrastructure, and point applications at your own Nona instance.
 
 ## Fastest self-hosted path
 
@@ -72,42 +65,9 @@ That model supports:
 - mobile flags
 - backend flags
 
-## Why this matters operationally
-
-Self-hosted flags are only useful if the runtime path stays simple.
-
-Nona keeps that path small:
-
-- one Docker image
-- one persistent data directory
-- one admin UI
-- one HTTP API
-- one model for flags and broader runtime config
-
 ## Why this model is practical
 
-Many teams do not need a large experimentation platform to get value from feature flags.
-
-They need:
-
-- reliable on/off switches
-- narrow read scopes
-- operational rollback
-- auditability
-- a deployment model they control
-
-That is where Nona fits best.
-
-## Good fit checklist
-
-Nona is a strong fit for self-hosted feature flags when you want:
-
-- infrastructure control
-- Docker-first deployment
-- kill switches
-- scoped frontend and backend reads
-- history and rollback
-- OpenFeature support without a hosted flag control plane
+Self-hosted flags are only useful if the runtime path stays simple. Nona keeps that path small with one Docker image, one persistent data directory, one admin UI, one HTTP API, and one model for flags plus broader runtime config. For many teams, that is enough: reliable on/off switches, narrow read scopes, rollback, auditability, and a deployment model they control.
 
 ## FAQ
 

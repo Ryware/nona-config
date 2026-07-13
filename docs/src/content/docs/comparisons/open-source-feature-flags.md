@@ -3,9 +3,7 @@ title: Open Source Feature Flags
 description: Use Nona for open source, self-hosted feature flags with kill switches, scoped reads, OpenFeature support, and Docker-first deployment.
 ---
 
-If you are looking for open source feature flags, the core requirement is usually not just "can this toggle a boolean?"
-
-It is more often:
+If you are looking for open source feature flags, the core requirement is usually not just "can this toggle a boolean?" It is more often:
 
 - can we run it ourselves?
 - can we avoid SaaS lock-in?
@@ -17,13 +15,7 @@ Nona is built for that class of problem.
 
 ## Why teams look for open source feature flags
 
-Common reasons:
-
-- they want to self-host
-- they want control over infrastructure and data
-- they want a simpler deployment model
-- they want feature flags and remote config in one system
-- they want to avoid coupling application logic to a hosted platform
+Common reasons are self-hosting, control over infrastructure and data, a simpler deployment model, keeping feature flags and remote config in one system, and avoiding tight coupling to a hosted platform.
 
 ## What Nona provides
 
@@ -80,40 +72,13 @@ That gives you:
 
 For many teams, that is more valuable than a bigger but more complex flag platform.
 
-## Good fit checklist
-
-Nona is a strong fit if you want:
-
-- open source feature flags
-- self-hosted deployment
-- simple kill switches
-- client/server separation through scope
-- OpenFeature compatibility
-- one system for flags and broader runtime config
-
 ## Open source and self-hosted
 
-Nona is:
-
-- open source
-- self-hosted
-- Docker-first
-- accessible through plain HTTP
-- usable with official JavaScript and .NET clients
-- integrated with OpenFeature
-
-That makes it a strong fit for teams that want self-hosted feature flags without committing to a large proprietary control plane.
+Nona is open source, self-hosted, Docker-first, accessible through plain HTTP, usable with official JavaScript and .NET clients, and integrated with OpenFeature. That makes it a strong fit for teams that want self-hosted feature flags without committing to a large proprietary control plane.
 
 ## Where Nona fits best
 
-Nona is strongest when your team wants:
-
-- reliable boolean flags
-- kill switches
-- simple rollout control
-- backend and frontend separation through scope
-- OpenFeature compatibility
-- feature flags and remote config in the same product
+Nona is strongest when your team wants reliable boolean flags, kill switches, simple rollout control, backend and frontend separation through scope, OpenFeature compatibility, and feature flags with remote config in the same product.
 
 ## What Nona is not trying to be
 

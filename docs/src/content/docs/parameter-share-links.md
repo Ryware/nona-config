@@ -7,8 +7,6 @@ Parameter share links give a time-limited link to one config entry. A link can b
 
 Use them when a teammate needs temporary access to one parameter without granting project access.
 
-This is one of Nona's more distinctive collaboration features because it gives a narrow, temporary way to share a single value instead of broad project-level access.
-
 ## Create a link in the admin UI
 
 1. Open a project.
@@ -27,12 +25,7 @@ Supported expirations:
 
 Choose the shortest lifetime that still fits the task. In most cases, short-lived links are safer than leaving long-running access around.
 
-The admin dialog also lets you:
-
-- generate a new link
-- copy the generated URL
-- review existing links for that parameter
-- revoke an active link
+The admin dialog also lets you generate a new link, copy the generated URL, review existing links for that parameter, and revoke an active link.
 
 ## Create a link with the CLI
 
@@ -103,13 +96,7 @@ Parameter share links are useful when:
 
 ## Good operating pattern
 
-Use share links when the access need is:
-
-- narrow
-- temporary
-- tied to one parameter
-
-Use normal user or project access when the person needs ongoing access to a broader part of the system.
+Use share links when the access need is narrow, temporary, and tied to one parameter. Use normal user or project access when the person needs ongoing access to a broader part of the system.
 
 ## HTTP endpoints
 

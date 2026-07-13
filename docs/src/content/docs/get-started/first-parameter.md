@@ -42,14 +42,7 @@ Scope is one of the most important Nona decisions because it affects what kind o
 
 ## Good first parameter choices
 
-If you want the simplest possible first test, start with one of these:
-
-- `Features:Checkout` = `true` with content type `boolean`
-- `App:BannerText` = `Hello` with content type `text`
-
-If your app is frontend-facing, `client` is usually the easiest first scope.
-
-If the value should only exist on the server, use `server` from the start instead of widening it later.
+For the simplest first test, start with `Features:Checkout = true` as a `boolean` or `App:BannerText = Hello` as `text`. If your app is frontend-facing, `client` is usually the easiest first scope. If the value should stay backend-only, use `server` from the start.
 
 ## In admin
 
@@ -95,19 +88,6 @@ If you already saved the project with `nona config set project storefront`, you 
 - putting unrelated settings into one large JSON blob too early
 
 Keep the first parameter small and easy to verify. You can expand the shape later once the read path is working.
-
-## Step-by-step parameter summary
-
-Use this sequence for the fastest first parameter:
-
-1. open the target project
-2. choose the target environment
-3. click `Add Parameter`
-4. enter a key such as `Features:Checkout`
-5. choose `boolean`
-6. choose the narrowest correct scope
-7. save the value
-8. verify the entry appears in the table
 
 ## First parameter FAQ
 

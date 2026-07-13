@@ -129,13 +129,7 @@ internal partial class AppJsonContext : JsonSerializerContext
 }
 ```
 
-JSON works well when a backend service consumes a cluster of related settings together.
-
-Example Nona setup:
-
-- key: `App:Settings`
-- content type: `json`
-- scope: `server`
+JSON works well when a backend service consumes a cluster of related settings together. A typical Nona setup is `App:Settings` with content type `json` and scope `server`.
 
 ## Default cache
 
@@ -159,33 +153,15 @@ Use `AllowStaleCache` carefully. It can improve resilience and smooth over trans
 
 ## Basic troubleshooting
 
-If a .NET read fails:
-
-1. confirm the `EnvironmentId` matches the Nona environment name
-2. confirm the API key belongs to the same project as the entry
-3. confirm the key scope can read the entry scope
-4. try the same entry once with [HTTP](/docs/clients/http/) to separate transport issues from application code
+If a .NET read fails, confirm `EnvironmentId` matches the Nona environment name, the API key belongs to the same project as the entry, the key scope can read the entry scope, and the same entry works once over [HTTP](/docs/clients/http/).
 
 ## Good first backend flow
 
-A practical first integration looks like this:
-
-1. read one operational flag at startup or request time
-2. change it once in admin
-3. confirm the service sees the change
-4. tune `CacheTtl` only after the read path is working
-5. move to OpenFeature when the service becomes flag-oriented
+A practical first integration is to read one operational flag at startup or request time, change it once in admin, confirm the service sees the change, tune `CacheTtl` only after the read path is working, and move to OpenFeature once the service becomes flag-oriented.
 
 ## When to use the .NET client
 
-Use the .NET client when you want:
-
-- a direct Nona integration in C#
-- built-in cache behavior
-- typed JSON reads
-- a simpler path than building your own HTTP wrapper
-
-Use [HTTP](/docs/clients/http/) instead when you only need a minimal raw request path.
+Use the .NET client when you want a direct Nona integration in C#, built-in cache behavior, typed JSON reads, and a simpler path than building your own HTTP wrapper. Use [HTTP](/docs/clients/http/) instead when you only need a minimal raw request path.
 
 ## OpenFeature provider
 
@@ -216,16 +192,6 @@ var enabled = await featureClient.GetBooleanValueAsync("Features:Checkout", fals
 ```
 
 If your team wants a more flag-oriented, vendor-neutral integration surface, continue with [OpenFeature](/docs/clients/openfeature/).
-
-## Step-by-step .NET client summary
-
-Use this sequence for the fastest .NET integration:
-
-1. install `Nona.Client`
-2. create one parameter and API key
-3. configure `BaseAddress`, `EnvironmentId`, and `ApiKey`
-4. read one value with `GetConfigValueAsync()` or a typed helper
-5. verify the service sees a real value change from Nona
 
 ## .NET client FAQ
 

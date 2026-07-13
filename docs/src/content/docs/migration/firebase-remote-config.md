@@ -3,29 +3,11 @@ title: Migrate from Firebase Remote Config
 description: Use the Nona CLI to import Firebase Remote Config data into Nona with environment mapping, scope mapping, and dry runs.
 ---
 
-Nona includes a built-in Firebase migration command.
-
-Use it when you want to:
-
-- leave a hosted control plane
-- preserve existing parameter work
-- import values into projects and environments you run yourself
-
-This is one of Nona's most important product paths because moving off a hosted config platform is usually less about exporting data and more about preserving operational behavior.
+Nona includes a built-in Firebase migration command. Use it when you want to leave a hosted control plane, preserve existing parameter work, and import values into projects and environments you run yourself. Moving off a hosted config platform is usually less about exporting data and more about preserving operational behavior.
 
 ## What migration actually means here
 
-The migration is not only copying values.
-
-It also means translating Firebase concepts into the Nona model:
-
-- projects
-- environments
-- scopes
-- content types
-- feature flags as boolean entries
-
-That is why the migration flow matters even for teams that only use a small part of Firebase Remote Config today.
+The migration is not only copying values. It also means translating Firebase concepts into the Nona model: projects, environments, scopes, content types, and feature flags as boolean entries.
 
 ## What the migration handles
 
@@ -48,14 +30,7 @@ That gives you the safest first look at how Firebase data will land inside Nona.
 
 ## Why the dry run matters
 
-Use the dry run first.
-
-It helps you verify:
-
-- the target project name
-- the expected environments
-- how Firebase conditions map into Nona environments
-- whether conflicting keys need to be renamed or reviewed
+Use the dry run first. It helps you verify the target project name, the expected environments, how Firebase conditions map into Nona environments, and whether conflicting keys need to be renamed or reviewed.
 
 ## Practical migration sequence
 
@@ -71,14 +46,7 @@ That keeps migration as a controlled cutover instead of a blind import.
 
 ## What the target should look like
 
-A common post-migration target looks like:
-
-- one Nona project per application boundary
-- environments such as `staging` and `production`
-- boolean flags stored as `boolean`
-- broader settings stored as `text`, `number`, or `json`
-
-That is the shape to validate after the import finishes.
+A common post-migration target is one Nona project per application boundary, environments such as `staging` and `production`, boolean flags stored as `boolean`, and broader settings stored as `text`, `number`, or `json`.
 
 ## What to validate after import
 
@@ -102,25 +70,11 @@ Then continue immediately with [Migration validation](/docs/migration/validation
 
 ## Migration mindset
 
-Treat the migration as an application cutover task, not only a data import.
-
-The best migrations usually:
-
-- run a dry run first
-- review scope and environment mappings carefully
-- validate reads from a real app or test harness
-- promote production cutover only after the target behavior is confirmed
+Treat the migration as an application cutover task, not only a data import. The best migrations run a dry run first, review scope and environment mappings carefully, validate reads from a real app or test harness, and only then promote production cutover.
 
 ## What not to assume
 
-Do not assume that a technically successful import means the migration is done.
-
-The important questions are still:
-
-- did the values land in the right environments?
-- did boolean flags stay boolean?
-- did server-only values remain server-readable only?
-- can the real application still read what it expects?
+Do not assume that a technically successful import means the migration is done. The important questions are still whether values landed in the right environments, boolean flags stayed boolean, server-only values remained server-readable only, and the real application can still read what it expects.
 
 ## Detailed command docs
 

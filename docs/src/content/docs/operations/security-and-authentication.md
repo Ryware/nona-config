@@ -3,9 +3,7 @@ title: Security and authentication
 description: Secure a self-hosted Nona deployment with scoped API keys, pinned JWT settings, controlled share links, and SSO-backed admin access.
 ---
 
-Nona is self-hosted, so basic security and authentication decisions belong to your deployment process, not only to the application code.
-
-In practice, the security model has a few distinct layers:
+Nona is self-hosted, so basic security and authentication decisions belong to your deployment process, not only to the application code. In practice, the security model has a few distinct layers:
 
 - admin authentication for people
 - API-key authentication for config reads
@@ -14,13 +12,7 @@ In practice, the security model has a few distinct layers:
 
 ## First production steps
 
-For a real deployment, the first security checklist is:
-
-1. pin JWT settings if that is your operating model
-2. create individual user accounts instead of shared credentials
-3. create narrow API keys for each app or service
-4. keep project access limited to the teams that need it
-5. use short-lived share links when temporary access is enough
+For a real deployment, pin JWT settings if that is your operating model, create individual user accounts instead of shared credentials, create narrow API keys for each app or service, keep project access limited to the teams that need it, and use short-lived share links when temporary access is enough.
 
 ## API keys
 
@@ -72,12 +64,7 @@ That matters because a self-hosted admin surface should not depend on shared ope
 
 ## Good admin-access pattern
 
-Prefer:
-
-- one account per operator
-- invitations for onboarding
-- SSO where it fits your identity workflow
-- project-level access instead of broad shared admin access
+Prefer one account per operator, invitations for onboarding, SSO where it fits your identity workflow, and project-level access instead of broad shared admin access.
 
 ## Share-link tokens
 

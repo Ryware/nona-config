@@ -3,9 +3,7 @@ title: CLI
 description: Install and use the nona command.
 ---
 
-The `nona` CLI manages admin workflows from a terminal.
-
-Use it for:
+The `nona` CLI manages admin workflows from a terminal. Use it for:
 
 - login sessions
 - saved defaults
@@ -15,7 +13,7 @@ Use it for:
 - users
 - Firebase Remote Config migration
 
-The CLI is especially useful because Nona is self-hosted and operator-friendly by design. Many teams will use the CLI for repeatable administration even if they also use the admin UI.
+The CLI is especially useful because Nona is self-hosted and operator-friendly by design, so many teams use it for repeatable administration even if they also use the admin UI.
 
 ## Install
 
@@ -33,13 +31,7 @@ Release archives are also published for Windows, Linux, and macOS.
 
 ## When to use the CLI
 
-Use the CLI when you want:
-
-- repeatable admin operations
-- terminal-based workflows
-- automation or scripting
-- a clean migration path from Firebase Remote Config
-- access to history, rollback, and share-link workflows without relying only on the UI
+Use the CLI when you want repeatable admin operations, terminal-based workflows, automation or scripting, a clean migration path from Firebase Remote Config, or access to history, rollback, and share-link workflows without relying only on the UI.
 
 ## Authenticate
 
@@ -48,9 +40,7 @@ nona auth login --base-url https://nona.example.com
 nona auth whoami
 ```
 
-`auth login` opens a browser and stores a session token.
-
-That makes it easier to work interactively without pasting a bearer token into every command.
+`auth login` opens a browser and stores a session token, which makes interactive use easier than pasting a bearer token into every command.
 
 ## Create a project
 
@@ -59,14 +49,7 @@ nona projects create --name mobile-app
 nona projects list
 ```
 
-Use the CLI when you want a repeatable way to create a project from a terminal.
-
-Environment creation is currently an admin-UI workflow, so the usual sequence is:
-
-1. create the project with the CLI
-2. open the admin UI
-3. open the project
-4. click `Add Environment`
+Use the CLI when you want a repeatable way to create a project from a terminal. Environment creation is currently an admin-UI workflow, so the usual sequence is to create the project with the CLI, then open the project in admin and click `Add Environment`.
 
 ## Save defaults
 
@@ -76,9 +59,7 @@ nona config set project mobile-app
 nona config show
 ```
 
-After defaults are saved, commands can omit `--base-url` and `--project`.
-
-This is helpful when you are doing repeated work on the same Nona instance and project.
+After defaults are saved, commands can omit `--base-url` and `--project`, which is helpful when you are doing repeated work on the same Nona instance and project.
 
 ## Manage config entries
 
@@ -102,12 +83,7 @@ nona entries rollback --environment production --key Features:Checkout --version
 nona entries delete --environment production --key Features:Checkout
 ```
 
-These workflows cover the day-to-day runtime model:
-
-- inspect values
-- create or update entries
-- review history
-- roll back changes
+These workflows cover the day-to-day runtime model: inspect values, create or update entries, review history, and roll back changes.
 
 ## Share config entries
 
@@ -120,8 +96,6 @@ nona entries share revoke --environment production --key Features:Checkout --id 
 
 See [Parameter share links](/docs/parameter-share-links/) for expiration options, permissions, and public endpoints.
 
-This is one of the more distinctive Nona workflows because it gives teams a narrow way to collaborate on one entry instead of broad project-wide access.
-
 ## Manage API keys
 
 ```bash
@@ -132,9 +106,7 @@ nona keys delete --project mobile-app --id 42
 
 `nona keys show --project mobile-app` also works. `show` is an alias for `list`.
 
-Use client-scoped API keys for frontend/mobile apps.
-
-Use server-scoped keys for backend-only reads whenever possible.
+Use client-scoped API keys for frontend/mobile apps and server-scoped keys for backend-only reads whenever possible.
 
 ## Invite a user
 
@@ -157,15 +129,7 @@ See [Firebase migration](/docs/cli/firebase-migration/) for configuration, envir
 
 ## Why the CLI matters for migration
 
-Migration is usually an operator workflow, not a day-to-day end-user workflow.
-
-The CLI fits that well because it handles:
-
-- repeatable execution
-- dry runs
-- configuration files
-- credentials and environment variables
-- output you can review before production cutover
+Migration is usually an operator workflow, not a day-to-day end-user workflow. The CLI fits that well because it handles repeatable execution, dry runs, configuration files, credentials and environment variables, and output you can review before production cutover.
 
 ## Environment variables
 
@@ -185,10 +149,6 @@ The CLI reads these values when flags are omitted:
 - [Migration](/docs/migration/)
 - [Parameter share links](/docs/parameter-share-links/)
 - [History and rollback](/docs/concepts/history-and-rollback/)
-
-## Command reference
-
-See [CLI reference](/docs/cli/reference/) for generated command help.
 
 ## FAQ
 

@@ -109,23 +109,7 @@ For example:
 
 ## Common troubleshooting checks
 
-If a request fails:
-
-1. confirm the environment name is correct
-2. confirm the key exists in that environment
-3. confirm the key is URL-encoded
-4. confirm the API key belongs to the correct project
-5. confirm the API key scope can read the entry scope
-
-## Setup checklist
-
-Before calling the endpoint:
-
-1. Create a project in the Nona admin UI.
-2. Create an environment, for example `production`.
-3. Create a config entry, for example `Features:Checkout`.
-4. Create an API key with a scope that can read the entry.
-5. Store the API key in your app's secrets, not in source code.
+If a request fails, confirm the environment name is correct, the key exists in that environment, the key is URL-encoded, the API key belongs to the correct project, and the API key scope can read the entry scope.
 
 ## Why HTTP is still important
 
@@ -145,16 +129,6 @@ Use [JavaScript](/docs/clients/javascript/) or [.NET](/docs/clients/dotnet/) whe
 - built-in cache behavior
 - OpenFeature integration
 - less manual request handling
-
-## Step-by-step HTTP summary
-
-Use this sequence for the fastest raw HTTP integration:
-
-1. create or confirm the target parameter exists
-2. create or confirm an API key exists
-3. URL-encode the key name
-4. send the `curl` request with `X-Api-Key`
-5. inspect the body and `X-Nona-Content-Type`
 
 ## HTTP FAQ
 

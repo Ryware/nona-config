@@ -20,18 +20,7 @@ Think of the project as the boundary for:
 
 ## Suggested first setup
 
-Create:
-
-- one project for your app
-- one `production` environment
-- one non-production environment for testing
-
-For many teams, a simple starting structure is:
-
-- project: `mobile-app`
-- environments: `staging`, `production`
-
-That gives you somewhere safe to test values before they affect real traffic.
+Start with one project for your app, one `production` environment, and one non-production environment such as `staging`. For many teams, `storefront` with `staging` and `production` is enough to get real separation without adding unnecessary complexity.
 
 ## In admin
 
@@ -69,17 +58,7 @@ Avoid creating lots of environments until you actually need them. A small, clear
 
 ## Why this matters
 
-Projects and environments are the base for:
-
-- config entry reads
-- API key scoping
-- migration targets
-- rollback and audit history
-
-They also give you the structure you need for both major Nona use cases:
-
-- feature flags
-- broader remote config values
+Projects and environments are the base for config entry reads, API key scoping, migration targets, rollback, audit history, feature flags, and broader remote config values.
 
 ## A concrete example
 
@@ -99,23 +78,7 @@ That is why the project/environment layer comes first. Everything else builds on
 
 ## Validate the setup
 
-You should be able to confirm all of these:
-
-- the project appears in `Projects`
-- `staging` and `production` show up as environment tabs
-- the project is available as a target for later CLI commands such as `nona entries set` and `nona keys create`
-
-## Step-by-step summary
-
-Use this sequence if you want the shortest reliable setup path:
-
-1. sign in to the admin UI
-2. open `Projects`
-3. create the project
-4. open the project
-5. create `staging`
-6. create `production`
-7. verify both environments appear as tabs
+Confirm the project appears in `Projects`, `staging` and `production` show up as environment tabs, and the project is available as a later CLI target for commands such as `nona entries set` and `nona keys create`.
 
 ## First project FAQ
 

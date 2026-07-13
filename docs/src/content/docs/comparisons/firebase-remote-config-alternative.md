@@ -3,11 +3,7 @@ title: Firebase Remote Config Alternative
 description: Compare Nona and Firebase Remote Config for self-hosting, open source control, HTTP access, Docker deployment, and migration paths.
 ---
 
-Nona is an open source, self-hosted Firebase Remote Config alternative.
-
-It solves a similar class of problems, but the product model is different.
-
-If your team is evaluating Firebase Remote Config alternatives, the real question is usually not just "can this store runtime values?" It is:
+Nona is an open source, self-hosted Firebase Remote Config alternative. It solves a similar class of problems, but the product model is different. If your team is evaluating Firebase Remote Config alternatives, the real question is usually not just "can this store runtime values?" It is:
 
 - can we run it ourselves?
 - can we manage feature flags as well as remote config?
@@ -17,14 +13,7 @@ If your team is evaluating Firebase Remote Config alternatives, the real questio
 
 ## Why teams look for an alternative
 
-Usually one or more of these:
-
-- they want to self-host
-- they want open source
-- they want to avoid Google account and platform coupling
-- they want plain HTTP access
-- they want self-hosted feature flags as well as remote config
-- they want a migration path instead of recreating parameters by hand
+Usually the driver is some mix of self-hosting, open source control, avoiding Google platform coupling, keeping plain HTTP access, handling feature flags and remote config in one system, and having a migration path instead of recreating parameters by hand.
 
 ## High-level differences
 
@@ -51,23 +40,7 @@ Firebase Remote Config is still the more natural fit when your team wants to sta
 
 ## Where Nona fits best
 
-Nona is strongest when your team wants:
-
-- self-hosted runtime config
-- self-hosted feature flags
-- one system for boolean flags and structured runtime values
-- plain HTTP access
-- Docker-first deployment
-- project and environment isolation
-- rollback and auditability
-
-Nona is a good fit for:
-
-- web apps
-- mobile apps
-- backend services
-- teams moving off Firebase
-- teams that want simpler infrastructure than a large hosted feature-flag platform
+Nona is strongest when your team wants self-hosted runtime config, self-hosted feature flags, one system for boolean flags and structured runtime values, plain HTTP access, Docker-first deployment, project and environment isolation, and rollback with auditability. It works well for web apps, mobile apps, backend services, teams moving off Firebase, and teams that want simpler infrastructure than a larger hosted feature-flag platform.
 
 ## How to try Nona first
 
@@ -79,16 +52,6 @@ The fastest evaluation path is:
 4. read them over HTTP
 
 If that works, you have already validated the core replacement path.
-
-## What Nona emphasizes
-
-- projects and environments
-- feature flags and kill switches
-- parameter scopes: `client`, `server`, `all`
-- API keys scoped to project and optionally environment
-- config entry history and rollback
-- parameter share links
-- OpenFeature support for flag-oriented integrations
 
 ## Product model differences
 
@@ -154,18 +117,7 @@ Then continue with [Migration validation](/docs/migration/validation/) before pr
 
 ## Migration path
 
-If you already use Firebase Remote Config, Nona gives you a direct migration path through the CLI.
-
-The migration docs cover:
-
-- source namespaces
-- content type mapping
-- scope mapping
-- environment mapping
-- dry runs
-- conflict handling
-
-Start here:
+If you already use Firebase Remote Config, Nona gives you a direct CLI migration path covering source namespaces, content type mapping, scope mapping, environment mapping, dry runs, and conflict handling. Start here:
 
 - [Migrate from Firebase Remote Config](/docs/migration/firebase-remote-config/)
 - [Firebase concept mapping](/docs/migration/firebase-concept-mapping/)

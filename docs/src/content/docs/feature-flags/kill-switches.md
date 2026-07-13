@@ -3,9 +3,7 @@ title: Kill switches
 description: Use Nona kill switches to disable risky features quickly with boolean flags, scoped reads, and rollback support.
 ---
 
-A kill switch is a feature flag whose main job is to turn something off fast.
-
-This is one of the most valuable uses of Nona because it gives you an operational escape hatch without a redeploy.
+A kill switch is a feature flag whose main job is to turn something off fast, which makes it one of the most valuable Nona patterns because it gives you an operational escape hatch without a redeploy.
 
 ## Basic pattern
 
@@ -88,13 +86,7 @@ nona entries set \
 
 ## Operational benefits in Nona
 
-Nona makes kill switches more useful because they fit into the rest of the product model:
-
-- the flag lives in a project and environment
-- API keys control who can read it
-- history shows previous values
-- rollback gives you a fast recovery path
-- audit logs help explain who changed it
+Nona makes kill switches more useful because they fit into the rest of the product model: the flag lives in a project and environment, API keys control who can read it, history shows previous values, rollback gives you a fast recovery path, and audit logs help explain who changed it.
 
 ## Roll back the switch
 
