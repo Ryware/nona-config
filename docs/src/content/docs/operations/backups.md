@@ -109,6 +109,28 @@ Because Nona is self-hosted, data protection is part of the operating model.
 
 Without a usable backup, an upgrade or infrastructure issue can turn into data loss instead of a recoverable maintenance event.
 
+## FAQ
+
+### What is the most important thing to back up?
+
+The persistent data mounted at `/var/lib/nona`.
+
+That is where the durable Nona state lives in the documented Docker deployment paths.
+
+### Is backing up the container image enough?
+
+No.
+
+The container image is not the durable application state. The mounted persistent data is what matters.
+
+### When should I take a backup?
+
+Take one before upgrades, topology changes, storage work, host replacement, or other risky maintenance that could affect persistent state.
+
+### How do I know whether a backup is actually useful?
+
+You know it is useful when you can restore it and validate that the service starts, login works, and a known config read still succeeds.
+
 ## Related docs
 
 - [Standalone production](/docs/deployment/standalone/)

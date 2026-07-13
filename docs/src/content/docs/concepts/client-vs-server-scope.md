@@ -127,6 +127,32 @@ nona keys create --project payments-api --name "Payments API" --scope server --e
 - keep sensitive decisions on the server when possible
 - review scope when creating new API keys
 
+## FAQ
+
+### What scope should I choose first?
+
+Choose the narrowest scope that matches the real read surface.
+
+For many frontend or mobile reads, that is `client`. For backend-only values, that is `server`.
+
+### When should I use `all`?
+
+Only when both frontend and backend genuinely need to read the same value.
+
+It should be the exception, not the default.
+
+### Can a `boolean` flag be `server` scope?
+
+Yes.
+
+Feature flags are not automatically client-side. A boolean flag can be `client`, `server`, or `all` depending on where it is evaluated.
+
+### What is the biggest scope mistake?
+
+Using broader scope than necessary.
+
+That makes values easier to expose accidentally and weakens the access model.
+
 ## Related docs
 
 - [API keys](/docs/concepts/api-keys/)

@@ -155,3 +155,23 @@ For production deployment and operations:
 - [Upgrades](/docs/operations/upgrades/)
 - [Audit logs](/docs/concepts/audit-logs/)
 - [Users and project access](/docs/concepts/users-and-project-access/)
+
+## FAQ
+
+### What is Nona in one sentence?
+
+Nona is an open source, self-hosted remote config and feature flag service for web, mobile, and backend applications.
+
+### Is Nona only for remote config?
+
+No.
+
+Nona supports both feature flags and broader runtime config in the same system.
+
+### What is the fastest way to understand whether Nona fits my team?
+
+Deploy the Docker image, create one project, add one boolean flag and one non-boolean value, then read both over HTTP or a client.
+
+### Who is Nona best for?
+
+Teams that want self-hosted runtime control, plain HTTP access, Docker-first deployment, and a smaller product model than a hosted control plane are usually a strong fit.

@@ -194,3 +194,27 @@ Accepted aliases:
 | `--token <bearer-token>` | `--bearer-token <bearer-token>` |
 
 `--email` and `--password` can be used instead of `--token`.
+
+## FAQ
+
+### Should I run a dry run first?
+
+Yes.
+
+The dry run is the safest first step because it shows how the migration will land before writing anything to Nona.
+
+### Do Firebase booleans stay useful after migration?
+
+Yes.
+
+They map naturally into Nona `boolean` entries and continue to work well as feature flags.
+
+### What happens to Firebase conditions?
+
+They are mapped into Nona environments during migration instead of staying as Firebase-style runtime targeting rules.
+
+### What is the biggest risk in this migration flow?
+
+Assuming a technically successful import means the migration is finished.
+
+You still need to validate environments, scopes, content types, and real application reads afterward.

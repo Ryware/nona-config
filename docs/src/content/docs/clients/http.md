@@ -145,3 +145,33 @@ Use [JavaScript](/docs/clients/javascript/) or [.NET](/docs/clients/dotnet/) whe
 - built-in cache behavior
 - OpenFeature integration
 - less manual request handling
+
+## Step-by-step HTTP summary
+
+Use this sequence for the fastest raw HTTP integration:
+
+1. create or confirm the target parameter exists
+2. create or confirm an API key exists
+3. URL-encode the key name
+4. send the `curl` request with `X-Api-Key`
+5. inspect the body and `X-Nona-Content-Type`
+
+## HTTP FAQ
+
+### When should I use raw HTTP instead of a client?
+
+Use raw HTTP when you want the smallest possible integration path, are working in a language without an official client, or are validating the instance during setup or migration.
+
+### Why is the response body so simple?
+
+The endpoint returns the raw stored value in the body and the logical type in the `X-Nona-Content-Type` header so it stays easy to consume from almost any language.
+
+### Do I always need to URL-encode the key?
+
+Yes.
+
+Keys such as `Features:Checkout` must be encoded in the path, for example as `Features%3ACheckout`.
+
+### What should I check first when a request fails?
+
+Start with the environment name, key existence, URL encoding, API key project, and scope alignment.

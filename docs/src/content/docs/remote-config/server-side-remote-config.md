@@ -110,3 +110,23 @@ A practical backend remote-config flow looks like this:
 - [Client vs server scope](/docs/concepts/client-vs-server-scope/)
 - [HTTP](/docs/clients/http/)
 - [.NET client](/docs/clients/dotnet/)
+
+## FAQ
+
+### What is server-side remote config?
+
+It means backend services read runtime values from a configuration service instead of hardcoding everything into deploy-time settings.
+
+### Should backend remote config use `server` scope?
+
+Usually yes.
+
+Backend-only values should stay on `server` scope whenever possible.
+
+### What is a good first server-side remote-config value?
+
+A threshold such as `Limits:MaxItems` or a boolean flag such as `Features:UseLegacySearch` is usually a strong first example.
+
+### Why is Nona a good fit for server-side remote config?
+
+Because it is self-hosted, plain HTTP accessible, and designed to separate server-only values clearly.

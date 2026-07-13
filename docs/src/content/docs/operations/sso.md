@@ -156,6 +156,30 @@ For a production deployment, a good SSO model is:
 - keep project access scoped to the projects each user needs
 - review audit logs after permission or identity changes
 
+## FAQ
+
+### Does SSO replace API keys?
+
+No.
+
+SSO is for admin authentication and onboarding. Runtime config reads still use API keys.
+
+### Which SSO providers does Nona support?
+
+The current repo supports Google SSO and Microsoft SSO.
+
+### Can any valid Google or Microsoft account sign in?
+
+No.
+
+The SSO identity still has to match a Nona user account, and invitation-based onboarding keeps that linking explicit and safer.
+
+### Should Microsoft SSO stay on the `common` tenant in production?
+
+Only if that is what your organization actually wants.
+
+If you want to restrict sign-in to one tenant, set a specific tenant id instead of leaving it on `common`.
+
 ## Related docs
 
 - [Security and authentication](/docs/operations/security-and-authentication/)

@@ -114,6 +114,30 @@ For a real team setup:
 3. grant access by project boundary
 4. review [Audit logs](/docs/concepts/audit-logs/) after sensitive permission changes if needed
 
+## FAQ
+
+### Does SSO bypass project access control?
+
+No.
+
+SSO only changes how a user authenticates. Project access still determines what the user can see and edit afterward.
+
+### Should I invite users instead of sharing one admin account?
+
+Yes.
+
+Invitation-based onboarding and per-user access are much safer than sharing one broad admin credential.
+
+### Can access be limited by project?
+
+Yes.
+
+Project boundaries are part of the intended access-control model, especially when one Nona instance serves multiple apps or teams.
+
+### What is the safest first collaboration model?
+
+Create the project structure first, invite users individually, then grant each person only the project access they actually need.
+
 ## Related docs
 
 - [Projects](/docs/concepts/projects/)

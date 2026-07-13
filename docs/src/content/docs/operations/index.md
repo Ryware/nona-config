@@ -53,3 +53,25 @@ If you are setting up a real production instance, begin with:
 - [Deployment](/docs/deployment/)
 - [Users and project access](/docs/concepts/users-and-project-access/)
 - [Audit logs](/docs/concepts/audit-logs/)
+
+## FAQ
+
+### When should I start reading the operations docs?
+
+Start when you are preparing a real production deployment or when more than one person will operate the instance.
+
+### Are operations docs only about infrastructure?
+
+No.
+
+They also cover operator workflows such as admin access, backups, upgrades, and reviewing operational history.
+
+### What should I secure first in a production setup?
+
+Start with admin access and authentication, then make sure backups are in place before treating the instance as production-ready.
+
+### Why are operations part of the product story for Nona?
+
+Because Nona is self-hosted.
+
+That means operating the service is part of using the product correctly, not a separate concern you can ignore.

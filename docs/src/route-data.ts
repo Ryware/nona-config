@@ -113,6 +113,446 @@ const PAGE_FAQS: Record<string, FaqItem[]> = {
 				'No. Nona is better positioned as a simpler self-hosted system for feature flags and remote config, not a giant experimentation suite.',
 		},
 	],
+	'clients': [
+		{
+			question: 'What is the best first integration path?',
+			answer:
+				'HTTP is usually the best first validation path because it proves the instance, key, environment, and API key all work before client code gets involved.',
+		},
+		{
+			question: 'When should I use JavaScript or .NET instead of HTTP?',
+			answer:
+				'Use the language client when you want a more convenient integration surface, caching behavior, or typed helpers instead of manual request handling.',
+		},
+		{
+			question: 'When should I use OpenFeature?',
+			answer:
+				'Use OpenFeature when your team wants a vendor-neutral feature-flag interface or already uses OpenFeature across multiple applications.',
+		},
+		{
+			question: 'Do all integration paths still use the same Nona model?',
+			answer:
+				'Yes. All integration paths still rely on the same underlying Nona project, environment, scope, and API key model.',
+		},
+	],
+	'clients/http': [
+		{
+			question: 'When should I use raw HTTP instead of a client?',
+			answer:
+				'Use raw HTTP when you want the smallest possible integration path, are working in a language without an official client, or are validating the instance during setup or migration.',
+		},
+		{
+			question: 'Why is the response body so simple?',
+			answer:
+				'The endpoint returns the raw stored value in the body and the logical type in the X-Nona-Content-Type header so it stays easy to consume from almost any language.',
+		},
+		{
+			question: 'Do I always need to URL-encode the key?',
+			answer:
+				'Yes. Keys such as Features:Checkout must be encoded in the path, for example as Features%3ACheckout.',
+		},
+		{
+			question: 'What should I check first when a request fails?',
+			answer:
+				'Start with the environment name, key existence, URL encoding, API key project, and scope alignment.',
+		},
+	],
+	'clients/javascript': [
+		{
+			question: 'When should I use the JavaScript client instead of raw HTTP?',
+			answer:
+				'Use the JavaScript client when you want a direct client API, optional TTL cache behavior, and less manual request handling than raw HTTP.',
+		},
+		{
+			question: 'Should I read feature flags as strings?',
+			answer:
+				'Usually no. For real flags, it is better to read the config value and inspect contentType so the application stays aligned with Nona logical types.',
+		},
+		{
+			question: 'Is caching required?',
+			answer:
+				'No. The JavaScript client cache is optional and disabled by default. Only enable it when repeated reads justify it.',
+		},
+		{
+			question: 'When should I move to OpenFeature?',
+			answer:
+				'Move to OpenFeature when the app becomes more flag-oriented and you want a vendor-neutral interface instead of direct Nona-specific reads.',
+		},
+	],
+	'clients/dotnet': [
+		{
+			question: 'When should I use the .NET client instead of raw HTTP?',
+			answer:
+				'Use the .NET client when you want a direct C# integration, built-in cache behavior, typed JSON reads, and a simpler path than maintaining your own HTTP wrapper.',
+		},
+		{
+			question: 'Does the .NET client cache values?',
+			answer:
+				'Yes. The .NET client caches values in memory by default, and you can tune the TTL and memory limit through NonaClientOptions.',
+		},
+		{
+			question: 'Should backend services prefer server scope?',
+			answer:
+				'Usually yes. Backend-only values should use server scope whenever possible so the read surface stays as narrow as possible.',
+		},
+		{
+			question: 'When should I use the OpenFeature provider?',
+			answer:
+				'Use the OpenFeature provider when the service is becoming more flag-oriented and you want a vendor-neutral evaluation interface on top of the Nona client.',
+		},
+	],
+	'clients/openfeature': [
+		{
+			question: 'When is OpenFeature a better fit than the direct client?',
+			answer:
+				'OpenFeature is a better fit when your team already uses OpenFeature or wants a vendor-neutral feature-flag interface instead of direct Nona-specific reads.',
+		},
+		{
+			question: 'Does OpenFeature replace Nona operational model?',
+			answer:
+				'No. OpenFeature only changes the application-side interface. Nona still provides the projects, environments, scopes, API keys, and history underneath.',
+		},
+		{
+			question: 'Should I start with OpenFeature immediately?',
+			answer:
+				'Usually only if your team already thinks in OpenFeature terms. Otherwise, many teams start with the direct client or raw HTTP first.',
+		},
+		{
+			question: 'What is the best first OpenFeature test?',
+			answer:
+				'Resolve one boolean flag such as Features:Checkout and verify that the application sees the value change after you edit it in Nona.',
+		},
+	],
+	'cli': [
+		{
+			question: 'When should I use the CLI instead of the admin UI?',
+			answer:
+				'Use the CLI for repeatable operations, scripting, migration work, history and rollback workflows, and terminal-first administration.',
+		},
+		{
+			question: 'Do I still need the admin UI if I use the CLI?',
+			answer:
+				'Often yes. Some workflows such as environment creation are still documented primarily through the admin UI.',
+		},
+		{
+			question: 'What is the best first CLI command to run?',
+			answer:
+				'After installation, nona auth login --base-url https://nona.example.com is usually the best first command because it establishes the interactive session.',
+		},
+		{
+			question: 'Why is the CLI especially important for Firebase migration?',
+			answer:
+				'Because migration is an operator workflow that benefits from dry runs, config files, and repeatable execution from a terminal.',
+		},
+	],
+	'cli/firebase-migration': [
+		{
+			question: 'Should I run a dry run first?',
+			answer:
+				'Yes. The dry run is the safest first step because it shows how the migration will land before writing anything to Nona.',
+		},
+		{
+			question: 'Do Firebase booleans stay useful after migration?',
+			answer:
+				'Yes. They map naturally into Nona boolean entries and continue to work well as feature flags.',
+		},
+		{
+			question: 'What happens to Firebase conditions?',
+			answer:
+				'They are mapped into Nona environments during migration instead of staying as Firebase-style runtime targeting rules.',
+		},
+		{
+			question: 'What is the biggest risk in this migration flow?',
+			answer:
+				'Assuming a technically successful import means the migration is finished. You still need to validate environments, scopes, content types, and real application reads afterward.',
+		},
+	],
+	'': [
+		{
+			question: 'What is Nona in one sentence?',
+			answer:
+				'Nona is an open source, self-hosted remote config and feature flag service for web, mobile, and backend applications.',
+		},
+		{
+			question: 'Is Nona only for remote config?',
+			answer:
+				'No. Nona supports both feature flags and broader runtime config in the same system.',
+		},
+		{
+			question: 'What is the fastest way to understand whether Nona fits my team?',
+			answer:
+				'Deploy the Docker image, create one project, add one boolean flag and one non-boolean value, then read both over HTTP or a client.',
+		},
+		{
+			question: 'Who is Nona best for?',
+			answer:
+				'Teams that want self-hosted runtime control, plain HTTP access, Docker-first deployment, and a smaller product model than a hosted control plane are usually a strong fit.',
+		},
+	],
+	'concepts': [
+		{
+			question: 'What is the most important Nona concept to understand first?',
+			answer:
+				'Start with the project, environment, entry, scope, and API key model. Once those are clear, the rest of the product becomes much easier to reason about.',
+		},
+		{
+			question: 'Are these concepts only for remote config?',
+			answer:
+				'No. They support both major Nona use cases: feature flags and broader remote config.',
+		},
+		{
+			question: 'Why does Nona emphasize a small core model?',
+			answer:
+				'Because a smaller model is easier to operate, document, and reason about in production. That is part of the product position.',
+		},
+		{
+			question: 'What should I do if the concepts still feel abstract?',
+			answer:
+				'Run through one real setup flow with a project, two environments, one flag, one text value, and one API key. That usually makes the terminology concrete quickly.',
+		},
+	],
+	'concepts/projects': [
+		{
+			question: 'Should one app always map to one project?',
+			answer:
+				'Usually yes. One project per app or service boundary is the clearest starting model for keys, environments, and access.',
+		},
+		{
+			question: 'When should I split into multiple projects?',
+			answer:
+				'Split when apps should not share API keys, environments, ownership, or access boundaries.',
+		},
+		{
+			question: 'Can one project contain both feature flags and remote config?',
+			answer:
+				'Yes. That is a normal and intended Nona usage pattern.',
+		},
+		{
+			question: 'What is the most common project mistake?',
+			answer:
+				'Creating too many projects too early. If the same app and team own the values, one clear project is usually better than several tiny ones.',
+		},
+	],
+	'concepts/environments': [
+		{
+			question: 'How many environments should most teams start with?',
+			answer:
+				'Most teams should start with staging and production. That is enough to test safely without creating unnecessary environment sprawl.',
+		},
+		{
+			question: 'Should environment names match real operational stages?',
+			answer:
+				'Yes. Environment names should map to real runtime stages that your team actually uses.',
+		},
+		{
+			question: 'Can the same key exist in multiple environments?',
+			answer:
+				'Yes. That is one of the main reasons environments exist. The key stays stable while the value changes by stage.',
+		},
+		{
+			question: 'Are Firebase conditions the same thing as Nona environments?',
+			answer:
+				'No. Firebase conditions can be mapped into Nona environments during migration, but Nona environments are not a Firebase-style runtime targeting engine.',
+		},
+	],
+	'concepts/parameters-and-content-types': [
+		{
+			question: 'What is the best first parameter type to create?',
+			answer:
+				'Usually a boolean flag or a simple text value. Those are the easiest shapes to validate during the first integration.',
+		},
+		{
+			question: 'When should I use json instead of separate keys?',
+			answer:
+				'Use json when the values naturally belong together and the client consumes them as one structured object.',
+		},
+		{
+			question: 'Does content type control who can read the value?',
+			answer:
+				'No. Content type describes the value shape. Scope controls who can read it.',
+		},
+		{
+			question: 'What is the most common datatype mistake?',
+			answer:
+				'Storing a real feature flag as text instead of boolean.',
+		},
+	],
+	'concepts/client-vs-server-scope': [
+		{
+			question: 'What scope should I choose first?',
+			answer:
+				'Choose the narrowest scope that matches the real read surface. For many frontend or mobile reads, that is client. For backend-only values, that is server.',
+		},
+		{
+			question: 'When should I use all?',
+			answer:
+				'Only when both frontend and backend genuinely need to read the same value. It should be the exception, not the default.',
+		},
+		{
+			question: 'Can a boolean flag be server scope?',
+			answer:
+				'Yes. Feature flags are not automatically client-side. A boolean flag can be client, server, or all depending on where it is evaluated.',
+		},
+		{
+			question: 'What is the biggest scope mistake?',
+			answer:
+				'Using broader scope than necessary. That makes values easier to expose accidentally and weakens the access model.',
+		},
+	],
+	'concepts/api-keys': [
+		{
+			question: 'Does an API key belong to one project?',
+			answer:
+				'Yes. An API key is bound to one project and can also be narrowed by environment and scope.',
+		},
+		{
+			question: 'Should I create one key per app or service?',
+			answer:
+				'Usually yes. Separate runtimes should usually get separate keys so access stays narrower and easier to reason about.',
+		},
+		{
+			question: 'Should frontend keys use client scope?',
+			answer:
+				'Yes, in most cases. Frontend and mobile apps should usually use client scope unless there is a real need for broader access.',
+		},
+		{
+			question: 'What is the most common API key mistake?',
+			answer:
+				'Using keys that are broader than they need to be. That increases blast radius and makes accidental exposure harder to contain.',
+		},
+	],
+	'concepts/history-and-rollback': [
+		{
+			question: 'When should I use rollback instead of editing the value manually?',
+			answer:
+				'Use rollback when you already know a previous version was good. That is safer than retyping a value during an incident.',
+		},
+		{
+			question: 'What kind of changes show up in history?',
+			answer:
+				'History helps you inspect changes to the value and other important entry fields such as scope or content type.',
+		},
+		{
+			question: 'Is rollback only for feature flags?',
+			answer:
+				'No. Rollback is useful for feature flags, kill switches, and broader runtime config values.',
+		},
+		{
+			question: 'What is the biggest rollback mistake?',
+			answer:
+				'Guessing a replacement value instead of restoring a known good version. That slows incident response and increases the chance of a second mistake.',
+		},
+	],
+	'concepts/audit-logs': [
+		{
+			question: 'What kinds of actions appear in audit logs?',
+			answer:
+				'The current repo wires audit logging around important admin actions such as project, user, environment, parameter, and share-link changes.',
+		},
+		{
+			question: 'Are audit logs only for security reviews?',
+			answer:
+				'No. They are also part of normal operational workflows such as incident review, production change tracking, and collaboration across multiple operators.',
+		},
+		{
+			question: 'Should I check audit logs after a rollback?',
+			answer:
+				'Often yes. Rollback handles the immediate recovery, but audit logs help you understand the timeline and the operator actions around the event.',
+		},
+		{
+			question: 'Why do parameter share links matter in audit logs?',
+			answer:
+				'Because share-link creation and revocation are sensitive collaboration actions and should remain visible in the operational record.',
+		},
+	],
+	'concepts/users-and-project-access': [
+		{
+			question: 'Does SSO bypass project access control?',
+			answer:
+				'No. SSO only changes how a user authenticates. Project access still determines what the user can see and edit afterward.',
+		},
+		{
+			question: 'Should I invite users instead of sharing one admin account?',
+			answer:
+				'Yes. Invitation-based onboarding and per-user access are much safer than sharing one broad admin credential.',
+		},
+		{
+			question: 'Can access be limited by project?',
+			answer:
+				'Yes. Project boundaries are part of the intended access-control model, especially when one Nona instance serves multiple apps or teams.',
+		},
+		{
+			question: 'What is the safest first collaboration model?',
+			answer:
+				'Create the project structure first, invite users individually, then grant each person only the project access they actually need.',
+		},
+	],
+	'deployment': [
+		{
+			question: 'What is the right first production deployment for most teams?',
+			answer:
+				'Standalone is usually the right first production deployment. It is simpler to operate and usually enough unless you already know you need a replica read topology.',
+		},
+		{
+			question: 'When should I choose primary/replica instead of standalone?',
+			answer:
+				'Choose primary/replica only when read-heavy workloads justify the extra complexity and eventual consistency is acceptable for replica reads.',
+		},
+		{
+			question: 'Is deployment part of the product story for Nona?',
+			answer:
+				'Yes. Because Nona is self-hosted, deployment is part of using the product, not a separate concern you can ignore.',
+		},
+		{
+			question: 'What should I do right after the deployment is live?',
+			answer:
+				'Create the first admin account, create a project and environments, validate a real read path, and make sure backups are in place.',
+		},
+	],
+	'deployment/standalone': [
+		{
+			question: 'Is standalone only for testing?',
+			answer:
+				'No. For many teams, standalone is not only the first production step. It remains the long-term deployment shape.',
+		},
+		{
+			question: 'What is the most important thing to preserve in standalone mode?',
+			answer:
+				'The persistent data mounted at /var/lib/nona. That is the durable state you need to keep across restarts and upgrades.',
+		},
+		{
+			question: 'Should I pin JWT settings in production?',
+			answer:
+				'Usually yes, if you want the deployment to be easier to reason about operationally.',
+		},
+		{
+			question: 'When should I leave standalone and move to replica mode?',
+			answer:
+				'Only when you already know that read-heavy traffic and operational requirements justify the added complexity.',
+		},
+	],
+	'deployment/primary-replica': [
+		{
+			question: 'Should I use primary/replica just because it sounds more production-like?',
+			answer:
+				'No. For many teams, standalone is still the better production choice.',
+		},
+		{
+			question: 'What is the biggest tradeoff in primary/replica mode?',
+			answer:
+				'Eventual consistency on the replica read path. Writes on the primary may not be visible on the replica immediately.',
+		},
+		{
+			question: 'Should admin and write traffic go to the replica?',
+			answer:
+				'No. Admin and write workflows should stay on the primary.',
+		},
+		{
+			question: 'What should I validate after bringing up this topology?',
+			answer:
+				'Validate the primary admin and write path, the replica read path, the expected ports, and the replication relationship.',
+		},
+	],
 	'feature-flags': [
 		{
 			question: 'Is Nona only a feature flag tool?',
@@ -133,6 +573,116 @@ const PAGE_FAQS: Record<string, FaqItem[]> = {
 			question: 'When is Nona a good fit for feature flags?',
 			answer:
 				'Nona is a strong fit when you want self-hosted, open source feature flags with simpler operations and one product for flags and runtime config.',
+		},
+	],
+	'feature-flags/what-are-feature-flags': [
+		{
+			question: 'Are feature flags only for frontend releases?',
+			answer:
+				'No. Feature flags are useful for frontend, mobile, and backend behavior, which is why Nona documents all three use cases.',
+		},
+		{
+			question: 'How do feature flags work in Nona?',
+			answer:
+				'In Nona, a feature flag is usually a boolean config entry. That keeps the model simple and aligned with the same project, environment, scope, and API key system as the rest of the product.',
+		},
+		{
+			question: 'Are feature flags the same as remote config?',
+			answer:
+				'Not exactly. Feature flags are one important type of runtime config, but remote config is broader and also includes text, number, and JSON values.',
+		},
+		{
+			question: 'What is the best first feature flag to create?',
+			answer:
+				'A simple boolean key such as Features:Checkout is usually the best first choice because it is easy to create, read, and flip.',
+		},
+	],
+	'feature-flags/kill-switches': [
+		{
+			question: 'What makes a kill switch different from a normal feature flag?',
+			answer:
+				'A kill switch is a feature flag whose main job is fast disablement under real operational pressure.',
+		},
+		{
+			question: 'Should a kill switch always be boolean?',
+			answer:
+				'Usually yes. Boolean values are the clearest fit for a fast on/off operational control.',
+		},
+		{
+			question: 'What is the best first kill switch candidate?',
+			answer:
+				'A risky production path such as checkout, payments, onboarding, or a third-party integration is usually the best first candidate.',
+		},
+		{
+			question: 'Why does rollback matter for kill switches?',
+			answer:
+				'Because incident changes happen fast, and rollback gives you a safer way to return to a known earlier state than retyping values manually.',
+		},
+	],
+	'feature-flags/backend-feature-flags': [
+		{
+			question: 'Why are backend feature flags important?',
+			answer:
+				'They control behavior that the rest of the stack depends on, such as route gates, integrations, and operational toggles.',
+		},
+		{
+			question: 'Should backend flags use server scope?',
+			answer:
+				'Usually yes. Backend-only flags should stay on server scope whenever possible.',
+		},
+		{
+			question: 'Can backend flags work as kill switches?',
+			answer:
+				'Yes. Backend flags are often some of the highest-value kill switches in a system.',
+		},
+		{
+			question: 'What is a good first backend flag?',
+			answer:
+				'A clear operational flag such as Features:DisablePayments or Features:UseLegacySearch is usually a strong first candidate.',
+		},
+	],
+	'feature-flags/mobile-app-feature-flags': [
+		{
+			question: 'Why do mobile apps benefit so much from feature flags?',
+			answer:
+				'Because mobile release cycles are slower than web deploys, and flags let teams change behavior without waiting for another store release.',
+		},
+		{
+			question: 'Should mobile flags use client scope?',
+			answer:
+				'Usually yes for values the app reads directly. Keep sensitive decisions on the server when possible.',
+		},
+		{
+			question: 'What is a good first mobile feature flag?',
+			answer:
+				'A flag such as Features:UseNewOnboarding or Features:Checkout is usually a good first test because the behavior is easy to see.',
+		},
+		{
+			question: 'Can mobile feature flags also work as kill switches?',
+			answer:
+				'Yes. That is one of the strongest uses of flags in mobile applications.',
+		},
+	],
+	'feature-flags/feature-flags-vs-remote-config': [
+		{
+			question: 'Are feature flags and remote config the same thing?',
+			answer:
+				'No. Feature flags are usually on or off runtime switches, while remote config is the broader category for runtime values that can also be text, number, or JSON.',
+		},
+		{
+			question: 'Why does Nona use one system for both?',
+			answer:
+				'Because many teams need both behavior toggles and broader runtime settings, and one shared model is easier to operate than multiple separate tools.',
+		},
+		{
+			question: 'When should I start with a feature flag?',
+			answer:
+				'Start with a feature flag when the question is fundamentally on or off, such as enabling a flow or adding a kill switch.',
+		},
+		{
+			question: 'When should I start with remote config instead?',
+			answer:
+				'Start with remote config when the value is a threshold, text string, JSON object, or another non-boolean setting that should change at runtime.',
 		},
 	],
 	'migration/firebase-remote-config': [
@@ -179,6 +729,28 @@ const PAGE_FAQS: Record<string, FaqItem[]> = {
 				'Only after you validate environments, scopes, datatypes, and real application reads, not just after the import command succeeds.',
 		},
 	],
+	'migration/firebase-concept-mapping': [
+		{
+			question: 'Does Firebase map one-to-one into Nona?',
+			answer:
+				'No. The migration translates from Firebase source concepts into Nona target concepts rather than preserving a one-to-one product model.',
+		},
+		{
+			question: 'Do Firebase conditions stay as runtime targeting rules?',
+			answer:
+				'No. They are mapped into explicit Nona environments during migration instead of remaining a Firebase-style runtime rules engine.',
+		},
+		{
+			question: 'Do Firebase boolean values stay useful after migration?',
+			answer:
+				'Yes. Boolean Firebase values map naturally into Nona boolean entries, which means they continue to work well as feature flags.',
+		},
+		{
+			question: 'What is the biggest concept shift to understand before migrating?',
+			answer:
+				'The biggest shift is that Nona is a self-hosted project, environment, and scope model, not Firebase with renamed screens.',
+		},
+	],
 	'remote-config': [
 		{
 			question: 'Is Nona only for remote config?',
@@ -199,6 +771,116 @@ const PAGE_FAQS: Record<string, FaqItem[]> = {
 			question: 'When is remote config better than environment variables?',
 			answer:
 				'Remote config is better when values need to change after deployment, differ by environment at runtime, or support operational control without a redeploy.',
+		},
+	],
+	'remote-config/what-is-remote-config': [
+		{
+			question: 'Is remote config only for feature flags?',
+			answer:
+				'No. Feature flags are one remote-config use case, but remote config also includes text, number, and JSON values that change runtime behavior.',
+		},
+		{
+			question: 'What is the main benefit of remote config?',
+			answer:
+				'The main benefit is changing application behavior without shipping a new build for every small adjustment.',
+		},
+		{
+			question: 'How does Nona make remote config concrete?',
+			answer:
+				'Nona turns it into an explicit model of projects, environments, typed entries, scopes, and API keys instead of treating it as a vague dynamic-settings layer.',
+		},
+		{
+			question: 'What is a good first remote-config value?',
+			answer:
+				'A simple value such as App:BannerText or Limits:MaxItems is usually a good first step because it is easy to create and verify.',
+		},
+	],
+	'remote-config/server-side-remote-config': [
+		{
+			question: 'What is server-side remote config?',
+			answer:
+				'It means backend services read runtime values from a configuration service instead of hardcoding everything into deploy-time settings.',
+		},
+		{
+			question: 'Should backend remote config use server scope?',
+			answer:
+				'Usually yes. Backend-only values should stay on server scope whenever possible.',
+		},
+		{
+			question: 'What is a good first server-side remote-config value?',
+			answer:
+				'A threshold such as Limits:MaxItems or a boolean flag such as Features:UseLegacySearch is usually a strong first example.',
+		},
+		{
+			question: 'Why is Nona a good fit for server-side remote config?',
+			answer:
+				'Because it is self-hosted, plain HTTP accessible, and designed to separate server-only values clearly.',
+		},
+	],
+	'remote-config/remote-config-vs-environment-variables': [
+		{
+			question: 'Are environment variables and remote config competing systems?',
+			answer:
+				'No. Most teams use both. The question is which values belong in which layer.',
+		},
+		{
+			question: 'What should stay in environment variables?',
+			answer:
+				'Keep deployment wiring, secret material, and infrastructure-specific settings in environment variables.',
+		},
+		{
+			question: 'What should move into remote config?',
+			answer:
+				'Move values that should change after deployment, such as feature flags, copy, thresholds, and runtime behavior settings.',
+		},
+		{
+			question: 'What is a good first split to implement?',
+			answer:
+				'Keep the Nona API key in environment variables, then move one runtime value such as App:BannerText into Nona.',
+		},
+	],
+	'remote-config/use-cases': [
+		{
+			question: 'What are the most common Nona remote-config use cases?',
+			answer:
+				'Kill switches, mobile app settings, backend thresholds, environment-specific values, and structured JSON settings are some of the most common.',
+		},
+		{
+			question: 'Can Nona handle both feature flags and broader settings?',
+			answer:
+				'Yes. That is one of the product main strengths: one system for boolean flags and non-boolean runtime values.',
+		},
+		{
+			question: 'What is the best first use case to implement?',
+			answer:
+				'A simple kill switch or one runtime text value is usually the easiest first use case to validate.',
+		},
+		{
+			question: 'Why do these use cases matter for docs SEO?',
+			answer:
+				'Because they map the product model to concrete operator and developer problems instead of only describing the tool abstractly.',
+		},
+	],
+	'remote-config/mobile-app-remote-config': [
+		{
+			question: 'Why do mobile apps need remote config?',
+			answer:
+				'Because mobile release cycles are slower than web deploys, and remote config lets teams change values after the app has already shipped.',
+		},
+		{
+			question: 'Is mobile remote config only about feature flags?',
+			answer:
+				'No. Mobile apps often need both feature flags and broader runtime values such as copy, thresholds, supported versions, and grouped settings.',
+		},
+		{
+			question: 'Should mobile remote-config values use client scope?',
+			answer:
+				'Usually yes for values the app reads directly. Keep sensitive or backend-only decisions on server scope where possible.',
+		},
+		{
+			question: 'What is a good first mobile remote-config value?',
+			answer:
+				'App:BannerText or App:MinimumSupportedVersion is usually a good first value because it is easy to create and observe in the app.',
 		},
 	],
 	'get-started/docker': [
@@ -333,6 +1015,28 @@ const PAGE_FAQS: Record<string, FaqItem[]> = {
 				'The off path must actually be safe and tested. If disabling the flag still breaks the feature or application, the kill switch is not doing the job you need during an incident.',
 		},
 	],
+	'get-started': [
+		{
+			question: 'What is the shortest path to a working Nona setup?',
+			answer:
+				'Deploy the container, create one project, add one boolean parameter, create one API key, and verify one read.',
+		},
+		{
+			question: 'Do I need to understand the whole product before starting?',
+			answer:
+				'No. The get-started path is designed to teach the core model while you are using it.',
+		},
+		{
+			question: 'Should I start with feature flags or remote config first?',
+			answer:
+				'Either is fine, but many teams start with one boolean flag because it is the easiest thing to verify quickly.',
+		},
+		{
+			question: 'What should I read after the first successful setup?',
+			answer:
+				'Most teams continue into feature flags, remote config, migration, or deployment depending on what they are trying to do next.',
+		},
+	],
 	'migration/validation': [
 		{
 			question: 'Is a successful import enough to declare the migration done?',
@@ -353,6 +1057,160 @@ const PAGE_FAQS: Record<string, FaqItem[]> = {
 			question: 'What is the most common migration mistake to catch here?',
 			answer:
 				'A value landing in the wrong environment or with the wrong scope. That kind of issue can survive a technically successful import and still break real application behavior.',
+		},
+	],
+	'operations': [
+		{
+			question: 'When should I start reading the operations docs?',
+			answer:
+				'Start when you are preparing a real production deployment or when more than one person will operate the instance.',
+		},
+		{
+			question: 'Are operations docs only about infrastructure?',
+			answer:
+				'No. They also cover operator workflows such as admin access, backups, upgrades, and reviewing operational history.',
+		},
+		{
+			question: 'What should I secure first in a production setup?',
+			answer:
+				'Start with admin access and authentication, then make sure backups are in place before treating the instance as production-ready.',
+		},
+		{
+			question: 'Why are operations part of the product story for Nona?',
+			answer:
+				'Because Nona is self-hosted. Operating the service is part of using the product correctly, not a separate concern you can ignore.',
+		},
+	],
+	'operations/sso': [
+		{
+			question: 'Does SSO replace API keys?',
+			answer:
+				'No. SSO is for admin authentication and onboarding. Runtime config reads still use API keys.',
+		},
+		{
+			question: 'Which SSO providers does Nona support?',
+			answer:
+				'The current repo supports Google SSO and Microsoft SSO.',
+		},
+		{
+			question: 'Can any valid Google or Microsoft account sign in?',
+			answer:
+				'No. The SSO identity still has to match a Nona user account, and invitation-based onboarding keeps that linking explicit and safer.',
+		},
+		{
+			question: 'Should Microsoft SSO stay on the common tenant in production?',
+			answer:
+				'Only if that is what your organization actually wants. If you want to restrict sign-in to one tenant, set a specific tenant id instead.',
+		},
+	],
+	'operations/security-and-authentication': [
+		{
+			question: 'Does SSO replace API keys for runtime reads?',
+			answer:
+				'No. SSO is for admin access. Runtime config consumers still authenticate with API keys.',
+		},
+		{
+			question: 'What should I lock down first in production?',
+			answer:
+				'Start with admin access, narrow API keys, limited project access, and stable JWT settings if you pin them.',
+		},
+		{
+			question: 'Should teams share one broad admin account?',
+			answer:
+				'No. One account per operator is a safer and more auditable operating model.',
+		},
+		{
+			question: 'Are share links a replacement for user access?',
+			answer:
+				'No. Share links are useful for narrow temporary collaboration, but they are not a replacement for normal user and project access control.',
+		},
+	],
+	'operations/backups': [
+		{
+			question: 'What is the most important thing to back up?',
+			answer:
+				'The persistent data mounted at /var/lib/nona. That is where the durable Nona state lives in the documented Docker deployment paths.',
+		},
+		{
+			question: 'Is backing up the container image enough?',
+			answer:
+				'No. The container image is not the durable application state. The mounted persistent data is what matters.',
+		},
+		{
+			question: 'When should I take a backup?',
+			answer:
+				'Take one before upgrades, topology changes, storage work, host replacement, or other risky maintenance that could affect persistent state.',
+		},
+		{
+			question: 'How do I know whether a backup is actually useful?',
+			answer:
+				'You know it is useful when you can restore it and validate that the service starts, login works, and a known config read still succeeds.',
+		},
+	],
+	'operations/upgrades': [
+		{
+			question: 'What is the safest first step before an upgrade?',
+			answer:
+				'Take a backup first. That gives you a recovery path before you touch the running deployment.',
+		},
+		{
+			question: 'What should stay stable during an upgrade?',
+			answer:
+				'The persistent data volumes and any pinned JWT settings should stay stable across the upgrade.',
+		},
+		{
+			question: 'How should I verify the upgrade worked?',
+			answer:
+				'Check that the service starts, login still works, and a known config read still succeeds.',
+		},
+		{
+			question: 'Is a quick UI check enough after an upgrade?',
+			answer:
+				'No. A real validation read is much more reliable than assuming the upgrade worked because the UI loads.',
+		},
+	],
+	'parameter-share-links': [
+		{
+			question: 'What makes parameter share links different from normal user access?',
+			answer:
+				'They provide narrow, temporary access to one parameter instead of broader ongoing project access.',
+		},
+		{
+			question: 'Should I prefer view-only links by default?',
+			answer:
+				'Yes. Use view-only unless the other person truly needs edit access to that one parameter.',
+		},
+		{
+			question: 'Are share-link tokens sensitive?',
+			answer:
+				'Yes. Anyone with the token can use the public share-link endpoint until the link expires or is revoked, so treat the token as a secret.',
+		},
+		{
+			question: 'When should I use a share link instead of inviting a user?',
+			answer:
+				'Use a share link when the access need is temporary, narrow, and limited to one parameter. Use normal user or project access for ongoing collaboration.',
+		},
+	],
+	'why-nona': [
+		{
+			question: 'Why do teams choose Nona instead of a hosted control plane?',
+			answer:
+				'Usually because they want runtime control, self-hosting, open source visibility, and a smaller product model that they can operate directly.',
+		},
+		{
+			question: 'Is Nona only for remote config?',
+			answer:
+				'No. Nona supports feature flags and broader remote config in the same system.',
+		},
+		{
+			question: 'What is the fastest way to evaluate Nona?',
+			answer:
+				'Run the Docker image, create one project, add one boolean flag and one text value, then read them over HTTP.',
+		},
+		{
+			question: 'What kind of team is Nona best for?',
+			answer:
+				'Teams that want self-hosted feature flags and remote config, plain HTTP access, and a Docker-first operating model are usually a strong fit.',
 		},
 	],
 };
@@ -422,6 +1280,138 @@ const PAGE_HOW_TOS: Record<string, HowToStepItem[]> = {
 		{
 			name: 'Verify the response',
 			text: 'Confirm the correct value is returned so you know the instance, environment, key, and API key are aligned.',
+		},
+	],
+	'clients/http': [
+		{
+			name: 'Prepare the value and key',
+			text: 'Create or confirm the target parameter and an API key with the correct scope and environment.',
+		},
+		{
+			name: 'Encode the key path',
+			text: 'URL-encode the key name before building the request URL.',
+		},
+		{
+			name: 'Send the HTTP request',
+			text: 'Make the request with the X-Api-Key header against the running Nona instance.',
+		},
+		{
+			name: 'Inspect the response',
+			text: 'Read the raw body and inspect the X-Nona-Content-Type header to understand the logical value type.',
+		},
+		{
+			name: 'Troubleshoot if needed',
+			text: 'If the request fails, check the environment, key, URL encoding, project binding, and scope alignment.',
+		},
+	],
+	'clients/javascript': [
+		{
+			name: 'Install the package',
+			text: 'Install nona-client in the application runtime.',
+		},
+		{
+			name: 'Prepare the parameter and key',
+			text: 'Create one parameter and one API key so the app has a real value to read.',
+		},
+		{
+			name: 'Configure the client',
+			text: 'Set baseUrl, environmentId, and apiKey when creating the Nona client instance.',
+		},
+		{
+			name: 'Read one value',
+			text: 'Use getConfigValue or a typed helper to read one real value from the Nona instance.',
+		},
+		{
+			name: 'Verify a real change',
+			text: 'Edit the value in Nona and confirm the application sees the update before adding more abstraction or cache.',
+		},
+	],
+	'clients/dotnet': [
+		{
+			name: 'Install the package',
+			text: 'Install Nona.Client in the .NET application.',
+		},
+		{
+			name: 'Prepare the parameter and key',
+			text: 'Create one parameter and one API key with the correct backend scope.',
+		},
+		{
+			name: 'Configure the client',
+			text: 'Set BaseAddress, EnvironmentId, and ApiKey in the NonaClient or NonaClientOptions.',
+		},
+		{
+			name: 'Read one value',
+			text: 'Use GetConfigValueAsync or a typed helper to read one real value from Nona.',
+		},
+		{
+			name: 'Verify the service sees updates',
+			text: 'Change the value in Nona and confirm the service reads the expected result before tuning cache behavior.',
+		},
+	],
+	'clients/openfeature': [
+		{
+			name: 'Prepare a boolean flag and key',
+			text: 'Create one boolean parameter and an API key with the correct scope so the provider has a real flag to resolve.',
+		},
+		{
+			name: 'Install the provider package',
+			text: 'Install the Nona OpenFeature provider package for the runtime you are using.',
+		},
+		{
+			name: 'Register the provider',
+			text: 'Configure the provider with the Nona base URL, API key, and environment or client instance depending on the runtime.',
+		},
+		{
+			name: 'Resolve one flag',
+			text: 'Read one boolean flag through OpenFeature so the abstraction is tested end to end.',
+		},
+		{
+			name: 'Verify the flag changes',
+			text: 'Edit the value in Nona and confirm the application sees the updated flag through OpenFeature.',
+		},
+	],
+	'deployment/standalone': [
+		{
+			name: 'Start the service',
+			text: 'Run the standalone container or compose file so one Nona instance is live.',
+		},
+		{
+			name: 'Mount persistent storage',
+			text: 'Keep a persistent volume mounted at /var/lib/nona so the service retains state across restarts and upgrades.',
+		},
+		{
+			name: 'Pin JWT settings if needed',
+			text: 'Provide stable JWT settings if that is part of your production operating model.',
+		},
+		{
+			name: 'Validate the service',
+			text: 'Confirm the admin UI and API respond and that one real config read succeeds.',
+		},
+		{
+			name: 'Protect the deployment',
+			text: 'Set up backups before you rely on the standalone instance operationally.',
+		},
+	],
+	'deployment/primary-replica': [
+		{
+			name: 'Start the topology',
+			text: 'Bring up the compose deployment so both primary and replica services are running.',
+		},
+		{
+			name: 'Preserve persistent storage',
+			text: 'Keep persistent data for both the primary and replica services.',
+		},
+		{
+			name: 'Keep JWT settings aligned',
+			text: 'Use the same pinned JWT settings on both services if you pin them at all.',
+		},
+		{
+			name: 'Use the correct traffic paths',
+			text: 'Keep admin and write traffic on the primary and use the replica only for read-heavy paths that tolerate eventual consistency.',
+		},
+		{
+			name: 'Validate replication behavior',
+			text: 'Confirm the primary and replica endpoints behave as expected and that replica reads match your consistency expectations.',
 		},
 	],
 	'get-started/first-parameter': [

@@ -2,20 +2,26 @@
 import Default from '@astrojs/starlight/components/Footer.astro';
 ---
 
-<Default>
-	<slot />
-	<span class="ryware-credit">
+<div class="ryware-footer">
+	<Default />
+	<p class="ryware-credit">
 		Built with <a href="https://ryware.dev" target="_blank" rel="noreferrer">ryware.dev</a>
-	</span>
-</Default>
+	</p>
+</div>
 
 <style>
+	.ryware-footer {
+		display: grid;
+		gap: 0.75rem;
+	}
+
 	.ryware-credit {
 		display: inline-flex;
 		gap: 0.25rem;
 		align-items: center;
 		font-size: 0.875rem;
 		color: var(--sl-color-text-secondary);
+		margin: 0;
 	}
 
 	.ryware-credit a {

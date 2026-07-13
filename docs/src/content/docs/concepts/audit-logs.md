@@ -85,6 +85,28 @@ When something changes unexpectedly in production:
 5. compare the audit event with the parameter history on the project page
 6. roll back the parameter if needed
 
+## FAQ
+
+### What kinds of actions appear in audit logs?
+
+The current repo wires audit logging around important admin actions such as project, user, environment, parameter, and share-link changes.
+
+### Are audit logs only for security reviews?
+
+No.
+
+They are also part of normal operational workflows such as incident review, production change tracking, and collaboration across multiple operators.
+
+### Should I check audit logs after a rollback?
+
+Often yes.
+
+Rollback handles the immediate recovery, but audit logs help you understand the timeline and the operator actions around the event.
+
+### Why do parameter share links matter in audit logs?
+
+Because share-link creation and revocation are sensitive collaboration actions and should remain visible in the operational record.
+
 ## Related docs
 
 - [History and rollback](/docs/concepts/history-and-rollback/)

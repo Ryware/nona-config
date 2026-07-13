@@ -127,6 +127,30 @@ The repo includes audit-log support, which is especially relevant for:
 - rollback actions
 - share-link creation and revocation
 
+## FAQ
+
+### Does SSO replace API keys for runtime reads?
+
+No.
+
+SSO is for admin access. Runtime config consumers still authenticate with API keys.
+
+### What should I lock down first in production?
+
+Start with admin access, narrow API keys, limited project access, and stable JWT settings if you pin them.
+
+### Should teams share one broad admin account?
+
+No.
+
+One account per operator is a safer and more auditable operating model.
+
+### Are share links a replacement for user access?
+
+No.
+
+Share links are useful for narrow temporary collaboration, but they are not a replacement for normal user and project access control.
+
 ## Related docs
 
 - [API keys](/docs/concepts/api-keys/)

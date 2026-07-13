@@ -133,3 +133,23 @@ That gives you the clearest real-world feel for the difference.
 - [What are feature flags?](/docs/feature-flags/what-are-feature-flags/)
 - [Kill switches](/docs/feature-flags/kill-switches/)
 - [Remote config vs environment variables](/docs/remote-config/remote-config-vs-environment-variables/)
+
+## FAQ
+
+### Are feature flags and remote config the same thing?
+
+No.
+
+Feature flags are usually on/off runtime switches, while remote config is the broader category for runtime values that can also be text, number, or JSON.
+
+### Why does Nona use one system for both?
+
+Because many teams need both behavior toggles and broader runtime settings, and one shared model is easier to operate than multiple separate tools.
+
+### When should I start with a feature flag?
+
+Start with a feature flag when the question is fundamentally on or off, such as enabling a flow or adding a kill switch.
+
+### When should I start with remote config instead?
+
+Start with remote config when the value is a threshold, text string, JSON object, or another non-boolean setting that should change at runtime.

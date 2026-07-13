@@ -216,3 +216,35 @@ var enabled = await featureClient.GetBooleanValueAsync("Features:Checkout", fals
 ```
 
 If your team wants a more flag-oriented, vendor-neutral integration surface, continue with [OpenFeature](/docs/clients/openfeature/).
+
+## Step-by-step .NET client summary
+
+Use this sequence for the fastest .NET integration:
+
+1. install `Nona.Client`
+2. create one parameter and API key
+3. configure `BaseAddress`, `EnvironmentId`, and `ApiKey`
+4. read one value with `GetConfigValueAsync()` or a typed helper
+5. verify the service sees a real value change from Nona
+
+## .NET client FAQ
+
+### When should I use the .NET client instead of raw HTTP?
+
+Use the .NET client when you want a direct C# integration, built-in cache behavior, typed JSON reads, and a simpler path than maintaining your own HTTP wrapper.
+
+### Does the .NET client cache values?
+
+Yes.
+
+The .NET client caches values in memory by default, and you can tune the TTL and memory limit through `NonaClientOptions`.
+
+### Should backend services prefer `server` scope?
+
+Usually yes.
+
+Backend-only values should use `server` scope whenever possible so the read surface stays as narrow as possible.
+
+### When should I use the OpenFeature provider?
+
+Use the OpenFeature provider when the service is becoming more flag-oriented and you want a vendor-neutral evaluation interface on top of the Nona client.

@@ -142,6 +142,39 @@ docker compose -f deploy/compose/standalone-prod.yml logs -f nona
 docker compose -f deploy/compose/standalone-prod.yml down
 ```
 
+## Step-by-step standalone summary
+
+Use this sequence for the normal standalone production path:
+
+1. start the container or compose file
+2. mount a persistent volume at `/var/lib/nona`
+3. pin JWT settings if that is your operating model
+4. confirm the admin UI and API respond
+5. validate one real config read
+6. set up backups before relying on the instance operationally
+
+## FAQ
+
+### Is standalone only for testing?
+
+No.
+
+For many teams, standalone is not only the first production step. It remains the long-term deployment shape.
+
+### What is the most important thing to preserve in standalone mode?
+
+The persistent data mounted at `/var/lib/nona`.
+
+That is the durable state you need to keep across restarts and upgrades.
+
+### Should I pin JWT settings in production?
+
+Usually yes, if you want the deployment to be easier to reason about operationally.
+
+### When should I leave standalone and move to replica mode?
+
+Only when you already know that read-heavy traffic and operational requirements justify the added complexity.
+
 ## Related docs
 
 - [Deployment overview](/docs/deployment/)

@@ -144,6 +144,28 @@ PUT /public/share-links/{token}
 - revoke the link once the task is done
 - avoid sharing long-lived links in permanent chat history or documentation
 
+## FAQ
+
+### What makes parameter share links different from normal user access?
+
+They provide narrow, temporary access to one parameter instead of broader ongoing project access.
+
+### Should I prefer view-only links by default?
+
+Yes.
+
+Use view-only unless the other person truly needs edit access to that one parameter.
+
+### Are share-link tokens sensitive?
+
+Yes.
+
+Anyone with the token can use the public share-link endpoint until the link expires or is revoked, so treat the token as a secret.
+
+### When should I use a share link instead of inviting a user?
+
+Use a share link when the access need is temporary, narrow, and limited to one parameter. Use normal user or project access for ongoing collaboration.
+
 ## Related docs
 
 - [Users and project access](/docs/concepts/users-and-project-access/)

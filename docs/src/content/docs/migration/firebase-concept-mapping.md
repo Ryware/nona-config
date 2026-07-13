@@ -178,3 +178,27 @@ After planning the mapping, confirm:
 - conflicting keys were handled intentionally
 
 For the command and config details, use [CLI Firebase migration reference](/docs/cli/firebase-migration/).
+
+## FAQ
+
+### Does Firebase map one-to-one into Nona?
+
+No.
+
+The migration translates from Firebase source concepts into Nona target concepts rather than preserving a one-to-one product model.
+
+### Do Firebase conditions stay as runtime targeting rules?
+
+No.
+
+They are mapped into explicit Nona environments during migration instead of remaining a Firebase-style runtime rules engine.
+
+### Do Firebase boolean values stay useful after migration?
+
+Yes.
+
+Boolean Firebase values map naturally into Nona `boolean` entries, which means they continue to work well as feature flags.
+
+### What is the biggest concept shift to understand before migrating?
+
+The biggest shift is that Nona is a self-hosted project/environment/scope model, not Firebase with renamed screens.

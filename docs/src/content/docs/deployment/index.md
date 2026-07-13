@@ -84,3 +84,25 @@ Once the instance is live:
 - [Security and authentication](/docs/operations/security-and-authentication/)
 - [Backups](/docs/operations/backups/)
 - [Upgrades](/docs/operations/upgrades/)
+
+## FAQ
+
+### What is the right first production deployment for most teams?
+
+Standalone is usually the right first production deployment.
+
+It is simpler to operate and usually enough unless you already know you need a replica read topology.
+
+### When should I choose primary/replica instead of standalone?
+
+Choose primary/replica only when read-heavy workloads justify the extra complexity and eventual consistency is acceptable for replica reads.
+
+### Is deployment part of the product story for Nona?
+
+Yes.
+
+Because Nona is self-hosted, deployment is part of using the product, not a separate concern you can ignore.
+
+### What should I do right after the deployment is live?
+
+Create the first admin account, create a project and environments, validate a real read path, and then make sure backups are in place.

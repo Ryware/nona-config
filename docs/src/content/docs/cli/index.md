@@ -189,3 +189,23 @@ The CLI reads these values when flags are omitted:
 ## Command reference
 
 See [CLI reference](/docs/cli/reference/) for generated command help.
+
+## FAQ
+
+### When should I use the CLI instead of the admin UI?
+
+Use the CLI for repeatable operations, scripting, migration work, history and rollback workflows, and terminal-first administration.
+
+### Do I still need the admin UI if I use the CLI?
+
+Often yes.
+
+Some workflows such as environment creation are still documented primarily through the admin UI.
+
+### What is the best first CLI command to run?
+
+After installation, `nona auth login --base-url https://nona.example.com` is usually the best first command because it establishes the interactive session.
+
+### Why is the CLI especially important for Firebase migration?
+
+Because migration is an operator workflow that benefits from dry runs, config files, and repeatable execution from a terminal.

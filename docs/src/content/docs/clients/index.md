@@ -80,3 +80,23 @@ Once that works, move to [JavaScript](/docs/clients/javascript/) or [.NET](/docs
 - [Client vs server scope](/docs/concepts/client-vs-server-scope/)
 - [Feature flags](/docs/feature-flags/)
 - [Remote config](/docs/remote-config/)
+
+## FAQ
+
+### What is the best first integration path?
+
+HTTP is usually the best first validation path because it proves the instance, key, environment, and API key all work before client code gets involved.
+
+### When should I use JavaScript or .NET instead of HTTP?
+
+Use the language client when you want a more convenient integration surface, caching behavior, or typed helpers instead of manual request handling.
+
+### When should I use OpenFeature?
+
+Use OpenFeature when your team wants a vendor-neutral feature-flag interface or already uses OpenFeature across multiple applications.
+
+### Do all integration paths still use the same Nona model?
+
+Yes.
+
+All of them still rely on the same underlying Nona project, environment, scope, and API key model.

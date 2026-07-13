@@ -128,3 +128,25 @@ You can keep:
 - [Feature flags for mobile apps](/docs/feature-flags/mobile-app-feature-flags/)
 - [JavaScript client](/docs/clients/javascript/)
 - [Client vs server scope](/docs/concepts/client-vs-server-scope/)
+
+## FAQ
+
+### Why do mobile apps need remote config?
+
+Because mobile release cycles are slower than web deploys, and remote config lets teams change values after the app has already shipped.
+
+### Is mobile remote config only about feature flags?
+
+No.
+
+Mobile apps often need both feature flags and broader runtime values such as copy, thresholds, supported versions, and grouped settings.
+
+### Should mobile remote-config values use `client` scope?
+
+Usually yes for values the app reads directly.
+
+Keep sensitive or backend-only decisions on `server` scope where possible.
+
+### What is a good first mobile remote-config value?
+
+`App:BannerText` or `App:MinimumSupportedVersion` is usually a good first value because it is easy to create and easy to observe in the app.
