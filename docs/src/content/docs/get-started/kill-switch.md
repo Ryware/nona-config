@@ -19,9 +19,7 @@ For backend-only behavior, use `server` scope instead.
 
 ## Why this is useful
 
-- no app redeploy required
-- one fast operational escape hatch
-- easy to audit and roll back
+Kill switches let you disable risky behavior without a redeploy, give operators one fast escape hatch, and fit naturally with Nona history and rollback.
 
 ## Good first kill switch candidates
 
@@ -99,17 +97,6 @@ A good kill switch should:
 - be documented before the incident happens
 
 If the application only works correctly in the `true` path, it is not really ready to benefit from a kill switch yet.
-
-## Step-by-step kill switch summary
-
-Use this sequence for the fastest first kill switch:
-
-1. create a boolean parameter such as `Features:Checkout`
-2. set the initial value to `true`
-3. choose the correct scope for where the flag is evaluated
-4. wire the app to respect both `true` and `false`
-5. test the off path before an incident happens
-6. flip it to `false` when you need to disable the feature
 
 ## Kill switch FAQ
 

@@ -72,7 +72,7 @@ const checkout = await nona.getStringValue("Features:Checkout");
 const checkoutEnabled = checkout === "true";
 ```
 
-For actual feature flags, it is usually better to keep the entry typed as `boolean`, then inspect the metadata or use OpenFeature if you want a flag-oriented interface.
+For actual feature flags, it is usually better to keep the entry typed as `boolean`, then inspect the metadata or use OpenFeature.
 
 ## Read a boolean flag cleanly
 
@@ -150,14 +150,7 @@ try {
 
 ## When to use the JavaScript client
 
-Use the JavaScript client when you want:
-
-- a straightforward Nona-specific API
-- runtime reads in JavaScript or TypeScript
-- optional in-memory caching
-- a smaller abstraction layer than OpenFeature
-
-Use [HTTP](/docs/clients/http/) instead when the app only needs one very small direct read path.
+Use the JavaScript client when you want a straightforward Nona-specific API, runtime reads in JavaScript or TypeScript, optional in-memory caching, and a smaller abstraction layer than OpenFeature. Use [HTTP](/docs/clients/http/) instead when the app only needs one very small direct read path.
 
 ## Optional cache
 
@@ -173,33 +166,15 @@ const nona = createNonaClient({
 
 Use `invalidateTtlCache(key)` to remove one cached value or `clearTtlCache()` to clear all cached values.
 
-The JavaScript client cache is optional and disabled by default. Set a positive `cacheTtlMs` value to enable it.
-
-Cache is useful when:
-
-- the same keys are read repeatedly
-- you want to reduce request volume
-- the application can tolerate slightly older values for a short TTL
-
-Keep the TTL short for operational flags and kill switches unless you are sure longer cache windows are acceptable.
+The JavaScript client cache is optional and disabled by default. Set a positive `cacheTtlMs` value to enable it. It is useful when the same keys are read repeatedly and the application can tolerate slightly older values for a short TTL. Keep the TTL short for operational flags and kill switches unless you are sure longer cache windows are acceptable.
 
 ## Basic troubleshooting
 
-If a JavaScript read fails:
-
-1. confirm `environmentId` matches the environment name in Nona
-2. confirm the API key belongs to the same project as the parameter
-3. confirm the parameter scope is readable by that key
-4. try the same key once with [HTTP](/docs/clients/http/) to isolate client-code issues
+If a JavaScript read fails, confirm `environmentId` matches the environment name in Nona, the API key belongs to the same project as the parameter, the parameter scope is readable by that key, and the same key works once over [HTTP](/docs/clients/http/).
 
 ## Good first app flow
 
-For a mobile or JavaScript app, the usual sequence is:
-
-1. fetch one kill switch or banner text on startup
-2. confirm the value changes when you edit it in admin
-3. add TTL cache only if repeated reads justify it
-4. move to OpenFeature when the app becomes flag-heavy
+For a mobile or JavaScript app, start by fetching one kill switch or banner text on startup, confirm the value changes when you edit it in admin, add TTL cache only if repeated reads justify it, and move to OpenFeature once the app becomes flag-heavy.
 
 ## OpenFeature provider
 
@@ -226,16 +201,6 @@ const enabled = await client.getBooleanValue("Features:Checkout", false);
 ```
 
 If your team thinks in terms of feature flags more than direct config reads, see [OpenFeature](/docs/clients/openfeature/).
-
-## Step-by-step JavaScript client summary
-
-Use this sequence for the fastest JavaScript integration:
-
-1. install `nona-client`
-2. create one parameter and API key
-3. configure `baseUrl`, `environmentId`, and `apiKey`
-4. read one value with `getConfigValue()` or a typed helper
-5. verify the value changes when you edit it in Nona
 
 ## JavaScript client FAQ
 

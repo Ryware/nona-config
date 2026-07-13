@@ -77,15 +77,7 @@ The key path segment must be URL-encoded. For example:
 
 ## What a successful first read proves
 
-If this request works, you have already validated a lot:
-
-- the Nona instance is reachable
-- the environment exists
-- the key exists
-- the API key is valid
-- the API key scope can read the entry
-
-That is why this step is a good milestone before you integrate one of the official clients.
+If this request works, you have validated that the Nona instance is reachable, the environment and key exist, the API key is valid, and the API key scope can read the entry. That makes it the best milestone before you integrate one of the official clients.
 
 ## Fast troubleshooting
 
@@ -96,17 +88,6 @@ If the request fails:
 3. confirm the key path is URL-encoded
 4. confirm the API key belongs to the same project
 5. confirm the API key scope can read the entry scope
-
-## Step-by-step API read summary
-
-Use this sequence for the shortest first-read test:
-
-1. create or confirm one parameter exists
-2. create or confirm one API key exists
-3. copy the environment id
-4. URL-encode the key name
-5. send the HTTP request with `X-Api-Key`
-6. verify the value comes back correctly
 
 ## First API call FAQ
 
@@ -134,12 +115,6 @@ Either keep using direct HTTP for a very small integration, or move to the JavaS
 
 ## What to do next
 
-After the first direct HTTP read, most teams choose one of these paths:
-
-- keep using [HTTP](/docs/clients/http/) for a very small integration
-- switch to [JavaScript](/docs/clients/javascript/) or [.NET](/docs/clients/dotnet/) for app code
-- add a [kill switch](/docs/get-started/kill-switch/) as the first operational flag
-
-For the full endpoint behavior, see [HTTP](/docs/clients/http/).
+After the first direct HTTP read, most teams either keep using [HTTP](/docs/clients/http/) for a very small integration, switch to [JavaScript](/docs/clients/javascript/) or [.NET](/docs/clients/dotnet/) for application code, or add a [kill switch](/docs/get-started/kill-switch/) as the first operational flag. For full endpoint behavior, see [HTTP](/docs/clients/http/).
 
 Next: [Add a kill switch](/docs/get-started/kill-switch/)

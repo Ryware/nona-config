@@ -11,20 +11,7 @@ Nona runs as a single Docker image, so the simplest deployment path is one conta
 
 ## Why Docker is the default starting point
 
-Docker is the simplest way to:
-
-- start a self-hosted Nona instance quickly
-- keep the deployment model close to production
-- validate the product before adding more infrastructure
-
-For most teams, the right flow is:
-
-1. start Nona with Docker
-2. create the first admin account
-3. create a project and environment
-4. add a parameter or feature flag
-5. create an API key
-6. verify a read over HTTP or a client SDK
+Docker is the simplest way to start a self-hosted Nona instance quickly, keep the deployment model close to production, and validate the product before adding more infrastructure.
 
 ## Start the container
 
@@ -91,19 +78,6 @@ After you sign in:
 4. create `staging` or `production`
 5. click `Add Parameter`
 
-## Step-by-step deployment summary
-
-If you want the shortest operator checklist, use this sequence:
-
-1. run the single-container `docker run` command
-2. open `http://localhost:18080/register`
-3. create the first admin account
-4. create a project
-5. create at least one environment
-6. add one parameter or feature flag
-7. create an API key
-8. test one read over HTTP
-
 ## Basic health checks
 
 These commands are enough for a first smoke test:
@@ -117,13 +91,7 @@ If the UI loads and the container stays healthy, you can move on to [Create your
 
 ## What this first Docker setup proves
 
-If you can bring the service up successfully, you have already validated the most important part of the product model:
-
-- Nona can run on infrastructure you control
-- the service is reachable
-- you have a base URL for the rest of the setup flow
-
-That is why Docker is the best first step for both evaluation and real self-hosted adoption.
+If this works, you have already proven the most important part of the product model: Nona runs on infrastructure you control, the service is reachable, and you have a base URL for the rest of the setup flow.
 
 ## Production notes
 

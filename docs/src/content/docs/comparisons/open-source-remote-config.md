@@ -3,9 +3,7 @@ title: Open Source Remote Config
 description: Use Nona for open source, self-hosted remote config with Docker deployment, HTTP access, official clients, and feature flags in the same system.
 ---
 
-If you are looking for open source remote config, you are usually trying to solve more than one problem at once.
-
-Typical goals:
+If you are looking for open source remote config, you are usually trying to solve more than one problem at once. Typical goals include:
 
 - change application behavior without redeploying
 - keep control of your own infrastructure
@@ -17,13 +15,7 @@ Nona is built for that combination.
 
 ## Why teams look for open source remote config
 
-Common reasons:
-
-- they want a self-hosted deployment model
-- they want source visibility and control
-- they want to avoid tying runtime config to one vendor ecosystem
-- they need remote config for backend services, not only mobile SDK flows
-- they want feature flags in the same product
+Common reasons are wanting a self-hosted deployment model, source visibility and control, less vendor coupling, backend-friendly remote config instead of only mobile SDK flows, and feature flags in the same product.
 
 ## What Nona provides
 
@@ -72,26 +64,9 @@ It also supports feature flags through the same model:
 
 That is useful when a team wants one operational surface instead of separate tools for flags and configuration.
 
-## Good fit checklist
-
-Nona is a strong fit if you want:
-
-- open source remote config
-- self-hosted deployment
-- runtime values for web, mobile, and backend apps
-- plain HTTP access
-- feature flags in the same product
-- a smaller model than a larger hosted platform
-
 ## Where Nona fits best
 
-Nona is strongest when you want:
-
-- open source remote config
-- self-hosted feature flags
-- plain HTTP access from any language
-- server-side remote config as well as frontend/mobile reads
-- a migration path away from Firebase Remote Config
+Nona is strongest when you want open source remote config, self-hosted feature flags, plain HTTP access from any language, server-side remote config as well as frontend/mobile reads, and a migration path away from Firebase Remote Config.
 
 ## Practical examples
 

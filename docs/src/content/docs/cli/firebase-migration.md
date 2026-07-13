@@ -5,7 +5,7 @@ description: Migrate Firebase Remote Config parameters into Nona with the CLI.
 
 Use `nona migrate firebase` to import Firebase Remote Config parameters into a Nona project.
 
-The migrator reads Firebase Remote Config, builds a migration plan, creates the Nona project and environments when they do not exist, then writes config entries.
+The migrator reads Firebase Remote Config, builds a migration plan, creates the Nona project and environments when they do not exist, and then writes config entries.
 
 ## Requirements
 
@@ -86,9 +86,7 @@ If `firebase.sources` is set, each source is imported with its configured Nona s
 | `namespace` | Firebase Remote Config namespace. Omit or set empty to use the default Firebase API template. |
 | `scope` | Nona scope for entries from this source: `client`, `server`, or `all`. |
 
-If `sources` is omitted and `namespace` is set, the migrator imports that namespace with scope `all`.
-
-If both `sources` and `namespace` are omitted, the migrator imports two namespaces:
+If `sources` is omitted and `namespace` is set, the migrator imports that namespace with scope `all`. If both `sources` and `namespace` are omitted, the migrator imports two namespaces:
 
 | Firebase namespace | Nona scope |
 |---|---|
@@ -97,15 +95,7 @@ If both `sources` and `namespace` are omitted, the migrator imports two namespac
 
 ## Environment mapping
 
-`defaultValueEnvironments` tells the migrator where Firebase default values should be written.
-
-`conditionEnvironmentMappings` maps Firebase condition names to Nona environment names.
-
-For each key and target environment, the migrator uses the first matching Firebase condition in Firebase condition order. If no condition matches and defaults apply to that environment, it uses the Firebase default value.
-
-When `applyDefaultToMappedEnvironments` is `true`, default values are also written to mapped environments that do not have a matching conditional value.
-
-Unmapped Firebase conditions are skipped with a warning.
+`defaultValueEnvironments` tells the migrator where Firebase default values should be written. `conditionEnvironmentMappings` maps Firebase condition names to Nona environment names. For each key and target environment, the migrator uses the first matching Firebase condition in Firebase condition order. If no condition matches and defaults apply to that environment, it uses the Firebase default value. When `applyDefaultToMappedEnvironments` is `true`, default values are also written to mapped environments that do not have a matching conditional value. Unmapped Firebase conditions are skipped with a warning.
 
 ## Content types
 
@@ -123,9 +113,7 @@ Unknown Firebase value types are imported as `text` with a warning.
 
 ## Parameter groups
 
-Parameters inside Firebase parameter groups are flattened and imported with the original parameter key.
-
-If the same key exists more than once while flattening groups, the migration stops with an error.
+Parameters inside Firebase parameter groups are flattened and imported with the original parameter key. If the same key exists more than once while flattening groups, the migration stops with an error.
 
 ## Conflicts between sources
 
