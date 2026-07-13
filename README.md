@@ -17,7 +17,7 @@ Nona is a self-hosted feature flag and remote config platform with a built-in ad
 - Read values over **plain HTTP** with project-scoped API keys
 - Run on your own infrastructure with **one Docker container** and embedded libSQL
 
-> [Website](https://nonaconfig.com) · [Docs](https://nonaconfig.com/docs) · [Docker Hub](https://hub.docker.com/r/rywaredev/nona) · [npm](https://www.npmjs.com/package/nona-client) · [NuGet](https://www.nuget.org/packages/Nona.Client)
+> [Website](https://nonaconfig.com) · [Docs](https://nonaconfig.com/docs) · [Docker Hub](https://hub.docker.com/r/rywaredev/nona) · [npm client](https://www.npmjs.com/package/nona-client) · [npm CLI](https://www.npmjs.com/package/nona-cli) · [NuGet](https://www.nuget.org/packages/Nona.Client)
 
 ---
 
@@ -186,6 +186,11 @@ The response body is the stored value. Nona also returns the logical type in the
 
 ### CLI (Windows / macOS / Linux)
 
+```bash
+# npm
+npm install -g nona-cli
+```
+
 ```powershell
 # Windows via Chocolatey
 choco install nona-cli
@@ -193,7 +198,10 @@ choco install nona-cli
 
 Or download the binary from [GitHub Releases](https://github.com/ryware/nona-config/releases).
 
-🍫 [community.chocolatey.org/packages/nona-cli](https://community.chocolatey.org/packages/nona-cli)
+CLI packages:
+
+- [npmjs.com/package/nona-cli](https://www.npmjs.com/package/nona-cli)
+- [community.chocolatey.org/packages/nona-cli](https://community.chocolatey.org/packages/nona-cli)
 
 ---
 
@@ -268,7 +276,7 @@ The Nona CLI includes a built-in Firebase Remote Config migration command that i
 
 ```bash
 # Install CLI
-choco install nona-cli
+npm install -g nona-cli
 
 # Run migration
 nona migrate firebase \
