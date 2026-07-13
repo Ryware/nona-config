@@ -12,15 +12,15 @@ internal sealed class KeysCommands(CliContext ctx) : ICliCommandGroup
 
     public Command Build()
     {
-        var keys = new Command("keys", "Manage project API keys.");
+        var keys = new Command("keys", "List, create, and delete project API keys.");
 
-        var baseUrlOpt = new Option<string?>(["--base-url", "--api-url"], "Nona API base URL.");
-        var projectOpt = new Option<string?>(["--project", "--project-name"], "Project name.");
-        var tokenOpt = new Option<string?>(["--token", "--bearer-token"], "Bearer token.");
+        var baseUrlOpt = new Option<string?>(["--base-url", "--api-url"], "Nona base URL.");
+        var projectOpt = new Option<string?>(["--project", "--project-name"], "Nona project name.");
+        var tokenOpt = new Option<string?>(["--token", "--bearer-token"], "Admin bearer token.");
         var nameOpt = new Option<string?>(["--name"], "API key name.");
-        var envOpt = new Option<string?>(["--environment", "--env"], "Optional environment scope.");
-        var scopeOpt = new Option<string?>(["--scope"], "Config scope: client, server, or all.");
-        var idOpt = new Option<string?>(["--id"], "API key id.");
+        var envOpt = new Option<string?>(["--environment", "--env"], "Limit the key to one environment.");
+        var scopeOpt = new Option<string?>(["--scope"], "Read scope for the key: client, server, or all.");
+        var idOpt = new Option<string?>(["--id"], "API key id to delete.");
 
         keys.AddCommand(BuildShow(baseUrlOpt, projectOpt, tokenOpt));
         keys.AddCommand(BuildCreate(baseUrlOpt, projectOpt, nameOpt, envOpt, scopeOpt, tokenOpt));
@@ -32,7 +32,7 @@ internal sealed class KeysCommands(CliContext ctx) : ICliCommandGroup
         Option<string?> baseUrlOpt, Option<string?> projectOpt, Option<string?> tokenOpt)
     {
         var handler = new ShowKeysQueryHandler();
-        var cmd = new Command("list", "List managed API keys for a project.");
+        var cmd = new Command("list", "List API keys for a project.");
         cmd.AddAlias("show");
         cmd.AddOption(baseUrlOpt);
         cmd.AddOption(projectOpt);
@@ -64,7 +64,7 @@ internal sealed class KeysCommands(CliContext ctx) : ICliCommandGroup
         Option<string?> tokenOpt)
     {
         var handler = new CreateApiKeyCommandHandler();
-        var cmd = new Command("create", "Generate a managed API key for a project.");
+        var cmd = new Command("create", "Create an API key for a project.");
         cmd.AddOption(baseUrlOpt);
         cmd.AddOption(projectOpt);
         cmd.AddOption(nameOpt);
@@ -120,7 +120,7 @@ internal sealed class KeysCommands(CliContext ctx) : ICliCommandGroup
         Option<string?> idOpt, Option<string?> tokenOpt)
     {
         var handler = new DeleteApiKeyCommandHandler();
-        var cmd = new Command("delete", "Delete a managed API key.");
+        var cmd = new Command("delete", "Delete an API key.");
         cmd.AddOption(baseUrlOpt);
         cmd.AddOption(projectOpt);
         cmd.AddOption(idOpt);
