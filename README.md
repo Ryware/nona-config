@@ -1,6 +1,6 @@
-# Nona — Open Source Firebase Remote Config Alternative
+# Nona - Open Source Feature Flags and Remote Config
 
-**Self-hosted feature flags and remote configuration for web, mobile, and backend apps.**
+**Self-hosted feature flags, remote config, and kill switches for web, mobile, and backend apps.**
 
 [![Docker Pulls](https://img.shields.io/docker/pulls/rywaredev/nona?style=flat-square&logo=docker)](https://hub.docker.com/r/rywaredev/nona)
 [![npm](https://img.shields.io/npm/v/nona-client?style=flat-square&logo=npm)](https://www.npmjs.com/package/nona-client)
@@ -9,14 +9,15 @@
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg?style=flat-square)](LICENSE.txt)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/Ryware/nona-config/badge)](https://scorecard.dev/viewer/?uri=github.com/Ryware/nona-config)
 
-Nona gives you the same feature flag and remote config capabilities as Firebase Remote Config — without the Google account, without the lock-in, and running entirely on your own infrastructure.
+Nona is a self-hosted feature flag and remote config platform with a built-in admin UI, plain HTTP access, official JavaScript and .NET clients, OpenFeature support, and a migration path from Firebase Remote Config.
 
 - Toggle **feature flags** from a dashboard without redeploying
 - Update **mobile app config** (iOS, Android, React Native, Flutter) without an app store release
 - Use **kill switches** to disable broken features in seconds
-- Fetch everything via **one REST API call** — no SDK required in any language
+- Read values over **plain HTTP** with project-scoped API keys
+- Run on your own infrastructure with **one Docker container** and embedded libSQL
 
-> 🌐 [nonaconfig.com](https://nonaconfig.com) &nbsp;·&nbsp; 🐳 [Docker Hub](https://hub.docker.com/r/rywaredev/nona) &nbsp;·&nbsp; 📦 [npm](https://www.npmjs.com/package/nona-client) &nbsp;·&nbsp; 📦 [NuGet](https://www.nuget.org/packages/Nona.Client)
+> [Website](https://nonaconfig.com) · [Docs](https://nonaconfig.com/docs) · [Docker Hub](https://hub.docker.com/r/rywaredev/nona) · [npm](https://www.npmjs.com/package/nona-client) · [NuGet](https://www.nuget.org/packages/Nona.Client)
 
 ---
 
@@ -50,8 +51,10 @@ Nona is our attempt to keep this part of the stack small and understandable: one
 | Open source | ✅ Apache 2.0 licence | ❌ Closed source |
 | Self-hostable | ✅ Docker / Kubernetes | ❌ Google-hosted only |
 | No Google account | ✅ | ❌ Required |
+| Feature flags | ✅ First-class boolean flags and kill switches | ⚠️ Part of the broader Remote Config workflow |
 | Works without mobile SDK | ✅ Plain HTTP | ❌ Firebase SDK needed |
 | .NET / NuGet client | ✅ | ❌ |
+| Shared parameters | ✅ Shareable parameter links | ❌ |
 | Migration tool | ✅ Built into CLI | — |
 | Free forever | ✅ Self-host | Free tier with limits |
 
@@ -72,22 +75,23 @@ docker run -d \
 
 - **Web UI:** `http://localhost:18080`
 - **API base:** `http://localhost:18080`
+- **Guided setup:** `https://nonaconfig.com/docs/get-started/`
 
-Create a project, add environments, and set your first key-value pair. Then fetch your config:
+Create a project, add an environment such as `production`, create a key such as `Features:Checkout`, and issue an API key with matching scope. Then read the value:
 
 ```bash
-curl http://localhost:18080/v1/config/my-app/production \
-  -H "X-API-Key: your-api-key"
+curl -i "http://localhost:18080/api/production/Features%3ACheckout" \
+  -H "X-Api-Key: your-api-key"
 ```
 
-```json
-{
-  "checkout_v2": true,
-  "dark_mode": false,
-  "banner_text": "Hello",
-  "max_upload_mb": 50
-}
+```http
+HTTP/1.1 200 OK
+X-Nona-Content-Type: boolean
+
+true
 ```
+
+The API key is bound to one project, so the request path only needs the environment and key. For a full walkthrough, start with [First project](https://nonaconfig.com/docs/get-started/first-project/) and [First API call](https://nonaconfig.com/docs/get-started/first-api-call/).
 
 ---
 
@@ -157,24 +161,26 @@ See [client/javascript-openfeature-provider/README.md](client/javascript-openfea
 
 ### Any language (plain HTTP)
 
-No SDK needed. A single GET request returns all config for a project and environment as JSON:
+No SDK needed. The smallest integration is one GET request per value:
 
 ```bash
 # curl
-curl https://your-nona-host/v1/config/{project}/{environment} \
-  -H "X-API-Key: your-api-key"
+curl "https://your-nona-host/api/production/Features%3ACheckout" \
+  -H "X-Api-Key: your-api-key"
 
 # Python
 import httpx
-config = httpx.get(
-    "https://your-nona-host/v1/config/my-app/production",
-    headers={"X-API-Key": api_key}
-).json()
+value = httpx.get(
+    "https://your-nona-host/api/production/Features%3ACheckout",
+    headers={"X-Api-Key": api_key}
+)
 
 # Go
-req, _ := http.NewRequest("GET", "https://your-nona-host/v1/config/my-app/production", nil)
-req.Header.Set("X-API-Key", apiKey)
+req, _ := http.NewRequest("GET", "https://your-nona-host/api/production/Features%3ACheckout", nil)
+req.Header.Set("X-Api-Key", apiKey)
 ```
+
+The response body is the stored value. Nona also returns the logical type in the `X-Nona-Content-Type` response header.
 
 ---
 
@@ -195,10 +201,13 @@ Or download the binary from [GitHub Releases](https://github.com/ryware/nona-con
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/v1/config/{project}/{environment}` | Fetch all config for a project/environment |
-| `GET` | `/v1/config/{project}/{environment}/{key}` | Fetch a single key |
+| `GET` | `/api/{environmentId}/{key}` | Fetch one config value for an environment |
 
-Authentication: `X-API-Key` request header.
+Authentication: `X-Api-Key` request header.
+
+The API key determines the project. The response body contains the raw stored value, and `X-Nona-Content-Type` tells the client whether the value is `text`, `number`, `boolean`, or `json`.
+
+See [HTTP client docs](https://nonaconfig.com/docs/clients/http/) for examples and troubleshooting.
 
 ---
 
