@@ -11,6 +11,16 @@ From the shipped app configuration, libSQL working state lives under `/var/lib/n
 
 Even if your exact storage layout changes later, the operational rule stays the same: back up the mounted persistent state, not just the container image or Compose file.
 
+## What to back up
+
+At minimum, preserve:
+
+- the persistent Docker volume behind `/var/lib/nona`
+- any pinned JWT settings you manage outside the volume
+- enough deployment metadata to know which topology the backup belongs to
+
+Backing up only the container tag or deployment manifest is not enough. The durable state is in the mounted data path.
+
 ## Standalone deployment
 
 In standalone mode, the deployment guide mounts:
@@ -20,6 +30,15 @@ In standalone mode, the deployment guide mounts:
 Treat that volume as production data and protect it before risky maintenance or upgrade work.
 
 For standalone, the most important backup question is simple: can you restore the contents behind `nona-data` if the host, container, or deployment changes unexpectedly?
+
+## Simple standalone workflow
+
+For a one-container deployment, the normal operator flow is:
+
+1. identify the volume behind `/var/lib/nona`
+2. take a host-level snapshot or backup of that volume
+3. record when the backup was taken
+4. perform the risky change only after the backup exists
 
 ## Primary/replica deployment
 
@@ -32,6 +51,15 @@ The docs already treat both as persistent state, so backup planning should refle
 
 At minimum, be explicit about how you protect the primary's durable state. If you also preserve replica state, restores and rollouts may be easier to reason about operationally.
 
+## Before a risky change
+
+Before upgrades, host moves, or topology changes:
+
+1. confirm which volumes belong to the deployment
+2. confirm where JWT settings come from
+3. take the backup or snapshot
+4. make sure the team knows how to restore it
+
 ## What should trigger a backup
 
 Backups are especially important before:
@@ -41,6 +69,18 @@ Backups are especially important before:
 - storage migrations
 - host replacement
 - other maintenance that could affect `/var/lib/nona`
+
+## Practical restore checklist
+
+After a restore, validate:
+
+1. the container starts
+2. the admin UI loads
+3. a known user can sign in
+4. a known parameter still exists
+5. a known runtime read still works
+
+That is the real measure of whether the backup is useful.
 
 ## Good backup habits
 

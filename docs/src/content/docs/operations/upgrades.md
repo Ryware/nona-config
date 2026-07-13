@@ -12,6 +12,16 @@ The deployment guides in this repo already show the two most important principle
 
 Everything else in an upgrade plan should support those two goals.
 
+## A practical upgrade pattern
+
+For most teams, the safe sequence is:
+
+1. take a backup
+2. confirm JWT settings are stable
+3. replace the container image
+4. start the updated service
+5. validate login and one known config read
+
 ## Before upgrading
 
 Before an upgrade:
@@ -26,6 +36,8 @@ If you use the production Compose files from this repo, that also means confirmi
 - standalone: `nona-data`
 - primary/replica: `nona-primary-data` and `nona-replica-data`
 
+If you run the single-container Docker path instead of Compose, the same rule applies: preserve the mounted `/var/lib/nona` volume.
+
 ## Persistent data
 
 The deployment docs explicitly say to keep the Docker volumes used by Nona when upgrading.
@@ -33,6 +45,17 @@ The deployment docs explicitly say to keep the Docker volumes used by Nona when 
 That matters because those volumes hold the durable application state under `/var/lib/nona`.
 
 Do not treat container replacement as equivalent to data preservation. The container image can change while the mounted data must survive.
+
+## First checks after restart
+
+The first post-upgrade checks should be:
+
+1. the container is running
+2. the admin UI responds
+3. a known user can authenticate
+4. a known key can still be read
+
+Do those before assuming the upgrade is complete.
 
 ## JWT stability
 
@@ -52,6 +75,8 @@ This is especially important if users are already actively signing into the admi
 
 For standalone, the main goal is to replace the running container without losing the mounted `nona-data` volume or changing pinned auth settings unexpectedly.
 
+For the one-container Docker path, that usually means stopping the old container, starting the new image against the same volume, and validating immediately.
+
 ### Primary/replica
 
 For primary/replica, validate both services after the upgrade:
@@ -62,6 +87,12 @@ For primary/replica, validate both services after the upgrade:
 - the expected replication relationship
 
 Because replica reads are eventually consistent, part of upgrade validation is confirming that known values are still visible where you expect them to be after the services settle.
+
+## Good validation target
+
+Pick one known flag or setting before the maintenance window starts.
+
+After the upgrade, verify that exact key again. This is much more reliable than doing a vague “the UI looks fine” check.
 
 ## After upgrading
 

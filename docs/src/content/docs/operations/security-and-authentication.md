@@ -12,6 +12,16 @@ In practice, the security model has a few distinct layers:
 - project access control for what each user can change
 - auditability for sensitive actions
 
+## First production steps
+
+For a real deployment, the first security checklist is:
+
+1. pin JWT settings if that is your operating model
+2. create individual user accounts instead of shared credentials
+3. create narrow API keys for each app or service
+4. keep project access limited to the teams that need it
+5. use short-lived share links when temporary access is enough
+
 ## API keys
 
 Use narrow API keys whenever possible.
@@ -25,6 +35,16 @@ Good habits:
 
 API keys protect the runtime config API. They are not replaced by SSO.
 
+## Basic API-key workflow
+
+In admin:
+
+1. open the project
+2. use the `API Keys` section
+3. create a key per app or service
+4. choose the narrowest scope that works
+5. limit the key to one environment when possible
+
 ## JWT settings
 
 Nona can generate and persist JWT settings automatically, but production deployments are easier to reason about when those values are pinned explicitly.
@@ -37,6 +57,8 @@ The deployment guides show these settings:
 
 Keep `Jwt__Key` in a real secret store or controlled `.env` workflow for production.
 
+If you rotate or change these values unexpectedly, treat that as a meaningful auth-impacting maintenance event.
+
 ## User authentication
 
 The repo supports multiple admin authentication paths:
@@ -48,6 +70,15 @@ The repo supports multiple admin authentication paths:
 
 That matters because a self-hosted admin surface should not depend on shared operator credentials.
 
+## Good admin-access pattern
+
+Prefer:
+
+- one account per operator
+- invitations for onboarding
+- SSO where it fits your identity workflow
+- project-level access instead of broad shared admin access
+
 ## Share-link tokens
 
 Parameter share links are powerful because they allow narrow temporary access, but that also means the token itself should be treated like a secret.
@@ -57,6 +88,8 @@ Remember:
 - anyone with the token can use the public share-link endpoint until the link expires or is revoked
 - short-lived links are safer than long-lived ones
 - link creation and revocation are written to the audit log
+
+That makes share links useful for narrow collaboration, but not a replacement for real user and project access.
 
 ## SSO and user access
 
