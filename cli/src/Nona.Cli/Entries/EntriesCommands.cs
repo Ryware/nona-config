@@ -10,13 +10,13 @@ internal sealed class EntriesCommands(CliContext ctx) : ICliCommandGroup
 {
     public Command Build()
     {
-        var entries = new Command("entries", "Manage config entries within a project environment.");
+        var entries = new Command("entries", "Read, write, and share config entries.");
 
-        var baseUrlOpt = new Option<string?>(["--base-url", "--api-url"], "Nona API base URL.");
-        var tokenOpt = new Option<string?>(["--token", "--bearer-token"], "Bearer token.");
-        var projectOpt = new Option<string?>(["--project", "--project-name"], "Project name.");
-        var envOpt = new Option<string?>("--environment", "Environment name.");
-        var keyOpt = new Option<string?>("--key", "Config entry key.");
+        var baseUrlOpt = new Option<string?>(["--base-url", "--api-url"], "Nona base URL.");
+        var tokenOpt = new Option<string?>(["--token", "--bearer-token"], "Admin bearer token.");
+        var projectOpt = new Option<string?>(["--project", "--project-name"], "Nona project name.");
+        var envOpt = new Option<string?>("--environment", "Nona environment name, for example production.");
+        var keyOpt = new Option<string?>("--key", "Config entry key, for example Features:Checkout.");
 
         entries.AddCommand(BuildList(baseUrlOpt, tokenOpt, projectOpt, envOpt));
         entries.AddCommand(BuildGet(baseUrlOpt, tokenOpt, projectOpt, envOpt, keyOpt));
@@ -33,7 +33,7 @@ internal sealed class EntriesCommands(CliContext ctx) : ICliCommandGroup
         Option<string?> projectOpt, Option<string?> envOpt)
     {
         var handler = new ListEntriesQueryHandler();
-        var cmd = new Command("list", "List all config entries in an environment.");
+        var cmd = new Command("list", "List entries in an environment.");
         cmd.AddOption(baseUrlOpt);
         cmd.AddOption(tokenOpt);
         cmd.AddOption(projectOpt);
@@ -57,7 +57,7 @@ internal sealed class EntriesCommands(CliContext ctx) : ICliCommandGroup
         Option<string?> projectOpt, Option<string?> envOpt, Option<string?> keyOpt)
     {
         var handler = new HistoryEntriesQueryHandler();
-        var cmd = new Command("history", "List version history for a config entry.");
+        var cmd = new Command("history", "Show version history for an entry.");
         cmd.AddOption(baseUrlOpt);
         cmd.AddOption(tokenOpt);
         cmd.AddOption(projectOpt);
@@ -83,7 +83,7 @@ internal sealed class EntriesCommands(CliContext ctx) : ICliCommandGroup
         Option<string?> projectOpt, Option<string?> envOpt, Option<string?> keyOpt)
     {
         var handler = new GetEntryQueryHandler();
-        var cmd = new Command("get", "Get a single config entry.");
+        var cmd = new Command("get", "Show one config entry.");
         cmd.AddOption(baseUrlOpt);
         cmd.AddOption(tokenOpt);
         cmd.AddOption(projectOpt);
@@ -108,7 +108,7 @@ internal sealed class EntriesCommands(CliContext ctx) : ICliCommandGroup
         Option<string?> baseUrlOpt, Option<string?> tokenOpt,
         Option<string?> projectOpt, Option<string?> envOpt, Option<string?> keyOpt)
     {
-        var versionOpt = new Option<int?>("--version", "Version number to roll back to.");
+        var versionOpt = new Option<int?>("--version", "Entry version to restore.");
         versionOpt.AddValidator(result =>
         {
             var v = result.GetValueOrDefault<int?>();
@@ -117,7 +117,7 @@ internal sealed class EntriesCommands(CliContext ctx) : ICliCommandGroup
         });
 
         var handler = new RollbackEntryCommandHandler();
-        var cmd = new Command("rollback", "Roll a config entry back to a previous version.");
+        var cmd = new Command("rollback", "Restore a previous entry version.");
         cmd.AddOption(baseUrlOpt);
         cmd.AddOption(tokenOpt);
         cmd.AddOption(projectOpt);
@@ -144,9 +144,9 @@ internal sealed class EntriesCommands(CliContext ctx) : ICliCommandGroup
         Option<string?> baseUrlOpt, Option<string?> tokenOpt,
         Option<string?> projectOpt, Option<string?> envOpt, Option<string?> keyOpt)
     {
-        var valueOpt = new Option<string?>("--value", "The config value.");
-        var scopeOpt = new Option<string?>("--scope", "Scope: client, server, or all.");
-        var contentTypeOpt = new Option<string?>("--content-type", "Logical content type: json, text, number, or boolean.");
+        var valueOpt = new Option<string?>("--value", "Value to store.");
+        var scopeOpt = new Option<string?>("--scope", "Read scope: client, server, or all.");
+        var contentTypeOpt = new Option<string?>("--content-type", "Stored value type: json, text, number, or boolean.");
 
         scopeOpt.AddValidator(result =>
         {
@@ -156,7 +156,7 @@ internal sealed class EntriesCommands(CliContext ctx) : ICliCommandGroup
         });
 
         var handler = new SetEntryCommandHandler();
-        var cmd = new Command("set", "Create or update a config entry.");
+        var cmd = new Command("set", "Create or update an entry.");
         cmd.AddOption(baseUrlOpt);
         cmd.AddOption(tokenOpt);
         cmd.AddOption(projectOpt);
@@ -188,7 +188,7 @@ internal sealed class EntriesCommands(CliContext ctx) : ICliCommandGroup
         Option<string?> projectOpt, Option<string?> envOpt, Option<string?> keyOpt)
     {
         var handler = new DeleteEntryCommandHandler();
-        var cmd = new Command("delete", "Delete a config entry.");
+        var cmd = new Command("delete", "Delete an entry.");
         cmd.AddOption(baseUrlOpt);
         cmd.AddOption(tokenOpt);
         cmd.AddOption(projectOpt);
@@ -213,7 +213,7 @@ internal sealed class EntriesCommands(CliContext ctx) : ICliCommandGroup
         Option<string?> baseUrlOpt, Option<string?> tokenOpt,
         Option<string?> projectOpt, Option<string?> envOpt, Option<string?> keyOpt)
     {
-        var share = new Command("share", "Manage temporary parameter share links.");
+        var share = new Command("share", "Create, list, and revoke entry share links.");
 
         share.AddCommand(BuildShareList(baseUrlOpt, tokenOpt, projectOpt, envOpt, keyOpt));
         share.AddCommand(BuildShareCreate(baseUrlOpt, tokenOpt, projectOpt, envOpt, keyOpt));
@@ -226,7 +226,7 @@ internal sealed class EntriesCommands(CliContext ctx) : ICliCommandGroup
         Option<string?> projectOpt, Option<string?> envOpt, Option<string?> keyOpt)
     {
         var handler = new ListEntryShareLinksQueryHandler();
-        var cmd = new Command("list", "List share links for a config entry.");
+        var cmd = new Command("list", "List share links for an entry.");
         cmd.AddOption(baseUrlOpt);
         cmd.AddOption(tokenOpt);
         cmd.AddOption(projectOpt);
@@ -251,18 +251,18 @@ internal sealed class EntriesCommands(CliContext ctx) : ICliCommandGroup
         Option<string?> baseUrlOpt, Option<string?> tokenOpt,
         Option<string?> projectOpt, Option<string?> envOpt, Option<string?> keyOpt)
     {
-        var expirationOpt = new Option<string?>("--expiration", "Expiration: 1h, 1d, 3d, 30d, or 12m.");
+        var expirationOpt = new Option<string?>("--expiration", "Link lifetime: 1h, 1d, 3d, 30d, or 12m.");
         expirationOpt.AddValidator(result =>
         {
             var value = result.GetValueOrDefault<string>();
             if (!string.IsNullOrWhiteSpace(value) && !IsValidExpiration(value))
                 result.ErrorMessage = "Expiration must be one of: 1h, 1d, 3d, 30d, 12m.";
         });
-        var viewOnlyOpt = new Option<bool>("--view-only", "Create a view-only link instead of an editable link.");
-        var shareBaseUrlOpt = new Option<string?>("--share-base-url", "Base URL for the printed browser link; defaults to the API base URL.");
+        var viewOnlyOpt = new Option<bool>("--view-only", "Create a view-only link.");
+        var shareBaseUrlOpt = new Option<string?>("--share-base-url", "Browser base URL for the printed /share link. Defaults to the API base URL.");
 
         var handler = new CreateEntryShareLinkCommandHandler();
-        var cmd = new Command("create", "Create a temporary share link for a config entry.");
+        var cmd = new Command("create", "Create a temporary share link.");
         cmd.AddOption(baseUrlOpt);
         cmd.AddOption(tokenOpt);
         cmd.AddOption(projectOpt);
@@ -302,7 +302,7 @@ internal sealed class EntriesCommands(CliContext ctx) : ICliCommandGroup
         });
 
         var handler = new RevokeEntryShareLinkCommandHandler();
-        var cmd = new Command("revoke", "Revoke a temporary share link.");
+        var cmd = new Command("revoke", "Revoke a share link.");
         cmd.AddOption(baseUrlOpt);
         cmd.AddOption(tokenOpt);
         cmd.AddOption(projectOpt);

@@ -9,19 +9,19 @@ internal sealed class UsersCommands(CliContext ctx) : ICliCommandGroup
 {
     public Command Build()
     {
-        var users = new Command("users", "Manage Nona users.");
+        var users = new Command("users", "Invite users to Nona.");
         users.AddCommand(BuildCreate());
         return users;
     }
 
     private Command BuildCreate()
     {
-        var baseUrlOpt = new Option<string?>(["--base-url", "--api-url"], "Nona API base URL.");
-        var tokenOpt = new Option<string?>(["--token", "--bearer-token"], "Bearer token.");
+        var baseUrlOpt = new Option<string?>(["--base-url", "--api-url"], "Nona base URL.");
+        var tokenOpt = new Option<string?>(["--token", "--bearer-token"], "Admin bearer token.");
         var nameOpt = new Option<string>("--name", "Full name of the new user.") { IsRequired = true };
         var userEmailOpt = new Option<string>("--user-email", "Email address of the new user.") { IsRequired = true };
-        var roleOpt = new Option<string?>("--role", "Role: viewer or editor.");
-        var scopeOpt = new Option<string?>("--scope", "Scope: client, server, or all.");
+        var roleOpt = new Option<string?>("--role", "User role: viewer or editor.");
+        var scopeOpt = new Option<string?>("--scope", "User scope: client, server, or all.");
 
         roleOpt.AddValidator(result =>
         {
@@ -37,7 +37,7 @@ internal sealed class UsersCommands(CliContext ctx) : ICliCommandGroup
         });
 
         var handler = new CreateUserCommandHandler();
-        var cmd = new Command("create", "Create a new user and display their invitation token.");
+        var cmd = new Command("create", "Invite a user and print the invitation token.");
         cmd.AddOption(baseUrlOpt);
         cmd.AddOption(tokenOpt);
         cmd.AddOption(nameOpt);

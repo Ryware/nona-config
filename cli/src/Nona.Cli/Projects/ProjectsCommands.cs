@@ -10,11 +10,11 @@ internal sealed class ProjectsCommands(CliContext ctx) : ICliCommandGroup
 {
     public Command Build()
     {
-        var projects = new Command("projects", "Manage Nona projects.");
+        var projects = new Command("projects", "List, create, and delete projects.");
 
-        var baseUrlOpt = new Option<string?>(["--base-url", "--api-url"], "Nona API base URL.");
-        var tokenOpt = new Option<string?>(["--token", "--bearer-token"], "Bearer token.");
-        var projectOpt = new Option<string?>(["--project", "--project-name"], "Project name.");
+        var baseUrlOpt = new Option<string?>(["--base-url", "--api-url"], "Nona base URL.");
+        var tokenOpt = new Option<string?>(["--token", "--bearer-token"], "Admin bearer token.");
+        var projectOpt = new Option<string?>(["--project", "--project-name"], "Nona project name.");
 
         projects.AddCommand(BuildList(baseUrlOpt, tokenOpt));
         projects.AddCommand(BuildCreate(baseUrlOpt, tokenOpt));
@@ -25,7 +25,7 @@ internal sealed class ProjectsCommands(CliContext ctx) : ICliCommandGroup
     private Command BuildList(Option<string?> baseUrlOpt, Option<string?> tokenOpt)
     {
         var handler = new ListProjectsQueryHandler();
-        var cmd = new Command("list", "List all projects.");
+        var cmd = new Command("list", "List projects.");
         cmd.AddOption(baseUrlOpt);
         cmd.AddOption(tokenOpt);
         cmd.Handler = CommandHandler.Create(async (InvocationContext ic) =>
@@ -43,9 +43,9 @@ internal sealed class ProjectsCommands(CliContext ctx) : ICliCommandGroup
 
     private Command BuildCreate(Option<string?> baseUrlOpt, Option<string?> tokenOpt)
     {
-        var nameOpt = new Option<string?>("--name", "Project name (alphanumeric and hyphens).");
+        var nameOpt = new Option<string?>("--name", "Project name. Letters, numbers, and hyphens only.");
         var handler = new CreateProjectCommandHandler();
-        var cmd = new Command("create", "Create a new project.");
+        var cmd = new Command("create", "Create a project.");
         cmd.AddOption(baseUrlOpt);
         cmd.AddOption(tokenOpt);
         cmd.AddOption(nameOpt);

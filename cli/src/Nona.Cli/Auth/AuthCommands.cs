@@ -10,7 +10,7 @@ internal sealed class AuthCommands(CliContext ctx) : ICliCommandGroup
 {
     public Command Build()
     {
-        var auth = new Command("auth", "Manage authentication sessions.");
+        var auth = new Command("auth", "Sign in and manage saved sessions.");
         auth.AddCommand(BuildLogin());
         auth.AddCommand(BuildLogout());
         auth.AddCommand(BuildWhoAmI());
@@ -19,10 +19,10 @@ internal sealed class AuthCommands(CliContext ctx) : ICliCommandGroup
 
     private Command BuildLogin()
     {
-        var baseUrlOpt = new Option<string?>(new[] { "--base-url", "--api-url" }, "Nona API base URL.");
+        var baseUrlOpt = new Option<string?>(new[] { "--base-url", "--api-url" }, "Nona base URL.");
         var handler = new LoginCommandHandler(ctx.SessionStore);
 
-        var cmd = new Command("login", "Open a browser to log in and save a session.");
+        var cmd = new Command("login", "Open a browser sign-in flow and save a session.");
         cmd.AddOption(baseUrlOpt);
         cmd.Handler = CommandHandler.Create(async (InvocationContext ic) =>
         {
@@ -43,7 +43,7 @@ internal sealed class AuthCommands(CliContext ctx) : ICliCommandGroup
     private Command BuildLogout()
     {
         var handler = new LogoutCommandHandler(ctx.SessionStore);
-        var cmd = new Command("logout", "Remove saved session.");
+        var cmd = new Command("logout", "Delete the saved session.");
         cmd.Handler = CommandHandler.Create(async (InvocationContext ic) =>
             ic.ExitCode = await handler.HandleAsync(new LogoutCommand(), ic.GetCancellationToken()));
         return cmd;
@@ -52,7 +52,7 @@ internal sealed class AuthCommands(CliContext ctx) : ICliCommandGroup
     private Command BuildWhoAmI()
     {
         var handler = new WhoAmIQueryHandler();
-        var cmd = new Command("whoami", "Show current session info.");
+        var cmd = new Command("whoami", "Show the saved session user.");
         cmd.Handler = CommandHandler.Create(async (InvocationContext ic) =>
             ic.ExitCode = await handler.HandleAsync(new WhoAmIQuery(ctx.Session), ic.GetCancellationToken()));
         return cmd;
