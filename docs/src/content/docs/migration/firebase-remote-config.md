@@ -36,6 +36,16 @@ That is why the migration flow matters even for teams that only use a small part
 - dry-run planning
 - conflict handling
 
+## First command to run
+
+Start with a dry run:
+
+```bash
+nona migrate firebase --config ./nona.migration.json --dry-run
+```
+
+That gives you the safest first look at how Firebase data will land inside Nona.
+
 ## Why the dry run matters
 
 Use the dry run first.
@@ -47,7 +57,28 @@ It helps you verify:
 - how Firebase conditions map into Nona environments
 - whether conflicting keys need to be renamed or reviewed
 
-That is much safer than importing directly into a live production target.
+## Practical migration sequence
+
+The normal operator flow is:
+
+1. prepare the migration config file
+2. run a dry run
+3. review the environment and scope mapping
+4. apply the migration
+5. validate the imported values through the admin UI and a real runtime read
+
+That keeps migration as a controlled cutover instead of a blind import.
+
+## What the target should look like
+
+A common post-migration target looks like:
+
+- one Nona project per application boundary
+- environments such as `staging` and `production`
+- boolean flags stored as `boolean`
+- broader settings stored as `text`, `number`, or `json`
+
+That is the shape to validate after the import finishes.
 
 ## What to validate after import
 
@@ -59,6 +90,16 @@ After import, confirm:
 - critical application reads still work
 - kill switches and high-risk flags behave as expected
 
+## Apply the migration
+
+Once the dry run looks correct:
+
+```bash
+nona migrate firebase --config ./nona.migration.json
+```
+
+Then continue immediately with [Migration validation](/docs/migration/validation/).
+
 ## Migration mindset
 
 Treat the migration as an application cutover task, not only a data import.
@@ -69,6 +110,17 @@ The best migrations usually:
 - review scope and environment mappings carefully
 - validate reads from a real app or test harness
 - promote production cutover only after the target behavior is confirmed
+
+## What not to assume
+
+Do not assume that a technically successful import means the migration is done.
+
+The important questions are still:
+
+- did the values land in the right environments?
+- did boolean flags stay boolean?
+- did server-only values remain server-readable only?
+- can the real application still read what it expects?
 
 ## Detailed command docs
 

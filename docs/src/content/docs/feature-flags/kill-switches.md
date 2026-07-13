@@ -18,6 +18,32 @@ Create a boolean entry such as:
 
 When the feature needs to be disabled, set the value to `false`.
 
+## How to create a kill switch
+
+In admin:
+
+1. open `Projects`
+2. open the project
+3. select the target environment
+4. click `Add Parameter`
+5. create a boolean key such as `Features:Checkout`
+6. choose the correct scope
+7. click `Create`
+
+With the CLI:
+
+```bash
+nona entries set \
+  --project storefront \
+  --environment production \
+  --key Features:Checkout \
+  --value true \
+  --scope client \
+  --content-type boolean
+```
+
+That gives you a live switch you can flip later without redeploying the app.
+
 ## When to use a kill switch
 
 Use kill switches for:
@@ -38,6 +64,28 @@ Choose scope based on where the feature is evaluated:
 
 If you can keep the decision server-only, that is usually safer.
 
+## How to operate it during an incident
+
+In admin:
+
+1. open the parameter row
+2. stay on the `Settings` tab
+3. change the value from `true` to `false`
+4. click `Save`
+5. verify the application behavior changes
+
+With the CLI:
+
+```bash
+nona entries set \
+  --project storefront \
+  --environment production \
+  --key Features:Checkout \
+  --value false \
+  --scope client \
+  --content-type boolean
+```
+
 ## Operational benefits in Nona
 
 Nona makes kill switches more useful because they fit into the rest of the product model:
@@ -48,6 +96,25 @@ Nona makes kill switches more useful because they fit into the rest of the produ
 - rollback gives you a fast recovery path
 - audit logs help explain who changed it
 
+## Roll back the switch
+
+If you need to restore a previous known-good state:
+
+```bash
+nona entries history \
+  --project storefront \
+  --environment production \
+  --key Features:Checkout
+
+nona entries rollback \
+  --project storefront \
+  --environment production \
+  --key Features:Checkout \
+  --version 2
+```
+
+In admin, open the parameter, switch to `History`, and use `Rollback to v...`.
+
 ## Good kill switch habits
 
 - default the application to the safest behavior when the flag is off
@@ -55,6 +122,16 @@ Nona makes kill switches more useful because they fit into the rest of the produ
 - test both the `true` and `false` paths
 - add the flag before the incident, not during it
 - remove old kill switches when they are no longer useful
+
+## Good first kill switches
+
+The best first kill switch candidates are the ones that would hurt most if they broke in production:
+
+- checkout or payments
+- a risky third-party integration
+- a new onboarding flow
+- a heavy background job
+- a route or feature that should be easy to disable quickly
 
 ## Example naming patterns
 
