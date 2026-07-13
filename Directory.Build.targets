@@ -1,0 +1,16 @@
+<Project>
+  <Target
+    Name="InstallGitHooks"
+    BeforeTargets="CollectPackageReferences;Build"
+    Condition="'$(NonaSkipGitHooksInstall)' != 'true'
+      and Exists('$(MSBuildThisFileDirectory).git')
+      and Exists('$(MSBuildThisFileDirectory).githooks/pre-push')">
+    <Exec
+      Command="git config core.hooksPath .githooks"
+      WorkingDirectory="$(MSBuildThisFileDirectory)"
+      IgnoreExitCode="true"
+      IgnoreStandardErrorWarningFormat="true"
+      StandardOutputImportance="Low"
+      StandardErrorImportance="Low" />
+  </Target>
+</Project>

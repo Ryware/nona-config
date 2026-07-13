@@ -23,7 +23,7 @@ public sealed class LibsqlUserRepository : IUserRepository
             WHERE Email = @Email COLLATE NOCASE
             LIMIT 1
             """,
-            new { Email = email },
+            LibsqlParameters.Create(("Email", email)),
             ct);
 
         return result.Rows.Count == 0 ? null : Map(result.Rows[0]);
@@ -51,7 +51,7 @@ public sealed class LibsqlUserRepository : IUserRepository
             WHERE rowid = @Id
             LIMIT 1
             """,
-            new { Id = id },
+            LibsqlParameters.Create(("Id", id)),
             ct);
 
         return result.Rows.Count == 0 ? null : Map(result.Rows[0]);
@@ -66,7 +66,7 @@ public sealed class LibsqlUserRepository : IUserRepository
             WHERE InviteTokenHash = @InviteTokenHash
             LIMIT 1
             """,
-            new { InviteTokenHash = inviteTokenHash },
+            LibsqlParameters.Create(("InviteTokenHash", inviteTokenHash)),
             ct);
 
         return result.Rows.Count == 0 ? null : Map(result.Rows[0]);
@@ -80,7 +80,7 @@ public sealed class LibsqlUserRepository : IUserRepository
             FROM Users
             WHERE Email = @Email COLLATE NOCASE
             """,
-            new { Email = email },
+            LibsqlParameters.Create(("Email", email)),
             ct);
 
         return result.Rows[0].GetInt32(0) > 0;
@@ -94,13 +94,39 @@ public sealed class LibsqlUserRepository : IUserRepository
 
     public async Task AddAsync(User user, CancellationToken ct = default)
     {
-        var result = await _client.ExecuteAsync(
-            """
-            INSERT INTO Users (Email, Name, PasswordHash, PasswordSalt, Role, Scope, IsAdmin, CreatedAt, UpdatedAt, PasswordResetToken, InviteTokenHash)
-            VALUES (@Email, @Name, @PasswordHash, @PasswordSalt, @Role, @Scope, @IsAdmin, @CreatedAt, @UpdatedAt, @PasswordResetToken, @InviteTokenHash)
-            """,
-            ToParameters(user),
-            ct);
+        var columns = new List<string>
+        {
+            "Email",
+            "Name",
+            "Role",
+            "Scope",
+            "IsAdmin",
+            "CreatedAt",
+            "UpdatedAt"
+        };
+        var parameters = new Dictionary<string, object?>
+        {
+            ["Email"] = user.Email,
+            ["Name"] = user.Name,
+            ["Role"] = (int)user.Role,
+            ["Scope"] = (int)user.Scope,
+            ["IsAdmin"] = user.IsAdmin,
+            ["CreatedAt"] = user.CreatedAt.ToString("O"),
+            ["UpdatedAt"] = user.UpdatedAt.ToString("O")
+        };
+
+        AddOptionalColumn(columns, parameters, "PasswordHash", user.PasswordHash);
+        AddOptionalColumn(columns, parameters, "PasswordSalt", user.PasswordSalt);
+        AddOptionalColumn(columns, parameters, "PasswordResetToken", user.PasswordResetToken);
+        AddOptionalColumn(columns, parameters, "InviteTokenHash", user.InviteTokenHash);
+
+        var values = columns.Select(column => $"@{column}");
+        var sql = $"""
+            INSERT INTO Users ({string.Join(", ", columns)})
+            VALUES ({string.Join(", ", values)})
+            """;
+
+        var result = await _client.ExecuteAsync(sql, parameters, ct);
 
         user.Id = result.LastInsertRowId ?? 0;
     }
@@ -132,7 +158,7 @@ public sealed class LibsqlUserRepository : IUserRepository
             DELETE FROM Users
             WHERE Email = @Email COLLATE NOCASE
             """,
-            new { Email = email },
+            LibsqlParameters.Create(("Email", email)),
             ct);
 
         return result.AffectedRowCount > 0;
@@ -163,21 +189,33 @@ public sealed class LibsqlUserRepository : IUserRepository
         };
     }
 
-    private static object ToParameters(User user)
+    private static IReadOnlyDictionary<string, object?> ToParameters(User user)
     {
-        return new
+        return LibsqlParameters.Create(
+            ("Email", user.Email),
+            ("Name", user.Name),
+            ("PasswordHash", user.PasswordHash),
+            ("PasswordSalt", user.PasswordSalt),
+            ("Role", (int)user.Role),
+            ("Scope", (int)user.Scope),
+            ("IsAdmin", user.IsAdmin),
+            ("UpdatedAt", user.UpdatedAt.ToString("O")),
+            ("PasswordResetToken", user.PasswordResetToken),
+            ("InviteTokenHash", user.InviteTokenHash));
+    }
+
+    private static void AddOptionalColumn(
+        ICollection<string> columns,
+        IDictionary<string, object?> parameters,
+        string column,
+        object? value)
+    {
+        if (value is null)
         {
-            user.Email,
-            user.Name,
-            user.PasswordHash,
-            user.PasswordSalt,
-            Role = (int)user.Role,
-            Scope = (int)user.Scope,
-            user.IsAdmin,
-            CreatedAt = user.CreatedAt.ToString("O"),
-            UpdatedAt = user.UpdatedAt.ToString("O"),
-            user.PasswordResetToken,
-            user.InviteTokenHash
-        };
+            return;
+        }
+
+        columns.Add(column);
+        parameters[column] = value;
     }
 }

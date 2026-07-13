@@ -23,7 +23,9 @@ public sealed class LibsqlEnvironmentRepository : IEnvironmentRepository
               AND Name = @EnvironmentName COLLATE NOCASE
             LIMIT 1
             """,
-            new { ProjectName = projectName, EnvironmentName = environmentName },
+            LibsqlParameters.Create(
+                ("ProjectName", projectName),
+                ("EnvironmentName", environmentName)),
             ct);
 
         return result.Rows.Count == 0 ? null : Map(result.Rows[0]);
@@ -38,7 +40,7 @@ public sealed class LibsqlEnvironmentRepository : IEnvironmentRepository
             WHERE Project = @ProjectName COLLATE NOCASE
             ORDER BY Name
             """,
-            new { ProjectName = projectName },
+            LibsqlParameters.Create(("ProjectName", projectName)),
             ct);
 
         return result.Rows.Select(Map).ToList();
@@ -53,7 +55,9 @@ public sealed class LibsqlEnvironmentRepository : IEnvironmentRepository
             WHERE Project = @ProjectName COLLATE NOCASE
               AND Name = @EnvironmentName COLLATE NOCASE
             """,
-            new { ProjectName = projectName, EnvironmentName = environmentName },
+            LibsqlParameters.Create(
+                ("ProjectName", projectName),
+                ("EnvironmentName", environmentName)),
             ct);
 
         return result.Rows[0].GetInt32(0) > 0;
@@ -79,7 +83,10 @@ public sealed class LibsqlEnvironmentRepository : IEnvironmentRepository
             WHERE Project = @Project COLLATE NOCASE
               AND Name = @Name COLLATE NOCASE
             """,
-            ToParameters(environment),
+            LibsqlParameters.Create(
+                ("Name", environment.Name),
+                ("Project", environment.Project),
+                ("UpdatedAt", environment.UpdatedAt.ToString("O"))),
             ct);
     }
 
@@ -91,7 +98,9 @@ public sealed class LibsqlEnvironmentRepository : IEnvironmentRepository
             WHERE Project = @ProjectName COLLATE NOCASE
               AND Name = @EnvironmentName COLLATE NOCASE
             """,
-            new { ProjectName = projectName, EnvironmentName = environmentName },
+            LibsqlParameters.Create(
+                ("ProjectName", projectName),
+                ("EnvironmentName", environmentName)),
             ct);
     }
 
@@ -106,14 +115,12 @@ public sealed class LibsqlEnvironmentRepository : IEnvironmentRepository
         };
     }
 
-    private static object ToParameters(ProjectEnvironment environment)
+    private static IReadOnlyDictionary<string, object?> ToParameters(ProjectEnvironment environment)
     {
-        return new
-        {
-            environment.Name,
-            environment.Project,
-            CreatedAt = environment.CreatedAt.ToString("O"),
-            UpdatedAt = environment.UpdatedAt.ToString("O")
-        };
+        return LibsqlParameters.Create(
+            ("Name", environment.Name),
+            ("Project", environment.Project),
+            ("CreatedAt", environment.CreatedAt.ToString("O")),
+            ("UpdatedAt", environment.UpdatedAt.ToString("O")));
     }
 }

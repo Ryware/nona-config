@@ -1,5 +1,4 @@
 using Nona.Domain.Entities;
-using Nona.Domain.Enums;
 using Nona.Domain.Interfaces;
 using System.Collections.Concurrent;
 
@@ -14,20 +13,6 @@ public class InMemoryProjectRepository : IProjectRepository
     {
         _projects.TryGetValue(name, out var project);
         return Task.FromResult(project);
-    }
-
-    public Task<ApiKeyLookupResult?> GetByApiKeyAsync(string apiKey, CancellationToken ct = default)
-    {
-        foreach (var project in _projects.Values)
-        {
-            if (project.ServerApiKey == apiKey)
-                return Task.FromResult<ApiKeyLookupResult?>(new ApiKeyLookupResult(project, KeyScope.Backend));
-
-            if (project.ClientApiKey == apiKey)
-                return Task.FromResult<ApiKeyLookupResult?>(new ApiKeyLookupResult(project, KeyScope.Frontend));
-        }
-
-        return Task.FromResult<ApiKeyLookupResult?>(null);
     }
 
     public Task<IReadOnlyList<Project>> ListAsync(CancellationToken ct = default)

@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;net8.0</TargetFrameworks>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <PackageId>Nona.Client</PackageId>
+    <Version>0.2.2</Version>
+    <Authors>Nona</Authors>
+    <Company>Nona</Company>
+    <Title>Nona Client</Title>
+    <Description>Official .NET client for Nona — an open-source, self-hosted remote configuration and feature flag service (a Firebase Remote Config alternative). Read config values and feature flags at runtime with a single typed call.</Description>
+    <PackageTags>nona;remote-config;feature-flags;feature-toggles;self-hosted;firebase-remote-config;firebase-alternative;configuration;config;client;sdk</PackageTags>
+    <PackageProjectUrl>https://nonaconfig.com</PackageProjectUrl>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/Ryware/nona-config</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <PropertyGroup Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Text.Json" Version="10.0.7" />
+  </ItemGroup>
+
+</Project>

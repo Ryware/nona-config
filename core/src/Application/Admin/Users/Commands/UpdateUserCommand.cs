@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator;
 using Nona.Application.Admin.Users.DTOs;
 using Nona.Application.Common;
 using Nona.Application.Common.Interfaces;
@@ -16,13 +16,30 @@ public class UpdateUserCommandHandler(
     IUserRepository userRepository,
     IProjectMemberRepository projectMemberRepository,
     IDateTime dateTime,
+    IUserAuthorizationService userAuthorizationService,
     IAuditLogService? auditLogService = null) : IRequestHandler<UpdateUserCommand, UpdateUserResult>
 {
-    public async Task<UpdateUserResult> Handle(UpdateUserCommand request, CancellationToken cancellationToken)
+    public async ValueTask<UpdateUserResult> Handle(UpdateUserCommand request, CancellationToken cancellationToken)
     {
         var user = await userRepository.GetByIdAsync(request.Id, cancellationToken);
         if (user is null)
             return new UpdateUserResult(false, null, "User not found");
+
+        var currentUser = await userAuthorizationService.GetCurrentUserAsync(cancellationToken);
+        var canManageUsers = currentUser?.IsAdmin == true || currentUser?.Role == UserRole.Editor;
+        var isSelf = string.Equals(user.Email, currentUser?.Email, StringComparison.OrdinalIgnoreCase);
+        if (!canManageUsers)
+        {
+            if (!isSelf)
+                return new UpdateUserResult(false, null, "Access denied");
+
+            if (request.Role is not null || request.Scope is not null)
+                return new UpdateUserResult(false, null, "Access denied");
+        }
+        else if (user.IsAdmin && currentUser?.IsAdmin != true)
+        {
+            return new UpdateUserResult(false, null, "Access denied");
+        }
 
         var role = ParseRole(request.Role);
         if (role is null && request.Role is not null)
@@ -107,4 +124,5 @@ public class UpdateUserCommandHandler(
             _ => null
         };
     }
+
 }

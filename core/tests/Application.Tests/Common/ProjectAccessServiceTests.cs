@@ -11,185 +11,170 @@ public class ProjectAccessServiceTests
     private const string Username = "testuser";
 
     [Test]
-    public async Task HasAccessAsync_SystemAdmin_ReturnsTrue()
+    public async Task HasAccessAsync_GlobalUser_ReturnsTrue()
     {
-        // Arrange
         var currentUserService = Substitute.For<ICurrentUserService>();
+        var userAuthorizationService = Substitute.For<IUserAuthorizationService>();
         var projectMemberRepository = Substitute.For<IProjectMemberRepository>();
 
-        currentUserService.IsAdmin.Returns(true);
-        currentUserService.Username.Returns(Username);
+        userAuthorizationService.HasGlobalProjectAccessAsync(Arg.Any<CancellationToken>()).Returns(true);
 
-        var service = new ProjectAccessService(currentUserService, projectMemberRepository);
+        var service = new ProjectAccessService(currentUserService, userAuthorizationService, projectMemberRepository);
 
-        // Act
-        var result = await service.HasAccessAsync(ProjectName);
+        var result = await service.HasViewAccessAsync(ProjectName);
 
-        // Assert
         await Assert.That(result).IsTrue();
-        // Should not check project member repository for admin users
         await projectMemberRepository.DidNotReceive().ExistsAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     [Test]
     public async Task HasAccessAsync_ProjectMember_ReturnsTrue()
     {
-        // Arrange
         var currentUserService = Substitute.For<ICurrentUserService>();
+        var userAuthorizationService = Substitute.For<IUserAuthorizationService>();
         var projectMemberRepository = Substitute.For<IProjectMemberRepository>();
 
-        currentUserService.IsAdmin.Returns(false);
-        currentUserService.Username.Returns(Username);
+        userAuthorizationService.HasGlobalProjectAccessAsync(Arg.Any<CancellationToken>()).Returns(false);
+        userAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
+            .Returns(new User { Email = Username, Name = Username, Role = UserRole.Viewer });
         projectMemberRepository.ExistsAsync(Username, ProjectName, Arg.Any<CancellationToken>()).Returns(true);
 
-        var service = new ProjectAccessService(currentUserService, projectMemberRepository);
+        var service = new ProjectAccessService(currentUserService, userAuthorizationService, projectMemberRepository);
 
-        // Act
-        var result = await service.HasAccessAsync(ProjectName);
+        var result = await service.HasViewAccessAsync(ProjectName);
 
-        // Assert
         await Assert.That(result).IsTrue();
     }
 
     [Test]
     public async Task HasAccessAsync_NonProjectMember_ReturnsFalse()
     {
-        // Arrange
         var currentUserService = Substitute.For<ICurrentUserService>();
+        var userAuthorizationService = Substitute.For<IUserAuthorizationService>();
         var projectMemberRepository = Substitute.For<IProjectMemberRepository>();
 
-        currentUserService.IsAdmin.Returns(false);
-        currentUserService.Username.Returns(Username);
+        userAuthorizationService.HasGlobalProjectAccessAsync(Arg.Any<CancellationToken>()).Returns(false);
+        userAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
+            .Returns(new User { Email = Username, Name = Username, Role = UserRole.Viewer });
         projectMemberRepository.ExistsAsync(Username, ProjectName, Arg.Any<CancellationToken>()).Returns(false);
 
-        var service = new ProjectAccessService(currentUserService, projectMemberRepository);
+        var service = new ProjectAccessService(currentUserService, userAuthorizationService, projectMemberRepository);
 
-        // Act
-        var result = await service.HasAccessAsync(ProjectName);
+        var result = await service.HasViewAccessAsync(ProjectName);
 
-        // Assert
         await Assert.That(result).IsFalse();
     }
 
     [Test]
     public async Task HasAccessAsync_NoUsername_ReturnsFalse()
     {
-        // Arrange
         var currentUserService = Substitute.For<ICurrentUserService>();
+        var userAuthorizationService = Substitute.For<IUserAuthorizationService>();
         var projectMemberRepository = Substitute.For<IProjectMemberRepository>();
 
-        currentUserService.IsAdmin.Returns(false);
+        userAuthorizationService.HasGlobalProjectAccessAsync(Arg.Any<CancellationToken>()).Returns(false);
+        userAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>()).Returns((User?)null);
         currentUserService.Username.Returns((string?)null);
 
-        var service = new ProjectAccessService(currentUserService, projectMemberRepository);
+        var service = new ProjectAccessService(currentUserService, userAuthorizationService, projectMemberRepository);
 
-        // Act
-        var result = await service.HasAccessAsync(ProjectName);
+        var result = await service.HasViewAccessAsync(ProjectName);
 
-        // Assert
         await Assert.That(result).IsFalse();
     }
 
     [Test]
-    public async Task HasAdminAccessAsync_SystemAdmin_ReturnsTrue()
+    public async Task HasAdminAccessAsync_GlobalUser_ReturnsTrue()
     {
-        // Arrange
         var currentUserService = Substitute.For<ICurrentUserService>();
+        var userAuthorizationService = Substitute.For<IUserAuthorizationService>();
         var projectMemberRepository = Substitute.For<IProjectMemberRepository>();
 
-        currentUserService.IsAdmin.Returns(true);
-        currentUserService.Username.Returns(Username);
+        userAuthorizationService.HasGlobalProjectAccessAsync(Arg.Any<CancellationToken>()).Returns(true);
 
-        var service = new ProjectAccessService(currentUserService, projectMemberRepository);
+        var service = new ProjectAccessService(currentUserService, userAuthorizationService, projectMemberRepository);
 
-        // Act
-        var result = await service.HasAdminAccessAsync(ProjectName);
+        var result = await service.HasEditAccessAsync(ProjectName);
 
-        // Assert
         await Assert.That(result).IsTrue();
-        // Should not check project member repository for admin users
         await projectMemberRepository.DidNotReceive().GetAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     [Test]
     public async Task HasAdminAccessAsync_ProjectAdmin_ReturnsTrue()
     {
-        // Arrange
         var currentUserService = Substitute.For<ICurrentUserService>();
+        var userAuthorizationService = Substitute.For<IUserAuthorizationService>();
         var projectMemberRepository = Substitute.For<IProjectMemberRepository>();
 
-        currentUserService.IsAdmin.Returns(false);
-        currentUserService.Username.Returns(Username);
+        userAuthorizationService.HasGlobalProjectAccessAsync(Arg.Any<CancellationToken>()).Returns(false);
+        userAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
+            .Returns(new User { Email = Username, Name = Username, Role = UserRole.Viewer });
         projectMemberRepository.GetAsync(Username, ProjectName, Arg.Any<CancellationToken>())
             .Returns(new ProjectMember { Username = Username, ProjectId = ProjectName, Role = ProjectRole.Editor });
 
-        var service = new ProjectAccessService(currentUserService, projectMemberRepository);
+        var service = new ProjectAccessService(currentUserService, userAuthorizationService, projectMemberRepository);
 
-        // Act
-        var result = await service.HasAdminAccessAsync(ProjectName);
+        var result = await service.HasEditAccessAsync(ProjectName);
 
-        // Assert
         await Assert.That(result).IsTrue();
     }
 
     [Test]
     public async Task HasAdminAccessAsync_ProjectUser_ReturnsFalse()
     {
-        // Arrange
         var currentUserService = Substitute.For<ICurrentUserService>();
+        var userAuthorizationService = Substitute.For<IUserAuthorizationService>();
         var projectMemberRepository = Substitute.For<IProjectMemberRepository>();
 
-        currentUserService.IsAdmin.Returns(false);
-        currentUserService.Username.Returns(Username);
+        userAuthorizationService.HasGlobalProjectAccessAsync(Arg.Any<CancellationToken>()).Returns(false);
+        userAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
+            .Returns(new User { Email = Username, Name = Username, Role = UserRole.Viewer });
         projectMemberRepository.GetAsync(Username, ProjectName, Arg.Any<CancellationToken>())
             .Returns(new ProjectMember { Username = Username, ProjectId = ProjectName, Role = ProjectRole.Viewer });
 
-        var service = new ProjectAccessService(currentUserService, projectMemberRepository);
+        var service = new ProjectAccessService(currentUserService, userAuthorizationService, projectMemberRepository);
 
-        // Act
-        var result = await service.HasAdminAccessAsync(ProjectName);
+        var result = await service.HasEditAccessAsync(ProjectName);
 
-        // Assert
         await Assert.That(result).IsFalse();
     }
 
     [Test]
     public async Task HasAdminAccessAsync_NonProjectMember_ReturnsFalse()
     {
-        // Arrange
         var currentUserService = Substitute.For<ICurrentUserService>();
+        var userAuthorizationService = Substitute.For<IUserAuthorizationService>();
         var projectMemberRepository = Substitute.For<IProjectMemberRepository>();
 
-        currentUserService.IsAdmin.Returns(false);
-        currentUserService.Username.Returns(Username);
+        userAuthorizationService.HasGlobalProjectAccessAsync(Arg.Any<CancellationToken>()).Returns(false);
+        userAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
+            .Returns(new User { Email = Username, Name = Username, Role = UserRole.Viewer });
         projectMemberRepository.GetAsync(Username, ProjectName, Arg.Any<CancellationToken>())
             .Returns((ProjectMember?)null);
 
-        var service = new ProjectAccessService(currentUserService, projectMemberRepository);
+        var service = new ProjectAccessService(currentUserService, userAuthorizationService, projectMemberRepository);
 
-        // Act
-        var result = await service.HasAdminAccessAsync(ProjectName);
+        var result = await service.HasEditAccessAsync(ProjectName);
 
-        // Assert
         await Assert.That(result).IsFalse();
     }
 
     [Test]
     public async Task HasAdminAccessAsync_NoUsername_ReturnsFalse()
     {
-        // Arrange
         var currentUserService = Substitute.For<ICurrentUserService>();
+        var userAuthorizationService = Substitute.For<IUserAuthorizationService>();
         var projectMemberRepository = Substitute.For<IProjectMemberRepository>();
 
-        currentUserService.IsAdmin.Returns(false);
+        userAuthorizationService.HasGlobalProjectAccessAsync(Arg.Any<CancellationToken>()).Returns(false);
+        userAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>()).Returns((User?)null);
         currentUserService.Username.Returns((string?)null);
 
-        var service = new ProjectAccessService(currentUserService, projectMemberRepository);
+        var service = new ProjectAccessService(currentUserService, userAuthorizationService, projectMemberRepository);
 
-        // Act
-        var result = await service.HasAdminAccessAsync(ProjectName);
+        var result = await service.HasEditAccessAsync(ProjectName);
 
-        // Assert
         await Assert.That(result).IsFalse();
     }
 }

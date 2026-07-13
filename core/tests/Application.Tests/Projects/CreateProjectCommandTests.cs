@@ -1,5 +1,6 @@
 using Nona.Application.Admin.Projects.Commands;
 using Nona.Application.Tests.Common;
+using Nona.Domain.Entities;
 using NSubstitute;
 
 namespace Nona.Application.Tests.Projects;
@@ -18,7 +19,7 @@ public class CreateProjectCommandTests
 
         var handler = new CreateProjectCommandHandler(
             fixture.ProjectRepository,
-            fixture.CurrentUserService,
+            fixture.UserAuthorizationService,
             fixture.EnvironmentRepository,
             fixture.Configuration,
             fixture.DateTime);
@@ -44,7 +45,7 @@ public class CreateProjectCommandTests
 
         var handler = new CreateProjectCommandHandler(
             fixture.ProjectRepository,
-            fixture.CurrentUserService,
+            fixture.UserAuthorizationService,
             fixture.EnvironmentRepository,
             fixture.Configuration,
             fixture.DateTime);
@@ -71,7 +72,7 @@ public class CreateProjectCommandTests
 
         var handler = new CreateProjectCommandHandler(
             fixture.ProjectRepository,
-            fixture.CurrentUserService,
+            fixture.UserAuthorizationService,
             fixture.EnvironmentRepository,
             fixture.Configuration,
             fixture.DateTime);
@@ -96,7 +97,7 @@ public class CreateProjectCommandTests
 
         var handler = new CreateProjectCommandHandler(
             fixture.ProjectRepository,
-            fixture.CurrentUserService,
+            fixture.UserAuthorizationService,
             fixture.EnvironmentRepository,
             fixture.Configuration,
             fixture.DateTime);
@@ -109,5 +110,35 @@ public class CreateProjectCommandTests
         // Assert
         await Assert.That(result.Success).IsFalse();
         await Assert.That(result.Error).IsEqualTo("Project already exists");
+    }
+
+    [Test]
+    public async Task SystemAdmin_IsAuthorizedFromPersistedUser()
+    {
+        var fixture = new TestFixture();
+        fixture.CurrentUserService.IsAdmin.Returns(false);
+        fixture.CurrentUserService.Role.Returns(UserRole.Viewer);
+        fixture.UserAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
+            .Returns(new User
+            {
+                Email = "admin@example.com",
+                Name = "Admin",
+                IsAdmin = true,
+                Role = UserRole.Viewer
+            });
+        fixture.SetupProjectExists(ProjectName, exists: false);
+
+        var handler = new CreateProjectCommandHandler(
+            fixture.ProjectRepository,
+            fixture.UserAuthorizationService,
+            fixture.EnvironmentRepository,
+            fixture.Configuration,
+            fixture.DateTime);
+
+        var result = await handler.Handle(new CreateProjectCommand(ProjectName), CancellationToken.None);
+
+        await Assert.That(result.Success).IsTrue();
+        await fixture.ProjectRepository.Received(1)
+            .AddAsync(Arg.Any<Project>(), Arg.Any<CancellationToken>());
     }
 }

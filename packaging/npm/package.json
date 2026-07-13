@@ -12,16 +12,20 @@
     "cli",
     "config",
     "remote-config",
-    "feature-flags"
+    "feature-flags",
+    "feature-toggles",
+    "self-hosted",
+    "firebase-remote-config",
+    "firebase-alternative"
   ],
   "homepage": "https://nonaconfig.com",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Ryware/nona-config"
+    "url": "git+https://github.com/Ryware/nona-config.git"
   },
   "license": "Apache-2.0",
   "bin": {
-    "nona": "./run.js"
+    "nona": "run.js"
   },
   "scripts": {
     "postinstall": "node install.js"

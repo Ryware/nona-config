@@ -1,0 +1,51 @@
+{
+  "name": "nona-client",
+  "version": "0.2.1",
+  "description": "Typed JavaScript/TypeScript client for Nona — open-source, self-hosted remote config and feature flags (a Firebase Remote Config alternative).",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ryware/nona-config.git",
+    "directory": "client/javascript"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepack": "npm run build",
+    "test": "npm run build && node --test test/nona-client.core.test.mjs test/nona-client.dedup.test.mjs test/nona-client.ttl-cache.test.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "keywords": [
+    "nona",
+    "remote-config",
+    "feature-flags",
+    "feature-toggles",
+    "self-hosted",
+    "firebase-remote-config",
+    "firebase-alternative",
+    "configuration",
+    "config",
+    "client",
+    "sdk",
+    "api"
+  ],
+  "author": "Nona",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Options;
 using Nona.Application.Auth.DTOs;
-using Nona.Infrastructure.Authentication;
 
 namespace Nona.Infrastructure.Services;
 

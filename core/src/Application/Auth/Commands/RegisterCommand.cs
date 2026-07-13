@@ -1,4 +1,4 @@
-﻿using MediatR;
+﻿using Mediator;
 using Nona.Application.Auth.DTOs;
 using Nona.Application.Common.Interfaces;
 using Nona.Domain.Entities;
@@ -11,9 +11,9 @@ public record class RegisterCommand(string Email, string Password) : IRequest<Re
 
 public record RegisterResult(bool Success, LoginResponse? Response, string? Error);
 
-internal class RegisterCommandHandler(IMediator mediator, IUserRepository userRepository, IDateTime dateTime, IPasswordHasher passwordHasher) : IRequestHandler<RegisterCommand, RegisterResult>
+public class RegisterCommandHandler(IMediator mediator, IUserRepository userRepository, IDateTime dateTime, IPasswordHasher passwordHasher) : IRequestHandler<RegisterCommand, RegisterResult>
 {
-    public async Task<RegisterResult> Handle(RegisterCommand request, CancellationToken cancellationToken)
+    public async ValueTask<RegisterResult> Handle(RegisterCommand request, CancellationToken cancellationToken)
     {
 
         var exists = await userRepository.ExistsAnyAsync(cancellationToken);
@@ -40,6 +40,11 @@ internal class RegisterCommandHandler(IMediator mediator, IUserRepository userRe
         }, cancellationToken);
 
         var loginResult = await mediator.Send(new LoginCommand(request.Email, request.Password), cancellationToken);
+        if (!loginResult.Success || loginResult.Response is null)
+        {
+            return new RegisterResult(false, null, loginResult.Error ?? "Registration failed.");
+        }
+
         return new RegisterResult(true, loginResult.Response, null);
     }
 }

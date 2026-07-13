@@ -285,6 +285,7 @@ FakesAssemblies/
 # Node.js Tools for Visual Studio
 .ntvs_analysis.dat
 node_modules/
+.vercel/
 
 # Visual Studio 6 build log
 *.plg
@@ -364,7 +365,7 @@ MigrationBackup/
 FodyWeavers.xsd
 core/src/WebApi/nona-config.db
 
-# Generated API clients and spec (regenerate with ./generate-clients.sh)
+# Generated OpenAPI specs and script lock state.
+# API client source is checked in; regenerate it with ./generate-clients.sh.
 openapi.json
-migrator/src/ConfigMigrator.Core/Generated/
-cli/src/Nona.Cli/Core/Generated/
+.nona-generate-clients.lock/

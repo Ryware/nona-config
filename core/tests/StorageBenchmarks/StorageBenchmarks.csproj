@@ -14,7 +14,7 @@
 		<PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.0" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.0" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.0" />
-		<ProjectReference Include="..\..\src\Libsql\Libsql.csproj" />
+		<ProjectReference Include="..\..\..\libsql\src\Libsql\Libsql.csproj" />
 	</ItemGroup>
 
 </Project>

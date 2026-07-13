@@ -1,9 +1,22 @@
 ﻿global using FluentValidation;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Mediator;
+using Nona.Application.Admin.ApiKeys.Commands;
+using Nona.Application.Admin.ApiKeys.Validators;
+using Nona.Application.Admin.ConfigEntries.Commands;
+using Nona.Application.Admin.ConfigEntries.Validators;
+using Nona.Application.Admin.Environments.Commands;
+using Nona.Application.Admin.Environments.Validators;
+using Nona.Application.Admin.Projects.Commands;
+using Nona.Application.Admin.Projects.Validators;
+using Nona.Application.Admin.Users.Commands;
+using Nona.Application.Admin.Users.Validators;
+using Nona.Application.Auth.Commands;
+using Nona.Application.Auth.DTOs;
+using Nona.Application.Auth.Validators;
+using Nona.Application.Common.Behaviors;
 using Nona.Application.Common.Interfaces;
-using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
-using System.Reflection;
 
 namespace Nona.Application;
 
@@ -11,17 +24,26 @@ public static class ConfigureServices
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(ConfigureServices).Assembly));
-
-        services.AddAutoMapper(cfg =>
+        services.AddMediator(options =>
         {
-            cfg.AddMaps(Assembly.GetExecutingAssembly());
+            options.ServiceLifetime = ServiceLifetime.Scoped;
+            options.Assemblies = [typeof(ConfigureServices).Assembly];
+            options.PipelineBehaviors = [typeof(ValidationPipelineBehavior<,>)];
         });
 
-        services.AddFluentValidationAutoValidation();
-        services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
+        services.AddScoped<IValidator<CreateApiKeyRequest>, CreateApiKeyRequestValidator>();
+        services.AddScoped<IValidator<UpsertConfigEntryRequest>, UpsertConfigEntryRequestValidator>();
+        services.AddScoped<IValidator<CreateEnvironmentRequest>, CreateEnvironmentRequestValidator>();
+        services.AddScoped<IValidator<CreateProjectRequest>, CreateProjectRequestValidator>();
+        services.AddScoped<IValidator<CreateUserRequest>, CreateUserRequestValidator>();
+        services.AddScoped<IValidator<UpdateUserRequest>, UpdateUserRequestValidator>();
+        services.AddScoped<IValidator<ProjectAccessRequest>, ProjectAccessRequestValidator>();
+        services.AddScoped<IValidator<CompleteInvitationPasswordRequest>, CompleteInvitationPasswordRequestValidator>();
+        services.AddScoped<IValidator<LoginRequest>, LoginRequestValidator>();
+        services.AddScoped<IValidator<RequestPasswordResetCommand>, RequestPasswordResetCommandValidator>();
 
         services.AddScoped<IProjectAccessService, ProjectAccessService>();
+        services.AddScoped<IUserAuthorizationService, UserAuthorizationService>();
 
         return services;
     }

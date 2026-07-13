@@ -13,10 +13,11 @@ public class GetConfigEntryValueQueryTests
     private const string EnvironmentName = "development";
     private const string ConfigKey = "test-key";
     private const string ConfigValue = "test-value";
-    private const string ServerApiKey = "server-api-key-123";
-    private const string ClientApiKey = "client-api-key-456";
+    private const string BackendScopedApiKey = "backend-api-key-123";
+    private const string FrontendScopedApiKey = "frontend-api-key-456";
 
     private IProjectRepository _projectRepository = null!;
+    private IApiKeyRepository _apiKeyRepository = null!;
     private IEnvironmentRepository _environmentRepository = null!;
     private IConfigEntryRepository _configEntryRepository = null!;
     private IApiKeyService _apiKeyService = null!;
@@ -25,6 +26,7 @@ public class GetConfigEntryValueQueryTests
     public void Setup()
     {
         _projectRepository = Substitute.For<IProjectRepository>();
+        _apiKeyRepository = Substitute.For<IApiKeyRepository>();
         _environmentRepository = Substitute.For<IEnvironmentRepository>();
         _configEntryRepository = Substitute.For<IConfigEntryRepository>();
         _apiKeyService = Substitute.For<IApiKeyService>();
@@ -71,8 +73,8 @@ public class GetConfigEntryValueQueryTests
     {
         // Arrange
         _apiKeyService.GetCurrentApiKey().Returns("invalid-api-key");
-        _projectRepository.GetByApiKeyAsync("invalid-api-key", Arg.Any<CancellationToken>())
-            .Returns((ApiKeyLookupResult?)null);
+        _apiKeyRepository.GetByKeyAsync("invalid-api-key", Arg.Any<CancellationToken>())
+            .Returns((ApiKeyAuthenticationResult?)null);
 
         var handler = CreateHandler();
         var query = new GetConfigEntryValueQuery(EnvironmentName, ConfigKey);
@@ -87,13 +89,62 @@ public class GetConfigEntryValueQueryTests
 
     #endregion
 
-    #region Server API Key (Backend Scope) Tests
+    #region Managed API Key Tests
 
     [Test]
-    public async Task GetConfigEntryValue_WithServerApiKey_CanReadBackendScopedEntry()
+    public async Task GetConfigEntryValue_WithManagedApiKey_CanReadScopedEnvironment()
     {
         // Arrange
-        SetupValidServerApiKey();
+        const string managedApiKey = "managed-api-key";
+        var project = new Project { Name = ProjectName };
+        _apiKeyService.GetCurrentApiKey().Returns(managedApiKey);
+        _apiKeyRepository.GetByKeyAsync(managedApiKey, Arg.Any<CancellationToken>())
+            .Returns(new ApiKeyAuthenticationResult(project, KeyScope.Frontend, EnvironmentName));
+        SetupEnvironmentExists();
+        SetupConfigEntry(KeyScope.Frontend);
+
+        var handler = CreateHandler();
+        var query = new GetConfigEntryValueQuery(EnvironmentName, ConfigKey);
+
+        // Act
+        var result = await handler.Handle(query, CancellationToken.None);
+
+        // Assert
+        await Assert.That(result.Success).IsTrue();
+        await Assert.That(result.Value).IsEqualTo(ConfigValue);
+    }
+
+    [Test]
+    public async Task GetConfigEntryValue_WithManagedApiKey_CannotReadOtherEnvironment()
+    {
+        // Arrange
+        const string managedApiKey = "managed-api-key";
+        var project = new Project { Name = ProjectName };
+        _apiKeyService.GetCurrentApiKey().Returns(managedApiKey);
+        _apiKeyRepository.GetByKeyAsync(managedApiKey, Arg.Any<CancellationToken>())
+            .Returns(new ApiKeyAuthenticationResult(project, KeyScope.Frontend, "staging"));
+
+        var handler = CreateHandler();
+        var query = new GetConfigEntryValueQuery(EnvironmentName, ConfigKey);
+
+        // Act
+        var result = await handler.Handle(query, CancellationToken.None);
+
+        // Assert
+        await Assert.That(result.Success).IsFalse();
+        await Assert.That(result.Error).IsEqualTo("Environment not found");
+        await _environmentRepository.DidNotReceive().ExistsAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    #endregion
+
+    #region Backend Scope Tests
+
+    [Test]
+    public async Task GetConfigEntryValue_WithBackendScopedApiKey_CanReadBackendScopedEntry()
+    {
+        // Arrange
+        SetupValidBackendScopedApiKey();
         SetupEnvironmentExists();
         SetupConfigEntry(KeyScope.Backend);
 
@@ -109,10 +160,10 @@ public class GetConfigEntryValueQueryTests
     }
 
     [Test]
-    public async Task GetConfigEntryValue_WithServerApiKey_CanReadAllScopedEntry()
+    public async Task GetConfigEntryValue_WithBackendScopedApiKey_CanReadAllScopedEntry()
     {
         // Arrange
-        SetupValidServerApiKey();
+        SetupValidBackendScopedApiKey();
         SetupEnvironmentExists();
         SetupConfigEntry(KeyScope.All);
 
@@ -128,10 +179,10 @@ public class GetConfigEntryValueQueryTests
     }
 
     [Test]
-    public async Task GetConfigEntryValue_WithServerApiKey_CannotReadFrontendOnlyScopedEntry()
+    public async Task GetConfigEntryValue_WithBackendScopedApiKey_CannotReadFrontendOnlyScopedEntry()
     {
         // Arrange
-        SetupValidServerApiKey();
+        SetupValidBackendScopedApiKey();
         SetupEnvironmentExists();
         SetupConfigEntry(KeyScope.Frontend);
 
@@ -148,13 +199,13 @@ public class GetConfigEntryValueQueryTests
 
     #endregion
 
-    #region Client API Key (Frontend Scope) Tests
+    #region Frontend Scope Tests
 
     [Test]
-    public async Task GetConfigEntryValue_WithClientApiKey_CanReadFrontendScopedEntry()
+    public async Task GetConfigEntryValue_WithFrontendScopedApiKey_CanReadFrontendScopedEntry()
     {
         // Arrange
-        SetupValidClientApiKey();
+        SetupValidFrontendScopedApiKey();
         SetupEnvironmentExists();
         SetupConfigEntry(KeyScope.Frontend);
 
@@ -170,10 +221,10 @@ public class GetConfigEntryValueQueryTests
     }
 
     [Test]
-    public async Task GetConfigEntryValue_WithClientApiKey_CanReadAllScopedEntry()
+    public async Task GetConfigEntryValue_WithFrontendScopedApiKey_CanReadAllScopedEntry()
     {
         // Arrange
-        SetupValidClientApiKey();
+        SetupValidFrontendScopedApiKey();
         SetupEnvironmentExists();
         SetupConfigEntry(KeyScope.All);
 
@@ -189,10 +240,10 @@ public class GetConfigEntryValueQueryTests
     }
 
     [Test]
-    public async Task GetConfigEntryValue_WithClientApiKey_CannotReadBackendOnlyScopedEntry()
+    public async Task GetConfigEntryValue_WithFrontendScopedApiKey_CannotReadBackendOnlyScopedEntry()
     {
         // Arrange
-        SetupValidClientApiKey();
+        SetupValidFrontendScopedApiKey();
         SetupEnvironmentExists();
         SetupConfigEntry(KeyScope.Backend);
 
@@ -215,7 +266,7 @@ public class GetConfigEntryValueQueryTests
     public async Task GetConfigEntryValue_WithValidApiKey_EnvironmentNotFound_ReturnsError()
     {
         // Arrange
-        SetupValidServerApiKey();
+        SetupValidBackendScopedApiKey();
         _environmentRepository.ExistsAsync(ProjectName, EnvironmentName, Arg.Any<CancellationToken>())
             .Returns(false);
 
@@ -234,7 +285,7 @@ public class GetConfigEntryValueQueryTests
     public async Task GetConfigEntryValue_WithValidApiKey_ConfigEntryNotFound_ReturnsError()
     {
         // Arrange
-        SetupValidServerApiKey();
+        SetupValidBackendScopedApiKey();
         SetupEnvironmentExists();
         _configEntryRepository.GetAsync(ProjectName, EnvironmentName, ConfigKey, Arg.Any<CancellationToken>())
             .Returns((ConfigEntry?)null);
@@ -258,7 +309,7 @@ public class GetConfigEntryValueQueryTests
     public async Task GetConfigEntryValue_ReturnsContentType()
     {
         // Arrange
-        SetupValidServerApiKey();
+        SetupValidBackendScopedApiKey();
         SetupEnvironmentExists();
         _configEntryRepository.GetAsync(ProjectName, EnvironmentName, ConfigKey, Arg.Any<CancellationToken>())
             .Returns(new ConfigEntry
@@ -279,7 +330,7 @@ public class GetConfigEntryValueQueryTests
 
         // Assert
         await Assert.That(result.Success).IsTrue();
-        await Assert.That(result.ContentType).IsEqualTo("application/json");
+        await Assert.That(result.LogicalContentType).IsEqualTo("json");
     }
 
     #endregion
@@ -290,7 +341,7 @@ public class GetConfigEntryValueQueryTests
     public async Task GetConfigEntryValue_ApiKeyOnlyAllowsReading_NoWriteOperations()
     {
         // Arrange
-        SetupValidServerApiKey();
+        SetupValidBackendScopedApiKey();
         SetupEnvironmentExists();
         SetupConfigEntry(KeyScope.All);
 
@@ -319,38 +370,34 @@ public class GetConfigEntryValueQueryTests
     private GetConfigEntryValueQueryHandler CreateHandler()
     {
         return new GetConfigEntryValueQueryHandler(
-            _projectRepository,
+            _apiKeyRepository,
             _environmentRepository,
             _configEntryRepository,
             _apiKeyService);
     }
 
-    private void SetupValidServerApiKey()
+    private void SetupValidBackendScopedApiKey()
     {
         var project = new Project
         {
-            Name = ProjectName,
-            ServerApiKey = ServerApiKey,
-            ClientApiKey = ClientApiKey
+            Name = ProjectName
         };
 
-        _apiKeyService.GetCurrentApiKey().Returns(ServerApiKey);
-        _projectRepository.GetByApiKeyAsync(ServerApiKey, Arg.Any<CancellationToken>())
-            .Returns(new ApiKeyLookupResult(project, KeyScope.Backend));
+        _apiKeyService.GetCurrentApiKey().Returns(BackendScopedApiKey);
+        _apiKeyRepository.GetByKeyAsync(BackendScopedApiKey, Arg.Any<CancellationToken>())
+            .Returns(new ApiKeyAuthenticationResult(project, KeyScope.Backend, null));
     }
 
-    private void SetupValidClientApiKey()
+    private void SetupValidFrontendScopedApiKey()
     {
         var project = new Project
         {
-            Name = ProjectName,
-            ServerApiKey = ServerApiKey,
-            ClientApiKey = ClientApiKey
+            Name = ProjectName
         };
 
-        _apiKeyService.GetCurrentApiKey().Returns(ClientApiKey);
-        _projectRepository.GetByApiKeyAsync(ClientApiKey, Arg.Any<CancellationToken>())
-            .Returns(new ApiKeyLookupResult(project, KeyScope.Frontend));
+        _apiKeyService.GetCurrentApiKey().Returns(FrontendScopedApiKey);
+        _apiKeyRepository.GetByKeyAsync(FrontendScopedApiKey, Arg.Any<CancellationToken>())
+            .Returns(new ApiKeyAuthenticationResult(project, KeyScope.Frontend, null));
     }
 
     private void SetupEnvironmentExists()
@@ -368,7 +415,7 @@ public class GetConfigEntryValueQueryTests
                 Environment = EnvironmentName,
                 Key = ConfigKey,
                 Value = ConfigValue,
-                ContentType = "string",
+                ContentType = "text",
                 Scope = scope
             });
     }

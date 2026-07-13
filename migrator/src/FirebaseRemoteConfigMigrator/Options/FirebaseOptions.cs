@@ -12,7 +12,7 @@ public sealed record FirebaseOptions
 
     public IReadOnlyList<FirebaseImportSource> GetImportSources()
     {
-        if (Sources.Count > 0)
+        if (Sources?.Count > 0)
             return Sources;
 
         if (!string.IsNullOrWhiteSpace(Namespace))

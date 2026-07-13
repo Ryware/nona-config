@@ -9,14 +9,14 @@ internal sealed record CreateUserCommand(
     string? Role,
     string? Scope);
 
-internal sealed class CreateUserCommandHandler
+internal sealed class CreateUserCommandHandler(Func<HttpClient>? httpClientFactory = null)
 {
 
 
     public async Task<int> HandleAsync(CreateUserCommand command, CancellationToken ct)
     {
-        
-        var api = NonaClientFactory.Create(command.Connection);
+
+        var api = NonaClientFactory.Create(command.Connection, httpClientFactory);
         var result = await api.Admin.Users.PostAsync(new CreateUserRequest
         {
             Name = command.Name,

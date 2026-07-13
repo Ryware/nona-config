@@ -1,4 +1,4 @@
-name: release-cli
+name: CLI release
 
 on:
   push:
@@ -17,7 +17,7 @@ on:
         type: boolean
 
 permissions:
-  contents: write
+  contents: read
 
 env:
   CLI_PROJECT: cli/src/Nona.Cli/Nona.Cli.csproj
@@ -82,9 +82,11 @@ jobs:
             PRERELEASE="false"
           fi
 
-          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-          echo "prerelease=${PRERELEASE}" >> "$GITHUB_OUTPUT"
+          {
+            echo "tag=${TAG}"
+            echo "version=${VERSION}"
+            echo "prerelease=${PRERELEASE}"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Publish standalone binary
         shell: bash
@@ -96,6 +98,7 @@ jobs:
             -p:PublishSingleFile=true \
             -p:DebugType=None \
             -p:DebugSymbols=false \
+            -p:InformationalVersion="${{ steps.meta.outputs.version }}" \
             -o "${GITHUB_WORKSPACE}/publish/${{ matrix.rid }}"
 
       - name: Package release asset
@@ -140,6 +143,12 @@ jobs:
   release:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      prerelease: ${{ steps.meta.outputs.prerelease }}
+      tag: ${{ steps.meta.outputs.tag }}
+      version: ${{ steps.meta.outputs.version }}
 
     steps:
       - name: Resolve release metadata
@@ -161,9 +170,11 @@ jobs:
             PRERELEASE="false"
           fi
 
-          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-          echo "prerelease=${PRERELEASE}" >> "$GITHUB_OUTPUT"
+          {
+            echo "tag=${TAG}"
+            echo "version=${VERSION}"
+            echo "prerelease=${PRERELEASE}"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Download packaged assets
         uses: actions/download-artifact@v4
@@ -176,7 +187,7 @@ jobs:
         shell: bash
         run: |
           cd release-assets
-          sha256sum *.zip *.tar.gz > SHA256SUMS.txt
+          sha256sum ./*.zip ./*.tar.gz > SHA256SUMS.txt
 
       - name: Create or update GitHub release
         uses: softprops/action-gh-release@v2
@@ -196,8 +207,7 @@ jobs:
   publish-npm:
     needs: release
     runs-on: ubuntu-latest
-    # Skip prereleases — only publish stable versions to npm.
-    if: ${{ !contains(github.ref_name, '-') && github.event_name != 'workflow_dispatch' || (github.event_name == 'workflow_dispatch' && inputs.prerelease == false) }}
+    if: needs.release.outputs.prerelease == 'false'
     permissions:
       contents: read
       id-token: write  # required for provenance attestation
@@ -206,28 +216,124 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Resolve version
-        id: meta
-        shell: bash
-        run: |
-          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
-            TAG="${{ inputs.release_tag }}"
-          else
-            TAG="${GITHUB_REF_NAME}"
-          fi
-          echo "version=${TAG#cli-v}" >> "$GITHUB_OUTPUT"
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Stamp version
         run: |
           cd packaging/npm
-          npm version ${{ steps.meta.outputs.version }} --no-git-tag-version
+          npm version ${{ needs.release.outputs.version }} --no-git-tag-version
 
       - name: Publish to npm
         run: npm publish --access public --provenance
         working-directory: packaging/npm
+
+  publish-chocolatey:
+    needs: release
+    runs-on: windows-latest
+    if: needs.release.outputs.prerelease == 'false'
+    env:
+      CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}
+      PACKAGE_ID: nona-cli
+      PACKAGE_VERSION: ${{ needs.release.outputs.version }}
+      RELEASE_TAG: ${{ needs.release.outputs.tag }}
+      REPOSITORY: ${{ github.repository }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Chocolatey API key
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:CHOCOLATEY_API_KEY)) {
+            throw 'CHOCOLATEY_API_KEY secret is not configured.'
+          }
+
+      - name: Download Windows release assets
+        uses: actions/download-artifact@v4
+        with:
+          pattern: cli-win-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Resolve Chocolatey package payload
+        id: payload
+        shell: pwsh
+        run: |
+          $releaseAssetsDirectory = Join-Path $PWD 'release-assets'
+
+          function Resolve-ReleaseAsset {
+            param(
+              [Parameter(Mandatory = $true)]
+              [string]$AssetName
+            )
+
+            $assetPath = Join-Path $releaseAssetsDirectory $AssetName
+            if (-not (Test-Path $assetPath)) {
+              throw "Expected release asset was not downloaded: $assetPath"
+            }
+
+            return @{
+              checksum = (Get-FileHash -Path $assetPath -Algorithm SHA256).Hash.ToLowerInvariant()
+              url = "https://github.com/$env:REPOSITORY/releases/download/$env:RELEASE_TAG/$AssetName"
+            }
+          }
+
+          $x64 = Resolve-ReleaseAsset -AssetName "nona-cli_${env:PACKAGE_VERSION}_win-x64.zip"
+          $arm64 = Resolve-ReleaseAsset -AssetName "nona-cli_${env:PACKAGE_VERSION}_win-arm64.zip"
+
+          "win_x64_checksum=$($x64.checksum)" >> $env:GITHUB_OUTPUT
+          "win_x64_url=$($x64.url)" >> $env:GITHUB_OUTPUT
+          "win_arm64_checksum=$($arm64.checksum)" >> $env:GITHUB_OUTPUT
+          "win_arm64_url=$($arm64.url)" >> $env:GITHUB_OUTPUT
+
+      - name: Build Chocolatey package
+        shell: pwsh
+        run: |
+          ./packaging/chocolatey/build-package.ps1 `
+            -Version "$env:PACKAGE_VERSION" `
+            -WinArm64Url "${{ steps.payload.outputs.win_arm64_url }}" `
+            -WinArm64Checksum "${{ steps.payload.outputs.win_arm64_checksum }}" `
+            -WinX64Url "${{ steps.payload.outputs.win_x64_url }}" `
+            -WinX64Checksum "${{ steps.payload.outputs.win_x64_checksum }}" `
+            -OutputDirectory (Join-Path $PWD 'chocolatey-package')
+
+      - name: Test Chocolatey package locally
+        shell: pwsh
+        run: |
+          $packageDirectory = Join-Path $PWD 'chocolatey-package'
+
+          choco install $env:PACKAGE_ID --source $packageDirectory --version $env:PACKAGE_VERSION -y --no-progress
+          & "$env:ChocolateyInstall\bin\nona.exe" --help
+          choco uninstall $env:PACKAGE_ID -y --no-progress
+
+      - name: Upload Chocolatey package
+        uses: actions/upload-artifact@v4
+        with:
+          name: chocolatey-package
+          path: chocolatey-package/nona-cli.${{ needs.release.outputs.version }}.nupkg
+          if-no-files-found: error
+
+      - name: Push package to Chocolatey
+        shell: pwsh
+        run: |
+          $packagePath = Join-Path $PWD "chocolatey-package/nona-cli.$env:PACKAGE_VERSION.nupkg"
+          $source = 'https://push.chocolatey.org/'
+          $output = & choco push $packagePath --source $source --api-key $env:CHOCOLATEY_API_KEY --no-progress 2>&1
+          $exitCode = $LASTEXITCODE
+          $output | ForEach-Object { Write-Host $_ }
+
+          if ($exitCode -eq 0) {
+            return
+          }
+
+          $message = $output | Out-String
+          if ($message -match '403|Forbidden') {
+            throw "Chocolatey rejected publishing $env:PACKAGE_ID $env:PACKAGE_VERSION with 403 Forbidden. Check that CHOCOLATEY_API_KEY is the Chocolatey community repository API key for an account allowed to create or maintain '$env:PACKAGE_ID'. Chocolatey also returns 403 when the package/version is still in moderation, has too many versions in moderation, is owned by another account, or the package name is forbidden. Check https://community.chocolatey.org/packages/$env:PACKAGE_ID and the Chocolatey account moderation dashboard before retrying."
+          }
+
+          throw "Chocolatey push failed with exit code $exitCode."

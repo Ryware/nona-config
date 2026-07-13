@@ -13,8 +13,7 @@ internal static class ReplicaBenchmarkApp
     private const string ProjectName = "bench-project";
     private const string ProjectSlug = "bench-project";
     private const string EnvironmentName = "medium";
-    private const string ServerApiKey = "BENCH-SERVER-KEY";
-    private const string ClientApiKey = "BENCH-CLIENT-KEY";
+    private const string ApiKey = "BENCH-SCOPED-KEY";
     private const int DatasetRows = 1_000;
 
     public static async Task<int> RunAsync(string[] args)
@@ -382,6 +381,7 @@ internal static class ReplicaBenchmarkApp
         await ExecuteBatchWithRetryAsync(primary,
         [
             new("DELETE FROM ConfigEntries WHERE Project = @Project", new { Project = ProjectName }),
+            new("DELETE FROM ApiKeys WHERE Project = @Project", new { Project = ProjectName }),
             new("DELETE FROM Environments WHERE Project = @Project", new { Project = ProjectName }),
             new("DELETE FROM Projects WHERE Name = @Name OR UrlSlug = @Slug", new { Name = ProjectName, Slug = ProjectSlug })
         ], cancellationToken);
@@ -391,15 +391,27 @@ internal static class ReplicaBenchmarkApp
         [
             new(
                 """
-                INSERT INTO Projects (Name, UrlSlug, ServerApiKey, ClientApiKey, CreatedAt, UpdatedAt)
-                VALUES (@Name, @Slug, @ServerApiKey, @ClientApiKey, @CreatedAt, @UpdatedAt)
+                INSERT INTO Projects (Name, UrlSlug, CreatedAt, UpdatedAt)
+                VALUES (@Name, @Slug, @CreatedAt, @UpdatedAt)
                 """,
                 new
                 {
                     Name = ProjectName,
                     Slug = ProjectSlug,
-                    ServerApiKey,
-                    ClientApiKey,
+                    CreatedAt = now,
+                    UpdatedAt = now
+                }),
+            new(
+                """
+                INSERT INTO ApiKeys (Name, Key, Project, Environment, Scope, CreatedAt, UpdatedAt)
+                VALUES (@Name, @Key, @Project, NULL, @Scope, @CreatedAt, @UpdatedAt)
+                """,
+                new
+                {
+                    Name = "Benchmark",
+                    Key = ApiKey,
+                    Project = ProjectName,
+                    Scope = 3,
                     CreatedAt = now,
                     UpdatedAt = now
                 }),

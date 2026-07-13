@@ -1,6 +1,8 @@
-using MediatR;
+using Mediator;
+using Nona.Application.Admin.Projects;
 using Nona.Application.Admin.Users.DTOs;
 using Nona.Application.Common;
+using Nona.Application.Common.Interfaces;
 using Nona.Domain.Entities;
 using Nona.Domain.Interfaces;
 
@@ -13,32 +15,46 @@ public record SetProjectAccessResult(bool Success, ProjectAccessDto? ProjectAcce
 public class SetProjectAccessCommandHandler(
     IUserRepository userRepository,
     IProjectRepository projectRepository,
-    IProjectMemberRepository projectMemberRepository) : IRequestHandler<SetProjectAccessCommand, SetProjectAccessResult>
+    IProjectMemberRepository projectMemberRepository,
+    IUserAuthorizationService userAuthorizationService) : IRequestHandler<SetProjectAccessCommand, SetProjectAccessResult>
 {
-    public async Task<SetProjectAccessResult> Handle(SetProjectAccessCommand request, CancellationToken cancellationToken)
+    public async ValueTask<SetProjectAccessResult> Handle(SetProjectAccessCommand request, CancellationToken cancellationToken)
     {
+        var currentUser = await userAuthorizationService.GetCurrentUserAsync(cancellationToken);
+        var canManageUsers = currentUser?.IsAdmin == true || currentUser?.Role == UserRole.Editor;
+        if (!canManageUsers)
+            return new SetProjectAccessResult(false, null, "Access denied");
+
         var user = await userRepository.GetByIdAsync(request.UserId, cancellationToken);
         if (user is null)
             return new SetProjectAccessResult(false, null, "User not found");
 
-        if (!await projectRepository.ExistsAsync(request.ProjectId, cancellationToken))
+        if (user.IsAdmin && currentUser?.IsAdmin != true)
+            return new SetProjectAccessResult(false, null, "Access denied");
+
+        var project = await ProjectResolution.ResolveProjectAsync(
+            projectRepository,
+            request.ProjectId,
+            cancellationToken);
+        if (project is null)
             return new SetProjectAccessResult(false, null, "Project not found");
 
         var role = ParseProjectRole(request.Role);
         if (role is null)
             return new SetProjectAccessResult(false, null, "Invalid role. Must be 'viewer' or 'editor'");
 
-        var existingMember = await projectMemberRepository.GetAsync(user.Email, request.ProjectId, cancellationToken);
+        var projectName = project.Name;
+        var existingMember = await projectMemberRepository.GetAsync(user.Email, projectName, cancellationToken);
 
         if (existingMember is not null)
         {
-            await projectMemberRepository.DeleteAsync(user.Email, request.ProjectId, cancellationToken);
+            await projectMemberRepository.DeleteAsync(user.Email, projectName, cancellationToken);
         }
 
         var member = new ProjectMember
         {
             Username = user.Email,
-            ProjectId = request.ProjectId,
+            ProjectId = projectName,
             Role = role.Value,
             CreatedAt = DateTime.UtcNow
         };
@@ -61,4 +77,5 @@ public class SetProjectAccessCommandHandler(
             _ => null
         };
     }
+
 }

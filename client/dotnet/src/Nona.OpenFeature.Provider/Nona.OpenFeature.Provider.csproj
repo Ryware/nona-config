@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;net8.0</TargetFrameworks>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <PackageId>Nona.OpenFeature.Provider</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>Nona</Authors>
+    <Company>Nona</Company>
+    <Title>Nona OpenFeature Provider</Title>
+    <Description>OpenFeature provider for Nona — use Nona remote config and feature flags through the OpenFeature .NET SDK.</Description>
+    <PackageTags>nona;openfeature;open-feature;provider;feature-flags;feature-toggles;remote-config;configuration;config</PackageTags>
+    <PackageProjectUrl>https://nonaconfig.com</PackageProjectUrl>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/Ryware/nona-config</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <PropertyGroup Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="OpenFeature" Version="2.14.0" />
+    <ProjectReference Include="..\Nona.Client\Nona.Client.csproj" />
+  </ItemGroup>
+
+</Project>

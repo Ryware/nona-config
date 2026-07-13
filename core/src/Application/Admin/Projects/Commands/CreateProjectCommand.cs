@@ -1,10 +1,9 @@
-using MediatR;
+using Mediator;
 using Microsoft.Extensions.Configuration;
 using Nona.Application.Admin.Projects.DTOs;
 using Nona.Application.Common.Interfaces;
 using Nona.Domain.Entities;
 using Nona.Domain.Interfaces;
-using System.Security.Cryptography;
 
 namespace Nona.Application.Admin.Projects.Commands;
 
@@ -15,16 +14,16 @@ public record CreateProjectResult(bool Success, ProjectDto? Project, string? Err
 
 public class CreateProjectCommandHandler(
     IProjectRepository projectRepository,
-    ICurrentUserService currentUserService,
+    IUserAuthorizationService userAuthorizationService,
     IEnvironmentRepository environmentRepository,
     IConfiguration configuration,
     IDateTime dateTime,
     IAuditLogService? auditLogService = null) : IRequestHandler<CreateProjectCommand, CreateProjectResult>
 {
-    public async Task<CreateProjectResult> Handle(CreateProjectCommand request, CancellationToken cancellationToken)
+    public async ValueTask<CreateProjectResult> Handle(CreateProjectCommand request, CancellationToken cancellationToken)
     {
-        // Only admin users can create new projects
-        if (!currentUserService.IsAdmin)
+        var currentUser = await userAuthorizationService.GetCurrentUserAsync(cancellationToken);
+        if (currentUser?.IsAdmin != true)
             return new CreateProjectResult(false, null, "Access denied. Only admin users can create projects.");
 
         if (await projectRepository.ExistsAsync(request.Name, cancellationToken))
@@ -51,15 +50,13 @@ public class CreateProjectCommandHandler(
         {
             Name = request.Name,
             UrlSlug = finalSlug,
-            ServerApiKey = GenerateApiKey(),
-            ClientApiKey = GenerateApiKey(),
             CreatedAt = now,
             UpdatedAt = now
         };
 
         await projectRepository.AddAsync(project, cancellationToken);
 
-        var defaultEnvironments = configuration.GetSection("Defaults:Environment").Get<string[]>() ?? [];
+        var defaultEnvironments = GetStringList(configuration, "Defaults:Environment");
         foreach (var env in defaultEnvironments)
         {
             await environmentRepository.AddAsync(new ProjectEnvironment
@@ -84,18 +81,11 @@ public class CreateProjectCommandHandler(
             project.Id,
             project.Name,
             project.UrlSlug,
-            project.ServerApiKey,
-            project.ClientApiKey,
             project.Environments,
             project.CreatedAt,
             project.UpdatedAt);
 
         return new CreateProjectResult(true, dto, null);
-    }
-
-    private static string GenerateApiKey()
-    {
-        return Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
     }
 
     private static string GenerateSlug(string name)
@@ -104,7 +94,6 @@ public class CreateProjectCommandHandler(
             return string.Empty;
 
         var slug = name.Trim().ToLowerInvariant();
-        // replace spaces and invalid chars with hyphens
         var sb = new System.Text.StringBuilder();
         foreach (var c in slug)
         {
@@ -112,8 +101,24 @@ public class CreateProjectCommandHandler(
             else if (char.IsWhiteSpace(c) || c == '-' || c == '_') sb.Append('-');
         }
 
-        // collapse multiple hyphens
         var result = System.Text.RegularExpressions.Regex.Replace(sb.ToString(), "-+", "-").Trim('-');
         return result;
+    }
+
+    private static IReadOnlyList<string> GetStringList(IConfiguration configuration, string key)
+    {
+        var section = configuration.GetSection(key);
+        var values = section.GetChildren()
+            .Select(child => child.Value)
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value!)
+            .ToList();
+
+        if (values.Count == 0 && !string.IsNullOrWhiteSpace(section.Value))
+        {
+            values.Add(section.Value);
+        }
+
+        return values;
     }
 }

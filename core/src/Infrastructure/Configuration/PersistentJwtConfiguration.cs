@@ -1,10 +1,11 @@
 using Microsoft.Extensions.Configuration;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Nona.Infrastructure.Configuration;
 
-public static class PersistentJwtConfiguration
+public static partial class PersistentJwtConfiguration
 {
     private const string GeneratedFileName = "jwt.generated.json";
     private const string DefaultIssuer = "nona";
@@ -28,11 +29,13 @@ public static class PersistentJwtConfiguration
     {
         ArgumentNullException.ThrowIfNull(configuration);
 
-        var generatedConfigPath = ResolveGeneratedConfigPath(configuration);
-
         if (HasCompleteJwtEnvironmentOverride())
         {
-            DeleteGeneratedConfig(generatedConfigPath);
+            if (TryResolveGeneratedConfigPath(configuration, out var generatedConfigPath))
+            {
+                DeleteGeneratedConfig(generatedConfigPath);
+            }
+
             return;
         }
 
@@ -41,7 +44,10 @@ public static class PersistentJwtConfiguration
             return;
         }
 
-        var generatedSettings = ReadOrCreateGeneratedSettings(generatedConfigPath);
+        var generatedSettings = ShouldPersistGeneratedSettings(configuration)
+            ? ReadOrCreateGeneratedSettings(ResolveGeneratedConfigPath(configuration))
+            : CreateGeneratedSettings();
+
         configuration.AddInMemoryCollection(CreateMissingConfigurationValues(configuration, generatedSettings));
     }
 
@@ -88,10 +94,7 @@ public static class PersistentJwtConfiguration
             return settings;
         }
 
-        settings = new JwtSettings(
-            Key: Convert.ToBase64String(RandomNumberGenerator.GetBytes(64)),
-            Issuer: DefaultIssuer,
-            Audience: DefaultAudience);
+        settings = CreateGeneratedSettings();
 
         if (!File.Exists(generatedConfigPath))
         {
@@ -110,6 +113,14 @@ public static class PersistentJwtConfiguration
         return settings;
     }
 
+    private static JwtSettings CreateGeneratedSettings()
+    {
+        return new JwtSettings(
+            Key: Convert.ToBase64String(RandomNumberGenerator.GetBytes(64)),
+            Issuer: DefaultIssuer,
+            Audience: DefaultAudience);
+    }
+
     private static bool TryReadGeneratedSettings(string generatedConfigPath, out JwtSettings settings)
     {
         settings = default;
@@ -122,7 +133,9 @@ public static class PersistentJwtConfiguration
         try
         {
             using var stream = File.OpenRead(generatedConfigPath);
-            var persisted = JsonSerializer.Deserialize<PersistedJwtConfiguration>(stream);
+            var persisted = JsonSerializer.Deserialize(
+                stream,
+                PersistentJwtJsonSerializerContext.Default.PersistedJwtConfiguration);
 
             if (persisted is null || !IsComplete(persisted.Jwt))
             {
@@ -153,7 +166,7 @@ public static class PersistentJwtConfiguration
 
         var json = JsonSerializer.Serialize(
             new PersistedJwtConfiguration(settings),
-            new JsonSerializerOptions { WriteIndented = true });
+            PersistentJwtJsonSerializerContext.Default.PersistedJwtConfiguration);
 
         var temporaryPath = $"{generatedConfigPath}.{Guid.NewGuid():N}.tmp";
         File.WriteAllText(temporaryPath, json);
@@ -193,16 +206,37 @@ public static class PersistentJwtConfiguration
             && !string.IsNullOrWhiteSpace(settings.Audience);
     }
 
-    private static string ResolveGeneratedConfigPath(IConfiguration configuration)
+    private static bool ShouldPersistGeneratedSettings(IConfiguration configuration)
     {
+        var storageType = ConfigurationValueReader.GetString(configuration, "Storage:Type", "InMemory");
+
+        return storageType.Equals("Libsql", StringComparison.OrdinalIgnoreCase)
+            && ConfigurationValueReader.GetBoolean(configuration, "Storage:Libsql:ManagedPrimary:Enabled");
+    }
+
+    private static bool TryResolveGeneratedConfigPath(IConfiguration configuration, out string generatedConfigPath)
+    {
+        generatedConfigPath = string.Empty;
+
         var databasePath = configuration["Storage:Libsql:ManagedPrimary:DatabasePath"];
         if (string.IsNullOrWhiteSpace(databasePath))
+        {
+            return false;
+        }
+
+        generatedConfigPath = Path.Combine(GetDirectoryName(ResolvePath(databasePath)), GeneratedFileName);
+        return true;
+    }
+
+    private static string ResolveGeneratedConfigPath(IConfiguration configuration)
+    {
+        if (!TryResolveGeneratedConfigPath(configuration, out var generatedConfigPath))
         {
             throw new InvalidOperationException(
                 "Storage:Libsql:ManagedPrimary:DatabasePath must be configured to persist generated JWT settings.");
         }
 
-        return Path.Combine(GetDirectoryName(ResolvePath(databasePath)), GeneratedFileName);
+        return generatedConfigPath;
     }
 
     private static string ResolvePath(string path)
@@ -218,7 +252,11 @@ public static class PersistentJwtConfiguration
             : directory;
     }
 
-    private sealed record PersistedJwtConfiguration(JwtSettings Jwt);
+    internal sealed record PersistedJwtConfiguration(JwtSettings Jwt);
 
-    private readonly record struct JwtSettings(string Key, string Issuer, string Audience);
+    internal readonly record struct JwtSettings(string Key, string Issuer, string Audience);
+
+    [JsonSourceGenerationOptions(WriteIndented = true)]
+    [JsonSerializable(typeof(PersistedJwtConfiguration))]
+    internal sealed partial class PersistentJwtJsonSerializerContext : JsonSerializerContext;
 }

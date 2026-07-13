@@ -42,7 +42,7 @@ internal sealed class ConfigCommands(CliContext ctx) : ICliCommandGroup
         cmd.AddArgument(valueArg);
         cmd.Handler = CommandHandler.Create(async (InvocationContext ic) =>
         {
-            var name  = CliValueResolver.NormalizeConfigSettingName(ic.ParseResult.GetValueForArgument(nameArg))!;
+            var name = CliValueResolver.NormalizeConfigSettingName(ic.ParseResult.GetValueForArgument(nameArg))!;
             var value = ic.ParseResult.GetValueForArgument(valueArg);
             ic.ExitCode = await handler.HandleAsync(new SetDefaultCommand(name, value), ic.GetCancellationToken());
         });

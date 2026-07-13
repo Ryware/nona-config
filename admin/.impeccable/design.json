@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-05-23T00:00:00.000Z",
+  "title": "Design System: Nona Config Admin",
+  "extensions": {
+    "colorMeta": {
+      "void-obsidian":    { "role": "neutral",   "displayName": "Void Obsidian",    "canonical": "oklch(8% 0.002 264)",   "tonalRamp": ["#030303","#09090b","#121214","#18181b","#27272a","#3f3f46","#52525b","#71717a"] },
+      "surface-lowest":   { "role": "neutral",   "displayName": "Surface Lowest",   "canonical": "oklch(4% 0.001 264)",   "tonalRamp": ["#030303","#09090b","#121214","#18181b","#27272a","#3f3f46","#52525b","#71717a"] },
+      "surface-low":      { "role": "neutral",   "displayName": "Surface Low",      "canonical": "oklch(12% 0.002 264)",  "tonalRamp": ["#030303","#09090b","#121214","#18181b","#27272a","#3f3f46","#52525b","#71717a"] },
+      "surface":          { "role": "neutral",   "displayName": "Surface",          "canonical": "oklch(15% 0.002 264)",  "tonalRamp": ["#030303","#09090b","#121214","#18181b","#27272a","#3f3f46","#52525b","#71717a"] },
+      "surface-high":     { "role": "neutral",   "displayName": "Surface High",     "canonical": "oklch(22% 0.002 264)",  "tonalRamp": ["#030303","#09090b","#121214","#18181b","#27272a","#3f3f46","#52525b","#71717a"] },
+      "surface-highest":  { "role": "neutral",   "displayName": "Surface Highest",  "canonical": "oklch(33% 0.003 264)",  "tonalRamp": ["#030303","#09090b","#121214","#18181b","#27272a","#3f3f46","#52525b","#71717a"] },
+      "electric-indigo":  { "role": "primary",   "displayName": "Electric Indigo",  "canonical": "oklch(60% 0.22 266)",   "tonalRamp": ["#1e1b4b","#312e81","#3730a3","#4338ca","#4f46e5","#6366f1","#818cf8","#c7d2fe"] },
+      "indigo-glow":      { "role": "primary",   "displayName": "Indigo Glow",      "canonical": "oklch(68% 0.18 266)",   "tonalRamp": ["#1e1b4b","#312e81","#3730a3","#4338ca","#4f46e5","#6366f1","#818cf8","#c7d2fe"] },
+      "console-emerald":  { "role": "secondary", "displayName": "Console Emerald",  "canonical": "oklch(68% 0.18 165)",   "tonalRamp": ["#022c22","#064e3b","#065f46","#047857","#059669","#10b981","#34d399","#a7f3d0"] },
+      "signal-green":     { "role": "secondary", "displayName": "Signal Green",     "canonical": "oklch(78% 0.15 165)",   "tonalRamp": ["#022c22","#064e3b","#065f46","#047857","#059669","#10b981","#34d399","#a7f3d0"] },
+      "alert-crimson":    { "role": "error",     "displayName": "Alert Crimson",    "canonical": "oklch(73% 0.16 28)",    "tonalRamp": ["#450a0a","#7f1d1d","#991b1b","#b91c1c","#dc2626","#ef4444","#f87171","#fca5a5"] },
+      "caution-amber":    { "role": "warning",   "displayName": "Caution Amber",    "canonical": "oklch(79% 0.19 80)",    "tonalRamp": ["#451a03","#78350f","#92400e","#b45309","#d97706","#f59e0b","#fbbf24","#fde68a"] },
+      "on-surface":       { "role": "neutral",   "displayName": "On Surface",       "canonical": "oklch(96% 0.003 264)",  "tonalRamp": ["#27272a","#3f3f46","#52525b","#71717a","#a1a1aa","#d4d4d8","#e4e4e7","#f4f4f5"] },
+      "on-surface-muted": { "role": "neutral",   "displayName": "On Surface Muted", "canonical": "oklch(72% 0.003 264)",  "tonalRamp": ["#27272a","#3f3f46","#52525b","#71717a","#a1a1aa","#d4d4d8","#e4e4e7","#f4f4f5"] }
+    },
+    "typographyMeta": {
+      "display":  { "displayName": "Display",  "purpose": "Hero text on auth screens and empty states. One instance per view maximum." },
+      "headline": { "displayName": "Headline", "purpose": "Section headings, card titles, page header names." },
+      "title":    { "displayName": "Title",    "purpose": "Sidebar project names, table column headers, drawer section labels." },
+      "body":     { "displayName": "Body",     "purpose": "Descriptions, metadata, table content. Max 75ch line length in reading contexts." },
+      "label":    { "displayName": "Label",    "purpose": "Status pills, nav hints, breadcrumbs. Optional uppercase." },
+      "mono":     { "displayName": "Mono",     "purpose": "All config keys, env var names, API tokens, JSON values. Never decorative." }
+    },
+    "shadows": [
+      { "name": "focus-ring",    "value": "outline: 2px solid #6366f1; outline-offset: 2px",                   "purpose": "Every focusable element. The only mandatory elevation signal." },
+      { "name": "focus-halo",    "value": "0 0 0 3px rgba(99, 102, 241, 0.2)",                                  "purpose": "Inputs and selects on focus; soft ring beyond the 2px outline." },
+      { "name": "brand-glow",    "value": "0 0 15px rgba(99, 102, 241, 0.2)",                                   "purpose": "Sidebar brand icon only. Identity marker, not structural." },
+      { "name": "button-shadow", "value": "0 4px 6px -1px rgba(0,0,0,0.4), 0 2px 4px -2px rgba(0,0,0,0.3)", "purpose": "Filled buttons at rest; collapses on active press." }
+    ],
+    "motion": [
+      { "name": "transition-fast",   "value": "0.15s ease-out", "purpose": "Backdrop fade-in, hover color shifts." },
+      { "name": "transition-base",   "value": "0.2s ease-out",  "purpose": "Component state transitions: color, opacity, focus ring." },
+      { "name": "transition-slow",   "value": "0.3s ease-out",  "purpose": "Slide-in panels, sidebar toggle, stagger entrance." },
+      { "name": "skeleton-shimmer",  "value": "1.5s ease-in-out infinite", "purpose": "Skeleton loading shimmer sweep." },
+      { "name": "palette-in",        "value": "translateY(-10px) scale(0.97) → translateY(0) scale(1) over 0.15s ease-out", "purpose": "Command palette entrance." }
+    ],
+    "breakpoints": [
+      { "name": "sm",  "value": "640px"  },
+      { "name": "md",  "value": "768px"  },
+      { "name": "lg",  "value": "1024px", "note": "Sidebar switches from mobile drawer to fixed at lg." },
+      { "name": "xl",  "value": "1280px" },
+      { "name": "2xl", "value": "1400px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single highest-priority action per view. Electric indigo background; appears alone, never competing with another indigo element.",
+      "html": "<button class=\"ds-btn-primary\">Save Changes</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 44px; padding: 0 24px; background: #6366f1; color: #ffffff; font-family: 'Inter', system-ui, sans-serif; font-size: 13px; font-weight: 700; letter-spacing: -0.01em; border: none; border-radius: 8px; cursor: pointer; transition: filter 0.2s ease-out, transform 0.1s ease-out; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.4), 0 2px 4px -2px rgba(0,0,0,0.3); } .ds-btn-primary:hover { filter: brightness(1.08); } .ds-btn-primary:focus-visible { outline: 2px solid #6366f1; outline-offset: 2px; box-shadow: 0 0 0 4px rgba(99,102,241,0.2); } .ds-btn-primary:active { transform: scale(0.98); } .ds-btn-primary:disabled { opacity: 0.4; pointer-events: none; }"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Secondary or cancel action. Pairs with Primary; never competes with it.",
+      "html": "<button class=\"ds-btn-outline\">Cancel</button>",
+      "css": ".ds-btn-outline { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 44px; padding: 0 24px; background: #121214; color: #a1a1aa; font-family: 'Inter', system-ui, sans-serif; font-size: 13px; font-weight: 700; letter-spacing: -0.01em; border: 1px solid rgba(63,63,70,0.3); border-radius: 8px; cursor: pointer; transition: background 0.15s ease-out, color 0.15s ease-out, border-color 0.15s ease-out; } .ds-btn-outline:hover { background: #18181b; color: #f4f4f5; border-color: rgba(63,63,70,0.5); } .ds-btn-outline:focus-visible { outline: 2px solid #6366f1; outline-offset: 2px; } .ds-btn-outline:active { transform: scale(0.98); } .ds-btn-outline:disabled { opacity: 0.4; pointer-events: none; }"
+    },
+    {
+      "name": "Destructive Button",
+      "kind": "button",
+      "refersTo": "button-destructive",
+      "description": "Confirm step inside a ConfirmDialog only. Never placed as a direct first action in a toolbar or form.",
+      "html": "<button class=\"ds-btn-destructive\">Delete Project</button>",
+      "css": ".ds-btn-destructive { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 44px; padding: 0 24px; background: #f87171; color: #ffffff; font-family: 'Inter', system-ui, sans-serif; font-size: 13px; font-weight: 700; letter-spacing: -0.01em; border: none; border-radius: 8px; cursor: pointer; transition: filter 0.2s ease-out, transform 0.1s ease-out; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.4), 0 2px 4px -2px rgba(0,0,0,0.3); } .ds-btn-destructive:hover { filter: brightness(1.08); } .ds-btn-destructive:focus-visible { outline: 2px solid #f87171; outline-offset: 2px; box-shadow: 0 0 0 4px rgba(248,113,113,0.2); } .ds-btn-destructive:active { transform: scale(0.98); } .ds-btn-destructive:disabled { opacity: 0.4; pointer-events: none; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Primary text field. Inset on the surface hierarchy via surface-lowest background.",
+      "html": "<div class=\"ds-field\"><label class=\"ds-field-label\">Environment Variable</label><input class=\"ds-input\" type=\"text\" placeholder=\"e.g. DATABASE_URL\" /></div>",
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 6px; } .ds-field-label { font-family: 'Inter', system-ui, sans-serif; font-size: 13px; font-weight: 500; color: #f4f4f5; } .ds-input { display: flex; width: 100%; height: 44px; padding: 0 14px; background: #030303; border: 1px solid rgba(63,63,70,0.3); border-radius: 12px; color: #f4f4f5; font-family: 'Inter', system-ui, sans-serif; font-size: 13.5px; transition: border-color 0.2s ease-out, box-shadow 0.2s ease-out; box-sizing: border-box; } .ds-input::placeholder { color: rgba(113,113,122,0.6); } .ds-input:hover { border-color: rgba(255,255,255,0.2); } .ds-input:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 2px rgba(99,102,241,0.2); } .ds-input:disabled { opacity: 0.4; cursor: not-allowed; }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Primary content container. Surface-low background, 16px radius. Flat at rest; no ambient shadow.",
+      "html": "<div class=\"ds-card\"><h3 class=\"ds-card-title\">backend-api</h3><p class=\"ds-card-desc\">12 environment variables · Updated 2h ago</p></div>",
+      "css": ".ds-card { background: #121214; border: 1px solid rgba(63,63,70,0.15); border-radius: 16px; padding: 24px; color: #f4f4f5; } .ds-card-title { font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700; line-height: 1.3; letter-spacing: -0.01em; margin: 0 0 4px; color: #f4f4f5; } .ds-card-desc { font-family: 'Inter', system-ui, sans-serif; font-size: 13px; color: #a1a1aa; margin: 0; }"
+    },
+    {
+      "name": "Nav Item",
+      "kind": "nav",
+      "description": "Sidebar navigation row. Active state uses surface-high background with indigo text and filled icon. No left-stripe border.",
+      "html": "<div class=\"ds-nav\"><a class=\"ds-nav-item ds-nav-item--active\" href=\"#\"><span class=\"ds-nav-icon\">&#xe8b8;</span><span class=\"ds-nav-label\">Projects</span></a><a class=\"ds-nav-item\" href=\"#\"><span class=\"ds-nav-icon\">&#xe7ef;</span><span class=\"ds-nav-label\">Team</span></a></div>",
+      "css": ".ds-nav { display: flex; flex-direction: column; gap: 2px; } .ds-nav-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px; font-family: 'Inter', system-ui, sans-serif; font-size: 13px; font-weight: 500; color: #a1a1aa; text-decoration: none; transition: background 0.15s ease-out, color 0.15s ease-out; } .ds-nav-item:hover { background: #121214; color: #f4f4f5; } .ds-nav-item--active { background: #27272a; color: #818cf8; } .ds-nav-icon { font-family: 'Material Icons'; font-size: 20px; line-height: 1; font-style: normal; } .ds-nav-label { white-space: nowrap; }"
+    },
+    {
+      "name": "Status Badge",
+      "kind": "chip",
+      "description": "Pill label for entity status. Four semantic variants, each with a tinted background at 15% opacity.",
+      "html": "<span class=\"ds-badge ds-badge--success\">Active</span> <span class=\"ds-badge ds-badge--error\">Error</span> <span class=\"ds-badge ds-badge--warning\">Warning</span> <span class=\"ds-badge ds-badge--neutral\">Inactive</span>",
+      "css": ".ds-badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 9999px; font-family: 'Inter', system-ui, sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; white-space: nowrap; } .ds-badge--success { background: rgba(16,185,129,0.15); color: #10b981; } .ds-badge--error { background: rgba(248,113,113,0.15); color: #f87171; } .ds-badge--warning { background: rgba(245,158,11,0.15); color: #f59e0b; } .ds-badge--neutral { background: rgba(63,63,70,0.5); color: #a1a1aa; }"
+    },
+    {
+      "name": "Config Key Row",
+      "kind": "custom",
+      "description": "A config entry row in the project table. Keys and values use JetBrains Mono to visually separate config identifiers from interface text.",
+      "html": "<div class=\"ds-config-row\"><span class=\"ds-config-key\">DATABASE_URL</span><span class=\"ds-config-value\">postgresql://db.example.com/prod</span></div>",
+      "css": ".ds-config-row { display: flex; align-items: center; gap: 16px; padding: 10px 16px; border-bottom: 1px solid rgba(63,63,70,0.15); transition: background 0.1s ease-out; } .ds-config-row:hover { background: #121214; } .ds-config-key { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px; font-weight: 500; color: #f4f4f5; min-width: 200px; flex-shrink: 0; } .ds-config-value { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px; color: #a1a1aa; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }"
+    },
+    {
+      "name": "Skeleton Row",
+      "kind": "custom",
+      "description": "Loading placeholder for table rows. Zinc shimmer sweep, 1.5s period.",
+      "html": "<div class=\"ds-skeleton-row\"><div class=\"ds-skeleton\" style=\"width:200px;height:14px;\"></div><div class=\"ds-skeleton\" style=\"width:320px;height:14px;\"></div><div class=\"ds-skeleton\" style=\"width:80px;height:22px;border-radius:9999px;\"></div></div>",
+      "css": "@keyframes ds-shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } } .ds-skeleton { background: linear-gradient(90deg, #27272a 25%, #3f3f46 50%, #27272a 75%); background-size: 800px 100%; animation: ds-shimmer 1.5s ease-in-out infinite; border-radius: 6px; } .ds-skeleton-row { display: flex; align-items: center; gap: 24px; padding: 12px 16px; border-bottom: 1px solid rgba(63,63,70,0.15); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Obsidian Console",
+    "overview": "A precise instrument carved from dark stone. The interface exists to serve a single purpose: giving non-technical administrators confident control over configuration without technical anxiety. Every surface is a tonal layer of near-black zinc, punctuated only by controlled bursts of electric indigo for active state and emerald for confirmation. The density is medium: enough breathing room for clarity, enough information on screen for efficiency.\n\nThe system explicitly rejects confusing developer-heavy dashboards with cryptic acronyms; generic SaaS templates with loud gradients, unnecessary animations, and low-contrast text; and interfaces that lack inline validation, explanations, or safety nets for configuration changes. It draws inspiration from Linear and Vercel's disciplined dark surfaces but adapts everything toward non-technical operators who need plain language, not code.",
+    "keyCharacteristics": [
+      "Tonal depth without shadows: eight surface layers carry all hierarchical weight",
+      "Electric indigo as the single deliberate accent, used with strict economy",
+      "Two typefaces: Space Grotesk for headings, Inter for body",
+      "JetBrains Mono reserved exclusively for config values, keys, and identifiers",
+      "Motion is brief and directional (0.2-0.3s ease-out): no bounce, no elastic",
+      "Every interactive state declared: hover, focus, active, disabled, error"
+    ],
+    "rules": [
+      { "name": "The One Voice Rule",          "body": "Electric indigo is used on no more than one primary action per view. If two CTAs compete, the lower-priority one becomes outline or ghost. Indigo's authority comes from restraint.",                                             "section": "colors" },
+      { "name": "The Tonal Staircase Rule",     "body": "Depth is expressed through surface layer selection, not through box-shadow. Every new layer of elevation moves one step up the surface hierarchy. Cards use surface-low; panel overlays use surface; command palette uses surface-high.", "section": "colors" },
+      { "name": "The Flat-By-Default Rule",     "body": "Cards, panels, and list rows are flat at rest. A surface is elevated by its background color choice, not by a shadow. Shadows appear only when an element must assert its position above a sibling.",                               "section": "elevation" },
+      { "name": "The Two-Register Rule",        "body": "Space Grotesk for headings; Inter for body. Never mix at the same hierarchical level. JetBrains Mono is reserved exclusively for config identifiers and code values.",                                                               "section": "typography" },
+      { "name": "The Weight-Jump Rule",         "body": "Adjacent hierarchy levels must differ by at least one full weight step (400 to 600, or 600 to 700). Flat scales produce dead interfaces.",                                                                                           "section": "typography" }
+    ],
+    "dos": [
+      "Do use the eight-step surface hierarchy to express depth; choose a surface's background by its level in the stack.",
+      "Do reserve electric indigo for one primary action per view.",
+      "Do use JetBrains Mono for every configuration key, environment variable name, API token, and JSON value.",
+      "Do declare all four states on every interactive element: default, hover, focus, disabled.",
+      "Do place 2px solid indigo focus rings on every focusable element.",
+      "Do use ease-out curves at 0.2-0.3s for all transitions.",
+      "Do show skeleton shimmer states before data loads.",
+      "Do include a confirmation step for every destructive action.",
+      "Do translate configuration keys and technical fields into plain-language labels with helper hints."
+    ],
+    "donts": [
+      "Don't use border-left or border-right wider than 1px as a colored accent stripe on nav items, cards, or callouts.",
+      "Don't use background-clip: text with a gradient. Use a single solid color.",
+      "Don't use backdrop-filter: blur decoratively. Only on command palette backdrop and mobile overlay.",
+      "Don't build a hero metric layout (big number, small label, gradient accent).",
+      "Don't build a grid of identical cards. Vary affordance: list rows for dense data, cards for navigable entities.",
+      "Don't reach for a modal as the first response to a user action.",
+      "Don't use cryptic developer jargon in labels, headings, or validation messages.",
+      "Don't let placeholder text fall below outline/60 opacity.",
+      "Don't animate layout properties (width, height, margin, padding). Only transform and opacity.",
+      "Don't use #000000 or #ffffff. Darkest is #030303; lightest text is #f4f4f5.",
+      "Don't add glassmorphism to cards or content panels."
+    ]
+  }
+}

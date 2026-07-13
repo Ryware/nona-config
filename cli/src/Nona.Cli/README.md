@@ -48,7 +48,7 @@ The published executable is the `nona` command.
 Authenticate and persist a session token:
 
 ```bash
-nona auth login --base-url http://nona.internal:18080 --email admin@example.com
+nona auth login --base-url http://nona.internal:18080
 nona auth whoami
 nona auth logout
 ```
@@ -67,10 +67,20 @@ Show project API keys:
 nona keys show --project mobile-app --base-url https://nona.example.com --token <token>
 ```
 
-Reroll one or both keys:
+Create a scoped API key:
 
 ```bash
-nona keys reroll --project mobile-app --type both --base-url https://nona.example.com --token <token>
+nona keys create --project mobile-app --name "Web Client" --scope client --environment production --base-url https://nona.example.com --token <token>
+```
+
+Manage config entries:
+
+```bash
+nona entries list --project mobile-app --environment production --base-url https://nona.example.com --token <token>
+nona entries get --project mobile-app --environment production --key welcome_text --base-url https://nona.example.com --token <token>
+nona entries set --project mobile-app --environment production --key welcome_text --value "Hello" --scope all --content-type text --base-url https://nona.example.com --token <token>
+nona entries history --project mobile-app --environment production --key welcome_text --base-url https://nona.example.com --token <token>
+nona entries rollback --project mobile-app --environment production --key welcome_text --version 2 --base-url https://nona.example.com --token <token>
 ```
 
 Run a Firebase Remote Config migration:
@@ -101,5 +111,5 @@ Resolution order is:
 
 1. Explicit command-line flags
 2. `NONA_CLI_*` environment variables
-3. Saved auth session from `nona auth login` for bearer token reuse
-4. Saved CLI defaults from `nona config set`
+3. Saved CLI defaults from `nona config set`
+4. Saved auth session from `nona auth login` for base URL and bearer token reuse

@@ -64,14 +64,15 @@ internal sealed class LibsqlBenchmarkDatabase : IBenchmarkDatabase
     {
         var result = await _client.ExecuteAsync(
             """
-            SELECT Name
-            FROM Projects
-            WHERE ServerApiKey = @ApiKey OR ClientApiKey = @ApiKey
+            SELECT p.Name
+            FROM ApiKeys ak
+            INNER JOIN Projects p ON p.Name = ak.Project COLLATE NOCASE
+            WHERE ak.Key = @ApiKey
             LIMIT 1
             """,
             new Dictionary<string, object?>
             {
-                ["ApiKey"] = DatabaseSeeder.ServerApiKey
+                ["ApiKey"] = DatabaseSeeder.ApiKey
             },
             cancellationToken);
 
@@ -198,14 +199,15 @@ internal sealed class SqliteBenchmarkDatabase : IBenchmarkDatabase
     {
         var rowCount = await ExecuteReaderCountAsync(
             """
-            SELECT Name
-            FROM Projects
-            WHERE ServerApiKey = @ApiKey OR ClientApiKey = @ApiKey
+            SELECT p.Name
+            FROM ApiKeys ak
+            INNER JOIN Projects p ON p.Name = ak.Project COLLATE NOCASE
+            WHERE ak.Key = @ApiKey
             LIMIT 1
             """,
             new Dictionary<string, object?>
             {
-                ["ApiKey"] = DatabaseSeeder.ServerApiKey
+                ["ApiKey"] = DatabaseSeeder.ApiKey
             },
             cancellationToken);
 

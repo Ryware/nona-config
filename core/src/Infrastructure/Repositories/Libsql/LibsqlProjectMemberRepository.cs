@@ -23,7 +23,9 @@ public sealed class LibsqlProjectMemberRepository : IProjectMemberRepository
               AND ProjectName = @ProjectName COLLATE NOCASE
             LIMIT 1
             """,
-            new { Username = username, ProjectName = projectName },
+            LibsqlParameters.Create(
+                ("Username", username),
+                ("ProjectName", projectName)),
             ct);
 
         return result.Rows.Count == 0 ? null : Map(result.Rows[0]);
@@ -38,7 +40,7 @@ public sealed class LibsqlProjectMemberRepository : IProjectMemberRepository
             WHERE Username = @Username COLLATE NOCASE
             ORDER BY ProjectName
             """,
-            new { Username = username },
+            LibsqlParameters.Create(("Username", username)),
             ct);
 
         return result.Rows.Select(Map).ToList();
@@ -53,7 +55,7 @@ public sealed class LibsqlProjectMemberRepository : IProjectMemberRepository
             WHERE ProjectName = @ProjectName COLLATE NOCASE
             ORDER BY Username
             """,
-            new { ProjectName = projectName },
+            LibsqlParameters.Create(("ProjectName", projectName)),
             ct);
 
         return result.Rows.Select(Map).ToList();
@@ -68,7 +70,9 @@ public sealed class LibsqlProjectMemberRepository : IProjectMemberRepository
             WHERE Username = @Username COLLATE NOCASE
               AND ProjectName = @ProjectName COLLATE NOCASE
             """,
-            new { Username = username, ProjectName = projectName },
+            LibsqlParameters.Create(
+                ("Username", username),
+                ("ProjectName", projectName)),
             ct);
 
         return result.Rows[0].GetInt32(0) > 0;
@@ -94,7 +98,10 @@ public sealed class LibsqlProjectMemberRepository : IProjectMemberRepository
             WHERE Username = @Username COLLATE NOCASE
               AND ProjectName = @ProjectId COLLATE NOCASE
             """,
-            ToParameters(member),
+            LibsqlParameters.Create(
+                ("Username", member.Username),
+                ("ProjectId", member.ProjectId),
+                ("Role", (int)member.Role)),
             ct);
     }
 
@@ -106,7 +113,9 @@ public sealed class LibsqlProjectMemberRepository : IProjectMemberRepository
             WHERE Username = @Username COLLATE NOCASE
               AND ProjectName = @ProjectName COLLATE NOCASE
             """,
-            new { Username = username, ProjectName = projectName },
+            LibsqlParameters.Create(
+                ("Username", username),
+                ("ProjectName", projectName)),
             ct);
     }
 
@@ -117,7 +126,7 @@ public sealed class LibsqlProjectMemberRepository : IProjectMemberRepository
             DELETE FROM ProjectMembers
             WHERE Username = @Username COLLATE NOCASE
             """,
-            new { Username = username },
+            LibsqlParameters.Create(("Username", username)),
             ct);
     }
 
@@ -128,7 +137,7 @@ public sealed class LibsqlProjectMemberRepository : IProjectMemberRepository
             DELETE FROM ProjectMembers
             WHERE ProjectName = @ProjectName COLLATE NOCASE
             """,
-            new { ProjectName = projectName },
+            LibsqlParameters.Create(("ProjectName", projectName)),
             ct);
     }
 
@@ -143,14 +152,12 @@ public sealed class LibsqlProjectMemberRepository : IProjectMemberRepository
         };
     }
 
-    private static object ToParameters(ProjectMember member)
+    private static IReadOnlyDictionary<string, object?> ToParameters(ProjectMember member)
     {
-        return new
-        {
-            member.Username,
-            member.ProjectId,
-            Role = (int)member.Role,
-            CreatedAt = member.CreatedAt.ToString("O")
-        };
+        return LibsqlParameters.Create(
+            ("Username", member.Username),
+            ("ProjectId", member.ProjectId),
+            ("Role", (int)member.Role),
+            ("CreatedAt", member.CreatedAt.ToString("O")));
     }
 }

@@ -67,15 +67,15 @@ internal static class MigrationPlanner
         ICollection<string> warnings)
     {
         if (string.IsNullOrWhiteSpace(firebaseValueType))
-            return "string";
+            return "text";
 
         return firebaseValueType.Trim().ToUpperInvariant() switch
         {
-            "STRING" => "string",
+            "STRING" => "text",
             "BOOLEAN" => "boolean",
             "NUMBER" => "number",
             "JSON" => "json",
-            "PARAMETER_VALUE_TYPE_UNSPECIFIED" => "string",
+            "PARAMETER_VALUE_TYPE_UNSPECIFIED" => "text",
             _ => WarnAndUseFallback(key, firebaseValueType, warnings)
         };
     }
@@ -87,8 +87,8 @@ internal static class MigrationPlanner
     {
         warnings.Add(
             $"Unknown Firebase valueType '{firebaseValueType}' for key '{key}'. " +
-            "Using fallback content type 'string'.");
-        return "string";
+            "Using fallback content type 'text'.");
+        return "text";
     }
 
     private static bool ShouldApplyDefault(string environment, MigrationOptions options)

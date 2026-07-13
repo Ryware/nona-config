@@ -13,7 +13,7 @@ public sealed class KeysHandlerTests
     [Test]
     public async Task ShowKeysQueryHandler_ReturnsZero_WhenProjectFound()
     {
-        var result = await new ShowKeysQueryHandler(MockHttp(HttpStatusCode.OK, ProjectArrayJson))
+        var result = await new ShowKeysQueryHandler(MockHttp(HttpStatusCode.OK, ApiKeyArrayJson))
             .HandleAsync(new ShowKeysQuery(TestConnection, "my-project"), CancellationToken.None);
         await Assert.That(result).IsEqualTo(0);
     }
@@ -21,16 +21,25 @@ public sealed class KeysHandlerTests
     [Test]
     public async Task ShowKeysQueryHandler_ReturnsOne_WhenProjectNotFound()
     {
-        var result = await new ShowKeysQueryHandler(MockHttp(HttpStatusCode.OK, "[]"))
+        var result = await new ShowKeysQueryHandler(MockHttp(HttpStatusCode.NotFound, """{"error":"Project not found"}"""))
             .HandleAsync(new ShowKeysQuery(TestConnection, "missing-project"), CancellationToken.None);
         await Assert.That(result).IsEqualTo(1);
     }
 
     [Test]
-    public async Task RerollKeysCommandHandler_ReturnsZero_OnSuccess()
+    public async Task CreateApiKeyCommandHandler_ReturnsZero_OnSuccess()
     {
-        var result = await new RerollKeysCommandHandler(MockHttp(HttpStatusCode.OK, ProjectJson))
-            .HandleAsync(new RerollKeysCommand(TestConnection, "my-project", "both"), CancellationToken.None);
+        var result = await new CreateApiKeyCommandHandler(MockHttp(HttpStatusCode.Created, ApiKeyJson))
+            .HandleAsync(new CreateApiKeyCommand(TestConnection, "my-project", "Web Client", "production", "client"), CancellationToken.None);
         await Assert.That(result).IsEqualTo(0);
     }
+
+    [Test]
+    public async Task DeleteApiKeyCommandHandler_ReturnsZero_OnSuccess()
+    {
+        var result = await new DeleteApiKeyCommandHandler(MockHttp(HttpStatusCode.NoContent, string.Empty))
+            .HandleAsync(new DeleteApiKeyCommand(TestConnection, "my-project", 7), CancellationToken.None);
+        await Assert.That(result).IsEqualTo(0);
+    }
+
 }

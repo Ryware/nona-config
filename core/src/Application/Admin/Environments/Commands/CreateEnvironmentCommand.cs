@@ -1,5 +1,6 @@
-using MediatR;
+using Mediator;
 using Nona.Application.Admin.Environments.DTOs;
+using Nona.Application.Admin.Projects;
 using Nona.Application.Common.Interfaces;
 using Nona.Domain.Entities;
 using Nona.Domain.Interfaces;
@@ -18,15 +19,17 @@ public class CreateEnvironmentCommandHandler(
     IDateTime dateTime,
     IAuditLogService? auditLogService = null) : IRequestHandler<CreateEnvironmentCommand, CreateEnvironmentResult>
 {
-    public async Task<CreateEnvironmentResult> Handle(CreateEnvironmentCommand request, CancellationToken cancellationToken)
+    public async ValueTask<CreateEnvironmentResult> Handle(CreateEnvironmentCommand request, CancellationToken cancellationToken)
     {
-        if (!await projectRepository.ExistsAsync(request.ProjectId, cancellationToken))
+        var project = await ProjectResolution.ResolveProjectAsync(projectRepository, request.ProjectId, cancellationToken);
+        if (project is null)
             return new CreateEnvironmentResult(false, null, "Project not found");
 
-        if (!await projectAccessService.HasAdminAccessAsync(request.ProjectId, cancellationToken))
+        var projectName = project.Name;
+        if (!await projectAccessService.HasEditAccessAsync(projectName, cancellationToken))
             return new CreateEnvironmentResult(false, null, "Access denied");
 
-        if (await environmentRepository.ExistsAsync(request.ProjectId, request.Name, cancellationToken))
+        if (await environmentRepository.ExistsAsync(projectName, request.Name, cancellationToken))
             return new CreateEnvironmentResult(false, null, "Environment already exists");
 
 
@@ -34,7 +37,7 @@ public class CreateEnvironmentCommandHandler(
         var environment = new ProjectEnvironment
         {
             Name = request.Name,
-            Project = request.ProjectId,
+            Project = projectName,
             CreatedAt = now,
             UpdatedAt = now
         };

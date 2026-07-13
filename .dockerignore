@@ -12,3 +12,16 @@ manual-backend.err.log
 core/tests
 frontend/node_modules
 frontend/dist
+nona-config-admin/node_modules
+nona-config-admin/dist
+nona-config-admin/test-results
+nona-config-admin/playwright-report
+nona-client/javascript/node_modules
+nona-client/javascript/dist
+nona-client/javascript/*.tgz
+nona-client/dotnet/**/bin
+nona-client/dotnet/**/obj
+nona-docs/node_modules
+nona-docs/dist
+nona-docs/artifacts
+nona-docs/.astro

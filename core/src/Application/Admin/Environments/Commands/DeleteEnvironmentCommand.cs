@@ -1,4 +1,5 @@
-using MediatR;
+using Mediator;
+using Nona.Application.Admin.Projects;
 using Nona.Application.Common.Interfaces;
 using Nona.Domain.Interfaces;
 
@@ -15,27 +16,29 @@ public class DeleteEnvironmentCommandHandler(
     IProjectAccessService projectAccessService,
     IAuditLogService? auditLogService = null) : IRequestHandler<DeleteEnvironmentCommand, DeleteEnvironmentResult>
 {
-    public async Task<DeleteEnvironmentResult> Handle(DeleteEnvironmentCommand request, CancellationToken cancellationToken)
+    public async ValueTask<DeleteEnvironmentResult> Handle(DeleteEnvironmentCommand request, CancellationToken cancellationToken)
     {
-        if (!await projectRepository.ExistsAsync(request.ProjectId, cancellationToken))
+        var project = await ProjectResolution.ResolveProjectAsync(projectRepository, request.ProjectId, cancellationToken);
+        if (project is null)
             return new DeleteEnvironmentResult(false, "Project not found");
 
-        if (!await projectAccessService.HasAdminAccessAsync(request.ProjectId, cancellationToken))
+        var projectName = project.Name;
+        if (!await projectAccessService.HasEditAccessAsync(projectName, cancellationToken))
             return new DeleteEnvironmentResult(false, "Access denied");
 
-        if (!await environmentRepository.ExistsAsync(request.ProjectId, request.EnvironmentId, cancellationToken))
+        if (!await environmentRepository.ExistsAsync(projectName, request.EnvironmentId, cancellationToken))
             return new DeleteEnvironmentResult(false, "Environment not found");
 
-        await DeleteEnvironmentConfigEntries(request, cancellationToken);
+        await DeleteEnvironmentConfigEntries(projectName, request.EnvironmentId, cancellationToken);
 
-        await environmentRepository.DeleteAsync(request.ProjectId, request.EnvironmentId, cancellationToken);
+        await environmentRepository.DeleteAsync(projectName, request.EnvironmentId, cancellationToken);
 
         if (auditLogService is not null)
         {
             await auditLogService.WriteAsync(
                 "Deleted Environment",
                 request.EnvironmentId,
-                project: request.ProjectId,
+                project: projectName,
                 environment: request.EnvironmentId,
                 cancellationToken: cancellationToken);
         }
@@ -43,13 +46,13 @@ public class DeleteEnvironmentCommandHandler(
         return new DeleteEnvironmentResult(true, null);
     }
 
-    private async Task DeleteEnvironmentConfigEntries(DeleteEnvironmentCommand request, CancellationToken cancellationToken)
+    private async Task DeleteEnvironmentConfigEntries(string projectName, string environmentId, CancellationToken cancellationToken)
     {
-        var configEntries = await configEntryRepository.ListAsync(request.ProjectId, request.EnvironmentId, cancellationToken);
+        var configEntries = await configEntryRepository.ListAsync(projectName, environmentId, cancellationToken);
         var keys = configEntries.Select(e => e.Key).ToList();
         if (keys.Count > 0)
         {
-            await configEntryRepository.DeleteManyAsync(request.ProjectId, request.EnvironmentId, keys, cancellationToken);
+            await configEntryRepository.DeleteManyAsync(projectName, environmentId, keys, cancellationToken);
         }
     }
 }

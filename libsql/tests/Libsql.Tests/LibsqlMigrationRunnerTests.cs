@@ -8,7 +8,6 @@ public class LibsqlMigrationRunnerTests
     public async Task RunMigrationsAsync_AppliesEachScriptOnce()
     {
         var migrationsFolder = Path.Combine(Path.GetTempPath(), $"nona-libsql-migrations-{Guid.NewGuid():N}");
-        var databasePath = Path.Combine(Path.GetTempPath(), $"nona-libsql-migration-db-{Guid.NewGuid():N}.db");
         Directory.CreateDirectory(migrationsFolder);
 
         try
@@ -29,7 +28,8 @@ public class LibsqlMigrationRunnerTests
                 INSERT INTO WrapperItems (Name) VALUES ('beta;still-beta');
                 """);
 
-            using var client = new NelknetLibsqlDatabaseClient($"Data Source={databasePath}");
+            await using var server = await LocalSqldTestServer.StartAsync();
+            using var client = server.CreateClient();
             var runner = new LibsqlMigrationRunner(client, migrationsFolder);
 
             await runner.RunMigrationsAsync();
@@ -53,52 +53,32 @@ public class LibsqlMigrationRunnerTests
             {
             }
 
-            try
-            {
-                if (File.Exists(databasePath))
-                {
-                    File.Delete(databasePath);
-                }
-            }
-            catch
-            {
-            }
         }
     }
 
     [Test]
-    public async Task RunMigrationsAsync_AppliesRepoMigrations_ToLocalLibsqlFile()
+    public async Task RunMigrationsAsync_AppliesRepoMigrations_ToSqld()
     {
-        var databasePath = Path.Combine(Path.GetTempPath(), $"nona-libsql-repo-migrations-{Guid.NewGuid():N}.db");
+        await using var server = await LocalSqldTestServer.StartAsync();
+        using var client = server.CreateClient();
+        var runner = new LibsqlMigrationRunner(client, TestPaths.ResolveMigrationsFolder());
 
-        try
-        {
-            using var client = new NelknetLibsqlDatabaseClient($"Data Source={databasePath}");
-            var runner = new LibsqlMigrationRunner(client, TestPaths.ResolveMigrationsFolder());
+        await runner.RunMigrationsAsync();
 
-            await runner.RunMigrationsAsync();
+        var projectsTable = await client.ExecuteAsync(
+            """
+            SELECT COUNT(1) AS Count
+            FROM sqlite_master
+            WHERE type = 'table' AND name = 'Projects'
+            """);
 
-            var projectsTable = await client.ExecuteAsync(
-                """
-                SELECT COUNT(1) AS Count
-                FROM sqlite_master
-                WHERE type = 'table' AND name = 'Projects'
-                """);
+        var projectColumns = await client.ExecuteAsync("PRAGMA table_info(Projects)");
+        var projectColumnNames = projectColumns.Rows
+            .Select(row => row.GetString("name"))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-            await Assert.That(projectsTable.Rows[0].GetInt32("Count")).IsEqualTo(1);
-        }
-        finally
-        {
-            try
-            {
-                if (File.Exists(databasePath))
-                {
-                    File.Delete(databasePath);
-                }
-            }
-            catch
-            {
-            }
-        }
+        await Assert.That(projectsTable.Rows[0].GetInt32("Count")).IsEqualTo(1);
+        await Assert.That(projectColumnNames.Contains("ServerApiKey")).IsFalse();
+        await Assert.That(projectColumnNames.Contains("ClientApiKey")).IsFalse();
     }
 }

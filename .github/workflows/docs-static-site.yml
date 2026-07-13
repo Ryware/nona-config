@@ -1,0 +1,110 @@
+name: Docs static site
+
+on:
+  push:
+    branches:
+      - master
+      - development
+    paths:
+      - docs/**
+      - cli/**
+      - Directory.Build.props
+      - Directory.Build.targets
+      - .github/workflows/docs-static-site.yml
+  pull_request:
+    paths:
+      - docs/**
+      - cli/**
+      - Directory.Build.props
+      - Directory.Build.targets
+      - .github/workflows/docs-static-site.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build HTML archive
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: docs
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: docs/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build static HTML
+        run: npm run build
+
+      - name: Create zip archive
+        run: npm run archive
+
+      - name: Upload HTML archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs-html
+          path: docs/artifacts/docs-html.zip
+          if-no-files-found: error
+
+  deploy:
+    name: Deploy docs to Vercel
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false
+
+    defaults:
+      run:
+        working-directory: docs
+
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel production settings
+        run: vercel pull --yes --environment=production
+
+      - name: Build Vercel production deployment
+        run: vercel build --prod
+
+      - name: Deploy production to Vercel
+        id: deploy-production
+        run: |
+          deployment_url="$(vercel deploy --prebuilt --archive=tgz --prod)"
+          echo "deployment_url=$deployment_url" >> "$GITHUB_OUTPUT"
+          echo "Production deployment: $deployment_url" >> "$GITHUB_STEP_SUMMARY"

@@ -9,8 +9,14 @@ public sealed class CliValueResolverTests
     [Test]
     public async Task BaseUrl_UsesSavedDefault_WhenNotProvided()
     {
-        var resolver = new CliValueResolver(new CliDefaults { BaseUrl = "http://saved.internal:18080" });
-        await Assert.That(resolver.BaseUrl(null)).IsEqualTo("http://saved.internal:18080");
+        await EnvironmentLock.WaitAsync();
+        try
+        {
+            using var env = new EnvironmentScope(new Dictionary<string, string?> { ["NONA_CLI_BASE_URL"] = null });
+            var resolver = new CliValueResolver(new CliDefaults { BaseUrl = "http://saved.internal:18080" });
+            await Assert.That(resolver.BaseUrl(null)).IsEqualTo("http://saved.internal:18080");
+        }
+        finally { EnvironmentLock.Release(); }
     }
 
     [Test]
@@ -29,8 +35,14 @@ public sealed class CliValueResolverTests
     [Test]
     public async Task Project_UsesSavedDefault_WhenNotProvided()
     {
-        var resolver = new CliValueResolver(new CliDefaults { Project = "saved-project" });
-        await Assert.That(resolver.Project(null)).IsEqualTo("saved-project");
+        await EnvironmentLock.WaitAsync();
+        try
+        {
+            using var env = new EnvironmentScope(new Dictionary<string, string?> { ["NONA_CLI_PROJECT_NAME"] = null });
+            var resolver = new CliValueResolver(new CliDefaults { Project = "saved-project" });
+            await Assert.That(resolver.Project(null)).IsEqualTo("saved-project");
+        }
+        finally { EnvironmentLock.Release(); }
     }
 
     [Test]
@@ -55,13 +67,45 @@ public sealed class CliValueResolverTests
             using var env = new EnvironmentScope(new Dictionary<string, string?> { ["NONA_CLI_BEARER_TOKEN"] = null });
             var session = new CliAuthSession
             {
-                BaseUrl = "http://saved.internal:18080", Token = "saved-token",
-                Username = "admin@example.com", Role = "Admin",
-                ExpiresAt = DateTime.UtcNow.AddHours(1), SavedAtUtc = DateTime.UtcNow
+                BaseUrl = "http://saved.internal:18080",
+                Token = "saved-token",
+                Username = "admin@example.com",
+                Role = "Admin",
+                ExpiresAt = DateTime.UtcNow.AddHours(1),
+                SavedAtUtc = DateTime.UtcNow
             };
             var result = new CliValueResolver(CliDefaults.Empty, session)
                 .ResolveConnection("http://saved.internal:18080", null);
             await Assert.That(result.Success).IsTrue();
+            await Assert.That(result.Connection!.BearerToken).IsEqualTo("saved-token");
+        }
+        finally { EnvironmentLock.Release(); }
+    }
+
+    [Test]
+    public async Task ResolveConnection_UsesSavedSessionBaseUrl_WhenNoBaseUrlProvided()
+    {
+        await EnvironmentLock.WaitAsync();
+        try
+        {
+            using var env = new EnvironmentScope(new Dictionary<string, string?>
+            {
+                ["NONA_CLI_BASE_URL"] = null,
+                ["NONA_CLI_BEARER_TOKEN"] = null
+            });
+            var session = new CliAuthSession
+            {
+                BaseUrl = "http://saved.internal:18080",
+                Token = "saved-token",
+                Username = "admin@example.com",
+                Role = "Admin",
+                ExpiresAt = DateTime.UtcNow.AddHours(1),
+                SavedAtUtc = DateTime.UtcNow
+            };
+            var result = new CliValueResolver(CliDefaults.Empty, session)
+                .ResolveConnection(null, null);
+            await Assert.That(result.Success).IsTrue();
+            await Assert.That(result.Connection!.BaseUrl).IsEqualTo("http://saved.internal:18080");
             await Assert.That(result.Connection!.BearerToken).IsEqualTo("saved-token");
         }
         finally { EnvironmentLock.Release(); }
@@ -89,7 +133,7 @@ public sealed class CliValueResolverTests
         try
         {
             using var env = new EnvironmentScope(new Dictionary<string, string?>
-                { ["NONA_CLI_BASE_URL"] = null, ["NONA_CLI_BEARER_TOKEN"] = "token-123" });
+            { ["NONA_CLI_BASE_URL"] = null, ["NONA_CLI_BEARER_TOKEN"] = "token-123" });
             var result = new CliValueResolver(new CliDefaults { BaseUrl = "http://saved.internal:18080" })
                 .ResolveConnection(null, null);
             await Assert.That(result.Success).IsTrue();
@@ -118,7 +162,7 @@ public sealed class CliValueResolverTests
         try
         {
             using var env = new EnvironmentScope(new Dictionary<string, string?>
-                { ["NONA_CLI_BASE_URL"] = null, ["NONA_CLI_BEARER_TOKEN"] = "token-123" });
+            { ["NONA_CLI_BASE_URL"] = null, ["NONA_CLI_BEARER_TOKEN"] = "token-123" });
             var result = new CliValueResolver(CliDefaults.Empty).ResolveConnection(null, null);
             await Assert.That(result.Success).IsFalse();
         }
@@ -134,9 +178,12 @@ public sealed class CliValueResolverTests
             using var env = new EnvironmentScope(new Dictionary<string, string?> { ["NONA_CLI_BEARER_TOKEN"] = null });
             var expired = new CliAuthSession
             {
-                BaseUrl = "http://saved.internal:18080", Token = "expired-token",
-                Username = "admin", Role = "Admin",
-                ExpiresAt = DateTime.UtcNow.AddHours(-1), SavedAtUtc = DateTime.UtcNow.AddDays(-2)
+                BaseUrl = "http://saved.internal:18080",
+                Token = "expired-token",
+                Username = "admin",
+                Role = "Admin",
+                ExpiresAt = DateTime.UtcNow.AddHours(-1),
+                SavedAtUtc = DateTime.UtcNow.AddDays(-2)
             };
             var result = new CliValueResolver(CliDefaults.Empty, expired)
                 .ResolveConnection("http://saved.internal:18080", null);
