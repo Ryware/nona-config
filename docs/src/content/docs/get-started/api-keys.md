@@ -115,4 +115,41 @@ If the read fails, check the three most common causes first:
 - wrong environment
 - wrong scope for the entry you are trying to read
 
+## Step-by-step API key summary
+
+Use this sequence for the safest first key:
+
+1. open the target project
+2. choose the smallest valid scope
+3. optionally limit the key to one environment
+4. create the key
+5. copy the key value immediately
+6. test one real read
+
+## API key FAQ
+
+### Should I create one broad key for everything?
+
+No.
+
+It is better to create a narrowly scoped key for each real application read surface than to reuse one broad key everywhere.
+
+### Should frontend apps use `all` scope?
+
+Usually no.
+
+Frontend and mobile apps should usually start with `client` unless there is a real reason they need broader access.
+
+### Do I need a separate key per environment?
+
+Often yes.
+
+Environment scoping is a useful way to avoid accidental cross-environment reads and to keep access narrower.
+
+### What should I do if a key works in admin but not in the app?
+
+Check the project, environment, and scope alignment first.
+
+Those are the most common reasons a read fails after the key is created.
+
 Next: [Fetch your first config value](/docs/get-started/first-api-call/)

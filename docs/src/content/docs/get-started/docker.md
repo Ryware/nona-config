@@ -91,6 +91,19 @@ After you sign in:
 4. create `staging` or `production`
 5. click `Add Parameter`
 
+## Step-by-step deployment summary
+
+If you want the shortest operator checklist, use this sequence:
+
+1. run the single-container `docker run` command
+2. open `http://localhost:18080/register`
+3. create the first admin account
+4. create a project
+5. create at least one environment
+6. add one parameter or feature flag
+7. create an API key
+8. test one read over HTTP
+
 ## Basic health checks
 
 These commands are enough for a first smoke test:
@@ -132,6 +145,32 @@ docker run -d \
   -e Jwt__Audience=nona \
   rywaredev/nona:latest
 ```
+
+## Docker deployment FAQ
+
+### Do I need Docker Compose to deploy Nona?
+
+No. The preferred first deployment path is a single Docker container.
+
+Docker Compose is useful for local setups, team-managed environments, or when you want to use the repo's compose examples, but it is not required for the default first deployment.
+
+### What data must persist?
+
+Persist `/var/lib/nona`.
+
+That volume holds the local data the container needs. If you remove the container without preserving that path, you lose the stored state.
+
+### What should I do right after the container starts?
+
+Open the admin UI, create the first account, create a project and environment, then add a parameter and test a real read.
+
+That proves the instance is not only running, but also usable by an application.
+
+### When should I move to the production deployment guides?
+
+Move to the production deployment guides once you have confirmed the single-container flow works and you are ready to harden the deployment.
+
+Use [Standalone production](/docs/deployment/standalone/) for the next operational step.
 
 For more detailed topology and operations guidance, see:
 

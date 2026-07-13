@@ -97,3 +97,27 @@ That is usually enough to establish a real feature-flag workflow before expandin
 - [Open source feature flags](/docs/comparisons/open-source-feature-flags/)
 - [Self-hosted feature flags](/docs/comparisons/self-hosted-feature-flags/)
 - [Open source remote config](/docs/comparisons/open-source-remote-config/)
+
+## FAQ
+
+### Is Nona only a feature flag tool?
+
+No.
+
+Nona supports feature flags and broader remote config in the same system. Feature flags are one major use case, not the whole product.
+
+### How do feature flags work in Nona?
+
+Most feature flags in Nona are boolean config entries.
+
+That gives teams a simple operational model for toggles, kill switches, and release gates without needing a separate control plane.
+
+### Can Nona handle backend and frontend flags?
+
+Yes.
+
+The scope model allows client-readable, server-only, and shared reads depending on where the flag should be evaluated.
+
+### When is Nona a good fit for feature flags?
+
+Nona is a strong fit when you want self-hosted, open source feature flags with simpler operations and one product for flags and runtime config.

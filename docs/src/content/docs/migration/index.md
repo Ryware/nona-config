@@ -76,3 +76,29 @@ That keeps migration as an operator workflow instead of an ad hoc manual rewrite
 - [Migrate from Firebase Remote Config](/docs/migration/firebase-remote-config/)
 - [Firebase concept mapping](/docs/migration/firebase-concept-mapping/)
 - [Migration validation](/docs/migration/validation/)
+
+## FAQ
+
+### Is migration just an export and import task?
+
+No.
+
+For Nona, migration is also a model transition from Firebase concepts into projects, environments, scopes, and typed entries.
+
+### What is the first migration command I should run?
+
+Start with a dry run:
+
+`nona migrate firebase --config ./nona.migration.json --dry-run`
+
+That gives you the safest first look at how the source data will land in Nona.
+
+### Do Firebase boolean parameters stay useful after migration?
+
+Yes.
+
+Boolean Firebase values map naturally into Nona boolean entries, which means they continue to work as feature flags after import.
+
+### When is the migration actually complete?
+
+Only after you validate environments, scopes, datatypes, and real application reads, not just after the import command succeeds.

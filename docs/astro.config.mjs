@@ -16,6 +16,9 @@ export default defineConfig({
 		sitemap(),
 		starlight({
 			title: 'Nona Docs',
+			components: {
+				Footer: './src/components/Footer.astro',
+			},
 			routeMiddleware: './src/route-data.ts',
 			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/Ryware/nona-config' }],
 			sidebar: [

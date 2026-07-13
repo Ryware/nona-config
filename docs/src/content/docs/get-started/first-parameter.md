@@ -96,4 +96,43 @@ If you already saved the project with `nona config set project storefront`, you 
 
 Keep the first parameter small and easy to verify. You can expand the shape later once the read path is working.
 
+## Step-by-step parameter summary
+
+Use this sequence for the fastest first parameter:
+
+1. open the target project
+2. choose the target environment
+3. click `Add Parameter`
+4. enter a key such as `Features:Checkout`
+5. choose `boolean`
+6. choose the narrowest correct scope
+7. save the value
+8. verify the entry appears in the table
+
+## First parameter FAQ
+
+### What is the best first parameter to create?
+
+A boolean flag such as `Features:Checkout` is usually the easiest first choice.
+
+It is simple to verify and immediately demonstrates the feature-flag side of Nona.
+
+### When should I use `boolean` instead of `text`?
+
+Use `boolean` when the value is really acting as a flag or kill switch.
+
+If the value is freeform content or a label, use `text` instead.
+
+### Should I use `client`, `server`, or `all` first?
+
+Use the narrowest scope that matches the real read surface.
+
+For many frontend or mobile tests, `client` is the easiest first scope. For backend-only values, use `server`.
+
+### Should I start with a JSON value?
+
+Usually no.
+
+A simple boolean or text value is easier to validate first. Add JSON once the basic read path is already working.
+
 Next: [Create an API key](/docs/get-started/api-keys/)

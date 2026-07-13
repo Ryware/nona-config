@@ -109,6 +109,32 @@ Nona is a strong fit for self-hosted feature flags when you want:
 - history and rollback
 - OpenFeature support without a hosted flag control plane
 
+## FAQ
+
+### What makes Nona self-hosted?
+
+You deploy and operate the Nona service yourself.
+
+That means your team controls where it runs, how it is upgraded, and how applications access it.
+
+### Does Nona require a hosted vendor control plane?
+
+No.
+
+Nona is designed to run on infrastructure you control, which is exactly why it fits teams looking for self-hosted feature flags.
+
+### Can self-hosted Nona handle kill switches?
+
+Yes.
+
+Boolean entries work naturally as feature flags and kill switches, and they can be scoped to the right read surface.
+
+### Is Nona trying to be a full experimentation platform?
+
+No.
+
+The stronger position is that Nona provides a simpler self-hosted system for feature flags and remote config, not a giant experimentation suite.
+
 ## Related docs
 
 - [Feature flags](/docs/feature-flags/)

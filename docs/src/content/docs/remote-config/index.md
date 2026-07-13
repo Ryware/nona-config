@@ -88,3 +88,27 @@ nona entries set \
 If you want the backend-only path first, jump directly to [Server-side remote config](/docs/remote-config/server-side-remote-config/).
 
 If your main use case is flags rather than broader runtime values, continue with [Feature flags](/docs/feature-flags/).
+
+## FAQ
+
+### Is Nona only for remote config?
+
+No.
+
+Nona supports remote config and feature flags in the same system, which is one of its important product differences.
+
+### Can Nona be used for backend services?
+
+Yes.
+
+Nona works for backend services as well as web and mobile applications, which is why server-side remote config is a first-class docs path.
+
+### Do I need an SDK to use Nona remote config?
+
+No.
+
+You can read values directly over HTTP, or use the official JavaScript and .NET clients if that fits the application better.
+
+### When is remote config better than environment variables?
+
+Remote config is better when values need to change after deployment, differ by environment at runtime, or support operational control without a redeploy.

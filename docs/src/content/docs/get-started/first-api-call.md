@@ -97,6 +97,41 @@ If the request fails:
 4. confirm the API key belongs to the same project
 5. confirm the API key scope can read the entry scope
 
+## Step-by-step API read summary
+
+Use this sequence for the shortest first-read test:
+
+1. create or confirm one parameter exists
+2. create or confirm one API key exists
+3. copy the environment id
+4. URL-encode the key name
+5. send the HTTP request with `X-Api-Key`
+6. verify the value comes back correctly
+
+## First API call FAQ
+
+### Why is the project name not in the HTTP path?
+
+The API key already scopes the request to a project.
+
+That is why the request path only needs the environment id and key.
+
+### Do I need to URL-encode the key?
+
+Yes.
+
+Keys such as `Features:Checkout` must be URL-encoded in the path, for example as `Features%3ACheckout`.
+
+### Should I test over HTTP before using an SDK?
+
+Yes, in most cases.
+
+A direct HTTP read is the simplest way to prove the instance, key, environment, and API key are all aligned before you add SDK code.
+
+### What should I do after the first successful read?
+
+Either keep using direct HTTP for a very small integration, or move to the JavaScript or .NET client for application code.
+
 ## What to do next
 
 After the first direct HTTP read, most teams choose one of these paths:
