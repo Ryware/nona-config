@@ -128,6 +128,32 @@ The CLI-specific migration guide is here:
 
 - [CLI Firebase migration reference](/docs/cli/firebase-migration/)
 
+## FAQ
+
+### Should I run a dry run before importing?
+
+Yes.
+
+The dry run is the safest first step because it shows how Firebase data will map into Nona before you write anything to the target project.
+
+### Do Firebase conditions stay as runtime conditions in Nona?
+
+No.
+
+Firebase conditions are source-side concepts for the migration flow. In Nona, they are mapped into explicit environments during import rather than preserved as a Firebase-style runtime rules engine.
+
+### Will Firebase boolean parameters still work as feature flags?
+
+Yes.
+
+Boolean Firebase values map into Nona `boolean` entries, which means they continue to work naturally as feature flags after import.
+
+### Is the migration done as soon as the import command succeeds?
+
+No.
+
+The import is only one part of the cutover. You still need to validate environments, scopes, content types, and real application reads before you treat the migration as complete.
+
 Continue with:
 
 - [Firebase concept mapping](/docs/migration/firebase-concept-mapping/)

@@ -105,4 +105,45 @@ You should be able to confirm all of these:
 - `staging` and `production` show up as environment tabs
 - the project is available as a target for later CLI commands such as `nona entries set` and `nona keys create`
 
+## Step-by-step summary
+
+Use this sequence if you want the shortest reliable setup path:
+
+1. sign in to the admin UI
+2. open `Projects`
+3. create the project
+4. open the project
+5. create `staging`
+6. create `production`
+7. verify both environments appear as tabs
+
+## First project FAQ
+
+### How many environments should I create first?
+
+Start with two in most cases:
+
+- one non-production environment such as `staging`
+- one `production` environment
+
+That is enough to test changes safely without creating an overly complex environment model.
+
+### Should I create environments in the CLI or admin?
+
+For the current documented flow, create the project in either place you prefer, then create environments in the admin UI.
+
+That matches the current repo workflow most directly.
+
+### Should one app get one project?
+
+Usually yes.
+
+A Nona project is a good boundary for one application or service and the keys, environments, API keys, and history that belong to it.
+
+### What should I do right after the project exists?
+
+Add your first parameter.
+
+That is the next step that proves the project is not only created, but also ready to hold real config or feature flags.
+
 Next: [Add your first parameter](/docs/get-started/first-parameter/)

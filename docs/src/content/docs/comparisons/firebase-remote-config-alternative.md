@@ -171,6 +171,32 @@ Start here:
 - [Firebase concept mapping](/docs/migration/firebase-concept-mapping/)
 - [Migration validation](/docs/migration/validation/)
 
+## FAQ
+
+### Is Nona open source?
+
+Yes. Nona is open source and self-hosted, which is a major difference from Firebase Remote Config.
+
+That matters for teams that want source visibility, infrastructure control, and a deployment model they can run directly.
+
+### Can Nona handle both feature flags and remote config?
+
+Yes.
+
+In Nona, `boolean` entries work naturally as feature flags, while `text`, `number`, and `json` entries cover broader runtime configuration.
+
+### Does Nona use the same product model as Firebase Remote Config?
+
+No.
+
+Nona solves a similar problem space, but it does not keep the same hosted-platform model, and it should not be explained as a one-to-one Firebase clone.
+
+### How should I evaluate Nona as a Firebase Remote Config replacement?
+
+Start small.
+
+Run the Docker image, create one project and environment, add one flag and one non-boolean parameter, then test a real read. After that, use the migration docs if you are planning a full cutover.
+
 ## What to read next
 
 If you are evaluating Nona as a replacement:

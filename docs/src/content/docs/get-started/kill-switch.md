@@ -100,6 +100,41 @@ A good kill switch should:
 
 If the application only works correctly in the `true` path, it is not really ready to benefit from a kill switch yet.
 
+## Step-by-step kill switch summary
+
+Use this sequence for the fastest first kill switch:
+
+1. create a boolean parameter such as `Features:Checkout`
+2. set the initial value to `true`
+3. choose the correct scope for where the flag is evaluated
+4. wire the app to respect both `true` and `false`
+5. test the off path before an incident happens
+6. flip it to `false` when you need to disable the feature
+
+## Kill switch FAQ
+
+### What is the best first kill switch candidate?
+
+A risky but easy-to-disable feature path is usually best, such as new checkout logic or a third-party integration.
+
+### Should a kill switch always be boolean?
+
+Usually yes.
+
+Boolean values are the clearest fit for kill switches because the operational action is typically just on or off.
+
+### Should the kill switch be `client` or `server`?
+
+It depends on where the app evaluates the flag.
+
+Use `client` for frontend or mobile checks, `server` for backend-only behavior, and `all` only when both sides genuinely need to read it.
+
+### What makes a kill switch operationally useful?
+
+The off path must actually be safe and tested.
+
+If disabling the flag still breaks the feature or the application, the kill switch is not doing the job you need during an incident.
+
 Related docs:
 
 - [Feature flags vs remote config](/docs/feature-flags/feature-flags-vs-remote-config/)

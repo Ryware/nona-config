@@ -102,6 +102,30 @@ Good first Nona remote-config values:
 - `Limits:MaxItems`
 - `App:Settings`
 
+## FAQ
+
+### Is Nona only for remote config?
+
+No.
+
+Nona supports remote config and feature flags in the same system, which is useful when teams want one operational surface instead of separate tools.
+
+### Can Nona be used for backend services?
+
+Yes.
+
+That is one of the important differences in how it is positioned. Nona works for web, mobile, and backend applications instead of only mobile-SDK-centric flows.
+
+### Do I need an SDK to read values?
+
+No.
+
+You can use plain HTTP directly, or use the official JavaScript and .NET clients if you prefer.
+
+### When is Nona a strong fit for open source remote config?
+
+Nona is a strong fit when you want open source remote config, self-hosting, plain HTTP access, and feature flags in the same product.
+
 ## What to read next
 
 - [Remote config](/docs/remote-config/)

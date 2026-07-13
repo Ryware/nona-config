@@ -1,0 +1,30 @@
+---
+import Default from '@astrojs/starlight/components/Footer.astro';
+---
+
+<Default>
+	<slot />
+	<span class="ryware-credit">
+		Built with <a href="https://ryware.dev" target="_blank" rel="noreferrer">ryware.dev</a>
+	</span>
+</Default>
+
+<style>
+	.ryware-credit {
+		display: inline-flex;
+		gap: 0.25rem;
+		align-items: center;
+		font-size: 0.875rem;
+		color: var(--sl-color-text-secondary);
+	}
+
+	.ryware-credit a {
+		color: inherit;
+		text-decoration: underline;
+		text-underline-offset: 0.2em;
+	}
+
+	.ryware-credit a:hover {
+		color: var(--sl-color-text);
+	}
+</style>

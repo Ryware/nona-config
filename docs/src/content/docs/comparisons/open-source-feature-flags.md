@@ -137,6 +137,30 @@ If this is the page that matches your search intent, continue with:
 2. [Kill switches](/docs/feature-flags/kill-switches/)
 3. [OpenFeature](/docs/clients/openfeature/)
 
+## FAQ
+
+### Is Nona really open source?
+
+Yes.
+
+Nona is open source and self-hosted, which is part of why it fits teams looking for infrastructure control instead of a hosted flag platform.
+
+### Can I use Nona just for feature flags?
+
+Yes.
+
+Many teams start with boolean flags and kill switches first, then expand into broader runtime configuration later.
+
+### Does Nona support backend and frontend flags?
+
+Yes.
+
+The scope model lets you separate `client`, `server`, and shared reads so the same system can support frontend, mobile, and backend use cases.
+
+### When is Nona a better fit than a larger flag platform?
+
+Nona is usually the better fit when you want self-hosting, simpler operations, and one product for feature flags and remote config without committing to a larger hosted control plane.
+
 ## Related docs
 
 - [Feature flags](/docs/feature-flags/)

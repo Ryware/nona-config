@@ -103,3 +103,32 @@ curl "https://nona.example.com/api/production/Features%3ACheckout" \
 ```
 
 That final check proves the environment, key, API key scope, and public read path all line up after the migration.
+
+## Migration validation FAQ
+
+### Is a successful import enough to declare the migration done?
+
+No.
+
+A successful import only proves the write step completed. You still need to validate environments, scopes, datatypes, and real reads before production cutover.
+
+### What should I validate first?
+
+Start with high-risk values:
+
+- kill switches
+- release flags
+- backend-only values
+- production-only settings
+
+### Should I validate only in the admin UI?
+
+No.
+
+The admin UI is useful for inspection, but you also need at least one real read path through HTTP or a client SDK to prove the runtime behavior is correct.
+
+### What is the most common migration mistake to catch here?
+
+A value landing in the wrong environment or with the wrong scope.
+
+That kind of issue can survive a technically successful import and still break the real application behavior.
