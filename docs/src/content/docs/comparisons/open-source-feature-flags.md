@@ -78,7 +78,7 @@ Nona is open source, self-hosted, Docker-first, accessible through plain HTTP, u
 
 ## Where Nona fits best
 
-Nona is strongest when your team wants reliable boolean flags, kill switches, simple rollout control, backend and frontend separation through scope, OpenFeature compatibility, and feature flags with remote config in the same product.
+Nona is strongest when your team wants reliable boolean flags, kill switches, simple release gates, backend and frontend separation through scope, OpenFeature compatibility, and feature flags with remote config in the same product.
 
 ## What Nona is not trying to be
 
@@ -91,6 +91,12 @@ The current repo points to a simpler and more focused model:
 - scopes
 - history and rollback
 - migration tooling
+
+It should also be described plainly:
+
+- no built-in per-user targeting
+- no runtime segmentation or cohort evaluation
+- no percentage rollout engine
 
 That is often exactly what teams want when they search for open source feature flags. They want control and simplicity, not more platform sprawl.
 
@@ -121,6 +127,12 @@ Many teams start with boolean flags and kill switches first, then expand into br
 Yes.
 
 The scope model lets you separate `client`, `server`, and shared reads so the same system can support frontend, mobile, and backend use cases.
+
+### Does Nona support targeting or percentage rollout?
+
+No.
+
+Nona is not trying to be a LaunchDarkly-style targeting engine. Flag reads are not evaluated against user context, segments, or percentage rules.
 
 ### When is Nona a better fit than a larger flag platform?
 

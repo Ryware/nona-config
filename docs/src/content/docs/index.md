@@ -5,6 +5,9 @@ description: Self-hosted remote config and feature flags docs for Docker deploym
 
 Nona is an open source, self-hosted remote config and feature flag service for web, mobile, and backend apps.
 
+Important product scope:
+Nona is remote config plus simple on/off flags, not a runtime targeting engine. It does not do built-in per-user evaluation, segments, cohorts, or percentage rollouts on the read path.
+
 Use Nona when you want to:
 
 - manage runtime configuration on your own infrastructure
@@ -57,7 +60,9 @@ See [Remote config use cases](/docs/remote-config/use-cases/) for more examples.
 
 ## Feature flags
 
-Nona is not only a remote config tool. It is also a feature flag system for teams that want self-hosted flags, kill switches, frontend and backend flag separation, OpenFeature support, and simple boolean rollout gates without a hosted control plane.
+Nona is not only a remote config tool. It is also a feature flag system for teams that want self-hosted flags, kill switches, frontend and backend flag separation, OpenFeature support, and simple boolean release gates without a hosted control plane.
+
+The tradeoff is intentional: Nona keeps feature flags simple. A flag read is not evaluated against user context, segments, cohorts, or percentage rules at runtime.
 
 Start here:
 
@@ -135,6 +140,12 @@ Nona is an open source, self-hosted remote config and feature flag service for w
 No.
 
 Nona supports both feature flags and broader runtime config in the same system.
+
+### Does Nona support per-user targeting or percentage rollout?
+
+No.
+
+Nona does not evaluate flags against `userId`, request context, segments, cohorts, or percentage rules on the read path. The built-in model is environment plus key lookup with scope and API-key access control.
 
 ### What is the fastest way to understand whether Nona fits my team?
 

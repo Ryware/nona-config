@@ -17,6 +17,8 @@ Nona is a self-hosted feature flag and remote config platform with a built-in ad
 - Read values over **plain HTTP** with project-scoped API keys
 - Run on your own infrastructure with **one Docker container** and embedded libSQL
 
+> Product scope: Nona is remote config plus simple on/off flags. It is not a runtime targeting engine. The read path does not evaluate per-user context, segments, cohorts, or percentage rollouts.
+
 > [Website](https://nonaconfig.com) · [Docs](https://nonaconfig.com/docs) · [Docker Hub](https://hub.docker.com/r/rywaredev/nona) · [npm client](https://www.npmjs.com/package/nona-client) · [npm CLI](https://www.npmjs.com/package/nona-cli) · [NuGet](https://www.nuget.org/packages/Nona.Client)
 
 ---
@@ -92,6 +94,8 @@ true
 ```
 
 The API key is bound to one project, so the request path only needs the environment and key. For a full walkthrough, start with [First project](https://nonaconfig.com/docs/get-started/first-project/) and [First API call](https://nonaconfig.com/docs/get-started/first-api-call/).
+
+If you are expecting LaunchDarkly-style evaluation, this is the key distinction: Nona reads are keyed by project, environment, scope, and key. There is no built-in runtime targeting, percentage rollout, or `userId`-based evaluation on the HTTP read path.
 
 ---
 
@@ -214,6 +218,8 @@ CLI packages:
 Authentication: `X-Api-Key` request header.
 
 The API key determines the project. The response body contains the raw stored value, and `X-Nona-Content-Type` tells the client whether the value is `text`, `number`, `boolean`, or `json`.
+
+The API does not accept per-user evaluation context for runtime flag resolution. Query parameters or headers such as `userId` or `X-User-Id` are not part of the Nona read model.
 
 See [HTTP client docs](https://nonaconfig.com/docs/clients/http/) for examples and troubleshooting.
 

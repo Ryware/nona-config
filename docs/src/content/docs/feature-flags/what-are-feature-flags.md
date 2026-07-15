@@ -36,6 +36,12 @@ Nona focuses on the strong, reliable core:
 - history and rollback
 - plain HTTP and official clients
 
+For Nona specifically, that also means a deliberate boundary:
+
+- no built-in per-user targeting
+- no runtime segments or cohorts
+- no percentage rollout evaluator on the read path
+
 ## Feature flags in Nona
 
 In Nona, a feature flag is just a config entry with content type `boolean`.
@@ -121,6 +127,12 @@ Feature flags are useful for frontend, mobile, and backend behavior, which is wh
 In Nona, a feature flag is usually a `boolean` config entry.
 
 That keeps the model simple and aligned with the same project, environment, scope, and API key system as the rest of the product.
+
+### Can I roll a flag out to 10 percent of users in Nona?
+
+No.
+
+Nona does not provide built-in percentage rollout, beta-cohort targeting, or per-user evaluation. The built-in model is a direct environment-and-key lookup.
 
 ### Are feature flags the same as remote config?
 

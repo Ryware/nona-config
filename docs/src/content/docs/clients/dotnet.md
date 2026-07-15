@@ -107,7 +107,7 @@ if (value is null)
 }
 ```
 
-This is helpful for optional settings or for gradual rollout of new keys across environments.
+This is helpful for optional settings or for staged introduction of new keys across environments.
 
 ## Read JSON
 

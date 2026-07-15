@@ -12,6 +12,9 @@ X-Api-Key: <api-key>
 
 The API key is bound to one project. The request only includes the environment and key.
 
+Important scope note:
+This endpoint does not evaluate per-user context. Parameters or headers such as `userId`, `X-User-Id`, segments, cohorts, or percentage-rollout hints are not part of the Nona HTTP read model.
+
 This makes HTTP the smallest possible integration path for:
 
 - backend services
@@ -149,3 +152,9 @@ Keys such as `Features:Checkout` must be encoded in the path, for example as `Fe
 ### What should I check first when a request fails?
 
 Start with the environment name, key existence, URL encoding, API key project, and scope alignment.
+
+### Can I pass `userId` or `X-User-Id` to get a targeted flag value?
+
+No.
+
+The HTTP read path is a direct environment-and-key lookup. Nona does not perform built-in user targeting, segmentation, cohort evaluation, or percentage rollout.

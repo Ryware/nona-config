@@ -13,6 +13,12 @@ In Nona, a feature flag is usually a config entry with content type `boolean`. T
 - keep flag changes in your own infrastructure
 - audit and roll back bad changes quickly
 
+## Important limitation
+
+Nona is not a targeting engine.
+
+Feature flags in Nona are environment-scoped boolean values, not runtime evaluations against user context. There is no built-in per-user targeting, segmentation, cohort logic, or percentage rollout on the read path.
+
 ## Why teams use Nona for feature flags
 
 Many feature flag tools are hosted services or part of larger closed platforms.
@@ -111,6 +117,12 @@ Nona supports feature flags and broader remote config in the same system. Featur
 Most feature flags in Nona are boolean config entries.
 
 That gives teams a simple operational model for toggles, kill switches, and release gates without needing a separate control plane.
+
+### Can Nona do percentage rollout or beta-cohort targeting?
+
+No.
+
+Nona does not evaluate flags against `userId`, request attributes, segments, or percentage rules. If you need that model, it has to live above Nona in your application logic or in a different product.
 
 ### Can Nona handle backend and frontend flags?
 
