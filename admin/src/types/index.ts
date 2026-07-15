@@ -10,7 +10,6 @@ export type {
   LoginResponse,
   SsoProviderConfig,
   SsoConfig,
-  RegisterResult,
   RegisterRequest,
   ForgotPasswordRequest,
   ResetPasswordRequest,

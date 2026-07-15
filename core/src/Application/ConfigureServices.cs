@@ -40,6 +40,7 @@ public static class ConfigureServices
         services.AddScoped<IValidator<ProjectAccessRequest>, ProjectAccessRequestValidator>();
         services.AddScoped<IValidator<CompleteInvitationPasswordRequest>, CompleteInvitationPasswordRequestValidator>();
         services.AddScoped<IValidator<LoginRequest>, LoginRequestValidator>();
+        services.AddScoped<IValidator<RegisterCommand>, RegisterCommandValidator>();
         services.AddScoped<IValidator<RequestPasswordResetCommand>, RequestPasswordResetCommandValidator>();
 
         services.AddScoped<IProjectAccessService, ProjectAccessService>();

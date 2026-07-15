@@ -219,7 +219,34 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["RegisterResult"];
+                        "application/json": components["schemas"]["LoginResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ErrorResponse"];
                     };
                 };
             };
@@ -1549,6 +1576,10 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
         };
+        ErrorResponse: {
+            error: string;
+            errorCode?: null | string;
+        };
         InvitationDetailsResponse: {
             email: string;
             name: string;
@@ -1601,11 +1632,6 @@ export interface components {
         RegisterCommand: {
             email: string;
             password: string;
-        };
-        RegisterResult: {
-            success: boolean;
-            response: null | components["schemas"]["LoginResponse"];
-            error: null | string;
         };
         RequestPasswordResetCommand: {
             email: string;

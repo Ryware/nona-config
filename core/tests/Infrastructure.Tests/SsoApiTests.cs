@@ -93,8 +93,7 @@ public class SsoApiTests
                 HttpMethod.Post,
                 $"{baseUrl}/auth/register",
                 new { email = "admin@example.com", password = "Password123!" });
-            await Assert.That(register.RootElement.GetProperty("success").GetBoolean()).IsTrue();
-            var adminToken = register.RootElement.GetProperty("response").GetProperty("token").GetString()
+            var adminToken = register.RootElement.GetProperty("token").GetString()
                 ?? throw new InvalidOperationException("Register response did not include a token.");
 
             using (var createUser = await SendJsonAsync(
@@ -309,7 +308,7 @@ public class SsoApiTests
                 HttpMethod.Post,
                 $"{baseUrl}/auth/register",
                 new { email = "admin@example.com", password = "Password123!" });
-            var adminToken = register.RootElement.GetProperty("response").GetProperty("token").GetString()
+            var adminToken = register.RootElement.GetProperty("token").GetString()
                 ?? throw new InvalidOperationException("Register response did not include a token.");
 
             string passwordInviteToken;

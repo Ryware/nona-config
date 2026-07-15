@@ -132,8 +132,15 @@ jobs:
                 "${base_url}/auth/register"
             )"
 
-            grep -q '"Success":true' <<<"${response}" || grep -q '"success":true' <<<"${response}"
-            grep -q '"token"' <<<"${response}" || grep -q '"Token"' <<<"${response}"
+            if ! grep -Eq '"token"|"Token"' <<<"${response}"; then
+              echo "Register response did not contain a top-level token: ${response}" >&2
+              return 1
+            fi
+
+            if grep -Eq '"success"|"Success"|"response"|"Response"' <<<"${response}"; then
+              echo "Register response still uses the removed wrapper envelope: ${response}" >&2
+              return 1
+            fi
           }
 
           login_admin() {
@@ -145,7 +152,10 @@ jobs:
                 "${base_url}/auth/login"
             )"
 
-            grep -q '"token"' <<<"${response}" || grep -q '"Token"' <<<"${response}"
+            if ! grep -Eq '"token"|"Token"' <<<"${response}"; then
+              echo "Login response did not contain a top-level token: ${response}" >&2
+              return 1
+            fi
           }
 
           trap cleanup EXIT

@@ -39,9 +39,9 @@ export const handlers = [
 
   http.post(`${BASE}/auth/register`, async () => {
     return HttpResponse.json({
-      success: true,
-      response: { token: mockToken, role: 'admin', expiresAt: '2099-01-01T00:00:00Z' },
-      error: null,
+      token: mockToken,
+      role: 'admin',
+      expiresAt: '2099-01-01T00:00:00Z',
     });
   }),
 

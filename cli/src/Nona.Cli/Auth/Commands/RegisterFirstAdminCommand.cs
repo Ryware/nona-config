@@ -14,7 +14,7 @@ internal sealed class RegisterFirstAdminCommandHandler(
 
     public async Task<int> HandleAsync(RegisterFirstAdminCommand command, CancellationToken ct)
     {
-        var result = await _client.SendAsync<RegisterFirstAdminResponse>(
+        var result = await _client.SendAsync<RegisterFirstAdminLoginResponse>(
             new NonaCliConnectionOptions(command.BaseUrl, BearerToken: null),
             HttpMethod.Post,
             "auth/register",
@@ -33,13 +33,7 @@ internal sealed class RegisterFirstAdminCommandHandler(
             return 1;
         }
 
-        if (!result.Value.Success)
-        {
-            Console.Error.WriteLine(result.Value.Error ?? "Registration failed.");
-            return 1;
-        }
-
-        var response = result.Value.Response;
+        var response = result.Value;
         if (string.IsNullOrWhiteSpace(response?.Token))
         {
             Console.Error.WriteLine("Registration succeeded but did not return a session token.");
@@ -67,8 +61,6 @@ internal sealed class RegisterFirstAdminCommandHandler(
     }
 
     private sealed record RegisterFirstAdminRequest(string Email, string Password);
-
-    private sealed record RegisterFirstAdminResponse(bool Success, RegisterFirstAdminLoginResponse? Response, string? Error);
 
     private sealed record RegisterFirstAdminLoginResponse(
         string Token,

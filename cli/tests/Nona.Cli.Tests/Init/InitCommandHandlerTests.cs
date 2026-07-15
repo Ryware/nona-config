@@ -19,7 +19,7 @@ public sealed class InitCommandHandlerTests
         var server = new SequenceServer(
             Json(HttpStatusCode.OK, "true"),
             Json(HttpStatusCode.OK, """
-                {"success":true,"response":{"token":"jwt-token","username":"admin@example.com","role":"viewer","expiresAt":"2026-06-04T12:00:00Z"},"error":null}
+                {"token":"jwt-token","username":"admin@example.com","role":"viewer","expiresAt":"2026-06-04T12:00:00Z"}
                 """),
             Json(HttpStatusCode.OK, "[]"),
             Json(HttpStatusCode.Created, """{"name":"nona-todo"}"""),

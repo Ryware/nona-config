@@ -13,14 +13,10 @@ public sealed class AuthHandlerTests
         var store = new CliSessionStore(file.Path);
         const string response = """
             {
-              "success": true,
-              "response": {
-                "token": "jwt-token",
-                "username": "admin@example.com",
-                "role": "viewer",
-                "expiresAt": "2026-06-04T12:00:00Z"
-              },
-              "error": null
+              "token": "jwt-token",
+              "username": "admin@example.com",
+              "role": "viewer",
+              "expiresAt": "2026-06-04T12:00:00Z"
             }
             """;
 
@@ -43,13 +39,11 @@ public sealed class AuthHandlerTests
         var store = new CliSessionStore(file.Path);
         const string response = """
             {
-              "success": false,
-              "response": null,
-              "error": "User already exists."
+              "error": "User already exists"
             }
             """;
 
-        var result = await new RegisterFirstAdminCommandHandler(store, MockHttp(System.Net.HttpStatusCode.OK, response))
+        var result = await new RegisterFirstAdminCommandHandler(store, MockHttp(System.Net.HttpStatusCode.Conflict, response))
             .HandleAsync(new RegisterFirstAdminCommand("http://nona.test", "admin@example.com", "Password123!", SaveSession: true),
                 CancellationToken.None);
 
