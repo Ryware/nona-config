@@ -36,9 +36,12 @@ Use the CLI when you want repeatable admin operations, terminal-based workflows,
 ## Authenticate
 
 ```bash
+nona auth register --base-url https://nona.example.com --email admin@example.com --password secret
 nona auth login --base-url https://nona.example.com
 nona auth whoami
 ```
+
+`auth register` is the non-interactive first-run path. It creates the initial admin account when the Nona instance has no users yet and saves the returned session token, so automation can continue with project, API key, and config commands without opening the admin UI.
 
 `auth login` opens a browser and stores a session token, which makes interactive use easier than pasting a bearer token into every command.
 

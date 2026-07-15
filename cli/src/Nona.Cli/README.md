@@ -48,10 +48,13 @@ The published executable is the `nona` command.
 Authenticate and persist a session token:
 
 ```bash
+nona auth register --base-url http://nona.internal:18080 --email admin@example.com --password secret
 nona auth login --base-url http://nona.internal:18080
 nona auth whoami
 nona auth logout
 ```
+
+`auth register` is only for first-time setup. It creates the initial admin account through `/auth/register` and saves the returned session token for follow-up CLI commands.
 
 Set saved defaults for repeated use:
 

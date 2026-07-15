@@ -56,7 +56,15 @@ The standalone compose file still runs the same single `rywaredev/nona:latest` c
 
 ## Create the first admin account
 
-Open:
+For non-interactive setup, use the CLI:
+
+```bash
+nona auth register --base-url http://localhost:18080 --email admin@example.com --password <password>
+```
+
+This creates the first admin account and saves the returned session token for follow-up CLI commands.
+
+You can also open the UI:
 
 ```text
 http://localhost:18080/register
@@ -130,7 +138,7 @@ That volume holds the local data the container needs. If you remove the containe
 
 ### What should I do right after the container starts?
 
-Open the admin UI, create the first account, create a project and environment, then add a parameter and test a real read.
+Create the first account with `nona auth register` or the admin UI, then create a project and environment, add a parameter, and test a real read.
 
 That proves the instance is not only running, but also usable by an application.
 

@@ -17,489 +17,577 @@ The command help below omits repeated common options from individual option list
 
 - `-?, -h, --help` is accepted by every command and subcommand.
 - Commands that connect to the Nona API may also accept `--api-url, --base-url <base-url>` and `--bearer-token, --token <bearer-token>`.
-- Connection values can come from flags, `NONA_CLI_*` environment variables, saved defaults, or a saved `nona auth login` session.
+- Connection values can come from flags, `NONA_CLI_*` environment variables, saved defaults, or a matching `nona auth login` session.
 
 ## `nona`
 
+Administer Nona configuration through a command-line interface.
+
+**Usage**
+
 ```text
-Description:
-  Nona CLI for key management and Firebase Remote Config migrations.
+nona [command] [options]
+```
 
-Usage:
-  nona [command] [options]
+**Commands**
 
-Options:
-  --version       Show version information
+- `users` Invite users to Nona.
+- `projects` List, create, and delete projects.
+- `migrate` Run migration commands.
+- `keys` List, create, and delete project API keys.
+- `entries` Read, write, and share config entries.
+- `config` Show or save default CLI values.
+- `auth` Sign in and manage saved sessions.
 
-Commands:
-  users     Manage Nona users.
-  projects  Manage Nona projects.
-  migrate   Run config migrations.
-  keys      Manage project API keys.
-  entries   Manage config entries within a project environment.
-  config    Manage saved CLI defaults.
-  auth      Manage authentication sessions.
+**Options**
+
+```text
+--version       Show version information
 ```
 
 ## `nona users`
 
+Invite users to Nona.
+
+**Usage**
+
 ```text
-Description:
-  Manage Nona users.
-
-Usage:
-  nona users [command] [options]
-
-Commands:
-  create  Create a new user and display their invitation token.
+nona users [command] [options]
 ```
+
+**Commands**
+
+- `create` Invite a user and print the invitation token.
 
 ## `nona users create`
 
+Invite a user and print the invitation token.
+
+**Usage**
+
 ```text
-Description:
-  Create a new user and display their invitation token.
-
-Usage:
-  nona users create [options]
-
-Options:
-  --name <name> (REQUIRED)                Full name of the new user.
-  --user-email <user-email> (REQUIRED)    Email address of the new user.
-  --role <role>                           Role: viewer or editor.
-  --scope <scope>                         Scope: client, server, or all.
+nona users create [options]
 ```
 
-Also accepts: `--api-url, --base-url <base-url>`, `--bearer-token, --token <bearer-token>`.
+**Options**
+
+```text
+--api-url, --base-url <base-url>        Nona base URL.
+--bearer-token, --token <bearer-token>  Admin bearer token.
+--name <name> (REQUIRED)                Full name of the new user.
+--user-email <user-email> (REQUIRED)    Email address of the new user.
+--role <role>                           User role: viewer or editor.
+--scope <scope>                         User scope: client, server, or all.
+```
 
 ## `nona projects`
 
+List, create, and delete projects.
+
+**Usage**
+
 ```text
-Description:
-  Manage Nona projects.
-
-Usage:
-  nona projects [command] [options]
-
-Commands:
-  list    List all projects.
-  create  Create a new project.
-  delete  Delete a project.
+nona projects [command] [options]
 ```
+
+**Commands**
+
+- `list` List projects.
+- `create` Create a project.
+- `delete` Delete a project.
 
 ## `nona projects list`
 
-```text
-Description:
-  List all projects.
+List projects.
 
-Usage:
-  nona projects list [options]
+**Usage**
+
+```text
+nona projects list [options]
 ```
 
-Also accepts: `--api-url, --base-url <base-url>`, `--bearer-token, --token <bearer-token>`.
+**Options**
+
+```text
+--api-url, --base-url <base-url>        Nona base URL.
+--bearer-token, --token <bearer-token>  Admin bearer token.
+```
 
 ## `nona projects create`
 
+Create a project.
+
+**Usage**
+
 ```text
-Description:
-  Create a new project.
-
-Usage:
-  nona projects create [options]
-
-Options:
-  --name <name>                           Project name (alphanumeric and hyphens).
+nona projects create [options]
 ```
 
-Also accepts: `--api-url, --base-url <base-url>`, `--bearer-token, --token <bearer-token>`.
+**Options**
+
+```text
+--api-url, --base-url <base-url>        Nona base URL.
+--bearer-token, --token <bearer-token>  Admin bearer token.
+--name <name>                           Project name. Letters, numbers, and hyphens only.
+```
 
 ## `nona projects delete`
 
+Delete a project.
+
+**Usage**
+
 ```text
-Description:
-  Delete a project.
-
-Usage:
-  nona projects delete [options]
-
-Options:
-  --project, --project-name <project-name>  Project name.
+nona projects delete [options]
 ```
 
-Also accepts: `--api-url, --base-url <base-url>`, `--bearer-token, --token <bearer-token>`.
+**Options**
+
+```text
+--api-url, --base-url <base-url>          Nona base URL.
+--bearer-token, --token <bearer-token>    Admin bearer token.
+--project, --project-name <project-name>  Nona project name.
+```
 
 ## `nona migrate`
 
+Run migration commands.
+
+**Usage**
+
 ```text
-Description:
-  Run config migrations.
-
-Usage:
-  nona migrate [command] [options]
-
-Commands:
-  firebase  Migrate from Firebase Remote Config.
+nona migrate [command] [options]
 ```
+
+**Commands**
+
+- `firebase` Import Firebase Remote Config into Nona.
 
 ## `nona migrate firebase`
 
+Import Firebase Remote Config into Nona.
+
+**Usage**
+
 ```text
-Description:
-  Migrate from Firebase Remote Config.
-
-Usage:
-  nona migrate firebase [options]
-
-Options:
-  --config <config>                         Path to the migration config file.
-  --dry-run                                 Preview changes without applying them.
-  --project, --project-name <project-name>  Project name.
-  --email <email>                           Email address (forwarded to migrator).
-  --password <password>                     Password (forwarded to migrator).
+nona migrate firebase [options]
 ```
 
-Also accepts: `--api-url, --base-url <base-url>`, `--bearer-token, --token <bearer-token>`.
+**Options**
+
+```text
+--config <config>                         Migration config file path.
+--dry-run                                 Preview changes without applying them.
+--api-url, --base-url <base-url>          Nona base URL.
+--project, --project-name <project-name>  Nona project name.
+--bearer-token, --token <bearer-token>    Admin bearer token.
+--email <email>                           Admin email used by the migrator when no token is supplied.
+--password <password>                     Admin password used by the migrator when no token is supplied.
+```
 
 ## `nona keys`
 
+List, create, and delete project API keys.
+
+**Usage**
+
 ```text
-Description:
-  Manage project API keys.
-
-Usage:
-  nona keys [command] [options]
-
-Commands:
-  list, show  List managed API keys for a project.
-  create      Generate a managed API key for a project.
-  delete      Delete a managed API key.
+nona keys [command] [options]
 ```
+
+**Commands**
+
+- `list, show` List API keys for a project.
+- `create` Create an API key for a project.
+- `delete` Delete an API key.
 
 ## `nona keys list`
 
+List API keys for a project.
+
+**Usage**
+
 ```text
-Description:
-  List managed API keys for a project.
-
-Usage:
-  nona keys list [options]
-
-Options:
-  --project, --project-name <project-name>  Project name.
+nona keys list [options]
 ```
 
-Also accepts: `--api-url, --base-url <base-url>`, `--bearer-token, --token <bearer-token>`.
+**Options**
+
+```text
+--api-url, --base-url <base-url>          Nona base URL.
+--project, --project-name <project-name>  Nona project name.
+--bearer-token, --token <bearer-token>    Admin bearer token.
+```
 
 ## `nona keys create`
 
+Create an API key for a project.
+
+**Usage**
+
 ```text
-Description:
-  Generate a managed API key for a project.
-
-Usage:
-  nona keys create [options]
-
-Options:
-  --project, --project-name <project-name>  Project name.
-  --name <name>                             API key name.
-  --env, --environment <environment>        Optional environment scope.
-  --scope <scope>                           Config scope: client, server, or all.
+nona keys create [options]
 ```
 
-Also accepts: `--api-url, --base-url <base-url>`, `--bearer-token, --token <bearer-token>`.
+**Options**
+
+```text
+--api-url, --base-url <base-url>          Nona base URL.
+--project, --project-name <project-name>  Nona project name.
+--name <name>                             API key name.
+--env, --environment <environment>        Limit the key to one environment.
+--scope <scope>                           Read scope for the key: client, server, or all.
+--bearer-token, --token <bearer-token>    Admin bearer token.
+```
 
 ## `nona keys delete`
 
+Delete an API key.
+
+**Usage**
+
 ```text
-Description:
-  Delete a managed API key.
-
-Usage:
-  nona keys delete [options]
-
-Options:
-  --project, --project-name <project-name>  Project name.
-  --id <id>                                 API key id.
+nona keys delete [options]
 ```
 
-Also accepts: `--api-url, --base-url <base-url>`, `--bearer-token, --token <bearer-token>`.
+**Options**
+
+```text
+--api-url, --base-url <base-url>          Nona base URL.
+--project, --project-name <project-name>  Nona project name.
+--id <id>                                 API key id to delete.
+--bearer-token, --token <bearer-token>    Admin bearer token.
+```
 
 ## `nona entries`
 
+Read, write, and share config entries.
+
+**Usage**
+
 ```text
-Description:
-  Manage config entries within a project environment.
-
-Usage:
-  nona entries [command] [options]
-
-Commands:
-  list      List all config entries in an environment.
-  get       Get a single config entry.
-  history   List version history for a config entry.
-  set       Create or update a config entry.
-  rollback  Roll a config entry back to a previous version.
-  delete    Delete a config entry.
-  share     Manage temporary parameter share links.
+nona entries [command] [options]
 ```
+
+**Commands**
+
+- `list` List entries in an environment.
+- `get` Show one config entry.
+- `history` Show version history for an entry.
+- `set` Create or update an entry.
+- `rollback` Restore a previous entry version.
+- `delete` Delete an entry.
+- `share` Create, list, and revoke entry share links.
 
 ## `nona entries list`
 
+List entries in an environment.
+
+**Usage**
+
 ```text
-Description:
-  List all config entries in an environment.
-
-Usage:
-  nona entries list [options]
-
-Options:
-  --project, --project-name <project-name>  Project name.
-  --environment <environment>               Environment name.
+nona entries list [options]
 ```
 
-Also accepts: `--api-url, --base-url <base-url>`, `--bearer-token, --token <bearer-token>`.
+**Options**
+
+```text
+--api-url, --base-url <base-url>          Nona base URL.
+--bearer-token, --token <bearer-token>    Admin bearer token.
+--project, --project-name <project-name>  Nona project name.
+--environment <environment>               Nona environment name, for example production.
+```
 
 ## `nona entries get`
 
+Show one config entry.
+
+**Usage**
+
 ```text
-Description:
-  Get a single config entry.
-
-Usage:
-  nona entries get [options]
-
-Options:
-  --project, --project-name <project-name>  Project name.
-  --environment <environment>               Environment name.
-  --key <key>                               Config entry key.
+nona entries get [options]
 ```
 
-Also accepts: `--api-url, --base-url <base-url>`, `--bearer-token, --token <bearer-token>`.
+**Options**
+
+```text
+--api-url, --base-url <base-url>          Nona base URL.
+--bearer-token, --token <bearer-token>    Admin bearer token.
+--project, --project-name <project-name>  Nona project name.
+--environment <environment>               Nona environment name, for example production.
+--key <key>                               Config entry key, for example Features:Checkout.
+```
 
 ## `nona entries history`
 
+Show version history for an entry.
+
+**Usage**
+
 ```text
-Description:
-  List version history for a config entry.
-
-Usage:
-  nona entries history [options]
-
-Options:
-  --project, --project-name <project-name>  Project name.
-  --environment <environment>               Environment name.
-  --key <key>                               Config entry key.
+nona entries history [options]
 ```
 
-Also accepts: `--api-url, --base-url <base-url>`, `--bearer-token, --token <bearer-token>`.
+**Options**
+
+```text
+--api-url, --base-url <base-url>          Nona base URL.
+--bearer-token, --token <bearer-token>    Admin bearer token.
+--project, --project-name <project-name>  Nona project name.
+--environment <environment>               Nona environment name, for example production.
+--key <key>                               Config entry key, for example Features:Checkout.
+```
 
 ## `nona entries set`
 
+Create or update an entry.
+
+**Usage**
+
 ```text
-Description:
-  Create or update a config entry.
-
-Usage:
-  nona entries set [options]
-
-Options:
-  --project, --project-name <project-name>  Project name.
-  --environment <environment>               Environment name.
-  --key <key>                               Config entry key.
-  --value <value>                           The config value.
-  --scope <scope>                           Scope: client, server, or all.
-  --content-type <content-type>             Logical content type: json, text, number, or boolean.
+nona entries set [options]
 ```
 
-Also accepts: `--api-url, --base-url <base-url>`, `--bearer-token, --token <bearer-token>`.
+**Options**
+
+```text
+--api-url, --base-url <base-url>          Nona base URL.
+--bearer-token, --token <bearer-token>    Admin bearer token.
+--project, --project-name <project-name>  Nona project name.
+--environment <environment>               Nona environment name, for example production.
+--key <key>                               Config entry key, for example Features:Checkout.
+--value <value>                           Value to store.
+--scope <scope>                           Read scope: client, server, or all.
+--content-type <content-type>             Stored value type: json, text, number, or boolean.
+```
 
 ## `nona entries rollback`
 
+Restore a previous entry version.
+
+**Usage**
+
 ```text
-Description:
-  Roll a config entry back to a previous version.
-
-Usage:
-  nona entries rollback [options]
-
-Options:
-  --project, --project-name <project-name>  Project name.
-  --environment <environment>               Environment name.
-  --key <key>                               Config entry key.
-  --version <version>                       Version number to roll back to.
+nona entries rollback [options]
 ```
 
-Also accepts: `--api-url, --base-url <base-url>`, `--bearer-token, --token <bearer-token>`.
+**Options**
+
+```text
+--api-url, --base-url <base-url>          Nona base URL.
+--bearer-token, --token <bearer-token>    Admin bearer token.
+--project, --project-name <project-name>  Nona project name.
+--environment <environment>               Nona environment name, for example production.
+--key <key>                               Config entry key, for example Features:Checkout.
+--version <version>                       Entry version to restore.
+```
 
 ## `nona entries delete`
 
+Delete an entry.
+
+**Usage**
+
 ```text
-Description:
-  Delete a config entry.
-
-Usage:
-  nona entries delete [options]
-
-Options:
-  --project, --project-name <project-name>  Project name.
-  --environment <environment>               Environment name.
-  --key <key>                               Config entry key.
+nona entries delete [options]
 ```
 
-Also accepts: `--api-url, --base-url <base-url>`, `--bearer-token, --token <bearer-token>`.
+**Options**
+
+```text
+--api-url, --base-url <base-url>          Nona base URL.
+--bearer-token, --token <bearer-token>    Admin bearer token.
+--project, --project-name <project-name>  Nona project name.
+--environment <environment>               Nona environment name, for example production.
+--key <key>                               Config entry key, for example Features:Checkout.
+```
 
 ## `nona entries share`
 
+Create, list, and revoke entry share links.
+
+**Usage**
+
 ```text
-Description:
-  Manage temporary parameter share links.
-
-Usage:
-  nona entries share [command] [options]
-
-Commands:
-  list    List share links for a config entry.
-  create  Create a temporary share link for a config entry.
-  revoke  Revoke a temporary share link.
+nona entries share [command] [options]
 ```
+
+**Commands**
+
+- `list` List share links for an entry.
+- `create` Create a temporary share link.
+- `revoke` Revoke a share link.
 
 ## `nona entries share list`
 
+List share links for an entry.
+
+**Usage**
+
 ```text
-Description:
-  List share links for a config entry.
-
-Usage:
-  nona entries share list [options]
-
-Options:
-  --project, --project-name <project-name>  Project name.
-  --environment <environment>               Environment name.
-  --key <key>                               Config entry key.
+nona entries share list [options]
 ```
 
-Also accepts: `--api-url, --base-url <base-url>`, `--bearer-token, --token <bearer-token>`.
+**Options**
+
+```text
+--api-url, --base-url <base-url>          Nona base URL.
+--bearer-token, --token <bearer-token>    Admin bearer token.
+--project, --project-name <project-name>  Nona project name.
+--environment <environment>               Nona environment name, for example production.
+--key <key>                               Config entry key, for example Features:Checkout.
+```
 
 ## `nona entries share create`
 
+Create a temporary share link.
+
+**Usage**
+
 ```text
-Description:
-  Create a temporary share link for a config entry.
-
-Usage:
-  nona entries share create [options]
-
-Options:
-  --project, --project-name <project-name>  Project name.
-  --environment <environment>               Environment name.
-  --key <key>                               Config entry key.
-  --expiration <expiration>                 Expiration: 1h, 1d, 3d, 30d, or 12m.
-  --view-only                               Create a view-only link instead of an editable link.
-  --share-base-url <share-base-url>         Base URL for the printed browser link; defaults to the API base URL.
+nona entries share create [options]
 ```
 
-Also accepts: `--api-url, --base-url <base-url>`, `--bearer-token, --token <bearer-token>`.
+**Options**
+
+```text
+--api-url, --base-url <base-url>          Nona base URL.
+--bearer-token, --token <bearer-token>    Admin bearer token.
+--project, --project-name <project-name>  Nona project name.
+--environment <environment>               Nona environment name, for example production.
+--key <key>                               Config entry key, for example Features:Checkout.
+--expiration <expiration>                 Link lifetime: 1h, 1d, 3d, 30d, or 12m.
+--view-only                               Create a view-only link.
+--share-base-url <share-base-url>         Browser base URL for the printed /share link. Defaults to the API base URL.
+```
 
 ## `nona entries share revoke`
 
+Revoke a share link.
+
+**Usage**
+
 ```text
-Description:
-  Revoke a temporary share link.
-
-Usage:
-  nona entries share revoke [options]
-
-Options:
-  --project, --project-name <project-name>  Project name.
-  --environment <environment>               Environment name.
-  --key <key>                               Config entry key.
-  --id <id>                                 Share link id to revoke.
+nona entries share revoke [options]
 ```
 
-Also accepts: `--api-url, --base-url <base-url>`, `--bearer-token, --token <bearer-token>`.
+**Options**
+
+```text
+--api-url, --base-url <base-url>          Nona base URL.
+--bearer-token, --token <bearer-token>    Admin bearer token.
+--project, --project-name <project-name>  Nona project name.
+--environment <environment>               Nona environment name, for example production.
+--key <key>                               Config entry key, for example Features:Checkout.
+--id <id>                                 Share link id to revoke.
+```
 
 ## `nona config`
 
+Show or save default CLI values.
+
+**Usage**
+
 ```text
-Description:
-  Manage saved CLI defaults.
-
-Usage:
-  nona config [command] [options]
-
-Commands:
-  show                   Show saved defaults.
-  set <setting> <value>  Save a CLI default.
+nona config [command] [options]
 ```
+
+**Commands**
+
+- `show` Show saved default values.
+- `set <setting> <value>` Save a default base URL or project.
 
 ## `nona config show`
 
-```text
-Description:
-  Show saved defaults.
+Show saved default values.
 
-Usage:
-  nona config show [options]
+**Usage**
+
+```text
+nona config show [options]
 ```
 
 ## `nona config set`
 
+Save a default base URL or project.
+
+**Usage**
+
 ```text
-Description:
-  Save a CLI default.
-
-Usage:
-  nona config set <setting> <value> [options]
-
+nona config set <setting> <value> [options]
 Arguments:
-  <setting>  Setting to configure: base-url, project.
-  <value>    The new value.
+<setting>  Setting name: base-url or project.
+<value>    Value to save as the default.
 ```
 
 ## `nona auth`
 
+Sign in and manage saved sessions.
+
+**Usage**
+
 ```text
-Description:
-  Manage authentication sessions.
+nona auth [command] [options]
+```
 
-Usage:
-  nona auth [command] [options]
+**Commands**
 
-Commands:
-  login   Open a browser to log in and save a session.
-  logout  Remove saved session.
-  whoami  Show current session info.
+- `register` Create the first admin account and save a session.
+- `login` Open a browser sign-in flow and save a session.
+- `logout` Delete the saved session.
+- `whoami` Show the saved session user.
+
+## `nona auth register`
+
+Create the first admin account and save a session.
+
+**Usage**
+
+```text
+nona auth register [options]
+```
+
+**Options**
+
+```text
+--api-url, --base-url <base-url>  Nona base URL.
+--email <email>                   Email address for the first admin.
+--password <password>             Password for the first admin.
+--no-save-session                 Do not save the returned session token.
 ```
 
 ## `nona auth login`
 
-```text
-Description:
-  Open a browser to log in and save a session.
+Open a browser sign-in flow and save a session.
 
-Usage:
-  nona auth login [options]
+**Usage**
+
+```text
+nona auth login [options]
 ```
 
-Also accepts: `--api-url, --base-url <base-url>`.
+**Options**
+
+```text
+--api-url, --base-url <base-url>  Nona base URL.
+```
 
 ## `nona auth logout`
 
-```text
-Description:
-  Remove saved session.
+Delete the saved session.
 
-Usage:
-  nona auth logout [options]
+**Usage**
+
+```text
+nona auth logout [options]
 ```
 
 ## `nona auth whoami`
 
-```text
-Description:
-  Show current session info.
+Show the saved session user.
 
-Usage:
-  nona auth whoami [options]
+**Usage**
+
+```text
+nona auth whoami [options]
 ```

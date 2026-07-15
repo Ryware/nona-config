@@ -922,7 +922,7 @@ const PAGE_FAQS: Record<string, FaqItem[]> = {
 		{
 			question: 'What should I do right after the container starts?',
 			answer:
-				'Open the admin UI, create the first account, create a project and environment, then add a parameter and test a real read.',
+				'Create the first account with nona auth register or the admin UI, create a project and environment, then add a parameter and test a real read.',
 		},
 		{
 			question: 'When should I move to the production deployment guides?',
@@ -1247,8 +1247,8 @@ const PAGE_HOW_TOS: Record<string, HowToStepItem[]> = {
 			text: 'Start the single-container Nona deployment with docker run and a persistent /var/lib/nona volume.',
 		},
 		{
-			name: 'Open the admin UI',
-			text: 'Visit http://localhost:18080/register and create the first admin account.',
+			name: 'Create the first admin account',
+			text: 'Run nona auth register against http://localhost:18080 for non-interactive setup, or visit http://localhost:18080/register in the admin UI.',
 		},
 		{
 			name: 'Create the initial project and environment',
