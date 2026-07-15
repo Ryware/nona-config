@@ -35,6 +35,7 @@ nona [command] [options]
 - `projects` List, create, and delete projects.
 - `migrate` Run migration commands.
 - `keys` List, create, and delete project API keys.
+- `init` Bootstrap a Nona instance from first container start to first flag read. Exit codes: 0 success; 1 unexpected/API error; 2 invalid args; 3 auth failed; 4 cannot reach base-url.
 - `entries` Read, write, and share config entries.
 - `config` Show or save default CLI values.
 - `auth` Sign in and manage saved sessions.
@@ -257,6 +258,32 @@ nona keys delete [options]
 --project, --project-name <project-name>  Nona project name.
 --id <id>                                 API key id to delete.
 --bearer-token, --token <bearer-token>    Admin bearer token.
+```
+
+## `nona init`
+
+Bootstrap a Nona instance from first container start to first flag read. Exit codes: 0 success; 1 unexpected/API error; 2 invalid args; 3 auth failed; 4 cannot reach base-url.
+
+**Usage**
+
+```text
+nona init [options]
+```
+
+**Options**
+
+```text
+--api-url, --base-url <base-url>          Nona base URL. Env: NONA_CLI_BASE_URL. Default: http://localhost:18080.
+--email <email>                           Admin email. Env: NONA_INIT_EMAIL.
+--password <password>                     Admin password. Env: NONA_INIT_PASSWORD. Use '-' to read one line from stdin.
+--project, --project-name <project-name>  Project name. Env: NONA_CLI_PROJECT_NAME. Letters, numbers, and hyphens only.
+--env <env>                               Environment to create or reuse. Default: production.
+--seed-flag <seed-flag>                   Starter flag as key=value. Default: Features:Example=true.
+--no-seed-flag                            Skip starter flag creation.
+--scope <scope>                           API key and entry scope: client, server, or all. Default: client.
+--format <format>                         Output format: dotenv, json, or env-export. Default: dotenv.
+--print-key                               Print the full API key. By default only the last four characters are shown.
+--yes                                     Non-interactive mode; never prompt.
 ```
 
 ## `nona entries`

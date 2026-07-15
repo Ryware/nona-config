@@ -54,15 +54,29 @@ docker compose -f deploy/compose/standalone-prod.yml ps
 
 The standalone compose file still runs the same single `rywaredev/nona:latest` container.
 
-## Create the first admin account
+## Bootstrap the first flag
 
-For non-interactive setup, use the CLI:
+For the fastest non-interactive setup, use the CLI:
+
+```bash
+nona init \
+  --yes \
+  --base-url http://localhost:18080 \
+  --email admin@example.com \
+  --password <password> \
+  --project storefront \
+  --print-key
+```
+
+This registers or logs in the admin, creates or reuses the `storefront` project, creates or reuses the `production` environment, seeds `Features:Example=true`, creates or reuses an API key, and prints a ready-to-paste `.env` block.
+
+`--yes` makes this safe for scripts and CI: the command never prompts and exits with an invalid-args error if a required value is missing.
+
+If you only want to create the first admin account and save a CLI session, use the lower-level command:
 
 ```bash
 nona auth register --base-url http://localhost:18080 --email admin@example.com --password <password>
 ```
-
-This creates the first admin account and saves the returned session token for follow-up CLI commands.
 
 You can also open the UI:
 
@@ -78,7 +92,9 @@ http://localhost:18080/login
 
 ## What to click next in admin
 
-After you sign in:
+If you used `nona init`, your first project, `production` environment, starter flag, and API key already exist. Open the admin UI when you want to inspect them or add more.
+
+For a UI-driven setup:
 
 1. open `Projects`
 2. create or open the project you want to configure
@@ -138,7 +154,7 @@ That volume holds the local data the container needs. If you remove the containe
 
 ### What should I do right after the container starts?
 
-Create the first account with `nona auth register` or the admin UI, then create a project and environment, add a parameter, and test a real read.
+Use `nona init` for the shortest automated path. It creates the first account if needed, creates the first project and environment, adds a starter flag, creates an API key, and prints a verification curl.
 
 That proves the instance is not only running, but also usable by an application.
 

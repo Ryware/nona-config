@@ -12,6 +12,14 @@ Once you have:
 
 you can read a value over HTTP.
 
+The shortest way to prepare those pieces is:
+
+```bash
+nona init --yes --base-url https://nona.example.com --email admin@example.com --password <password> --project storefront --print-key
+```
+
+The command prints the environment id, API key, and a verification curl for the seeded `Features:Example` flag.
+
 ## What to prepare first
 
 In admin:

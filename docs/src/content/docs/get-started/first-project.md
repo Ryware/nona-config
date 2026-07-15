@@ -37,14 +37,20 @@ Once an environment exists, it appears as a selectable environment tab on the pr
 
 ## With the CLI
 
-Create the project from a terminal:
+For a fresh setup, create the first project and `production` environment with `init`:
+
+```bash
+nona init --yes --base-url https://nona.example.com --email admin@example.com --password <password> --project storefront
+```
+
+For later project-only administration, create the project from a terminal:
 
 ```bash
 nona projects create --name storefront
 nona projects list
 ```
 
-Then open the admin UI and add environments there. The repo currently exposes project creation in the CLI, while environment creation is handled in the admin project screen.
+Then open the admin UI and add any extra environments there.
 
 ## How to think about environments
 
@@ -93,7 +99,7 @@ That is enough to test changes safely without creating an overly complex environ
 
 ### Should I create environments in the CLI or admin?
 
-For the current documented flow, create the project in either place you prefer, then create environments in the admin UI.
+Use `nona init` for the first automated project and environment. For additional environments, use the admin UI.
 
 That matches the current repo workflow most directly.
 

@@ -36,6 +36,12 @@ That same pattern also works for non-boolean config:
 
 ## How to create environments
 
+The first automated setup path is `nona init`, which creates or reuses the environment you pass with `--env` and defaults to `production`:
+
+```bash
+nona init --yes --base-url https://nona.example.com --email admin@example.com --password <password> --project storefront --env production
+```
+
 In admin:
 
 1. open `Projects`
@@ -47,7 +53,7 @@ In admin:
 
 Those environments then appear as selectable tabs on the project page.
 
-The current repo documents environment creation primarily through the admin project screen.
+Use `init` for bootstrap automation and the admin project screen for day-to-day environment management.
 
 ## Common environment models
 
