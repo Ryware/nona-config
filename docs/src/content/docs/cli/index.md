@@ -35,15 +35,53 @@ Use the CLI when you want repeatable admin operations, terminal-based workflows,
 
 ## Authenticate
 
+For a brand-new Nona instance, use `init` when you want the shortest path to a readable flag:
+
+```bash
+nona init \
+  --yes \
+  --base-url https://nona.example.com \
+  --email admin@example.com \
+  --password secret \
+  --project mobile-app \
+  --print-key
+```
+
+`init` registers the first admin when needed, logs in on existing instances, creates or reuses the project and environment, seeds a starter flag, creates or reuses a scoped API key, and prints app-ready environment variables.
+
 ```bash
 nona auth register --base-url https://nona.example.com --email admin@example.com --password secret
 nona auth login --base-url https://nona.example.com
 nona auth whoami
 ```
 
-`auth register` is the non-interactive first-run path. It creates the initial admin account when the Nona instance has no users yet and saves the returned session token, so automation can continue with project, API key, and config commands without opening the admin UI.
+`auth register` is the lower-level non-interactive first-admin command. It creates the initial admin account when the Nona instance has no users yet and saves the returned session token, so automation can continue with project, API key, and config commands without opening the admin UI.
 
 `auth login` opens a browser and stores a session token, which makes interactive use easier than pasting a bearer token into every command.
+
+## Bootstrap a first flag
+
+The default `init` output is directly appendable to an app `.env` file:
+
+```dotenv
+# Nona - project "mobile-app", env "production"
+VITE_NONA_BASE_URL=https://nona.example.com
+VITE_NONA_ENV_ID=production
+VITE_NONA_API_KEY=****158D
+# API key masked; re-run with --print-key to emit a working value.
+# Verify: curl -H "X-Api-Key: $VITE_NONA_API_KEY" https://nona.example.com/api/production/Features%3AExample
+```
+
+Useful options:
+
+- `--yes` makes the command non-interactive: it never prompts and fails fast if a required value is missing.
+- `--env production` chooses the environment to create or reuse.
+- `--seed-flag Features:Example=true` changes the starter flag.
+- `--no-seed-flag` skips starter flag creation.
+- `--scope client|server|all` controls the API key and starter flag scope.
+- `--format dotenv|json|env-export` changes the output format.
+- `--password -` reads the password from stdin.
+- `--print-key` prints the full API key instead of masking it.
 
 ## Create a project
 
@@ -52,7 +90,7 @@ nona projects create --name mobile-app
 nona projects list
 ```
 
-Use the CLI when you want a repeatable way to create a project from a terminal. Environment creation is currently an admin-UI workflow, so the usual sequence is to create the project with the CLI, then open the project in admin and click `Add Environment`.
+Use `nona init` for the first project and environment in a fresh setup. For later manual administration, create the project from the CLI, then create additional environments in the admin UI.
 
 ## Save defaults
 
@@ -145,6 +183,8 @@ The CLI reads these values when flags are omitted:
 | `NONA_CLI_BEARER_TOKEN` | admin bearer token |
 | `NONA_CLI_EMAIL` | migration/login email |
 | `NONA_CLI_PASSWORD` | migration/login password |
+| `NONA_INIT_EMAIL` | `nona init` admin email |
+| `NONA_INIT_PASSWORD` | `nona init` admin password |
 
 ## Related docs
 
@@ -163,11 +203,13 @@ Use the CLI for repeatable operations, scripting, migration work, history and ro
 
 Often yes.
 
-Some workflows such as environment creation are still documented primarily through the admin UI.
+Some workflows such as adding extra environments are still documented primarily through the admin UI. `nona init` creates or reuses the first environment for bootstrap automation.
 
 ### What is the best first CLI command to run?
 
-After installation, `nona auth login --base-url https://nona.example.com` is usually the best first command because it establishes the interactive session.
+For a fresh self-hosted instance, `nona init --yes --base-url https://nona.example.com --email admin@example.com --password secret --project mobile-app` is the best first command because it reaches a real flag read path without browser interaction.
+
+For an existing instance where you want an interactive admin session, use `nona auth login --base-url https://nona.example.com`.
 
 ### Why is the CLI especially important for Firebase migration?
 

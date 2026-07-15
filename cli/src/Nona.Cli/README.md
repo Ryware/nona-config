@@ -45,6 +45,16 @@ The published executable is the `nona` command.
 
 ## Commands
 
+Bootstrap a fresh Nona instance and print app-ready environment variables:
+
+```bash
+nona init --yes --base-url http://nona.internal:18080 --email admin@example.com --password secret --project mobile-app --print-key
+```
+
+`init` registers or logs in the admin, creates or reuses the project and environment, seeds a starter flag, creates or reuses a scoped API key, and prints a `.env` block plus a verification curl.
+
+`--yes` makes the command non-interactive: it never prompts and fails fast if a required value is missing.
+
 Authenticate and persist a session token:
 
 ```bash
@@ -107,6 +117,8 @@ You can also use environment variables:
 - `NONA_CLI_BEARER_TOKEN`
 - `NONA_CLI_EMAIL`
 - `NONA_CLI_PASSWORD`
+- `NONA_INIT_EMAIL`
+- `NONA_INIT_PASSWORD`
 
 The Firebase migration command also continues to support the existing `NONA_MIGRATOR_*` environment variables.
 

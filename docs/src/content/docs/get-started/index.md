@@ -30,11 +30,9 @@ If you are evaluating the product, this path is the fastest way to understand th
 If you want the shortest possible path:
 
 1. start Nona with Docker
-2. open `/register` or `/login`
-3. create a project
-4. add one `boolean` parameter
-5. create one API key
-6. test one read with `curl`
+2. run `nona init --yes --base-url http://localhost:18080 --email admin@example.com --password <password> --project storefront --print-key`
+3. paste the printed values into your app `.env`
+4. run the printed verification curl
 
 That is enough to prove the whole runtime model end to end.
 
@@ -76,13 +74,16 @@ After the first successful setup, most teams continue into one of these:
 
 ## If you prefer CLI-driven setup
 
-After the instance is running and you have signed in once:
+After the instance is running, bootstrap the first project, environment, flag, and key:
 
 ```bash
-nona auth login --base-url https://nona.example.com
-nona projects create --name storefront
-nona entries set --project storefront --environment production --key Features:Checkout --value true --scope client --content-type boolean
-nona keys create --project storefront --name "Web app" --scope client --environment production
+nona init \
+  --yes \
+  --base-url https://nona.example.com \
+  --email admin@example.com \
+  --password <password> \
+  --project storefront \
+  --print-key
 ```
 
 ## FAQ
