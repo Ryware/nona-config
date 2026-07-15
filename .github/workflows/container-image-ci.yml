@@ -89,9 +89,78 @@ jobs:
           file: Dockerfile
           build-args: |
             FRONTEND_DIR=admin
+          tags: nona-ci:test
+          load: true
           push: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Smoke test container persistence
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          image_tag="nona-ci:test"
+          container_name="nona-ci"
+          volume_name="nona-ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          host_port="18080"
+          base_url="http://127.0.0.1:${host_port}"
+
+          cleanup() {
+            docker rm -f "${container_name}" >/dev/null 2>&1 || true
+            docker volume rm "${volume_name}" >/dev/null 2>&1 || true
+          }
+
+          wait_for_nona() {
+            for _ in $(seq 1 60); do
+              if curl -fsS "${base_url}/auth/first-time" >/dev/null; then
+                return 0
+              fi
+              sleep 2
+            done
+
+            docker logs "${container_name}" || true
+            return 1
+          }
+
+          register_admin() {
+            local response
+            response="$(
+              curl -fsS \
+                -H 'Content-Type: application/json' \
+                -d '{"email":"admin@example.com","password":"Password123!"}' \
+                "${base_url}/auth/register"
+            )"
+
+            grep -q '"Success":true' <<<"${response}" || grep -q '"success":true' <<<"${response}"
+            grep -q '"token"' <<<"${response}" || grep -q '"Token"' <<<"${response}"
+          }
+
+          login_admin() {
+            local response
+            response="$(
+              curl -fsS \
+                -H 'Content-Type: application/json' \
+                -d '{"email":"admin@example.com","password":"Password123!"}' \
+                "${base_url}/auth/login"
+            )"
+
+            grep -q '"token"' <<<"${response}" || grep -q '"Token"' <<<"${response}"
+          }
+
+          trap cleanup EXIT
+
+          docker volume create "${volume_name}" >/dev/null
+
+          docker run -d --name "${container_name}" -p "${host_port}:8080" -v "${volume_name}:/var/lib/nona" "${image_tag}" >/dev/null
+          wait_for_nona
+          register_admin
+
+          docker rm -f "${container_name}" >/dev/null
+
+          docker run -d --name "${container_name}" -p "${host_port}:8080" -v "${volume_name}:/var/lib/nona" "${image_tag}" >/dev/null
+          wait_for_nona
+          login_admin
 
   deploy:
     name: Publish container image
