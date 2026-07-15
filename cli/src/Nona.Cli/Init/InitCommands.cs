@@ -1,6 +1,7 @@
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.CommandLine.NamingConventionBinder;
+using System.Linq;
 using Nona.Cli.Init.Commands;
 
 namespace Nona.Cli.Init;
@@ -200,13 +201,9 @@ internal sealed class InitCommands(CliContext ctx) : ICliCommandGroup
 
     private static string? FirstValue(params string?[] values)
     {
-        foreach (var value in values)
-        {
-            if (!string.IsNullOrWhiteSpace(value))
-                return value;
-        }
-
-        return null;
+        return values
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .FirstOrDefault();
     }
 
     private static bool TryParseSeedFlag(string value, out SeedFlag? seedFlag, out string? error)
