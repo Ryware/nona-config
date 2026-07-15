@@ -64,6 +64,11 @@ const PAGE_FAQS: Record<string, FaqItem[]> = {
 				'Yes. The scope model separates client, server, and shared reads so the same system can support frontend, mobile, and backend use cases.',
 		},
 		{
+			question: 'Does Nona support targeting or percentage rollout?',
+			answer:
+				'No. Nona is not a runtime targeting engine. It does not evaluate flags against user context, segments, cohorts, or percentage rules on the read path.',
+		},
+		{
 			question: 'When is Nona a better fit than a larger flag platform?',
 			answer:
 				'Nona is usually the better fit when you want self-hosting, simpler operations, and one product for feature flags and remote config without committing to a larger hosted control plane.',
@@ -155,6 +160,11 @@ const PAGE_FAQS: Record<string, FaqItem[]> = {
 			question: 'What should I check first when a request fails?',
 			answer:
 				'Start with the environment name, key existence, URL encoding, API key project, and scope alignment.',
+		},
+		{
+			question: 'Can I pass userId or X-User-Id to get a targeted value?',
+			answer:
+				'No. The HTTP read path is a direct environment-and-key lookup. Nona does not perform built-in user targeting, segmentation, cohort evaluation, or percentage rollout.',
 		},
 	],
 	'clients/javascript': [
@@ -287,6 +297,11 @@ const PAGE_FAQS: Record<string, FaqItem[]> = {
 			question: 'Who is Nona best for?',
 			answer:
 				'Teams that want self-hosted runtime control, plain HTTP access, Docker-first deployment, and a smaller product model than a hosted control plane are usually a strong fit.',
+		},
+		{
+			question: 'Does Nona support per-user targeting or percentage rollout?',
+			answer:
+				'No. Nona is remote config plus simple on/off flags, not a runtime targeting engine. It does not evaluate reads against userId, request context, segments, cohorts, or percentage rules.',
 		},
 	],
 	'concepts': [
@@ -570,6 +585,11 @@ const PAGE_FAQS: Record<string, FaqItem[]> = {
 				'Yes. The scope model allows client-readable, server-only, and shared reads depending on where the flag should be evaluated.',
 		},
 		{
+			question: 'Can Nona do percentage rollout or beta-cohort targeting?',
+			answer:
+				'No. Nona does not evaluate flags against userId, request attributes, segments, cohorts, or percentage rules. The built-in model is direct environment-and-key lookup.',
+		},
+		{
 			question: 'When is Nona a good fit for feature flags?',
 			answer:
 				'Nona is a strong fit when you want self-hosted, open source feature flags with simpler operations and one product for flags and runtime config.',
@@ -595,6 +615,11 @@ const PAGE_FAQS: Record<string, FaqItem[]> = {
 			question: 'What is the best first feature flag to create?',
 			answer:
 				'A simple boolean key such as Features:Checkout is usually the best first choice because it is easy to create, read, and flip.',
+		},
+		{
+			question: 'Can I roll a flag out to 10 percent of users in Nona?',
+			answer:
+				'No. Nona does not provide built-in percentage rollout, beta-cohort targeting, or per-user evaluation. The built-in model is direct environment-and-key lookup.',
 		},
 	],
 	'feature-flags/kill-switches': [

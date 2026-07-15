@@ -60,7 +60,7 @@ That makes it the best starting point before you go deeper into:
 
 After the first successful setup, most teams continue into one of these:
 
-- [Feature flags](/docs/feature-flags/) if the main use case is boolean rollout control
+- [Feature flags](/docs/feature-flags/) if the main use case is boolean release control
 - [Remote config](/docs/remote-config/) if the main use case is runtime values and settings
 - [Migration](/docs/migration/) if you are moving from Firebase Remote Config
 - [Deployment](/docs/deployment/) if you are preparing a real production rollout
