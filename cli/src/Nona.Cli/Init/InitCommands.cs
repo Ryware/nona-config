@@ -138,7 +138,7 @@ internal sealed class InitCommands(CliContext ctx) : ICliCommandGroup
         var password = FirstValue(parsedPassword, Environment.GetEnvironmentVariable("NONA_INIT_PASSWORD"));
         if (password == "-")
         {
-            password = Console.In.ReadLine();
+            password = NormalizeStdinSecret(Console.In.ReadLine());
             if (string.IsNullOrWhiteSpace(password))
                 return InitCommandResolution.Fail("Init could not read --password - from stdin.");
         }
@@ -279,6 +279,9 @@ internal sealed class InitCommands(CliContext ctx) : ICliCommandGroup
         return Uri.TryCreate(value, UriKind.Absolute, out var uri) &&
             uri.Scheme is "http" or "https";
     }
+
+    internal static string? NormalizeStdinSecret(string? value)
+        => value?.Replace("\0", string.Empty, StringComparison.Ordinal);
 
     private static bool IsSlug(string value)
         => value.Length > 0 && value.All(c => char.IsAsciiLetterOrDigit(c) || c == '-');

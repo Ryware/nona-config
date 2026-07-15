@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Nona.Cli.Init;
 using Nona.Cli.Init.Commands;
 
 #pragma warning disable TUnit0055
@@ -106,6 +107,14 @@ public sealed class InitCommandHandlerTests
         var exitCode = await handler.HandleAsync(BuildCommand(), CancellationToken.None);
 
         await Assert.That(exitCode).IsEqualTo(4);
+    }
+
+    [Test]
+    public async Task NormalizeStdinSecret_RemovesNullPadding()
+    {
+        var password = InitCommands.NormalizeStdinSecret("P\0a\0s\0s\0w\0o\0r\0d\01\02\03\0!\0");
+
+        await Assert.That(password).IsEqualTo("Password123!");
     }
 
     private static async Task<(int ExitCode, string Output)> RunAsync(
