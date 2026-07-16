@@ -1,9 +1,9 @@
 ---
 title: HTTP
-description: Fetch one Nona config value with an API key.
+description: Fetch one or all client-visible Nona config values with an API key.
 ---
 
-Use HTTP when an app needs one value and does not use a client package.
+Use HTTP when an app needs config values and does not use a client package.
 
 ```http
 GET /api/{environmentId}/{key}
@@ -73,6 +73,44 @@ curl "https://nona.example.com/api/production/Features%3ACheckout?version=1.1.x"
 
 `1.1.0` resolves exactly. `1.1.x` resolves to the highest patch in the `1.1` release line.
 
+## Fetch all client-visible values
+
+Use the environment-only route to fetch the complete client snapshot in one request:
+
+```bash
+curl -i "https://nona.example.com/api/production" \
+  -H "X-Api-Key: $NONA_API_KEY"
+```
+
+The API key must have `client` or `all` scope. The response includes entries with `client` or `all` scope and always excludes server-only entries. A valid server-only key receives `404`, matching the single-key endpoint's behavior for an unreadable scope.
+
+```json
+{
+  "Features:Checkout": {
+    "value": "true",
+    "contentType": "boolean"
+  },
+  "App:Banner": {
+    "value": "Welcome",
+    "contentType": "text"
+  }
+}
+```
+
+The bulk route also accepts `?version=1.1.0` and `?version=1.1.x`.
+
+### Conditional polling with ETag
+
+Every successful bulk response includes an `ETag`. Send it back in `If-None-Match` when polling:
+
+```bash
+curl -i "https://nona.example.com/api/production" \
+  -H "X-Api-Key: $NONA_API_KEY" \
+  -H 'If-None-Match: "<etag-from-the-previous-response>"'
+```
+
+If the client-visible snapshot has not changed, Nona returns `304 Not Modified` with no response body. Server-only entry changes do not change this client snapshot ETag.
+
 If you want to see the response headers too:
 
 ```bash
@@ -120,7 +158,8 @@ For example:
 
 | Status | Meaning |
 |---|---|
-| `200` | Value found. |
+| `200` | Value or bulk snapshot found. |
+| `304` | Bulk snapshot is unchanged for the supplied `If-None-Match` value. |
 | `401` | API key is missing or invalid. |
 | `404` | Environment, active release, requested release, key, or readable scope was not found. |
 
@@ -162,5 +201,6 @@ Use [JavaScript](/docs/clients/javascript/) or [.NET](/docs/clients/dotnet/) whe
 
 - typed helper methods
 - built-in cache behavior
+- one-call cache priming
 - OpenFeature integration
 - less manual request handling

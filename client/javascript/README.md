@@ -82,6 +82,23 @@ if (maybeValue === null) {
 }
 ```
 
+## Fetch all values at startup
+
+Use one bulk request to fetch every client-visible value and prime subsequent reads:
+
+```js
+const values = await nona.getAllValues();
+
+const checkout = await nona.tryGetConfigValue("Features:Checkout");
+const banner = await nona.tryGetConfigValue("App:Banner");
+```
+
+`values` is a map of `{ key: { value, contentType } }`. The reads after `getAllValues()` are served from the in-memory snapshot even when `cacheTtlMs` is not enabled, so six startup flags require one HTTP request.
+
+The bulk endpoint accepts `client` and `all` API keys. It includes client-visible (`client` and `all`) entries and never returns server-only entries.
+
+Repeated `getAllValues()` calls automatically use the response ETag. An unchanged snapshot produces `304 Not Modified` and reuses the existing values.
+
 ## Handle errors
 
 Requests that fail with an HTTP error throw `NonaClientError`:
@@ -117,7 +134,7 @@ try {
 Cache helpers:
 
 - `invalidateTtlCache(key, options?)`: removes only the matching cached request
-- `clearTtlCache()`: removes all TTL cache entries
+- `clearTtlCache()`: removes all TTL and bulk-primed cache entries
 
 ## Runtime requirements
 

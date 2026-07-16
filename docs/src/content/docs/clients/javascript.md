@@ -127,6 +127,23 @@ if (value === null) {
 
 This is helpful for optional settings or cases where a key may not exist in every environment yet.
 
+## Fetch once and prime the cache
+
+Fetch every client-visible value at startup with one HTTP request:
+
+```js
+const values = await nona.getAllValues();
+
+const checkout = await nona.tryGetConfigValue("Features:Checkout");
+const banner = await nona.tryGetConfigValue("App:Banner");
+```
+
+`getAllValues()` returns a map of `{ key: { value, contentType } }` and primes the in-memory snapshot, so subsequent reads of those keys are local even when the optional TTL cache is disabled. A six-flag startup therefore makes one request instead of six.
+
+The server response contains only entries visible to clients: `client` and `all` entries are included, while server-only entries are excluded. Use a `client` or `all` API key.
+
+Call `getAllValues()` again to poll for changes. The client automatically sends the previous ETag; when the server returns `304 Not Modified`, the existing snapshot is reused without downloading the JSON again.
+
 ## Pin a release version
 
 By default, reads use the active release selected for the environment.
@@ -199,7 +216,7 @@ const nona = createNonaClient({
 });
 ```
 
-Use `invalidateTtlCache(key)` to remove one cached value or `clearTtlCache()` to clear all cached values.
+Use `invalidateTtlCache(key)` to remove one cached value or `clearTtlCache()` to clear all cached values, including a snapshot primed by `getAllValues()`.
 
 The JavaScript client cache is optional and disabled by default. Set a positive `cacheTtlMs` value to enable it.
 
@@ -225,7 +242,7 @@ If a JavaScript read fails:
 
 For a mobile or JavaScript app, the usual sequence is:
 
-1. fetch one kill switch or banner text on startup
+1. call `getAllValues()` once to prime startup flags
 2. confirm the value changes when you edit it in admin
 3. add TTL cache only if repeated reads justify it
 4. move to OpenFeature when the app becomes flag-heavy

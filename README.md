@@ -212,6 +212,7 @@ CLI packages:
 | `GET` | `/api/{environmentId}/{key}` | Fetch one key from the active release |
 | `GET` | `/api/{environmentId}/{key}?version=1.1.0` | Fetch one key from an exact release |
 | `GET` | `/api/{environmentId}/{key}?version=1.1.x` | Fetch one key from the highest patch in a release line |
+| `GET` | `/api/{environmentId}` | Fetch all client-visible keys with ETag support |
 
 Authentication: `X-Api-Key` request header.
 

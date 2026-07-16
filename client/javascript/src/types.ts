@@ -23,6 +23,8 @@ export interface NonaConfigValue {
   contentType: string;
 }
 
+export type NonaConfigValues = Record<string, NonaConfigValue>;
+
 export interface NonaConfigEntry {
   project: string;
   environment: string;

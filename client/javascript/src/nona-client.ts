@@ -5,18 +5,29 @@ import {
   ensureTrailingSlash,
   segment,
 } from "./request-helpers.js";
-import { readRawEntryValueResponse } from "./response-helpers.js";
+import {
+  readAllConfigValuesResponse,
+  readRawEntryValueResponse,
+} from "./response-helpers.js";
 import { TtlCache } from "./ttl-cache.js";
 import type {
   NonaClientOptions,
+  NonaConfigValues,
   NonaConfigValue,
   NonaRequestOptions,
 } from "./types.js";
 
 interface SendOptions extends NonaRequestOptions {
   body?: unknown;
+  headers?: HeadersInit;
   method: string;
   path: string;
+}
+
+interface BulkCacheEntry {
+  etag?: string;
+  valueRequestIds: Set<string>;
+  values: NonaConfigValues;
 }
 
 export interface NonaClient {
@@ -25,6 +36,7 @@ export interface NonaClient {
     key: string,
     options?: NonaRequestOptions,
   ): Promise<NonaConfigValue>;
+  getAllValues(options?: NonaRequestOptions): Promise<NonaConfigValues>;
   tryGetConfigValue(
     key: string,
     options?: NonaRequestOptions,
@@ -61,6 +73,9 @@ export function createNonaClient(
     memoryLimitMegabytes: resolvedOptions.cacheMemoryLimitMegabytes,
   });
   const pendingRequests = new Map<string, Promise<NonaConfigValue>>();
+  const pendingBulkRequests = new Map<string, Promise<NonaConfigValues>>();
+  const bulkCache = new Map<string, BulkCacheEntry>();
+  const primedValues = new Map<string, NonaConfigValue>();
   const apiKey = resolvedOptions.apiKey;
 
   if (!fetchImpl) {
@@ -83,9 +98,35 @@ export function createNonaClient(
     return `${path}?${search.toString()}`;
   }
 
+  function allConfigValuesPath(releaseVersion: string | undefined): string {
+    const path = `api/${environmentSegment}`;
+    if (!releaseVersion) {
+      return path;
+    }
+
+    const search = new URLSearchParams();
+    search.set("version", releaseVersion);
+    return `${path}?${search.toString()}`;
+  }
+
+  function configValueRequestId(
+    key: string,
+    releaseVersion: string | undefined,
+  ): string {
+    return buildRequestKey(
+      baseUrl,
+      "GET",
+      configValuePath(key, releaseVersion),
+      apiKey,
+    );
+  }
+
   async function sendRequest(request: SendOptions): Promise<Response> {
     const url = new URL(request.path.replace(/^\/+/, ""), baseUrl).toString();
     const headers = new Headers(defaultHeaders);
+    new Headers(request.headers).forEach((value, key) => {
+      headers.set(key, value);
+    });
     headers.set("Accept", "application/json");
     applyAuthentication(headers, apiKey);
 
@@ -124,6 +165,11 @@ export function createNonaClient(
         return cached;
       }
 
+      const primed = primedValues.get(id);
+      if (primed) {
+        return primed;
+      }
+
       const pending = pendingRequests.get(id);
       if (pending) {
         return pending;
@@ -141,6 +187,61 @@ export function createNonaClient(
       pendingRequests.set(id, inFlight);
       return inFlight;
     },
+    async getAllValues(
+      requestOptions: NonaRequestOptions = {},
+    ): Promise<NonaConfigValues> {
+      const releaseVersion =
+        requestOptions.releaseVersion ?? defaultReleaseVersion;
+      const path = allConfigValuesPath(releaseVersion);
+      const id = buildRequestKey(baseUrl, "GET", path, apiKey);
+
+      const pending = pendingBulkRequests.get(id);
+      if (pending) {
+        return pending;
+      }
+
+      const previous = bulkCache.get(id);
+      const request: SendOptions = {
+        method: "GET",
+        path,
+        ...requestOptions,
+        headers: previous?.etag
+          ? { "If-None-Match": previous.etag }
+          : undefined,
+      };
+
+      const inFlight = sendRequest(request)
+        .then(async (response) => {
+          if (response.status === 304 && previous) {
+            previous.valueRequestIds = primeValues(
+              previous.values,
+              releaseVersion,
+              previous,
+            );
+            return previous.values;
+          }
+
+          const values = await readAllConfigValuesResponse(
+            response,
+            request.method,
+            response.url,
+          );
+          const entry: BulkCacheEntry = {
+            etag: response.headers.get("ETag") ?? undefined,
+            valueRequestIds: primeValues(values, releaseVersion, previous),
+            values,
+          };
+
+          bulkCache.set(id, entry);
+          return values;
+        })
+        .finally(() => {
+          pendingBulkRequests.delete(id);
+        });
+
+      pendingBulkRequests.set(id, inFlight);
+      return inFlight;
+    },
     invalidateTtlCache(
       key: string,
       requestOptions: NonaRequestOptions = {},
@@ -153,10 +254,14 @@ export function createNonaClient(
         ),
       };
       const id = buildRequestKey(baseUrl, request.method, request.path, apiKey);
-      return cache.invalidate(id);
+      const ttlInvalidated = cache.invalidate(id);
+      const primedInvalidated = primedValues.delete(id);
+      return ttlInvalidated || primedInvalidated;
     },
     clearTtlCache(): void {
       cache.clear();
+      primedValues.clear();
+      bulkCache.clear();
     },
     async tryGetConfigValue(
       key: string,
@@ -193,4 +298,27 @@ export function createNonaClient(
       return JSON.parse(configValue.value) as T;
     },
   };
+
+  function primeValues(
+    values: NonaConfigValues,
+    releaseVersion: string | undefined,
+    previous?: BulkCacheEntry,
+  ): Set<string> {
+    if (previous) {
+      for (const valueRequestId of previous.valueRequestIds) {
+        primedValues.delete(valueRequestId);
+        cache.invalidate(valueRequestId);
+      }
+    }
+
+    const valueRequestIds = new Set<string>();
+    for (const [key, value] of Object.entries(values)) {
+      const valueRequestId = configValueRequestId(key, releaseVersion);
+      cache.invalidate(valueRequestId);
+      primedValues.set(valueRequestId, value);
+      valueRequestIds.add(valueRequestId);
+    }
+
+    return valueRequestIds;
+  }
 }
