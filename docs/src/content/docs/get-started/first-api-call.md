@@ -8,6 +8,7 @@ Once you have:
 - a project
 - an environment
 - a config entry
+- an active release
 - an API key
 
 you can read a value over HTTP.
@@ -20,7 +21,8 @@ In admin:
 2. open the project
 3. select the target environment
 4. make sure the parameter exists
-5. create an API key in the `API Keys` section
+5. publish a release and set it active
+6. create an API key in the `API Keys` section
 
 For the simplest first test, use a boolean key such as `Features:Checkout`.
 
@@ -42,6 +44,8 @@ nona keys create \
   --environment production
 ```
 
+Then publish and activate a release for the environment in admin.
+
 ## Request shape
 
 ```http
@@ -53,9 +57,10 @@ The request includes:
 
 - the environment id
 - the config key
+- an optional `version` query parameter
 - an API key in the header
 
-The project is implied by the API key, which is why it is not part of this request path.
+The project is implied by the API key, which is why it is not part of this request path. If `version` is omitted, Nona resolves the environment's active release.
 
 ## Example
 
@@ -74,6 +79,13 @@ curl -i "https://nona.example.com/api/production/Features%3ACheckout" \
 The key path segment must be URL-encoded. For example:
 
 - `Features:Checkout` -> `Features%3ACheckout`
+
+To pin a release instead of using the active release:
+
+```bash
+curl "https://nona.example.com/api/production/Features%3ACheckout?version=1.1.x" \
+  -H "X-Api-Key: $NONA_API_KEY"
+```
 
 ## What a successful first read proves
 
@@ -94,8 +106,21 @@ If the request fails:
 1. confirm the environment name is correct
 2. confirm the key exists in that environment
 3. confirm the key path is URL-encoded
-4. confirm the API key belongs to the same project
-5. confirm the API key scope can read the entry scope
+4. confirm an active release is selected, or pass `version`
+5. confirm the API key belongs to the same project
+6. confirm the API key scope can read the entry scope
+
+## Step-by-step API read summary
+
+Use this sequence for the shortest first-read test:
+
+1. create or confirm one parameter exists
+2. publish and activate one release
+3. create or confirm one API key exists
+4. copy the environment id
+5. URL-encode the key name
+6. send the HTTP request with `X-Api-Key`
+7. verify the value comes back correctly
 
 ## Step-by-step API read summary
 

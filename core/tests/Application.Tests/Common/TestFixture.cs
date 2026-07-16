@@ -12,6 +12,7 @@ public class TestFixture
     public IApiKeyRepository ApiKeyRepository { get; } = Substitute.For<IApiKeyRepository>();
     public IEnvironmentRepository EnvironmentRepository { get; } = Substitute.For<IEnvironmentRepository>();
     public IConfigEntryRepository ConfigEntryRepository { get; } = Substitute.For<IConfigEntryRepository>();
+    public IConfigReleaseRepository ConfigReleaseRepository { get; } = Substitute.For<IConfigReleaseRepository>();
     public IProjectMemberRepository ProjectMemberRepository { get; } = Substitute.For<IProjectMemberRepository>();
     public IUserRepository UserRepository { get; } = Substitute.For<IUserRepository>();
     public ICurrentUserService CurrentUserService { get; } = Substitute.For<ICurrentUserService>();

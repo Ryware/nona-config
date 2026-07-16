@@ -17,7 +17,7 @@ public sealed class LibsqlEnvironmentRepository : IEnvironmentRepository
     {
         var result = await _client.ExecuteAsync(
             """
-            SELECT Name, Project, CreatedAt, UpdatedAt
+            SELECT Name, Project, ActiveReleaseVersion, CreatedAt, UpdatedAt
             FROM Environments
             WHERE Project = @ProjectName COLLATE NOCASE
               AND Name = @EnvironmentName COLLATE NOCASE
@@ -35,7 +35,7 @@ public sealed class LibsqlEnvironmentRepository : IEnvironmentRepository
     {
         var result = await _client.ExecuteAsync(
             """
-            SELECT Name, Project, CreatedAt, UpdatedAt
+            SELECT Name, Project, ActiveReleaseVersion, CreatedAt, UpdatedAt
             FROM Environments
             WHERE Project = @ProjectName COLLATE NOCASE
             ORDER BY Name
@@ -67,8 +67,8 @@ public sealed class LibsqlEnvironmentRepository : IEnvironmentRepository
     {
         await _client.ExecuteAsync(
             """
-            INSERT INTO Environments (Name, Project, CreatedAt, UpdatedAt)
-            VALUES (@Name, @Project, @CreatedAt, @UpdatedAt)
+            INSERT INTO Environments (Name, Project, ActiveReleaseVersion, CreatedAt, UpdatedAt)
+            VALUES (@Name, @Project, @ActiveReleaseVersion, @CreatedAt, @UpdatedAt)
             """,
             ToParameters(environment),
             ct);
@@ -79,13 +79,15 @@ public sealed class LibsqlEnvironmentRepository : IEnvironmentRepository
         await _client.ExecuteAsync(
             """
             UPDATE Environments
-            SET UpdatedAt = @UpdatedAt
+            SET ActiveReleaseVersion = @ActiveReleaseVersion,
+                UpdatedAt = @UpdatedAt
             WHERE Project = @Project COLLATE NOCASE
               AND Name = @Name COLLATE NOCASE
             """,
             LibsqlParameters.Create(
                 ("Name", environment.Name),
                 ("Project", environment.Project),
+                ("ActiveReleaseVersion", environment.ActiveReleaseVersion),
                 ("UpdatedAt", environment.UpdatedAt.ToString("O"))),
             ct);
     }
@@ -110,6 +112,7 @@ public sealed class LibsqlEnvironmentRepository : IEnvironmentRepository
         {
             Name = row.GetString("Name"),
             Project = row.GetString("Project"),
+            ActiveReleaseVersion = row.GetNullableString("ActiveReleaseVersion"),
             CreatedAt = DateTime.Parse(row.GetString("CreatedAt")),
             UpdatedAt = DateTime.Parse(row.GetString("UpdatedAt"))
         };
@@ -120,6 +123,7 @@ public sealed class LibsqlEnvironmentRepository : IEnvironmentRepository
         return LibsqlParameters.Create(
             ("Name", environment.Name),
             ("Project", environment.Project),
+            ("ActiveReleaseVersion", environment.ActiveReleaseVersion),
             ("CreatedAt", environment.CreatedAt.ToString("O")),
             ("UpdatedAt", environment.UpdatedAt.ToString("O")));
     }

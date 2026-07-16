@@ -49,6 +49,22 @@ Those environments then appear as selectable tabs on the project page.
 
 The current repo documents environment creation primarily through the admin project screen.
 
+## Releases and active config
+
+Each environment has one editable working configuration and zero or more immutable releases.
+
+Public config reads use releases:
+
+- no `version` query parameter reads the environment's active release
+- `version=1.1.0` reads that exact release
+- `version=1.1.x` reads the highest patch in the `1.1` line
+
+To publish a release, edit the working configuration, open the environment's `Releases` panel, enter a version such as `1.1.0`, and publish it.
+
+To patch an older line, create a working draft from an existing release, make the fix, and publish a new patch version such as `1.1.1`.
+
+Non-active releases can be permanently deleted from the release list. Clear or replace the active release before deleting it. Deleting a release does not change the editable working configuration.
+
 ## Common environment models
 
 Most teams start with:

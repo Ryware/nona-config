@@ -2,6 +2,8 @@ using System.Text.Json.Serialization;
 using Nona.Application.Admin.ApiKeys.Commands;
 using Nona.Application.Admin.ApiKeys.DTOs;
 using Nona.Application.Admin.AuditLogs.DTOs;
+using Nona.Application.Admin.ConfigReleases.Commands;
+using Nona.Application.Admin.ConfigReleases.DTOs;
 using Nona.Application.Admin.ConfigEntries.Commands;
 using Nona.Application.Admin.ConfigEntries.DTOs;
 using Nona.Application.Admin.Dashboard.DTOs;
@@ -42,6 +44,12 @@ namespace Nona.WebApi.Serialization;
 [JsonSerializable(typeof(CreateEnvironmentRequest))]
 [JsonSerializable(typeof(EnvironmentDto))]
 [JsonSerializable(typeof(IReadOnlyList<EnvironmentDto>))]
+[JsonSerializable(typeof(PublishConfigReleaseRequest))]
+[JsonSerializable(typeof(SetActiveConfigReleaseRequest))]
+[JsonSerializable(typeof(ConfigReleaseEntryDto))]
+[JsonSerializable(typeof(ConfigReleaseDto))]
+[JsonSerializable(typeof(ConfigReleaseDetailsDto))]
+[JsonSerializable(typeof(IReadOnlyList<ConfigReleaseDto>))]
 [JsonSerializable(typeof(CreateApiKeyRequest))]
 [JsonSerializable(typeof(ApiKeyDto))]
 [JsonSerializable(typeof(IReadOnlyList<ApiKeyDto>))]

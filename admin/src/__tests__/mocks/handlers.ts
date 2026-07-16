@@ -3,6 +3,7 @@ import {
   mockProjects,
   mockApiKeys,
   mockEnvironments,
+  mockConfigReleases,
   mockConfigEntries,
   mockShareLinks,
   mockUsers,
@@ -219,6 +220,7 @@ export const handlers = [
     return HttpResponse.json({
       project: params.projectId,
       name: body.name,
+      activeReleaseVersion: null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }, { status: 201 });
@@ -226,6 +228,61 @@ export const handlers = [
 
   http.delete(`${BASE}/admin/projects/:projectId/environments/:envName`, () => {
     return new HttpResponse(null, { status: 204 });
+  }),
+
+  // ── Config Releases ─────────────────────────────────────────────────────────
+  http.get(`${BASE}/admin/projects/:projectId/environments/:envName/releases`, ({ params }) => {
+    const releases = mockConfigReleases.filter(
+      (release) => release.project === params.projectId && release.environment === params.envName,
+    );
+    return HttpResponse.json(releases);
+  }),
+
+  http.post(`${BASE}/admin/projects/:projectId/environments/:envName/releases`, async ({ params, request }) => {
+    const body = await request.json() as { version: string; makeActive?: boolean };
+    return HttpResponse.json({
+      project: params.projectId,
+      environment: params.envName,
+      version: body.version,
+      entryCount: mockConfigEntries.length,
+      isActive: body.makeActive ?? false,
+      createdAt: new Date().toISOString(),
+      actor: 'admin@example.com',
+      entries: mockConfigEntries.map(entry => ({
+        key: entry.key,
+        value: entry.value,
+        contentType: entry.contentType,
+        scope: entry.scope,
+      })),
+    }, { status: 201 });
+  }),
+
+  http.put(`${BASE}/admin/projects/:projectId/environments/:envName/active-release`, async ({ params, request }) => {
+    const body = await request.json() as { version?: string | null };
+    return HttpResponse.json({
+      project: params.projectId,
+      name: params.envName,
+      activeReleaseVersion: body.version ?? null,
+      createdAt: '2024-01-01T00:00:00Z',
+      updatedAt: new Date().toISOString(),
+    });
+  }),
+
+  http.delete(`${BASE}/admin/projects/:projectId/environments/:envName/active-release`, ({ params }) => {
+    return HttpResponse.json({
+      project: params.projectId,
+      name: params.envName,
+      activeReleaseVersion: null,
+      createdAt: '2024-01-01T00:00:00Z',
+      updatedAt: new Date().toISOString(),
+    });
+  }),
+
+  http.post(`${BASE}/admin/projects/:projectId/environments/:envName/releases/:version/draft`, ({ params }) => {
+    const entries = mockConfigEntries.filter(
+      (entry) => entry.project === params.projectId && entry.environment === params.envName,
+    );
+    return HttpResponse.json(entries);
   }),
 
   // ── Config Entries ────────────────────────────────────────────────────────────

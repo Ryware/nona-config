@@ -145,6 +145,101 @@ public class LibsqlConfigEntryRepositoryTests
         await Assert.That(client.ExecuteAsyncCalls).IsEqualTo(4);
     }
 
+    [Test]
+    public async Task ReplaceEnvironmentAsync_Sqld_ReplacesEntriesInSingleCommittedDraft()
+    {
+        await using var server = await LocalSqldTestServer.StartAsync();
+        using var client = server.CreateClient();
+        var migrations = new LibsqlMigrationRunner(client, ResolveMigrationsFolder());
+        await migrations.RunMigrationsAsync();
+
+        var repository = new LibsqlConfigEntryRepository(client);
+        var createdAt = new DateTime(2026, 7, 1, 10, 0, 0, DateTimeKind.Utc);
+        await repository.AddVersionAsync(CreateEntry("feature.enabled", "false", createdAt), "alice");
+        await repository.AddVersionAsync(CreateEntry("removed", "old", createdAt), "alice");
+
+        var updatedAt = new DateTime(2026, 7, 2, 10, 0, 0, DateTimeKind.Utc);
+        await repository.ReplaceEnvironmentAsync(
+            "test-project",
+            "production",
+            [
+                CreateEntry("feature.enabled", "true", createdAt, updatedAt),
+                CreateEntry("new.setting", "new", updatedAt)
+            ],
+            ["removed"],
+            "carol");
+
+        var entries = await repository.ListAsync("test-project", "production");
+        var versions = await repository.ListVersionsAsync("test-project", "production", "feature.enabled");
+
+        await Assert.That(entries).Count().IsEqualTo(2);
+        await Assert.That(entries.Single(entry => entry.Key == "feature.enabled").Value).IsEqualTo("true");
+        await Assert.That(entries.Single(entry => entry.Key == "new.setting").Value).IsEqualTo("new");
+        await Assert.That(entries.Any(entry => entry.Key == "removed")).IsFalse();
+        await Assert.That(versions).Count().IsEqualTo(2);
+        await Assert.That(versions[0].Actor).IsEqualTo("carol");
+    }
+
+    [Test]
+    public async Task ReplaceEnvironmentAsync_Sqld_RollsBackAllChangesWhenOneEntryFails()
+    {
+        await using var server = await LocalSqldTestServer.StartAsync();
+        using var client = server.CreateClient();
+        var migrations = new LibsqlMigrationRunner(client, ResolveMigrationsFolder());
+        await migrations.RunMigrationsAsync();
+
+        var repository = new LibsqlConfigEntryRepository(client);
+        var createdAt = new DateTime(2026, 7, 1, 10, 0, 0, DateTimeKind.Utc);
+        await repository.AddVersionAsync(CreateEntry("feature.enabled", "false", createdAt), "alice");
+        await repository.AddVersionAsync(CreateEntry("removed", "old", createdAt), "alice");
+
+        var invalidEntry = CreateEntry("invalid", "value", createdAt);
+        invalidEntry.ContentType = null!;
+        Exception? exception = null;
+        try
+        {
+            await repository.ReplaceEnvironmentAsync(
+                "test-project",
+                "production",
+                [CreateEntry("feature.enabled", "true", createdAt), invalidEntry],
+                ["removed"],
+                "carol");
+        }
+        catch (Exception caught)
+        {
+            exception = caught;
+        }
+
+        var current = await repository.GetAsync("test-project", "production", "feature.enabled");
+        var removed = await repository.GetAsync("test-project", "production", "removed");
+        var versions = await repository.ListVersionsAsync("test-project", "production", "feature.enabled");
+
+        await Assert.That(exception).IsNotNull();
+        await Assert.That(current).IsNotNull();
+        await Assert.That(current!.Value).IsEqualTo("false");
+        await Assert.That(removed).IsNotNull();
+        await Assert.That(versions).Count().IsEqualTo(1);
+    }
+
+    private static ConfigEntry CreateEntry(
+        string key,
+        string value,
+        DateTime createdAt,
+        DateTime? updatedAt = null)
+    {
+        return new ConfigEntry
+        {
+            Project = "test-project",
+            Environment = "production",
+            Key = key,
+            Value = value,
+            ContentType = "text",
+            Scope = KeyScope.All,
+            CreatedAt = createdAt,
+            UpdatedAt = updatedAt ?? createdAt
+        };
+    }
+
     private sealed class StaleReadLibsqlClient : ILibsqlDatabaseClient
     {
         public int ExecuteAsyncCalls { get; private set; }

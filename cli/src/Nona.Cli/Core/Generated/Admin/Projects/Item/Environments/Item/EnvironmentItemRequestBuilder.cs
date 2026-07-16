@@ -3,7 +3,9 @@
 using Microsoft.Kiota.Abstractions.Extensions;
 using Microsoft.Kiota.Abstractions.Serialization;
 using Microsoft.Kiota.Abstractions;
+using Nona.Cli.Generated.Admin.Projects.Item.Environments.Item.ActiveRelease;
 using Nona.Cli.Generated.Admin.Projects.Item.Environments.Item.ConfigEntries;
+using Nona.Cli.Generated.Admin.Projects.Item.Environments.Item.Releases;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
@@ -17,10 +19,20 @@ namespace Nona.Cli.Generated.Admin.Projects.Item.Environments.Item
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
     public partial class EnvironmentItemRequestBuilder : BaseRequestBuilder
     {
+        /// <summary>The activeRelease property</summary>
+        public global::Nona.Cli.Generated.Admin.Projects.Item.Environments.Item.ActiveRelease.ActiveReleaseRequestBuilder ActiveRelease
+        {
+            get => new global::Nona.Cli.Generated.Admin.Projects.Item.Environments.Item.ActiveRelease.ActiveReleaseRequestBuilder(PathParameters, RequestAdapter);
+        }
         /// <summary>The configEntries property</summary>
         public global::Nona.Cli.Generated.Admin.Projects.Item.Environments.Item.ConfigEntries.ConfigEntriesRequestBuilder ConfigEntries
         {
             get => new global::Nona.Cli.Generated.Admin.Projects.Item.Environments.Item.ConfigEntries.ConfigEntriesRequestBuilder(PathParameters, RequestAdapter);
+        }
+        /// <summary>The releases property</summary>
+        public global::Nona.Cli.Generated.Admin.Projects.Item.Environments.Item.Releases.ReleasesRequestBuilder Releases
+        {
+            get => new global::Nona.Cli.Generated.Admin.Projects.Item.Environments.Item.Releases.ReleasesRequestBuilder(PathParameters, RequestAdapter);
         }
         /// <summary>
         /// Instantiates a new <see cref="global::Nona.Cli.Generated.Admin.Projects.Item.Environments.Item.EnvironmentItemRequestBuilder"/> and sets the default values.

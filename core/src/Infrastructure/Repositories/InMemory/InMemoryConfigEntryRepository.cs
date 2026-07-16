@@ -22,44 +22,34 @@ public class InMemoryConfigEntryRepository : IConfigEntryRepository
     {
         lock (_versionGate)
         {
-            var storageKey = GetKey(entry.Project, entry.Environment, entry.Key);
-            _entries.TryGetValue(storageKey, out var existingEntry);
-
-            var versions = _versions.GetOrAdd(storageKey, _ => []);
-            var nextVersion = versions.Count == 0 ? 1 : versions.Max(version => version.Version) + 1;
-            var versionTimestamp = entry.UpdatedAt;
-            var createdAt = existingEntry?.CreatedAt ?? entry.CreatedAt;
-            var normalizedActor = string.IsNullOrWhiteSpace(actor) ? "System" : actor;
-
-            versions.Add(new ConfigEntryVersion
-            {
-                Project = entry.Project,
-                Environment = entry.Environment,
-                Key = entry.Key,
-                Version = nextVersion,
-                Value = entry.Value,
-                ContentType = entry.ContentType,
-                Scope = entry.Scope,
-                CreatedAt = versionTimestamp,
-                Actor = normalizedActor
-            });
-
-            var current = new ConfigEntry
-            {
-                Project = entry.Project,
-                Environment = entry.Environment,
-                Key = entry.Key,
-                Value = entry.Value,
-                ContentType = entry.ContentType,
-                Scope = entry.Scope,
-                ActiveVersion = nextVersion,
-                CreatedAt = createdAt,
-                UpdatedAt = versionTimestamp
-            };
-
-            _entries[storageKey] = current;
-            return Task.FromResult<ConfigEntry?>(current);
+            return Task.FromResult<ConfigEntry?>(AddVersionCore(entry, actor));
         }
+    }
+
+    public Task ReplaceEnvironmentAsync(
+        string projectName,
+        string environmentName,
+        IReadOnlyList<ConfigEntry> entries,
+        IReadOnlyList<string> deletedKeys,
+        string actor,
+        CancellationToken ct = default)
+    {
+        lock (_versionGate)
+        {
+            foreach (var entry in entries)
+            {
+                AddVersionCore(entry, actor);
+            }
+
+            foreach (var key in deletedKeys)
+            {
+                var storageKey = GetKey(projectName, environmentName, key);
+                _entries.TryRemove(storageKey, out _);
+                _versions.TryRemove(storageKey, out _);
+            }
+        }
+
+        return Task.CompletedTask;
     }
 
     public Task<IReadOnlyList<ConfigEntryVersion>> ListVersionsAsync(string projectName, string environmentName, string key, CancellationToken ct = default)
@@ -148,5 +138,46 @@ public class InMemoryConfigEntryRepository : IConfigEntryRepository
     public Task<int> CountAsync(CancellationToken ct = default)
     {
         return Task.FromResult(_entries.Count);
+    }
+
+    private ConfigEntry AddVersionCore(ConfigEntry entry, string actor)
+    {
+        var storageKey = GetKey(entry.Project, entry.Environment, entry.Key);
+        _entries.TryGetValue(storageKey, out var existingEntry);
+
+        var versions = _versions.GetOrAdd(storageKey, _ => []);
+        var nextVersion = versions.Count == 0 ? 1 : versions.Max(version => version.Version) + 1;
+        var versionTimestamp = entry.UpdatedAt;
+        var createdAt = existingEntry?.CreatedAt ?? entry.CreatedAt;
+        var normalizedActor = string.IsNullOrWhiteSpace(actor) ? "System" : actor;
+
+        versions.Add(new ConfigEntryVersion
+        {
+            Project = entry.Project,
+            Environment = entry.Environment,
+            Key = entry.Key,
+            Version = nextVersion,
+            Value = entry.Value,
+            ContentType = entry.ContentType,
+            Scope = entry.Scope,
+            CreatedAt = versionTimestamp,
+            Actor = normalizedActor
+        });
+
+        var current = new ConfigEntry
+        {
+            Project = entry.Project,
+            Environment = entry.Environment,
+            Key = entry.Key,
+            Value = entry.Value,
+            ContentType = entry.ContentType,
+            Scope = entry.Scope,
+            ActiveVersion = nextVersion,
+            CreatedAt = createdAt,
+            UpdatedAt = versionTimestamp
+        };
+
+        _entries[storageKey] = current;
+        return current;
     }
 }

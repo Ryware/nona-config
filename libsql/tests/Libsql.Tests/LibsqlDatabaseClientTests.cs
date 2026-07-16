@@ -121,4 +121,42 @@ public class LibsqlDatabaseClientTests
         await Assert.That(results[2].LastInsertRowId).IsNotNull();
         await Assert.That(results[3].Rows[0].GetInt32("Count")).IsEqualTo(2);
     }
+
+    [Test]
+    public async Task ExecuteBatchAsync_RollsBackSuccessfulStatementsWhenLaterStatementFails()
+    {
+        await using var server = await LocalSqldTestServer.StartAsync();
+        using var client = server.CreateClient();
+
+        await client.ExecuteAsync(
+            """
+            CREATE TABLE BatchItems (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                Name TEXT NOT NULL
+            )
+            """);
+
+        Exception? exception = null;
+        try
+        {
+            await client.ExecuteBatchAsync(
+            [
+                new LibsqlStatement(
+                    "INSERT INTO BatchItems (Name) VALUES (@Name)",
+                    LibsqlParameters.Create(("Name", "saved-first"))),
+                new LibsqlStatement(
+                    "INSERT INTO BatchItems (Name) VALUES (@Name)",
+                    LibsqlParameters.Create(("Name", (string?)null)))
+            ]);
+        }
+        catch (Exception caught)
+        {
+            exception = caught;
+        }
+
+        var count = await client.ExecuteAsync("SELECT COUNT(1) AS Count FROM BatchItems");
+
+        await Assert.That(exception).IsNotNull();
+        await Assert.That(count.Rows[0].GetInt32("Count")).IsEqualTo(0);
+    }
 }

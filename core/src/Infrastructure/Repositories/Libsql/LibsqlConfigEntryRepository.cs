@@ -190,6 +190,49 @@ public sealed class LibsqlConfigEntryRepository : IConfigEntryRepository
         }
     }
 
+    public async Task ReplaceEnvironmentAsync(
+        string projectName,
+        string environmentName,
+        IReadOnlyList<ConfigEntry> entries,
+        IReadOnlyList<string> deletedKeys,
+        string actor,
+        CancellationToken ct = default)
+    {
+        var normalizedActor = string.IsNullOrWhiteSpace(actor) ? "System" : actor;
+        var statements = new List<LibsqlStatement>();
+
+        foreach (var entry in entries)
+        {
+            statements.AddRange(CreateAddVersionStatements(
+                ToVersionParameters(entry, normalizedActor),
+                ToEntryParameters(entry),
+                ToEntryKeyParameters(entry)));
+        }
+
+        foreach (var key in deletedKeys)
+        {
+            var keyParameters = CreateKeyParameters(projectName, environmentName, key);
+            statements.Add(new LibsqlStatement(
+                """
+                DELETE FROM ConfigEntryVersions
+                WHERE Project = @ProjectName COLLATE NOCASE
+                  AND Environment = @EnvironmentName COLLATE NOCASE
+                  AND Key = @Key COLLATE NOCASE
+                """,
+                keyParameters));
+            statements.Add(new LibsqlStatement(
+                """
+                DELETE FROM ConfigEntries
+                WHERE Project = @ProjectName COLLATE NOCASE
+                  AND Environment = @EnvironmentName COLLATE NOCASE
+                  AND Key = @Key COLLATE NOCASE
+                """,
+                keyParameters));
+        }
+
+        await _client.ExecuteBatchAsync(statements, ct);
+    }
+
     public async Task<int> CountAsync(CancellationToken ct = default)
     {
         var result = await _client.ExecuteAsync("SELECT COUNT(*) FROM ConfigEntries", ct: ct);

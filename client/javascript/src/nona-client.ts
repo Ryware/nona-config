@@ -31,7 +31,7 @@ export interface NonaClient {
   ): Promise<NonaConfigValue | null>;
   getStringValue(key: string, options?: NonaRequestOptions): Promise<string>;
   getJsonValue<T>(key: string, options?: NonaRequestOptions): Promise<T>;
-  invalidateTtlCache(key: string): boolean;
+  invalidateTtlCache(key: string, options?: NonaRequestOptions): boolean;
   clearTtlCache(): void;
 }
 
@@ -52,6 +52,7 @@ export function createNonaClient(
   const baseUrl = ensureTrailingSlash(new URL(resolvedOptions.baseUrl));
   const environmentId = resolvedOptions.environmentId;
   const environmentSegment = segment(environmentId, "environmentId");
+  const defaultReleaseVersion = resolvedOptions.releaseVersion;
   const defaultHeaders = resolvedOptions.defaultHeaders;
   const fetchImpl = resolvedOptions.fetch ?? globalThis.fetch?.bind(globalThis);
 
@@ -69,6 +70,17 @@ export function createNonaClient(
   async function sendConfigValue(request: SendOptions): Promise<NonaConfigValue> {
     const response = await sendRequest(request);
     return readRawEntryValueResponse(response, request.method, response.url);
+  }
+
+  function configValuePath(key: string, releaseVersion: string | undefined): string {
+    const path = `api/${environmentSegment}/${segment(key, "key")}`;
+    if (!releaseVersion) {
+      return path;
+    }
+
+    const search = new URLSearchParams();
+    search.set("version", releaseVersion);
+    return `${path}?${search.toString()}`;
   }
 
   async function sendRequest(request: SendOptions): Promise<Response> {
@@ -99,7 +111,10 @@ export function createNonaClient(
     ): Promise<NonaConfigValue> {
       const request: SendOptions = {
         method: "GET",
-        path: `api/${environmentSegment}/${segment(key, "key")}`,
+        path: configValuePath(
+          key,
+          requestOptions.releaseVersion ?? defaultReleaseVersion,
+        ),
         ...requestOptions,
       };
       const id = buildRequestKey(baseUrl, request.method, request.path, apiKey);
@@ -126,10 +141,16 @@ export function createNonaClient(
       pendingRequests.set(id, inFlight);
       return inFlight;
     },
-    invalidateTtlCache(key: string): boolean {
+    invalidateTtlCache(
+      key: string,
+      requestOptions: NonaRequestOptions = {},
+    ): boolean {
       const request: SendOptions = {
         method: "GET",
-        path: `api/${environmentSegment}/${segment(key, "key")}`,
+        path: configValuePath(
+          key,
+          requestOptions.releaseVersion ?? defaultReleaseVersion,
+        ),
       };
       const id = buildRequestKey(baseUrl, request.method, request.path, apiKey);
       return cache.invalidate(id);

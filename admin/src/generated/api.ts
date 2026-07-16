@@ -578,6 +578,233 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/projects/{projectId}/environments/{environmentName}/releases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    projectId: string;
+                    environmentName: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConfigReleaseDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    projectId: string;
+                    environmentName: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PublishConfigReleaseRequest"];
+                };
+            };
+            responses: {
+                /** @description Created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConfigReleaseDetailsDto"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/projects/{projectId}/environments/{environmentName}/releases/{version}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    projectId: string;
+                    environmentName: string;
+                    version: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConfigReleaseDetailsDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    projectId: string;
+                    environmentName: string;
+                    version: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/projects/{projectId}/environments/{environmentName}/releases/{version}/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    projectId: string;
+                    environmentName: string;
+                    version: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ConfigEntryDto"][];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/projects/{projectId}/environments/{environmentName}/active-release": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    projectId: string;
+                    environmentName: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SetActiveConfigReleaseRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EnvironmentDto"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    projectId: string;
+                    environmentName: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EnvironmentDto"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/projects/{projectId}/api-keys": {
         parameters: {
             query?: never;
@@ -1343,7 +1570,9 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    version?: string;
+                };
                 header?: never;
                 path: {
                     environmentId: string;
@@ -1491,6 +1720,35 @@ export interface components {
             createdAt: string;
             actor: string;
         };
+        ConfigReleaseDetailsDto: {
+            project: string;
+            environment: string;
+            version: string;
+            /** Format: int32 */
+            entryCount: number | string;
+            entries: components["schemas"]["ConfigReleaseEntryDto"][];
+            isActive: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            actor: string;
+        };
+        ConfigReleaseDto: {
+            project: string;
+            environment: string;
+            version: string;
+            /** Format: int32 */
+            entryCount: number | string;
+            isActive: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            actor: string;
+        };
+        ConfigReleaseEntryDto: {
+            key: string;
+            value: string;
+            contentType: string;
+            scope: string;
+        };
         CreateApiKeyRequest: {
             name: string;
             environment?: null | string;
@@ -1544,6 +1802,7 @@ export interface components {
         EnvironmentDto: {
             name: string;
             project: string;
+            activeReleaseVersion: null | string;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -1598,6 +1857,11 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
         };
+        PublishConfigReleaseRequest: {
+            version: string;
+            /** @default false */
+            makeActive: boolean;
+        };
         RegisterCommand: {
             email: string;
             password: string;
@@ -1613,6 +1877,9 @@ export interface components {
         RollbackConfigEntryRequest: {
             /** Format: int32 */
             version: number;
+        };
+        SetActiveConfigReleaseRequest: {
+            version: null | string;
         };
         SharedParameterDto: {
             environment: string;

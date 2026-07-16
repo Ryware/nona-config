@@ -12,6 +12,14 @@ namespace Nona.Migrator.Core.Generated.Models
     public partial class EnvironmentDto : IAdditionalDataHolder, IParsable
     #pragma warning restore CS1591
     {
+        /// <summary>The activeReleaseVersion property</summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
+#nullable enable
+        public string? ActiveReleaseVersion { get; set; }
+#nullable restore
+#else
+        public string ActiveReleaseVersion { get; set; }
+#endif
         /// <summary>Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.</summary>
         public IDictionary<string, object> AdditionalData { get; set; }
         /// <summary>The createdAt property</summary>
@@ -59,6 +67,7 @@ namespace Nona.Migrator.Core.Generated.Models
         {
             return new Dictionary<string, Action<IParseNode>>
             {
+                { "activeReleaseVersion", n => { ActiveReleaseVersion = n.GetStringValue(); } },
                 { "createdAt", n => { CreatedAt = n.GetDateTimeOffsetValue(); } },
                 { "name", n => { Name = n.GetStringValue(); } },
                 { "project", n => { Project = n.GetStringValue(); } },
@@ -72,6 +81,7 @@ namespace Nona.Migrator.Core.Generated.Models
         public virtual void Serialize(ISerializationWriter writer)
         {
             if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));
+            writer.WriteStringValue("activeReleaseVersion", ActiveReleaseVersion);
             writer.WriteDateTimeOffsetValue("createdAt", CreatedAt);
             writer.WriteStringValue("name", Name);
             writer.WriteStringValue("project", Project);
