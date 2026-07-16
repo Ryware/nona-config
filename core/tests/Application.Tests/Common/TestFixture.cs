@@ -24,6 +24,8 @@ public class TestFixture
     public TestFixture()
     {
         DateTime.NowUtc.Returns(System.DateTime.UtcNow);
+        EnvironmentRepository.ListByProjectAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new List<ProjectEnvironment>());
         ConfigEntryRepository.AddVersionAsync(Arg.Any<ConfigEntry>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(call =>
             {

@@ -33,6 +33,7 @@ public class CreateProjectCommandTests
         await Assert.That(result.Success).IsTrue();
         await Assert.That(result.Project).IsNotNull();
         await Assert.That(result.Project!.Name).IsEqualTo(ProjectName);
+        await Assert.That(result.Project.Environments).Contains("Production");
     }
 
     [Test]

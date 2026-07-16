@@ -30,7 +30,9 @@ internal sealed class ListProjectsQueryHandler(Func<HttpClient>? httpClientFacto
     {
         Console.WriteLine($"  {p.Name}");
         Console.WriteLine($"    Slug:       {p.UrlSlug ?? "(none)"}");
-        var envs = p.Environments?.Count == 0 ? "(none)" : string.Join(", ", (p.Environments ?? []).Order());
+        var envs = p.Environments is { Count: > 0 }
+            ? string.Join(", ", p.Environments.Order())
+            : "(none)";
         Console.WriteLine($"    Environments: {envs}");
     }
 }
