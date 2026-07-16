@@ -57,6 +57,7 @@ public class CreateEnvironmentCommandHandler(
         var dto = new EnvironmentDto(
             environment.Name,
             environment.Project,
+            environment.ActiveReleaseVersion,
             environment.CreatedAt,
             environment.UpdatedAt);
 

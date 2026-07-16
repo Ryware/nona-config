@@ -22,9 +22,22 @@ public sealed partial class NonaClient
             : new Uri(value + "/", UriKind.Absolute);
     }
 
-    private static string CreateCacheKey(string key)
+    private string BuildConfigValuePath(string key, string? releaseVersion)
     {
-        return key;
+        var path = $"api/{_environmentSegment}/{Segment(key, nameof(key))}";
+        return releaseVersion is null
+            ? path
+            : $"{path}?version={Uri.EscapeDataString(releaseVersion)}";
+    }
+
+    private static string CreateCacheKey(string key, string? releaseVersion)
+    {
+        return releaseVersion is null ? key : $"{key}\n{releaseVersion}";
+    }
+
+    private static string? NormalizeReleaseVersion(string? releaseVersion)
+    {
+        return string.IsNullOrWhiteSpace(releaseVersion) ? null : releaseVersion!.Trim();
     }
 
     private static long EstimateCacheEntrySize(string cacheKey, NonaConfigValue value)

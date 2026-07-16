@@ -31,13 +31,13 @@ public class InMemoryEnvironmentRepository : IEnvironmentRepository
 
     public Task AddAsync(ProjectEnvironment environment, CancellationToken ct = default)
     {
-        _environments.TryAdd(GetKey(environment.Project, environment.Name), environment);
+        _environments.TryAdd(GetKey(environment.Project, environment.Name), Clone(environment));
         return Task.CompletedTask;
     }
 
     public Task UpdateAsync(ProjectEnvironment environment, CancellationToken ct = default)
     {
-        _environments[GetKey(environment.Project, environment.Name)] = environment;
+        _environments[GetKey(environment.Project, environment.Name)] = Clone(environment);
         return Task.CompletedTask;
     }
 
@@ -45,5 +45,18 @@ public class InMemoryEnvironmentRepository : IEnvironmentRepository
     {
         _environments.TryRemove(GetKey(projectName, environmentName), out _);
         return Task.CompletedTask;
+    }
+
+    private static ProjectEnvironment Clone(ProjectEnvironment environment)
+    {
+        return new ProjectEnvironment
+        {
+            Name = environment.Name,
+            Project = environment.Project,
+            ConfigEntries = environment.ConfigEntries.ToList(),
+            ActiveReleaseVersion = environment.ActiveReleaseVersion,
+            CreatedAt = environment.CreatedAt,
+            UpdatedAt = environment.UpdatedAt
+        };
     }
 }

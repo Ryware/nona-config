@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/solid-query";
 import { Show, createEffect, createMemo, createSignal } from "solid-js";
 
 import { configEntryService } from "../../entities/project/api/config-entry.service";
+import { configReleaseService } from "../../entities/project/api/config-release.service";
 import { environmentService } from "../../entities/project/api/environment.service";
 import { projectService } from "../../entities/project/api/project.service";
 import { ConfirmDialog } from "../../shared/ui/confirm-dialog";
@@ -17,6 +18,7 @@ import { ProjectEnvironments } from "../../features/project-environments/Project
 import { ProjectParamEditDrawer } from "../../features/project-param-edit/ProjectParamEditDrawer";
 import { ParameterShareDialog } from "../../features/project-param-share/ParameterShareDialog";
 import { ProjectParamsTab } from "../../features/project-params/ProjectParamsTab";
+import { ProjectReleases } from "../../features/project-releases/ProjectReleases";
 import { ProjectApiKeys } from "./components/ProjectApiKeys";
 import { ProjectHeader } from "./components/ProjectHeader";
 import { ProjectPageSkeleton } from "./components/ProjectPageSkeleton";
@@ -64,6 +66,10 @@ export default function ProjectPage() {
   const [editDescription, setEditDescription] = createSignal("");
   const [showBulkImport, setShowBulkImport] = createSignal(false);
   const [deletingApiKeyId, setDeletingApiKeyId] = createSignal<string | null>(null);
+  const [confirmDraftRelease, setConfirmDraftRelease] = createSignal<string | null>(null);
+  const [draftingReleaseVersion, setDraftingReleaseVersion] = createSignal<string | null>(null);
+  const [confirmDeleteRelease, setConfirmDeleteRelease] = createSignal<string | null>(null);
+  const [deletingReleaseVersion, setDeletingReleaseVersion] = createSignal<string | null>(null);
 
   createTimer(
     () => setCopiedKey(null),
@@ -102,6 +108,17 @@ export default function ProjectPage() {
     queryFn: () => configEntryService.getAll(projectId(), activeEnvName()),
     enabled: !!project() && !!activeEnvName()
   }));
+
+  const releasesQuery = useQuery(() => ({
+    queryKey: projectKeys.configReleases(params.slug, activeEnvName()),
+    queryFn: () => configReleaseService.getAll(projectId(), activeEnvName()),
+    enabled: !!project() && !!activeEnvName()
+  }));
+
+  const activeEnvironment = createMemo(() => {
+    const envs = environmentsQuery.status === "success" ? environmentsQuery.data ?? [] : [];
+    return envs.find(env => env.name === activeEnvName());
+  });
 
   const editingEntryKey = createMemo(() => editingEntry()?.key ?? "");
   const sharingEntryKey = createMemo(() => sharingEntry()?.key ?? "");
@@ -201,6 +218,66 @@ export default function ProjectPage() {
       addToast(MSG.ENV_DELETED, "success");
     },
     onError: () => addToast(MSG.ENV_DELETE_FAILED, "error")
+  }));
+
+  const publishReleaseMutation = useMutation(() => ({
+    mutationFn: (req: { version: string; makeActive: boolean }) =>
+      configReleaseService.publish(projectId(), activeEnvName(), req),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: projectKeys.configReleases(params.slug, activeEnvName())
+      });
+      queryClient.invalidateQueries({ queryKey: projectKeys.environments(params.slug) });
+      addToast(MSG.RELEASE_PUBLISHED, "success");
+    },
+    onError: error => addToast(errorMessage(error, MSG.RELEASE_PUBLISH_FAILED), "error")
+  }));
+
+  const setActiveReleaseMutation = useMutation(() => ({
+    mutationFn: (version: string | null) =>
+      version
+        ? configReleaseService.setActive(projectId(), activeEnvName(), { version })
+        : configReleaseService.clearActive(projectId(), activeEnvName()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: projectKeys.configReleases(params.slug, activeEnvName())
+      });
+      queryClient.invalidateQueries({ queryKey: projectKeys.environments(params.slug) });
+      addToast(MSG.RELEASE_ACTIVATED, "success");
+    },
+    onError: error => addToast(errorMessage(error, MSG.RELEASE_ACTIVATE_FAILED), "error")
+  }));
+
+  const createReleaseDraftMutation = useMutation(() => ({
+    mutationFn: (version: string) => {
+      setDraftingReleaseVersion(version);
+      return configReleaseService.createDraft(projectId(), activeEnvName(), version);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: projectKeys.configEntries(params.slug, activeEnvName())
+      });
+      setConfirmDraftRelease(null);
+      addToast(MSG.RELEASE_DRAFT_CREATED, "success");
+    },
+    onError: error => addToast(errorMessage(error, MSG.RELEASE_DRAFT_FAILED), "error"),
+    onSettled: () => setDraftingReleaseVersion(null)
+  }));
+
+  const deleteReleaseMutation = useMutation(() => ({
+    mutationFn: (version: string) => {
+      setDeletingReleaseVersion(version);
+      return configReleaseService.delete(projectId(), activeEnvName(), version);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: projectKeys.configReleases(params.slug, activeEnvName())
+      });
+      setConfirmDeleteRelease(null);
+      addToast(MSG.RELEASE_DELETED, "success");
+    },
+    onError: error => addToast(errorMessage(error, MSG.RELEASE_DELETE_FAILED), "error"),
+    onSettled: () => setDeletingReleaseVersion(null)
   }));
 
   // Param creation mutation
@@ -474,6 +551,27 @@ export default function ProjectPage() {
             canManage={canManageProject()}
           />
 
+          <Show when={activeEnvName()}>
+            <ProjectReleases
+              environmentName={activeEnvName()}
+              activeReleaseVersion={activeEnvironment()?.activeReleaseVersion}
+              releases={releasesQuery.status === "success" ? (releasesQuery.data ?? []) : []}
+              isLoading={releasesQuery.isLoading}
+              isPublishing={publishReleaseMutation.isPending}
+              isActivating={setActiveReleaseMutation.isPending}
+              draftingVersion={draftingReleaseVersion()}
+              deletingVersion={deletingReleaseVersion()}
+              canManage={canManageProject()}
+              onPublish={(version, makeActive) =>
+                publishReleaseMutation.mutateAsync({ version, makeActive })
+              }
+              onActivate={version => setActiveReleaseMutation.mutate(version)}
+              onClearActive={() => setActiveReleaseMutation.mutate(null)}
+              onDraft={setConfirmDraftRelease}
+              onDelete={setConfirmDeleteRelease}
+            />
+          </Show>
+
           <ProjectParamsTab
             activeEnvName={activeEnvName()}
             environments={
@@ -610,6 +708,58 @@ export default function ProjectPage() {
         testId="delete-environment-dialog"
         confirmTestId="delete-environment-confirm-button"
         cancelTestId="delete-environment-cancel-button"
+      />
+
+      <ConfirmDialog
+        open={confirmDraftRelease() !== null}
+        title="Load Release into Workspace?"
+        message={
+          <>
+            Load release <span class="text-primary font-mono font-bold">{confirmDraftRelease()}</span>{" "}
+            into the editable working configuration for{" "}
+            <span class="text-on-surface font-medium">{activeEnvName()}</span>? This replaces any
+            unpublished changes, but does not change the active release or what clients receive.
+          </>
+        }
+        confirmLabel="Load Release"
+        variant="info"
+        isLoading={createReleaseDraftMutation.isPending}
+        onConfirm={() => {
+          const version = confirmDraftRelease();
+          if (version) {
+            createReleaseDraftMutation.mutate(version);
+          }
+        }}
+        onCancel={() => setConfirmDraftRelease(null)}
+        testId="release-draft-dialog"
+        confirmTestId="release-draft-confirm-button"
+        cancelTestId="release-draft-cancel-button"
+      />
+
+      <ConfirmDialog
+        open={confirmDeleteRelease() !== null}
+        title="Delete Release?"
+        message={
+          <>
+            Permanently delete release{" "}
+            <span class="text-primary font-mono font-bold">{confirmDeleteRelease()}</span> from the{" "}
+            <span class="text-on-surface font-medium">{activeEnvName()}</span> environment? The
+            working configuration will not be changed.
+          </>
+        }
+        confirmLabel="Delete Release"
+        variant="danger"
+        isLoading={deleteReleaseMutation.isPending}
+        onConfirm={() => {
+          const version = confirmDeleteRelease();
+          if (version) {
+            deleteReleaseMutation.mutate(version);
+          }
+        }}
+        onCancel={() => setConfirmDeleteRelease(null)}
+        testId="release-delete-dialog"
+        confirmTestId="release-delete-confirm-button"
+        cancelTestId="release-delete-cancel-button"
       />
     </>
   );

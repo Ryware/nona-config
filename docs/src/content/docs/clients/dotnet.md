@@ -33,8 +33,9 @@ Before wiring the backend:
 2. open the backend service project
 3. select the target environment such as `production`
 4. create the parameter or flag you want to read
-5. create an API key in the `API Keys` section
-6. use `server` scope for backend-only reads whenever possible
+5. publish a release and set it active
+6. create an API key in the `API Keys` section
+7. use `server` scope for backend-only reads whenever possible
 
 For a first backend test, create `Features:UseLegacySearch` as a boolean entry or `App:Settings` as a JSON entry.
 
@@ -55,6 +56,8 @@ nona keys create \
   --scope server \
   --environment production
 ```
+
+Then publish and activate a release for the environment in admin.
 
 ## Read a string
 
@@ -109,6 +112,30 @@ if (value is null)
 
 This is helpful for optional settings or for gradual rollout of new keys across environments.
 
+## Pin a release version
+
+By default, reads use the active release selected for the environment.
+
+Set `ReleaseVersion` to pin the client to an exact release or release line:
+
+```csharp
+var client = new NonaClient(new NonaClientOptions
+{
+    BaseAddress = new Uri("https://nona.example.com"),
+    EnvironmentId = "production",
+    ApiKey = Environment.GetEnvironmentVariable("NONA_API_KEY"),
+    ReleaseVersion = "1.1.x"
+});
+```
+
+Use an exact version such as `1.1.0` for a fixed snapshot. Use a line such as `1.1.x` to read the highest patch in that line.
+
+You can override the configured version for one request:
+
+```csharp
+var value = await client.GetConfigValueAsync("Features:Checkout", "1.1.0");
+```
+
 ## Read JSON
 
 `GetJsonValueAsync<T>` uses source-generated `JsonTypeInfo<T>`.
@@ -162,9 +189,10 @@ Use `AllowStaleCache` carefully. It can improve resilience and smooth over trans
 If a .NET read fails:
 
 1. confirm the `EnvironmentId` matches the Nona environment name
-2. confirm the API key belongs to the same project as the entry
-3. confirm the key scope can read the entry scope
-4. try the same entry once with [HTTP](/docs/clients/http/) to separate transport issues from application code
+2. confirm the environment has an active release, or configure `ReleaseVersion`
+3. confirm the API key belongs to the same project as the entry
+4. confirm the key scope can read the entry scope
+5. try the same entry once with [HTTP](/docs/clients/http/) to separate transport issues from application code
 
 ## Good first backend flow
 

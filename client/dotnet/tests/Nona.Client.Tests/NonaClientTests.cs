@@ -37,6 +37,53 @@ public sealed class NonaClientTests
     }
 
     [Fact]
+    public async Task GetConfigValueAsync_SendsConfiguredReleaseVersion()
+    {
+        var handler = new StubHttpMessageHandler(_ => RawEntryValueResponse("enabled", "text"));
+
+        using var httpClient = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://nona.test/")
+        };
+
+        using var client = new NonaClient(httpClient, new NonaClientOptions
+        {
+            EnvironmentId = "production",
+            ApiKey = "api-key",
+            ReleaseVersion = "1.1.x"
+        });
+
+        await client.GetConfigValueAsync("Features:Checkout");
+
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal("1.1.x", client.ReleaseVersion);
+        Assert.Equal("https://nona.test/api/production/Features%3ACheckout?version=1.1.x", request.Uri.AbsoluteUri);
+    }
+
+    [Fact]
+    public async Task GetConfigValueAsync_RequestReleaseVersionOverridesConfiguredReleaseVersion()
+    {
+        var handler = new StubHttpMessageHandler(_ => RawEntryValueResponse("enabled", "text"));
+
+        using var httpClient = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://nona.test/")
+        };
+
+        using var client = new NonaClient(httpClient, new NonaClientOptions
+        {
+            EnvironmentId = "production",
+            ApiKey = "api-key",
+            ReleaseVersion = "1.1.x"
+        });
+
+        await client.GetConfigValueAsync("Features:Checkout", "1.1.0");
+
+        var request = Assert.Single(handler.Requests);
+        Assert.Equal("https://nona.test/api/production/Features%3ACheckout?version=1.1.0", request.Uri.AbsoluteUri);
+    }
+
+    [Fact]
     public async Task GetConfigValueAsync_UsesApiKeyCapturedAtConstruction()
     {
         var handler = new StubHttpMessageHandler(_ => RawEntryValueResponse("enabled", "text"));
@@ -238,6 +285,43 @@ public sealed class NonaClientTests
 
         Assert.Equal(new[] { "one", "two", "three" }, values.Select(value => value.Value).ToArray());
         Assert.Equal(3, handler.Requests.Count);
+    }
+
+    [Fact]
+    public async Task GetConfigValueAsync_DoesNotDeduplicateDifferentReleaseVersions()
+    {
+        var releaseResponses = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var handler = new StubHttpMessageHandler(async request =>
+        {
+            await releaseResponses.Task;
+            return RawEntryValueResponse(request.RequestUri?.Query ?? string.Empty, "text");
+        });
+
+        using var httpClient = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://nona.test/")
+        };
+
+        using var client = new NonaClient(httpClient, new NonaClientOptions
+        {
+            EnvironmentId = "production",
+            ApiKey = "api-key",
+            CacheTtl = TimeSpan.FromMinutes(1)
+        });
+
+        var requests = new[]
+        {
+            client.GetConfigValueAsync("flag", "1.1.0"),
+            client.GetConfigValueAsync("flag", "1.1.1")
+        };
+
+        await WaitForAsync(() => handler.Requests.Count == 2);
+        releaseResponses.SetResult(true);
+
+        var values = await Task.WhenAll(requests);
+
+        Assert.Equal(new[] { "?version=1.1.0", "?version=1.1.1" }, values.Select(value => value.Value).ToArray());
+        Assert.Equal(2, handler.Requests.Count);
     }
 
     [Fact]

@@ -22,6 +22,46 @@ test("getConfigValue sends API key and parses the value", async () => {
   assert.equal(calls[0].headers.get("X-Api-Key"), "api-key");
 });
 
+test("getConfigValue sends configured release version", async () => {
+  const calls = [];
+  const client = createNonaClient("https://nona.test", {
+    environmentId: "production",
+    apiKey: "api-key",
+    releaseVersion: "1.1.x",
+    fetch: async (url, init) => {
+      calls.push(capture(url, init));
+      return configValueResponse("enabled", "text");
+    }
+  });
+
+  await client.getConfigValue("Features:Checkout");
+
+  assert.equal(
+    calls[0].url,
+    "https://nona.test/api/production/Features%3ACheckout?version=1.1.x"
+  );
+});
+
+test("getConfigValue request release version overrides client default", async () => {
+  const calls = [];
+  const client = createNonaClient("https://nona.test", {
+    environmentId: "production",
+    apiKey: "api-key",
+    releaseVersion: "1.1.x",
+    fetch: async (url, init) => {
+      calls.push(capture(url, init));
+      return configValueResponse("enabled", "text");
+    }
+  });
+
+  await client.getConfigValue("Features:Checkout", { releaseVersion: "1.1.0" });
+
+  assert.equal(
+    calls[0].url,
+    "https://nona.test/api/production/Features%3ACheckout?version=1.1.0"
+  );
+});
+
 test("getConfigValue accepts legacy JSON responses", async () => {
   const client = createNonaClient("https://nona.test", {
     environmentId: "production",

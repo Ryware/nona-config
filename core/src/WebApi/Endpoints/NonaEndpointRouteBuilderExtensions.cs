@@ -5,6 +5,9 @@ using Nona.Application.Admin.ApiKeys.Commands;
 using Nona.Application.Admin.ApiKeys.DTOs;
 using Nona.Application.Admin.ApiKeys.Queries;
 using Nona.Application.Admin.AuditLogs.DTOs;
+using Nona.Application.Admin.ConfigReleases.Commands;
+using Nona.Application.Admin.ConfigReleases.DTOs;
+using Nona.Application.Admin.ConfigReleases.Queries;
 using Nona.Application.Admin.Common;
 using Nona.Application.Admin.ConfigEntries.Commands;
 using Nona.Application.Admin.ConfigEntries.DTOs;
@@ -90,6 +93,28 @@ public static class NonaEndpointRouteBuilderExtensions
         environments.MapGet("/", ListEnvironmentsAsync)
             .Produces<IReadOnlyList<EnvironmentDto>>();
         environments.MapDelete("/{environmentId}", DeleteEnvironmentAsync);
+
+        var configReleases = projects.MapGroup("/{projectId}/environments/{environmentName}/releases");
+        configReleases.MapGet("/", ListConfigReleasesAsync)
+            .Produces<IReadOnlyList<ConfigReleaseDto>>();
+        configReleases.MapPost("/", PublishConfigReleaseAsync)
+            .Accepts<PublishConfigReleaseRequest>("application/json")
+            .Produces<ConfigReleaseDetailsDto>(StatusCodes.Status201Created);
+        configReleases.MapGet("/{version}", GetConfigReleaseAsync)
+            .Produces<ConfigReleaseDetailsDto>();
+        configReleases.MapDelete("/{version}", DeleteConfigReleaseAsync);
+        configReleases.MapPost("/{version}/draft", CreateConfigReleaseDraftAsync)
+            .Produces<IReadOnlyList<ConfigEntryDto>>();
+
+        var activeRelease = projects.MapGroup("/{projectId}/environments/{environmentName}/active-release");
+        activeRelease.MapPut(
+                "/",
+                async (string projectId, string environmentName, SetActiveConfigReleaseRequest request, IValidator<SetActiveConfigReleaseRequest> validator, IMediator mediator, CancellationToken cancellationToken) =>
+                    await SetActiveConfigReleaseAsync(projectId, environmentName, request, validator, mediator, cancellationToken))
+            .Accepts<SetActiveConfigReleaseRequest>("application/json")
+            .Produces<EnvironmentDto>();
+        activeRelease.MapDelete("/", ClearActiveConfigReleaseAsync)
+            .Produces<EnvironmentDto>();
 
         var apiKeys = projects.MapGroup("/{projectId}/api-keys");
         apiKeys.MapGet("/", ListApiKeysAsync)
@@ -393,6 +418,172 @@ public static class NonaEndpointRouteBuilderExtensions
         return result.Success
             ? Results.NoContent()
             : NotFound(result.Error ?? "Environment not found");
+    }
+
+    private static async Task<IResult> ListConfigReleasesAsync(
+        string projectId,
+        string environmentName,
+        IMediator mediator,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new ListConfigReleasesQuery(projectId, environmentName), cancellationToken);
+        if (result.Success)
+        {
+            return Results.Ok(result.Releases);
+        }
+
+        return result.Error switch
+        {
+            "Access denied" => Forbidden(result.Error),
+            "Project not found" or "Environment not found" => NotFound(result.Error),
+            _ => BadRequest(result.Error ?? "Config releases could not be listed")
+        };
+    }
+
+    private static async Task<IResult> PublishConfigReleaseAsync(
+        string projectId,
+        string environmentName,
+        PublishConfigReleaseRequest request,
+        IValidator<PublishConfigReleaseRequest> validator,
+        IMediator mediator,
+        CancellationToken cancellationToken)
+    {
+        if (await ValidateRequestAsync(request, validator, cancellationToken) is { } validationResult)
+        {
+            return validationResult;
+        }
+
+        var result = await mediator.Send(
+            new PublishConfigReleaseCommand(projectId, environmentName, request.Version, request.MakeActive),
+            cancellationToken);
+
+        if (result.Success)
+        {
+            return Results.Created(
+                $"/admin/projects/{projectId}/environments/{environmentName}/releases/{result.Release!.Version}",
+                result.Release);
+        }
+
+        return result.Error switch
+        {
+            "Access denied" => Forbidden(result.Error),
+            "Project not found" or "Environment not found" => NotFound(result.Error),
+            "Release already exists" => Conflict(result.Error),
+            _ => BadRequest(result.Error ?? "Config release could not be published")
+        };
+    }
+
+    private static async Task<IResult> GetConfigReleaseAsync(
+        string projectId,
+        string environmentName,
+        string version,
+        IMediator mediator,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new GetConfigReleaseQuery(projectId, environmentName, version), cancellationToken);
+        if (result.Success)
+        {
+            return Results.Ok(result.Release);
+        }
+
+        return result.Error switch
+        {
+            "Access denied" => Forbidden(result.Error),
+            "Project not found" or "Environment not found" or "Release not found" => NotFound(result.Error),
+            _ => BadRequest(result.Error ?? "Config release not found")
+        };
+    }
+
+    private static async Task<IResult> DeleteConfigReleaseAsync(
+        string projectId,
+        string environmentName,
+        string version,
+        IMediator mediator,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(
+            new DeleteConfigReleaseCommand(projectId, environmentName, version),
+            cancellationToken);
+
+        if (result.Success)
+        {
+            return Results.NoContent();
+        }
+
+        return result.Error switch
+        {
+            "Access denied" => Forbidden(result.Error),
+            "Project not found" or "Environment not found" or "Release not found" => NotFound(result.Error),
+            "Active release cannot be deleted" => Conflict(result.Error),
+            _ => BadRequest(result.Error ?? "Config release could not be deleted")
+        };
+    }
+
+    private static async Task<IResult> CreateConfigReleaseDraftAsync(
+        string projectId,
+        string environmentName,
+        string version,
+        IMediator mediator,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new CreateConfigReleaseDraftCommand(projectId, environmentName, version), cancellationToken);
+        if (result.Success)
+        {
+            return Results.Ok(result.ConfigEntries);
+        }
+
+        return result.Error switch
+        {
+            "Access denied" => Forbidden(result.Error),
+            "Project not found" or "Environment not found" or "Release not found" => NotFound(result.Error),
+            _ => BadRequest(result.Error ?? "Config release draft could not be created")
+        };
+    }
+
+    private static async Task<IResult> SetActiveConfigReleaseAsync(
+        string projectId,
+        string environmentName,
+        SetActiveConfigReleaseRequest request,
+        IValidator<SetActiveConfigReleaseRequest> validator,
+        IMediator mediator,
+        CancellationToken cancellationToken)
+    {
+        if (await ValidateRequestAsync(request, validator, cancellationToken) is { } validationResult)
+        {
+            return validationResult;
+        }
+
+        return await SetActiveConfigReleaseAsync(projectId, environmentName, request.Version, mediator, cancellationToken);
+    }
+
+    private static async Task<IResult> ClearActiveConfigReleaseAsync(
+        string projectId,
+        string environmentName,
+        IMediator mediator,
+        CancellationToken cancellationToken)
+    {
+        return await SetActiveConfigReleaseAsync(projectId, environmentName, null, mediator, cancellationToken);
+    }
+
+    private static async Task<IResult> SetActiveConfigReleaseAsync(
+        string projectId,
+        string environmentName,
+        string? version,
+        IMediator mediator,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new SetActiveConfigReleaseCommand(projectId, environmentName, version), cancellationToken);
+        if (result.Success)
+        {
+            return Results.Ok(result.Environment);
+        }
+
+        return result.Error switch
+        {
+            "Access denied" => Forbidden(result.Error),
+            "Project not found" or "Environment not found" or "Release not found" => NotFound(result.Error),
+            _ => BadRequest(result.Error ?? "Active config release could not be updated")
+        };
     }
 
     private static async Task<IResult> ListApiKeysAsync(
@@ -812,16 +1003,18 @@ public static class NonaEndpointRouteBuilderExtensions
     public static async Task<IResult> GetConfigValueAsync(
         string environmentId,
         string key,
+        string? version,
         HttpContext httpContext,
         IMediator mediator,
         CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(new GetConfigEntryValueQuery(environmentId, key), cancellationToken);
+        var result = await mediator.Send(new GetConfigEntryValueQuery(environmentId, key, version), cancellationToken);
         if (!result.Success)
         {
             return result.Error switch
             {
                 "API key is required" or "Invalid API key" => Unauthorized(result.Error),
+                "Version must use major.minor.patch or major.minor.x format." => BadRequest(result.Error),
                 _ => NotFound(result.Error ?? "Config value not found")
             };
         }

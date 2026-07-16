@@ -13,7 +13,9 @@
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
     "verify:openapi": "./scripts/verify-openapi.sh",
-    "analyze": "ANALYZE=true npm run build"
+    "analyze": "ANALYZE=true npm run build",
+    "test:visual": "playwright test",
+    "test:visual:update": "playwright test --update-snapshots"
   },
   "dependencies": {
     "@azure/msal-browser": "^4.26.2",
@@ -36,6 +38,7 @@
     "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@solidjs/testing-library": "^0.8.10",
     "@tailwindcss/postcss": "^4.1.18",
     "@testing-library/jest-dom": "^6.9.1",

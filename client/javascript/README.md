@@ -29,6 +29,17 @@ const nona = createNonaClient({
 });
 ```
 
+Reads use the environment's active release by default. To pin a client to an exact release or release line:
+
+```js
+const nona = createNonaClient({
+  baseUrl: "https://nona.example.com",
+  environmentId: "production",
+  apiKey: "your-api-key",
+  releaseVersion: "1.1.x"
+});
+```
+
 You can also pass the base URL as the first argument:
 
 ```js
@@ -97,6 +108,7 @@ try {
 - `baseUrl`: the Nona server URL
 - `environmentId`: environment used for config reads
 - `apiKey`: API key for config reads
+- `releaseVersion`: optional exact release such as `1.1.0` or line such as `1.1.x`
 - `fetch`: custom fetch implementation
 - `defaultHeaders`: headers added to every request
 - `cacheTtlMs`: cache TTL in milliseconds (disabled by default; set a positive value to enable)
@@ -104,7 +116,7 @@ try {
 
 Cache helpers:
 
-- `invalidateTtlCache(key)`: removes only the matching cached request
+- `invalidateTtlCache(key, options?)`: removes only the matching cached request
 - `clearTtlCache()`: removes all TTL cache entries
 
 ## Runtime requirements

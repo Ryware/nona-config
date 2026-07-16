@@ -10,6 +10,8 @@ public sealed class NonaClientOptions
 
     public string? ApiKey { get; set; }
 
+    public string? ReleaseVersion { get; set; }
+
     public TimeSpan CacheTtl { get; set; } = TimeSpan.FromSeconds(30);
 
     public long CacheMemoryLimitMegabytes { get; set; } = 5;

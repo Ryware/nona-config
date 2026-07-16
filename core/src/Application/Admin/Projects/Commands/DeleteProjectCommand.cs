@@ -15,6 +15,7 @@ public class DeleteProjectCommandHandler(
     IConfigEntryRepository configEntryRepository,
     IProjectMemberRepository projectMemberRepository,
     IUserAuthorizationService userAuthorizationService,
+    IConfigReleaseRepository? configReleaseRepository = null,
     IAuditLogService? auditLogService = null)
     : IRequestHandler<DeleteProjectCommand, DeleteProjectResult>
 {
@@ -33,6 +34,11 @@ public class DeleteProjectCommandHandler(
         var projectName = project.Name;
 
         await DeleteConfigEntriesAsync(projectName, cancellationToken);
+        if (configReleaseRepository is not null)
+        {
+            await configReleaseRepository.DeleteByProjectAsync(projectName, cancellationToken);
+        }
+
         await DeleteEnvironmentsAsync(projectName, cancellationToken);
 
         await projectMemberRepository.DeleteByProjectAsync(projectName, cancellationToken);

@@ -27,6 +27,7 @@ public class ConfigApiEndpointTests
         var result = await NonaEndpointRouteBuilderExtensions.GetConfigValueAsync(
             "production",
             "features",
+            null,
             httpContext,
             mediator,
             CancellationToken.None);

@@ -33,8 +33,9 @@ Before writing app code:
 2. open the project the app belongs to
 3. select the target environment such as `production`
 4. create the parameter or flag you want to read
-5. create an API key in the `API Keys` section
-6. choose `client` scope for React Native or other app-side reads
+5. publish a release and set it active
+6. create an API key in the `API Keys` section
+7. choose `client` scope for React Native or other app-side reads
 
 For a first test, create a boolean parameter such as `Features:Checkout`.
 
@@ -55,6 +56,8 @@ nona keys create \
   --scope client \
   --environment production
 ```
+
+Then publish and activate a release for the environment in admin.
 
 ## Read a string
 
@@ -124,6 +127,31 @@ if (value === null) {
 
 This is helpful for optional settings or cases where a key may not exist in every environment yet.
 
+## Pin a release version
+
+By default, reads use the active release selected for the environment.
+
+Pin a client to an exact release or release line with `releaseVersion`:
+
+```js
+const nona = createNonaClient({
+  baseUrl: "https://nona.example.com",
+  environmentId: "production",
+  apiKey: process.env.NONA_API_KEY,
+  releaseVersion: "1.1.x"
+});
+```
+
+Use an exact version such as `1.1.0` for a fixed snapshot. Use a line such as `1.1.x` to read the highest patch in that line.
+
+You can override the configured version for one request:
+
+```js
+const value = await nona.getConfigValue("Features:Checkout", {
+  releaseVersion: "1.1.0"
+});
+```
+
 ## Handle HTTP errors
 
 ```js
@@ -188,9 +216,10 @@ Keep the TTL short for operational flags and kill switches unless you are sure l
 If a JavaScript read fails:
 
 1. confirm `environmentId` matches the environment name in Nona
-2. confirm the API key belongs to the same project as the parameter
-3. confirm the parameter scope is readable by that key
-4. try the same key once with [HTTP](/docs/clients/http/) to isolate client-code issues
+2. confirm the environment has an active release, or configure `releaseVersion`
+3. confirm the API key belongs to the same project as the parameter
+4. confirm the parameter scope is readable by that key
+5. try the same key once with [HTTP](/docs/clients/http/) to isolate client-code issues
 
 ## Good first app flow
 

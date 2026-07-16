@@ -20,6 +20,7 @@ public class GetConfigEntryValueQueryTests
     private IApiKeyRepository _apiKeyRepository = null!;
     private IEnvironmentRepository _environmentRepository = null!;
     private IConfigEntryRepository _configEntryRepository = null!;
+    private IConfigReleaseRepository _configReleaseRepository = null!;
     private IApiKeyService _apiKeyService = null!;
 
     [Before(Test)]
@@ -29,6 +30,7 @@ public class GetConfigEntryValueQueryTests
         _apiKeyRepository = Substitute.For<IApiKeyRepository>();
         _environmentRepository = Substitute.For<IEnvironmentRepository>();
         _configEntryRepository = Substitute.For<IConfigEntryRepository>();
+        _configReleaseRepository = Substitute.For<IConfigReleaseRepository>();
         _apiKeyService = Substitute.For<IApiKeyService>();
     }
 
@@ -133,7 +135,7 @@ public class GetConfigEntryValueQueryTests
         // Assert
         await Assert.That(result.Success).IsFalse();
         await Assert.That(result.Error).IsEqualTo("Environment not found");
-        await _environmentRepository.DidNotReceive().ExistsAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await _environmentRepository.DidNotReceive().GetAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     #endregion
@@ -267,8 +269,8 @@ public class GetConfigEntryValueQueryTests
     {
         // Arrange
         SetupValidBackendScopedApiKey();
-        _environmentRepository.ExistsAsync(ProjectName, EnvironmentName, Arg.Any<CancellationToken>())
-            .Returns(false);
+        _environmentRepository.GetAsync(ProjectName, EnvironmentName, Arg.Any<CancellationToken>())
+            .Returns((ProjectEnvironment?)null);
 
         var handler = CreateHandler();
         var query = new GetConfigEntryValueQuery(EnvironmentName, ConfigKey);
@@ -287,8 +289,8 @@ public class GetConfigEntryValueQueryTests
         // Arrange
         SetupValidBackendScopedApiKey();
         SetupEnvironmentExists();
-        _configEntryRepository.GetAsync(ProjectName, EnvironmentName, ConfigKey, Arg.Any<CancellationToken>())
-            .Returns((ConfigEntry?)null);
+        _configReleaseRepository.GetAsync(ProjectName, EnvironmentName, "1.0.0", Arg.Any<CancellationToken>())
+            .Returns(CreateRelease("1.0.0", key: "other-key"));
 
         var handler = CreateHandler();
         var query = new GetConfigEntryValueQuery(EnvironmentName, ConfigKey);
@@ -301,6 +303,55 @@ public class GetConfigEntryValueQueryTests
         await Assert.That(result.Error).IsEqualTo("Config entry not found");
     }
 
+    [Test]
+    public async Task GetConfigEntryValue_WithNoVersionAndNoActiveRelease_ReturnsError()
+    {
+        SetupValidBackendScopedApiKey();
+        SetupEnvironmentExists(activeReleaseVersion: null);
+
+        var handler = CreateHandler();
+        var query = new GetConfigEntryValueQuery(EnvironmentName, ConfigKey);
+
+        var result = await handler.Handle(query, CancellationToken.None);
+
+        await Assert.That(result.Success).IsFalse();
+        await Assert.That(result.Error).IsEqualTo("Active release not configured");
+    }
+
+    [Test]
+    public async Task GetConfigEntryValue_WithExactVersion_ReadsExactRelease()
+    {
+        SetupValidBackendScopedApiKey();
+        SetupEnvironmentExists(activeReleaseVersion: null);
+        _configReleaseRepository.GetAsync(ProjectName, EnvironmentName, "1.1.0", Arg.Any<CancellationToken>())
+            .Returns(CreateRelease("1.1.0", value: "exact-value"));
+
+        var handler = CreateHandler();
+        var query = new GetConfigEntryValueQuery(EnvironmentName, ConfigKey, "1.1.0");
+
+        var result = await handler.Handle(query, CancellationToken.None);
+
+        await Assert.That(result.Success).IsTrue();
+        await Assert.That(result.Value).IsEqualTo("exact-value");
+    }
+
+    [Test]
+    public async Task GetConfigEntryValue_WithVersionLine_ReadsHighestPatchRelease()
+    {
+        SetupValidBackendScopedApiKey();
+        SetupEnvironmentExists(activeReleaseVersion: null);
+        _configReleaseRepository.GetLatestPatchAsync(ProjectName, EnvironmentName, 1, 1, Arg.Any<CancellationToken>())
+            .Returns(CreateRelease("1.1.5", value: "line-value"));
+
+        var handler = CreateHandler();
+        var query = new GetConfigEntryValueQuery(EnvironmentName, ConfigKey, "1.1.x");
+
+        var result = await handler.Handle(query, CancellationToken.None);
+
+        await Assert.That(result.Success).IsTrue();
+        await Assert.That(result.Value).IsEqualTo("line-value");
+    }
+
     #endregion
 
     #region Content Type Tests
@@ -311,16 +362,8 @@ public class GetConfigEntryValueQueryTests
         // Arrange
         SetupValidBackendScopedApiKey();
         SetupEnvironmentExists();
-        _configEntryRepository.GetAsync(ProjectName, EnvironmentName, ConfigKey, Arg.Any<CancellationToken>())
-            .Returns(new ConfigEntry
-            {
-                Project = ProjectName,
-                Environment = EnvironmentName,
-                Key = ConfigKey,
-                Value = "{\"key\": \"value\"}",
-                ContentType = "application/json",
-                Scope = KeyScope.All
-            });
+        _configReleaseRepository.GetAsync(ProjectName, EnvironmentName, "1.0.0", Arg.Any<CancellationToken>())
+            .Returns(CreateRelease("1.0.0", value: "{\"key\": \"value\"}", contentType: "application/json"));
 
         var handler = CreateHandler();
         var query = new GetConfigEntryValueQuery(EnvironmentName, ConfigKey);
@@ -358,6 +401,9 @@ public class GetConfigEntryValueQueryTests
         await _configEntryRepository.DidNotReceive().AddAsync(Arg.Any<ConfigEntry>(), Arg.Any<CancellationToken>());
         await _configEntryRepository.DidNotReceive().UpdateAsync(Arg.Any<ConfigEntry>(), Arg.Any<CancellationToken>());
         await _configEntryRepository.DidNotReceive().DeleteAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await _configReleaseRepository.DidNotReceive().AddAsync(Arg.Any<ConfigRelease>(), Arg.Any<CancellationToken>());
+        await _configReleaseRepository.DidNotReceive().DeleteByEnvironmentAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await _configReleaseRepository.DidNotReceive().DeleteByProjectAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
         await _projectRepository.DidNotReceive().AddAsync(Arg.Any<Project>(), Arg.Any<CancellationToken>());
         await _projectRepository.DidNotReceive().UpdateAsync(Arg.Any<Project>(), Arg.Any<CancellationToken>());
         await _projectRepository.DidNotReceive().DeleteAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
@@ -372,7 +418,7 @@ public class GetConfigEntryValueQueryTests
         return new GetConfigEntryValueQueryHandler(
             _apiKeyRepository,
             _environmentRepository,
-            _configEntryRepository,
+            _configReleaseRepository,
             _apiKeyService);
     }
 
@@ -400,24 +446,54 @@ public class GetConfigEntryValueQueryTests
             .Returns(new ApiKeyAuthenticationResult(project, KeyScope.Frontend, null));
     }
 
-    private void SetupEnvironmentExists()
+    private void SetupEnvironmentExists(string? activeReleaseVersion = "1.0.0")
     {
-        _environmentRepository.ExistsAsync(ProjectName, EnvironmentName, Arg.Any<CancellationToken>())
-            .Returns(true);
+        _environmentRepository.GetAsync(ProjectName, EnvironmentName, Arg.Any<CancellationToken>())
+            .Returns(new ProjectEnvironment
+            {
+                Project = ProjectName,
+                Name = EnvironmentName,
+                ActiveReleaseVersion = activeReleaseVersion
+            });
     }
 
     private void SetupConfigEntry(KeyScope scope)
     {
-        _configEntryRepository.GetAsync(ProjectName, EnvironmentName, ConfigKey, Arg.Any<CancellationToken>())
-            .Returns(new ConfigEntry
-            {
-                Project = ProjectName,
-                Environment = EnvironmentName,
-                Key = ConfigKey,
-                Value = ConfigValue,
-                ContentType = "text",
-                Scope = scope
-            });
+        _configReleaseRepository.GetAsync(ProjectName, EnvironmentName, "1.0.0", Arg.Any<CancellationToken>())
+            .Returns(CreateRelease("1.0.0", scope: scope));
+    }
+
+    private static ConfigRelease CreateRelease(
+        string version,
+        string key = ConfigKey,
+        string value = ConfigValue,
+        string contentType = "text",
+        KeyScope scope = KeyScope.All)
+    {
+        var parts = version.Split('.');
+        return new ConfigRelease
+        {
+            Project = ProjectName,
+            Environment = EnvironmentName,
+            Version = version,
+            Major = int.Parse(parts[0]),
+            Minor = int.Parse(parts[1]),
+            Patch = int.Parse(parts[2]),
+            Entries =
+            [
+                new ConfigReleaseEntry
+                {
+                    Project = ProjectName,
+                    Environment = EnvironmentName,
+                    ReleaseVersion = version,
+                    Key = key,
+                    Value = value,
+                    ContentType = contentType,
+                    Scope = scope
+                }
+            ],
+            EntryCount = 1
+        };
     }
 
     #endregion

@@ -73,20 +73,15 @@ docker run -d \
 - **Web UI:** `http://localhost:18080`
 - **API base:** `http://localhost:18080`
 
-Create a project, add environments, and set your first key-value pair. Then fetch your config:
+Create a project, add an environment, set your first key-value pair, publish a release, and set it active. Then fetch the value:
 
 ```bash
-curl http://localhost:18080/v1/config/my-app/production \
-  -H "X-API-Key: your-api-key"
+curl "http://localhost:18080/api/production/Features%3ACheckout" \
+  -H "X-Api-Key: your-api-key"
 ```
 
-```json
-{
-  "checkout_v2": true,
-  "dark_mode": false,
-  "banner_text": "Hello",
-  "max_upload_mb": 50
-}
+```text
+true
 ```
 
 ---
@@ -116,7 +111,8 @@ import { createNonaClient } from "nona-client";
 const nona = createNonaClient({
   baseUrl: "https://nona.example.com",
   environmentId: "production",
-  apiKey: process.env.NONA_API_KEY
+  apiKey: process.env.NONA_API_KEY,
+  releaseVersion: "1.1.x"
 });
 
 const value = await nona.getConfigValue("Features:Checkout");
@@ -157,23 +153,23 @@ See [client/javascript-openfeature-provider/README.md](client/javascript-openfea
 
 ### Any language (plain HTTP)
 
-No SDK needed. A single GET request returns all config for a project and environment as JSON:
+No SDK needed. A single GET request returns one config value from the environment's active release, or from a pinned release version:
 
 ```bash
 # curl
-curl https://your-nona-host/v1/config/{project}/{environment} \
-  -H "X-API-Key: your-api-key"
+curl "https://your-nona-host/api/production/Features%3ACheckout?version=1.1.x" \
+  -H "X-Api-Key: your-api-key"
 
 # Python
 import httpx
-config = httpx.get(
-    "https://your-nona-host/v1/config/my-app/production",
-    headers={"X-API-Key": api_key}
-).json()
+value = httpx.get(
+    "https://your-nona-host/api/production/Features%3ACheckout",
+    headers={"X-Api-Key": api_key}
+).text
 
 # Go
-req, _ := http.NewRequest("GET", "https://your-nona-host/v1/config/my-app/production", nil)
-req.Header.Set("X-API-Key", apiKey)
+req, _ := http.NewRequest("GET", "https://your-nona-host/api/production/Features%3ACheckout", nil)
+req.Header.Set("X-Api-Key", apiKey)
 ```
 
 ---
@@ -195,10 +191,15 @@ Or download the binary from [GitHub Releases](https://github.com/ryware/nona-con
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/v1/config/{project}/{environment}` | Fetch all config for a project/environment |
-| `GET` | `/v1/config/{project}/{environment}/{key}` | Fetch a single key |
+| `GET` | `/api/{environmentId}/{key}` | Fetch one key from the active release |
+| `GET` | `/api/{environmentId}/{key}?version=1.1.0` | Fetch one key from an exact release |
+| `GET` | `/api/{environmentId}/{key}?version=1.1.x` | Fetch one key from the highest patch in a release line |
 
-Authentication: `X-API-Key` request header.
+Authentication: `X-Api-Key` request header.
+
+The API does not accept per-user evaluation context for runtime flag resolution. Query parameters or headers such as `userId` or `X-User-Id` are not part of the Nona read model.
+
+See [HTTP client docs](https://nonaconfig.com/docs/clients/http/) for examples and troubleshooting.
 
 ---
 

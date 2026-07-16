@@ -193,6 +193,138 @@ describe('ProjectPage', () => {
     expect(generatedUrl).toHaveValue(`${window.location.origin}/share/AbCdEf1234567890`);
   });
 
+  it('publishes a configuration release', async () => {
+    const publishRequests: Array<{ version: string; makeActive: boolean }> = [];
+    server.use(
+      http.post(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/releases',
+        async ({ params, request }) => {
+          const body = await request.json() as { version: string; makeActive: boolean };
+          publishRequests.push(body);
+          return HttpResponse.json({
+            project: params.projectId,
+            environment: params.envName,
+            version: body.version,
+            entryCount: 3,
+            isActive: body.makeActive,
+            createdAt: new Date().toISOString(),
+            actor: 'admin@example.com',
+            entries: [],
+          }, { status: 201 });
+        },
+      ),
+    );
+
+    renderProjectPage('my-app');
+
+    fireEvent.input(await screen.findByTestId('release-version-input'), {
+      target: { value: '1.2.0' },
+    });
+    fireEvent.click(screen.getByTestId('release-publish-button'));
+
+    await waitFor(() => {
+      expect(publishRequests).toEqual([{ version: '1.2.0', makeActive: true }]);
+    });
+  });
+
+  it('keeps the release version when publishing fails', async () => {
+    server.use(
+      http.post(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/releases',
+        () => HttpResponse.json({ error: 'Release already exists' }, { status: 409 }),
+      ),
+    );
+
+    renderProjectPage('my-app');
+
+    const versionInput = await screen.findByTestId('release-version-input');
+    fireEvent.input(versionInput, { target: { value: '1.2.0' } });
+    fireEvent.click(screen.getByTestId('release-publish-button'));
+
+    expect(await screen.findByText('Release already exists')).toBeInTheDocument();
+    expect(versionInput).toHaveValue('1.2.0');
+  });
+
+  it('activates a configuration release', async () => {
+    const activeRequests: Array<{ version: string | null }> = [];
+    server.use(
+      http.put(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/active-release',
+        async ({ params, request }) => {
+          const body = await request.json() as { version: string | null };
+          activeRequests.push(body);
+          return HttpResponse.json({
+            project: params.projectId,
+            name: params.envName,
+            activeReleaseVersion: body.version,
+            createdAt: '2024-01-01T00:00:00Z',
+            updatedAt: new Date().toISOString(),
+          });
+        },
+      ),
+    );
+
+    renderProjectPage('my-app');
+
+    await screen.findByText('1.1.0');
+    const activateButtons = screen.getAllByRole('button', { name: /activate/i });
+    const enabledActivate = activateButtons.find(button => !button.hasAttribute('disabled'));
+    expect(enabledActivate).toBeTruthy();
+    fireEvent.click(enabledActivate!);
+
+    await waitFor(() => {
+      expect(activeRequests).toEqual([{ version: '1.1.0' }]);
+    });
+  });
+
+  it('creates a working draft from a release after confirmation', async () => {
+    const draftRequests: string[] = [];
+    server.use(
+      http.post(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/releases/:version/draft',
+        ({ params }) => {
+          draftRequests.push(String(params.version));
+          return HttpResponse.json([]);
+        },
+      ),
+    );
+
+    renderProjectPage('my-app');
+
+    fireEvent.click(await screen.findByTestId('release-draft-1.1.0'));
+    expect(await screen.findByTestId('release-draft-dialog')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('release-draft-confirm-button'));
+
+    await waitFor(() => {
+      expect(draftRequests).toEqual(['1.1.0']);
+    });
+  });
+
+  it('deletes a non-active release after confirmation', async () => {
+    const deleteRequests: string[] = [];
+    server.use(
+      http.delete(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/releases/:version',
+        ({ params }) => {
+          deleteRequests.push(String(params.version));
+          return new HttpResponse(null, { status: 204 });
+        },
+      ),
+    );
+
+    renderProjectPage('my-app');
+
+    const activeDeleteButton = await screen.findByTestId('release-delete-1.0.0');
+    expect(activeDeleteButton).toBeDisabled();
+    fireEvent.click(screen.getByTestId('release-delete-1.1.0'));
+    expect(await screen.findByTestId('release-delete-dialog')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('release-delete-confirm-button'));
+
+    await waitFor(() => {
+      expect(deleteRequests).toEqual(['1.1.0']);
+    });
+  });
+
   it('copies a share link from history', async () => {
     renderProjectPage('my-app');
 

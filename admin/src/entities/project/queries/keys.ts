@@ -26,6 +26,10 @@ export const projectKeys = {
   configEntries: (slug: string, env: string) =>
     [...projectKeys.detail(slug), "config-entries", env] as const,
 
+  /** Config releases for a specific environment */
+  configReleases: (slug: string, env: string) =>
+    [...projectKeys.detail(slug), "config-releases", env] as const,
+
   /** Version history for a specific config entry */
   configEntryHistory: (slug: string, env: string, key: string) =>
     [...projectKeys.configEntries(slug, env), key, "history"] as const,
