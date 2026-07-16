@@ -6,7 +6,6 @@ import type {
   RegisterRequest,
   ForgotPasswordRequest,
   ResetPasswordRequest,
-  RegisterResult,
   SsoConfig,
   InvitationDetails,
 } from "../model/types";
@@ -16,8 +15,8 @@ export const authService = {
     return apiClient.post<LoginResponse>("/auth/login", credentials);
   },
 
-  async register(data: RegisterRequest): Promise<RegisterResult> {
-    return apiClient.post<RegisterResult>("/auth/register", data);
+  async register(data: RegisterRequest): Promise<LoginResponse> {
+    return apiClient.post<LoginResponse>("/auth/register", data);
   },
 
   async requestPasswordReset(data: ForgotPasswordRequest): Promise<void> {

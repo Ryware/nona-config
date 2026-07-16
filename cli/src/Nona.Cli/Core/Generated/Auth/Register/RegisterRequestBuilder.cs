@@ -33,22 +33,31 @@ namespace Nona.Cli.Generated.Auth.Register
         public RegisterRequestBuilder(string rawUrl, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/auth/register", rawUrl)
         {
         }
-        /// <returns>A <see cref="global::Nona.Cli.Generated.Models.RegisterResult"/></returns>
+        /// <returns>A <see cref="global::Nona.Cli.Generated.Models.LoginResponse"/></returns>
         /// <param name="body">The request body</param>
         /// <param name="cancellationToken">Cancellation token to use when cancelling requests</param>
         /// <param name="requestConfiguration">Configuration for the request such as headers, query parameters, and middleware options.</param>
+        /// <exception cref="global::Nona.Cli.Generated.Models.ErrorResponse">When receiving a 400 status code</exception>
+        /// <exception cref="global::Nona.Cli.Generated.Models.ErrorResponse">When receiving a 403 status code</exception>
+        /// <exception cref="global::Nona.Cli.Generated.Models.ErrorResponse">When receiving a 409 status code</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
-        public async Task<global::Nona.Cli.Generated.Models.RegisterResult?> PostAsync(global::Nona.Cli.Generated.Models.RegisterCommand body, Action<RequestConfiguration<DefaultQueryParameters>>? requestConfiguration = default, CancellationToken cancellationToken = default)
+        public async Task<global::Nona.Cli.Generated.Models.LoginResponse?> PostAsync(global::Nona.Cli.Generated.Models.RegisterCommand body, Action<RequestConfiguration<DefaultQueryParameters>>? requestConfiguration = default, CancellationToken cancellationToken = default)
         {
 #nullable restore
 #else
-        public async Task<global::Nona.Cli.Generated.Models.RegisterResult> PostAsync(global::Nona.Cli.Generated.Models.RegisterCommand body, Action<RequestConfiguration<DefaultQueryParameters>> requestConfiguration = default, CancellationToken cancellationToken = default)
+        public async Task<global::Nona.Cli.Generated.Models.LoginResponse> PostAsync(global::Nona.Cli.Generated.Models.RegisterCommand body, Action<RequestConfiguration<DefaultQueryParameters>> requestConfiguration = default, CancellationToken cancellationToken = default)
         {
 #endif
             if(ReferenceEquals(body, null)) throw new ArgumentNullException(nameof(body));
             var requestInfo = ToPostRequestInformation(body, requestConfiguration);
-            return await RequestAdapter.SendAsync<global::Nona.Cli.Generated.Models.RegisterResult>(requestInfo, global::Nona.Cli.Generated.Models.RegisterResult.CreateFromDiscriminatorValue, default, cancellationToken).ConfigureAwait(false);
+            var errorMapping = new Dictionary<string, ParsableFactory<IParsable>>
+            {
+                { "400", global::Nona.Cli.Generated.Models.ErrorResponse.CreateFromDiscriminatorValue },
+                { "403", global::Nona.Cli.Generated.Models.ErrorResponse.CreateFromDiscriminatorValue },
+                { "409", global::Nona.Cli.Generated.Models.ErrorResponse.CreateFromDiscriminatorValue },
+            };
+            return await RequestAdapter.SendAsync<global::Nona.Cli.Generated.Models.LoginResponse>(requestInfo, global::Nona.Cli.Generated.Models.LoginResponse.CreateFromDiscriminatorValue, errorMapping, cancellationToken).ConfigureAwait(false);
         }
         /// <returns>A <see cref="RequestInformation"/></returns>
         /// <param name="body">The request body</param>

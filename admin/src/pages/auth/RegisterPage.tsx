@@ -19,20 +19,18 @@ export default function RegisterPage() {
   const registerMutation = useMutation(() => ({
     mutationFn: (data: RegisterRequest) => authService.register(data),
     onSuccess: result => {
-      if (result.success && result.response?.token) {
-        authStore.saveSession(result.response.token, {
+      if (result.token) {
+        authStore.saveSession(result.token, {
           email: email(),
-          role: result.response.role
+          role: result.role
         });
         navigate("/projects");
-      } else if (result.error) {
-        setError(result.error);
       } else {
         setError(MSG.REGISTER_FAILED);
       }
     },
-    onError: () => {
-      setError(MSG.REGISTER_UNEXPECTED);
+    onError: error => {
+      setError(error instanceof Error ? error.message : MSG.REGISTER_UNEXPECTED);
     }
   }));
 

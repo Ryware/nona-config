@@ -87,7 +87,7 @@ describe('RegisterPage', () => {
   it('shows an error message when the API returns an error', async () => {
     server.use(
       http.post('http://localhost:5027/auth/register', () =>
-        HttpResponse.json({ success: false, response: null, error: 'Email already exists' }),
+        HttpResponse.json({ error: 'Email already exists' }, { status: 409 }),
       ),
     );
 
@@ -111,7 +111,7 @@ describe('RegisterPage', () => {
     server.use(
       http.post('http://localhost:5027/auth/register', async () => {
         await new Promise((r) => setTimeout(r, 200));
-        return HttpResponse.json({ success: true, response: { token: mockToken, role: 'admin', expiresAt: '2099-01-01T00:00:00Z' }, error: null });
+        return HttpResponse.json({ token: mockToken, role: 'admin', expiresAt: '2099-01-01T00:00:00Z' });
       }),
     );
 

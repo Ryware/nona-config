@@ -26,10 +26,9 @@ describe('authService', () => {
   });
 
   describe('register', () => {
-    it('returns success result with token', async () => {
+    it('returns login response with token', async () => {
       const result = await authService.register({ email: 'new@example.com', password: 'secret' });
-      expect(result.success).toBe(true);
-      expect(result.response?.token).toBe(mockToken);
+      expect(result.token).toBe(mockToken);
     });
   });
 

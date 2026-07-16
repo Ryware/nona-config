@@ -81,23 +81,21 @@ internal sealed class InitCommandHandler(Func<HttpClient>? httpClientFactory = n
 
         if (firstTime.Value)
         {
-            var register = await SendAsync<RegisterResponse>(
+            var register = await SendAsync<LoginResponse>(
                 anonymous,
                 HttpMethod.Post,
                 "auth/register",
                 new LoginRequest(command.Email, command.Password),
                 ct);
 
-            if (register.Success && register.Value?.Success == true)
+            if (register.Success)
             {
-                var token = register.Value.Response?.Token;
+                var token = register.Value?.Token;
                 if (!string.IsNullOrWhiteSpace(token))
                     return AuthResult.Ok(token);
-
-                return await LoginAsync(command, anonymous, ct);
             }
 
-            var registerError = register.Value?.Error ?? register.Error ?? "Registration failed.";
+            var registerError = register.Error ?? "Registration failed.";
             if (registerError.Contains("already exists", StringComparison.OrdinalIgnoreCase))
                 return await LoginAsync(command, anonymous, ct);
 
@@ -403,8 +401,6 @@ internal sealed class InitCommandHandler(Func<HttpClient>? httpClientFactory = n
     private sealed record LoginRequest(string Email, string Password);
 
     private sealed record LoginResponse(string Token, string? Username, string? Role, DateTimeOffset? ExpiresAt);
-
-    private sealed record RegisterResponse(bool Success, LoginResponse? Response, string? Error);
 
     private sealed record CreateProjectRequest(string Name);
 

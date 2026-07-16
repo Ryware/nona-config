@@ -1,4 +1,5 @@
 using Mediator;
+using Nona.Application.Auth;
 using Nona.Application.Auth.Commands;
 using Nona.Application.Auth.DTOs;
 using Nona.Application.Common.Interfaces;
@@ -24,6 +25,7 @@ public class RegisterCommandTests
     [Test]
     public async Task FirstRegistration_ReturnsLoginToken()
     {
+        _userRepository.ExistsAsync("admin@example.com", Arg.Any<CancellationToken>()).Returns(false);
         _userRepository.ExistsAnyAsync(Arg.Any<CancellationToken>()).Returns(false);
         _mediator
             .Send(Arg.Any<LoginCommand>(), Arg.Any<CancellationToken>())
@@ -48,6 +50,7 @@ public class RegisterCommandTests
     [Test]
     public async Task FirstRegistration_ReturnsFailure_WhenPostRegistrationLoginFails()
     {
+        _userRepository.ExistsAsync("admin@example.com", Arg.Any<CancellationToken>()).Returns(false);
         _userRepository.ExistsAnyAsync(Arg.Any<CancellationToken>()).Returns(false);
         _mediator
             .Send(Arg.Any<LoginCommand>(), Arg.Any<CancellationToken>())
@@ -60,5 +63,40 @@ public class RegisterCommandTests
         await Assert.That(result.Success).IsFalse();
         await Assert.That(result.Response).IsNull();
         await Assert.That(result.Error).IsEqualTo("Invalid username or password");
+    }
+
+    [Test]
+    public async Task ExistingEmail_ReturnsDuplicateFailure()
+    {
+        _userRepository.ExistsAsync("admin@example.com", Arg.Any<CancellationToken>()).Returns(true);
+
+        var handler = new RegisterCommandHandler(_mediator, _userRepository, _dateTime, _passwordHasher);
+
+        var result = await handler.Handle(new RegisterCommand("admin@example.com", "Password123!"), CancellationToken.None);
+
+        await Assert.That(result.Success).IsFalse();
+        await Assert.That(result.Response).IsNull();
+        await Assert.That(result.Error).IsEqualTo("User already exists");
+        await Assert.That(result.ErrorCode).IsEqualTo(AuthErrorCodes.UserAlreadyExists);
+        await _userRepository.DidNotReceive()
+            .AddAsync(Arg.Any<User>(), Arg.Any<CancellationToken>());
+    }
+
+    [Test]
+    public async Task NewEmail_WhenUsersExist_ReturnsRegistrationDisabledFailure()
+    {
+        _userRepository.ExistsAsync("new-admin@example.com", Arg.Any<CancellationToken>()).Returns(false);
+        _userRepository.ExistsAnyAsync(Arg.Any<CancellationToken>()).Returns(true);
+
+        var handler = new RegisterCommandHandler(_mediator, _userRepository, _dateTime, _passwordHasher);
+
+        var result = await handler.Handle(new RegisterCommand("new-admin@example.com", "Password123!"), CancellationToken.None);
+
+        await Assert.That(result.Success).IsFalse();
+        await Assert.That(result.Response).IsNull();
+        await Assert.That(result.Error).IsEqualTo("Registration is disabled");
+        await Assert.That(result.ErrorCode).IsEqualTo(AuthErrorCodes.RegistrationDisabled);
+        await _userRepository.DidNotReceive()
+            .AddAsync(Arg.Any<User>(), Arg.Any<CancellationToken>());
     }
 }
