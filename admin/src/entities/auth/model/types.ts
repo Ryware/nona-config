@@ -24,12 +24,6 @@ export interface SsoConfig {
   microsoft: SsoProviderConfig;
 }
 
-export interface RegisterResult {
-  success: boolean;
-  response: LoginResponse | null;
-  error: string | null;
-}
-
 export interface RegisterRequest {
   email: string;
   password: string;

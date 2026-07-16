@@ -106,3 +106,23 @@ nona entries set \
 Then read that value from the app through [HTTP](/docs/clients/http/) or an official client.
 
 For first implementation steps, go to [Get started](/docs/get-started/).
+
+## FAQ
+
+### Are environment variables and remote config competing systems?
+
+No.
+
+Most teams use both. The question is which values belong in which layer.
+
+### What should stay in environment variables?
+
+Keep deployment wiring, secret material, and infrastructure-specific settings in environment variables.
+
+### What should move into remote config?
+
+Move values that should change after deployment, such as feature flags, copy, thresholds, and runtime behavior settings.
+
+### What is a good first split to implement?
+
+Keep the Nona API key in environment variables, then move one runtime value such as `App:BannerText` into Nona.

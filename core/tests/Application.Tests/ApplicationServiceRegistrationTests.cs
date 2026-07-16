@@ -37,6 +37,7 @@ public class ApplicationServiceRegistrationTests
         await Assert.That(provider.GetRequiredService<IValidator<ProjectAccessRequest>>()).IsNotNull();
         await Assert.That(provider.GetRequiredService<IValidator<CompleteInvitationPasswordRequest>>()).IsNotNull();
         await Assert.That(provider.GetRequiredService<IValidator<LoginRequest>>()).IsNotNull();
+        await Assert.That(provider.GetRequiredService<IValidator<RegisterCommand>>()).IsNotNull();
         await Assert.That(provider.GetRequiredService<IValidator<RequestPasswordResetCommand>>()).IsNotNull();
     }
 

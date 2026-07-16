@@ -67,7 +67,10 @@ public static class NonaEndpointRouteBuilderExtensions
         auth.MapGet("/first-time", CheckIfAnyUsersExistAsync)
             .Produces<bool>();
         auth.MapPost("/register", RegisterAsync)
-            .Produces<RegisterResult>();
+            .Produces<LoginResponse>()
+            .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
+            .Produces<ErrorResponse>(StatusCodes.Status403Forbidden)
+            .Produces<ErrorResponse>(StatusCodes.Status409Conflict);
         auth.MapPost("/forgot-password", RequestPasswordResetAsync)
             .Produces(StatusCodes.Status204NoContent);
         auth.MapGet("/invitations/{token}", GetInvitationAsync)
@@ -242,10 +245,27 @@ public static class NonaEndpointRouteBuilderExtensions
 
     private static async Task<IResult> RegisterAsync(
         RegisterCommand command,
+        IValidator<RegisterCommand> validator,
         IMediator mediator,
         CancellationToken cancellationToken)
     {
-        return Results.Ok(await mediator.Send(command, cancellationToken));
+        if (await ValidateRequestAsync(command, validator, cancellationToken) is { } validationResult)
+        {
+            return validationResult;
+        }
+
+        var result = await mediator.Send(command, cancellationToken);
+        if (result.Success)
+        {
+            return Results.Ok(result.Response);
+        }
+
+        return result.ErrorCode switch
+        {
+            AuthErrorCodes.UserAlreadyExists => Conflict(result.Error ?? "User already exists"),
+            AuthErrorCodes.RegistrationDisabled => Forbidden(result.Error ?? "Registration is disabled", result.ErrorCode),
+            _ => BadRequest(result.Error ?? "Registration failed", result.ErrorCode)
+        };
     }
 
     private static async Task<IResult> RequestPasswordResetAsync(

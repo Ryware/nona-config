@@ -7,8 +7,6 @@ Parameter share links give a time-limited link to one config entry. A link can b
 
 Use them when a teammate needs temporary access to one parameter without granting project access.
 
-This is one of Nona's more distinctive collaboration features because it gives a narrow, temporary way to share a single value instead of broad project-level access.
-
 ## Create a link in the admin UI
 
 1. Open a project.
@@ -27,12 +25,7 @@ Supported expirations:
 
 Choose the shortest lifetime that still fits the task. In most cases, short-lived links are safer than leaving long-running access around.
 
-The admin dialog also lets you:
-
-- generate a new link
-- copy the generated URL
-- review existing links for that parameter
-- revoke an active link
+The admin dialog also lets you generate a new link, copy the generated URL, review existing links for that parameter, and revoke an active link.
 
 ## Create a link with the CLI
 
@@ -103,13 +96,7 @@ Parameter share links are useful when:
 
 ## Good operating pattern
 
-Use share links when the access need is:
-
-- narrow
-- temporary
-- tied to one parameter
-
-Use normal user or project access when the person needs ongoing access to a broader part of the system.
+Use share links when the access need is narrow, temporary, and tied to one parameter. Use normal user or project access when the person needs ongoing access to a broader part of the system.
 
 ## HTTP endpoints
 
@@ -143,6 +130,28 @@ PUT /public/share-links/{token}
 - use view-only links unless edit access is actually needed
 - revoke the link once the task is done
 - avoid sharing long-lived links in permanent chat history or documentation
+
+## FAQ
+
+### What makes parameter share links different from normal user access?
+
+They provide narrow, temporary access to one parameter instead of broader ongoing project access.
+
+### Should I prefer view-only links by default?
+
+Yes.
+
+Use view-only unless the other person truly needs edit access to that one parameter.
+
+### Are share-link tokens sensitive?
+
+Yes.
+
+Anyone with the token can use the public share-link endpoint until the link expires or is revoked, so treat the token as a secret.
+
+### When should I use a share link instead of inviting a user?
+
+Use a share link when the access need is temporary, narrow, and limited to one parameter. Use normal user or project access for ongoing collaboration.
 
 ## Related docs
 

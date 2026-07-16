@@ -3,16 +3,7 @@ title: Standalone production
 description: Run Nona as one standalone Docker container with persistent storage.
 ---
 
-Use standalone when one Nona instance is enough.
-
-For most teams, standalone is the right production starting point.
-
-It is a good fit when you want:
-
-- one self-hosted Nona instance
-- the simplest deployment model
-- one Docker-first service with persistent local data
-- a straightforward place to start before introducing replication
+Use standalone when one Nona instance is enough. For most teams, it is the right production starting point: one self-hosted Nona instance, the simplest deployment model, one Docker-first service with persistent local data, and a straightforward place to start before introducing replication.
 
 ## Start
 
@@ -141,6 +132,28 @@ docker compose -f deploy/compose/standalone-prod.yml ps
 docker compose -f deploy/compose/standalone-prod.yml logs -f nona
 docker compose -f deploy/compose/standalone-prod.yml down
 ```
+
+## FAQ
+
+### Is standalone only for testing?
+
+No.
+
+For many teams, standalone is not only the first production step. It remains the long-term deployment shape.
+
+### What is the most important thing to preserve in standalone mode?
+
+The persistent data mounted at `/var/lib/nona`.
+
+That is the durable state you need to keep across restarts and upgrades.
+
+### Should I pin JWT settings in production?
+
+Usually yes, if you want the deployment to be easier to reason about operationally.
+
+### When should I leave standalone and move to replica mode?
+
+Only when you already know that read-heavy traffic and operational requirements justify the added complexity.
 
 ## Related docs
 

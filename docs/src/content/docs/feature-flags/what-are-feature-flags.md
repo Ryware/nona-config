@@ -36,6 +36,12 @@ Nona focuses on the strong, reliable core:
 - history and rollback
 - plain HTTP and official clients
 
+For Nona specifically, that also means a deliberate boundary:
+
+- no built-in per-user targeting
+- no runtime segments or cohorts
+- no percentage rollout evaluator on the read path
+
 ## Feature flags in Nona
 
 In Nona, a feature flag is just a config entry with content type `boolean`.
@@ -107,3 +113,33 @@ After creating the flag:
 - [Feature flags vs remote config](/docs/feature-flags/feature-flags-vs-remote-config/)
 - [Kill switches](/docs/feature-flags/kill-switches/)
 - [Client vs server scope](/docs/concepts/client-vs-server-scope/)
+
+## FAQ
+
+### Are feature flags only for frontend releases?
+
+No.
+
+Feature flags are useful for frontend, mobile, and backend behavior, which is why Nona documents all three use cases.
+
+### How do feature flags work in Nona?
+
+In Nona, a feature flag is usually a `boolean` config entry.
+
+That keeps the model simple and aligned with the same project, environment, scope, and API key system as the rest of the product.
+
+### Can I roll a flag out to 10 percent of users in Nona?
+
+No.
+
+Nona does not provide built-in percentage rollout, beta-cohort targeting, or per-user evaluation. The built-in model is a direct environment-and-key lookup.
+
+### Are feature flags the same as remote config?
+
+Not exactly.
+
+Feature flags are one important type of runtime config, but remote config is broader and also includes text, number, and JSON values.
+
+### What is the best first feature flag to create?
+
+A simple boolean key such as `Features:Checkout` is usually the best first choice because it is easy to create, read, and flip.

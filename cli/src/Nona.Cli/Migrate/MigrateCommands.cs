@@ -9,23 +9,23 @@ internal sealed class MigrateCommands(CliContext ctx) : ICliCommandGroup
 {
     public Command Build()
     {
-        var migrate = new Command("migrate", "Run config migrations.");
+        var migrate = new Command("migrate", "Run migration commands.");
         migrate.AddCommand(BuildFirebase());
         return migrate;
     }
 
     private Command BuildFirebase()
     {
-        var configOpt = new Option<string?>("--config", "Path to the migration config file.");
+        var configOpt = new Option<string?>("--config", "Migration config file path.");
         var dryRunOpt = new Option<bool>("--dry-run", "Preview changes without applying them.");
-        var baseUrlOpt = new Option<string?>(["--base-url", "--api-url"], "Nona API base URL.");
-        var projectOpt = new Option<string?>(["--project", "--project-name"], "Project name.");
-        var tokenOpt = new Option<string?>(["--token", "--bearer-token"], "Bearer token.");
-        var emailOpt = new Option<string?>("--email", "Email address (forwarded to migrator).");
-        var passwordOpt = new Option<string?>("--password", "Password (forwarded to migrator).");
+        var baseUrlOpt = new Option<string?>(["--base-url", "--api-url"], "Nona base URL.");
+        var projectOpt = new Option<string?>(["--project", "--project-name"], "Nona project name.");
+        var tokenOpt = new Option<string?>(["--token", "--bearer-token"], "Admin bearer token.");
+        var emailOpt = new Option<string?>("--email", "Admin email used by the migrator when no token is supplied.");
+        var passwordOpt = new Option<string?>("--password", "Admin password used by the migrator when no token is supplied.");
 
         var handler = new FirebaseMigrateCommandHandler();
-        var cmd = new Command("firebase", "Migrate from Firebase Remote Config.");
+        var cmd = new Command("firebase", "Import Firebase Remote Config into Nona.");
         cmd.AddOption(configOpt);
         cmd.AddOption(dryRunOpt);
         cmd.AddOption(baseUrlOpt);

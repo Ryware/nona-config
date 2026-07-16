@@ -125,6 +125,30 @@ Choose the content type based on the value shape, then choose scope based on who
 - using `json` just to avoid creating separate keys
 - choosing `all` scope when only the backend needs the value
 
+## FAQ
+
+### What is the best first parameter type to create?
+
+Usually a `boolean` flag or a simple `text` value.
+
+Those are the easiest shapes to validate during the first integration.
+
+### When should I use `json` instead of separate keys?
+
+Use `json` when the values naturally belong together and the client consumes them as one structured object.
+
+### Does content type control who can read the value?
+
+No.
+
+Content type describes the value shape. Scope controls who can read it.
+
+### What is the most common datatype mistake?
+
+Storing a real feature flag as `text` instead of `boolean`.
+
+That makes the application logic less clear and weakens the feature-flag model.
+
 ## Related docs
 
 - [Client vs server scope](/docs/concepts/client-vs-server-scope/)

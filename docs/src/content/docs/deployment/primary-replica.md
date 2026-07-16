@@ -3,9 +3,7 @@ title: Primary/replica production
 description: Configure the production primary and replica Docker Compose deployment.
 ---
 
-Use primary/replica mode for read-heavy deployments where eventual consistency is acceptable.
-
-This topology is for teams that need more than the simplest single-instance model and are willing to trade simplicity for a dedicated read path.
+Use primary/replica mode for read-heavy deployments where eventual consistency is acceptable. This topology is for teams that need more than the simplest single-instance model and are willing to trade simplicity for a dedicated read path.
 
 Compose file:
 
@@ -40,11 +38,7 @@ Do not choose it just because it sounds more production-like. For many teams, st
 
 Use the primary API for admin and write workflows. Use the replica API for read-heavy clients when eventual consistency is acceptable.
 
-Replication is asynchronous. A value written to the primary may not be immediately visible from the replica.
-
-That tradeoff is the most important operational fact in this topology.
-
-If your application requires an immediately visible write before the next read, keep that read path on the primary.
+Replication is asynchronous, so a value written to the primary may not be immediately visible from the replica. If your application requires an immediately visible write before the next read, keep that read path on the primary.
 
 ## Configure ports
 
@@ -108,9 +102,7 @@ The compose file creates two Docker volumes:
 | `nona-primary-data` | `/var/lib/nona` | `nona-primary` |
 | `nona-replica-data` | `/var/lib/nona` | `nona-replica` |
 
-Keep these volumes when upgrading containers.
-
-Treat both volumes as production data.
+Keep these volumes when upgrading containers and treat both as production data.
 
 ## JWT settings
 
@@ -131,6 +123,30 @@ docker compose -f deploy/compose/primary-replica-prod.yml ps
 docker compose -f deploy/compose/primary-replica-prod.yml logs -f nona-primary nona-replica
 docker compose -f deploy/compose/primary-replica-prod.yml down
 ```
+
+## FAQ
+
+### Should I use primary/replica just because it sounds more production-like?
+
+No.
+
+For many teams, standalone is still the better production choice.
+
+### What is the biggest tradeoff in primary/replica mode?
+
+Eventual consistency on the replica read path.
+
+Writes on the primary may not be visible on the replica immediately.
+
+### Should admin and write traffic go to the replica?
+
+No.
+
+Admin and write workflows should stay on the primary.
+
+### What should I validate after bringing up this topology?
+
+Validate the primary admin and write path, the replica read path, the expected ports, and the replication relationship.
 
 ## Related docs
 

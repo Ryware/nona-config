@@ -173,7 +173,24 @@ function writeReference() {
 
 	for (const page of pages) {
 		const command = page.path.length ? `nona ${page.path.join(' ')}` : 'nona';
-		lines.push(`## \`${command}\``, '', '```text', page.help, '```', '');
+		const sections = parseHelpSections(page.help);
+		lines.push(`## \`${command}\``, '');
+		if (sections.description) {
+			lines.push(sections.description, '');
+		}
+		if (sections.usage) {
+			lines.push('**Usage**', '', '```text', sections.usage, '```', '');
+		}
+		if (sections.commands.length > 0) {
+			lines.push('**Commands**', '');
+			for (const item of sections.commands) {
+				lines.push(`- \`${item.name}\` ${item.description}`);
+			}
+			lines.push('');
+		}
+		if (sections.options) {
+			lines.push('**Options**', '', '```text', sections.options, '```', '');
+		}
 		const commandCommonOptions = page.commonOptions.filter((option) => option !== 'help');
 		if (commandCommonOptions.length > 0) {
 			lines.push(
@@ -189,4 +206,78 @@ function writeReference() {
 
 function formatCommonOption(option) {
 	return commonOptionDefinitions.find(({ key }) => key === option)?.label ?? option;
+}
+
+function parseHelpSections(help) {
+	const lines = help.split(/\r?\n/);
+	const sections = {
+		description: [],
+		usage: [],
+		options: [],
+		commands: [],
+	};
+
+	let current = null;
+
+	for (const line of lines) {
+		const trimmed = line.trim();
+		switch (trimmed) {
+			case 'Description:':
+				current = 'description';
+				continue;
+			case 'Usage:':
+				current = 'usage';
+				continue;
+			case 'Options:':
+				current = 'options';
+				continue;
+			case 'Commands:':
+				current = 'commands';
+				continue;
+		}
+
+		if (current === null) continue;
+
+		if (trimmed === '') {
+			if (current === 'description' && sections.description.at(-1) !== '') {
+				sections.description.push('');
+			}
+			continue;
+		}
+
+		sections[current].push(stripLeadingIndent(line));
+	}
+
+	return {
+		description: collapseDescription(sections.description),
+		usage: collapseBlock(sections.usage),
+		options: collapseBlock(sections.options),
+		commands: parseCommandRows(sections.commands),
+	};
+}
+
+function stripLeadingIndent(line) {
+	return line.replace(/^\s{2}/, '');
+}
+
+function collapseDescription(lines) {
+	return lines
+		.join('\n')
+		.replace(/\n+/g, ' ')
+		.replace(/\s+/g, ' ')
+		.trim();
+}
+
+function collapseBlock(lines) {
+	return lines.join('\n').trim();
+}
+
+function parseCommandRows(lines) {
+	return lines
+		.map((line) => line.match(/^(.+?)(?:\s{2,}|\t+)(.+)$/))
+		.filter(Boolean)
+		.map(([, name, description]) => ({
+			name: name.trim(),
+			description: description.trim(),
+		}));
 }

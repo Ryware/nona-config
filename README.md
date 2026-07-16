@@ -72,6 +72,7 @@ docker run -d \
 
 - **Web UI:** `http://localhost:18080`
 - **API base:** `http://localhost:18080`
+- **Guided setup:** `https://nonaconfig.com/docs/get-started/`
 
 Create a project, add an environment, set your first key-value pair, publish a release, and set it active. Then fetch the value:
 
@@ -80,9 +81,16 @@ curl "http://localhost:18080/api/production/Features%3ACheckout" \
   -H "X-Api-Key: your-api-key"
 ```
 
-```text
+```http
+HTTP/1.1 200 OK
+X-Nona-Content-Type: boolean
+
 true
 ```
+
+The API key is bound to one project, so the request path only needs the environment and key. For a full walkthrough, start with [First project](https://nonaconfig.com/docs/get-started/first-project/) and [First API call](https://nonaconfig.com/docs/get-started/first-api-call/).
+
+If you are expecting LaunchDarkly-style evaluation, this is the key distinction: Nona reads are keyed by project, environment, scope, and key. There is no built-in runtime targeting, percentage rollout, or `userId`-based evaluation on the HTTP read path.
 
 ---
 
@@ -172,9 +180,16 @@ req, _ := http.NewRequest("GET", "https://your-nona-host/api/production/Features
 req.Header.Set("X-Api-Key", apiKey)
 ```
 
+The response body is the stored value. Nona also returns the logical type in the `X-Nona-Content-Type` response header.
+
 ---
 
 ### CLI (Windows / macOS / Linux)
+
+```bash
+# npm
+npm install -g nona-cli
+```
 
 ```powershell
 # Windows via Chocolatey
@@ -183,7 +198,10 @@ choco install nona-cli
 
 Or download the binary from [GitHub Releases](https://github.com/ryware/nona-config/releases).
 
-🍫 [community.chocolatey.org/packages/nona-cli](https://community.chocolatey.org/packages/nona-cli)
+CLI packages:
+
+- [npmjs.com/package/nona-cli](https://www.npmjs.com/package/nona-cli)
+- [community.chocolatey.org/packages/nona-cli](https://community.chocolatey.org/packages/nona-cli)
 
 ---
 
@@ -196,6 +214,8 @@ Or download the binary from [GitHub Releases](https://github.com/ryware/nona-con
 | `GET` | `/api/{environmentId}/{key}?version=1.1.x` | Fetch one key from the highest patch in a release line |
 
 Authentication: `X-Api-Key` request header.
+
+The API key determines the project. The response body contains the raw stored value, and `X-Nona-Content-Type` tells the client whether the value is `text`, `number`, `boolean`, or `json`.
 
 The API does not accept per-user evaluation context for runtime flag resolution. Query parameters or headers such as `userId` or `X-User-Id` are not part of the Nona read model.
 

@@ -114,3 +114,25 @@ That makes it a good fit for services that need both operational toggles and run
 - [Kill switches](/docs/feature-flags/kill-switches/)
 - [.NET client](/docs/clients/dotnet/)
 - [HTTP](/docs/clients/http/)
+
+## FAQ
+
+### Why are backend feature flags important?
+
+They control behavior that the rest of the stack depends on, such as route gates, integrations, and operational toggles.
+
+### Should backend flags use `server` scope?
+
+Usually yes.
+
+Backend-only flags should stay on `server` scope whenever possible.
+
+### Can backend flags work as kill switches?
+
+Yes.
+
+Backend flags are often some of the highest-value kill switches in a system.
+
+### What is a good first backend flag?
+
+A clear operational flag such as `Features:DisablePayments` or `Features:UseLegacySearch` is usually a strong first candidate.

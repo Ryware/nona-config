@@ -114,6 +114,28 @@ For primary/replica deployments, validate both endpoints rather than checking on
 - a known config key can still be read
 - in primary/replica mode, a known read succeeds from the replica path too
 
+## FAQ
+
+### What is the safest first step before an upgrade?
+
+Take a backup first.
+
+That gives you a recovery path before you touch the running deployment.
+
+### What should stay stable during an upgrade?
+
+The persistent data volumes and any pinned JWT settings should stay stable across the upgrade.
+
+### How should I verify the upgrade worked?
+
+Check that the service starts, login still works, and a known config read still succeeds.
+
+### Is a quick UI check enough after an upgrade?
+
+No.
+
+A real validation read is much more reliable than assuming the upgrade worked because the UI loads.
+
 ## Related docs
 
 - [Standalone production](/docs/deployment/standalone/)

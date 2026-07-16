@@ -7,6 +7,7 @@
 		<RootNamespace>Nona.Infrastructure.Tests</RootNamespace>
 		<AssemblyName>Nona.Infrastructure.Tests</AssemblyName>
 		<TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+		<InterceptorsNamespaces>$(InterceptorsNamespaces);Microsoft.AspNetCore.OpenApi.Generated</InterceptorsNamespaces>
 	</PropertyGroup>
 
 	<ItemGroup>

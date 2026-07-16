@@ -105,6 +105,30 @@ When a runtime value causes trouble:
 5. confirm the application behavior recovers
 6. review [Audit logs](/docs/concepts/audit-logs/) afterward if needed
 
+## FAQ
+
+### When should I use rollback instead of editing the value manually?
+
+Use rollback when you already know a previous version was good.
+
+That is safer than retyping a value during an incident.
+
+### What kind of changes show up in history?
+
+History helps you inspect changes to the value and other important entry fields such as scope or content type.
+
+### Is rollback only for feature flags?
+
+No.
+
+Rollback is useful for feature flags, kill switches, and broader runtime config values.
+
+### What is the biggest rollback mistake?
+
+Guessing a replacement value instead of restoring a known good version.
+
+That slows incident response and increases the chance of a second mistake.
+
 ## Related docs
 
 - [Kill switches](/docs/feature-flags/kill-switches/)

@@ -11,20 +11,7 @@ Nona runs as a single Docker image, so the simplest deployment path is one conta
 
 ## Why Docker is the default starting point
 
-Docker is the simplest way to:
-
-- start a self-hosted Nona instance quickly
-- keep the deployment model close to production
-- validate the product before adding more infrastructure
-
-For most teams, the right flow is:
-
-1. start Nona with Docker
-2. create the first admin account
-3. create a project and environment
-4. add a parameter or feature flag
-5. create an API key
-6. verify a read over HTTP or a client SDK
+Docker is the simplest way to start a self-hosted Nona instance quickly, keep the deployment model close to production, and validate the product before adding more infrastructure.
 
 ## Start the container
 
@@ -67,9 +54,31 @@ docker compose -f deploy/compose/standalone-prod.yml ps
 
 The standalone compose file still runs the same single `rywaredev/nona:latest` container.
 
-## Create the first admin account
+## Bootstrap the first flag
 
-Open:
+For the fastest non-interactive setup, use the CLI:
+
+```bash
+nona init \
+  --yes \
+  --base-url http://localhost:18080 \
+  --email admin@example.com \
+  --password <password> \
+  --project storefront \
+  --print-key
+```
+
+This registers or logs in the admin, creates or reuses the `storefront` project, creates or reuses the `production` environment, seeds `Features:Example=true`, creates or reuses an API key, and prints a ready-to-paste `.env` block.
+
+`--yes` makes this safe for scripts and CI: the command never prompts and exits with an invalid-args error if a required value is missing.
+
+If you only want to create the first admin account and save a CLI session, use the lower-level command:
+
+```bash
+nona auth register --base-url http://localhost:18080 --email admin@example.com --password <password>
+```
+
+You can also open the UI:
 
 ```text
 http://localhost:18080/register
@@ -83,26 +92,15 @@ http://localhost:18080/login
 
 ## What to click next in admin
 
-After you sign in:
+If you used `nona init`, your first project, `production` environment, starter flag, and API key already exist. Open the admin UI when you want to inspect them or add more.
+
+For a UI-driven setup:
 
 1. open `Projects`
 2. create or open the project you want to configure
 3. click `Add Environment`
 4. create `staging` or `production`
 5. click `Add Parameter`
-
-## Step-by-step deployment summary
-
-If you want the shortest operator checklist, use this sequence:
-
-1. run the single-container `docker run` command
-2. open `http://localhost:18080/register`
-3. create the first admin account
-4. create a project
-5. create at least one environment
-6. add one parameter or feature flag
-7. create an API key
-8. test one read over HTTP
 
 ## Basic health checks
 
@@ -117,13 +115,7 @@ If the UI loads and the container stays healthy, you can move on to [Create your
 
 ## What this first Docker setup proves
 
-If you can bring the service up successfully, you have already validated the most important part of the product model:
-
-- Nona can run on infrastructure you control
-- the service is reachable
-- you have a base URL for the rest of the setup flow
-
-That is why Docker is the best first step for both evaluation and real self-hosted adoption.
+If this works, you have already proven the most important part of the product model: Nona runs on infrastructure you control, the service is reachable, and you have a base URL for the rest of the setup flow.
 
 ## Production notes
 
@@ -162,7 +154,7 @@ That volume holds the local data the container needs. If you remove the containe
 
 ### What should I do right after the container starts?
 
-Open the admin UI, create the first account, create a project and environment, then add a parameter and test a real read.
+Use `nona init` for the shortest automated path. It creates the first account if needed, creates the first project and environment, adds a starter flag, creates an API key, and prints a verification curl.
 
 That proves the instance is not only running, but also usable by an application.
 

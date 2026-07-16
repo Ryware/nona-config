@@ -11,10 +11,7 @@ Nona supports:
 - `server`
 - `all`
 
-This is one of the most important Nona concepts because scope affects both:
-
-- which applications should be allowed to read a value
-- which API keys can successfully read that value
+This is one of the most important Nona concepts because scope affects which applications should be allowed to read a value and which API keys can successfully read that value.
 
 ## Use `client` when
 
@@ -47,16 +44,7 @@ Examples:
 
 ## Why scope matters
 
-Without scope, it is easy for teams to overexpose config unintentionally.
-
-Nona uses scope to make the intended read surface explicit.
-
-That helps with:
-
-- safer frontend/mobile integrations
-- cleaner backend-only control values
-- narrower API keys
-- clearer operational intent when reading config
+Without scope, it is easy for teams to overexpose config unintentionally. Nona uses scope to make the intended read surface explicit, which helps with safer frontend/mobile integrations, cleaner backend-only control values, narrower API keys, and clearer operational intent when reading config.
 
 ## How to choose scope in admin
 
@@ -69,21 +57,13 @@ When you create a parameter:
 5. choose the content type
 6. choose the scope based on who should read it
 
-A practical rule:
-
-- choose `client` if the app itself reads the value
-- choose `server` if only backend services should read it
-- choose `all` only when both truly need the same entry
+A practical rule is to choose `client` if the app itself reads the value, `server` if only backend services should read it, and `all` only when both truly need the same entry.
 
 ## API keys and scope
 
 Scope also matters when you create API keys. Match key scope to the values that app should read.
 
-A few practical examples:
-
-- a React Native app usually needs a `client` key
-- a backend service usually needs a `server` key
-- `all` should be the exception, not the default
+A few practical examples: a React Native app usually needs a `client` key, a backend service usually needs a `server` key, and `all` should be the exception, not the default.
 
 If a key is narrower than the entry scope relationship allows, the read will fail.
 
@@ -126,6 +106,32 @@ nona keys create --project payments-api --name "Payments API" --scope server --e
 - avoid using `all` just because it is convenient
 - keep sensitive decisions on the server when possible
 - review scope when creating new API keys
+
+## FAQ
+
+### What scope should I choose first?
+
+Choose the narrowest scope that matches the real read surface.
+
+For many frontend or mobile reads, that is `client`. For backend-only values, that is `server`.
+
+### When should I use `all`?
+
+Only when both frontend and backend genuinely need to read the same value.
+
+It should be the exception, not the default.
+
+### Can a `boolean` flag be `server` scope?
+
+Yes.
+
+Feature flags are not automatically client-side. A boolean flag can be `client`, `server`, or `all` depending on where it is evaluated.
+
+### What is the biggest scope mistake?
+
+Using broader scope than necessary.
+
+That makes values easier to expose accidentally and weakens the access model.
 
 ## Related docs
 

@@ -3,9 +3,7 @@ title: Kill switches
 description: Use Nona kill switches to disable risky features quickly with boolean flags, scoped reads, and rollback support.
 ---
 
-A kill switch is a feature flag whose main job is to turn something off fast.
-
-This is one of the most valuable uses of Nona because it gives you an operational escape hatch without a redeploy.
+A kill switch is a feature flag whose main job is to turn something off fast, which makes it one of the most valuable Nona patterns because it gives you an operational escape hatch without a redeploy.
 
 ## Basic pattern
 
@@ -88,13 +86,7 @@ nona entries set \
 
 ## Operational benefits in Nona
 
-Nona makes kill switches more useful because they fit into the rest of the product model:
-
-- the flag lives in a project and environment
-- API keys control who can read it
-- history shows previous values
-- rollback gives you a fast recovery path
-- audit logs help explain who changed it
+Nona makes kill switches more useful because they fit into the rest of the product model: the flag lives in a project and environment, API keys control who can read it, history shows previous values, rollback gives you a fast recovery path, and audit logs help explain who changed it.
 
 ## Roll back the switch
 
@@ -148,3 +140,23 @@ The best names describe the user-facing behavior, not the internal implementatio
 - [Feature flags vs remote config](/docs/feature-flags/feature-flags-vs-remote-config/)
 - [History and rollback](/docs/concepts/history-and-rollback/)
 - [Client vs server scope](/docs/concepts/client-vs-server-scope/)
+
+## FAQ
+
+### What makes a kill switch different from a normal feature flag?
+
+A kill switch is a feature flag whose main job is fast disablement under real operational pressure.
+
+### Should a kill switch always be boolean?
+
+Usually yes.
+
+Boolean values are the clearest fit for a fast on/off operational control.
+
+### What is the best first kill switch candidate?
+
+A risky production path such as checkout, payments, onboarding, or a third-party integration is usually the best first candidate.
+
+### Why does rollback matter for kill switches?
+
+Because incident changes happen fast, and rollback gives you a safer way to return to a known earlier state than retyping values manually.

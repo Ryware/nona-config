@@ -3,15 +3,7 @@ title: OpenFeature
 description: Use Nona through OpenFeature so your application reads flags and config through a vendor-neutral interface.
 ---
 
-Nona ships OpenFeature integration for JavaScript and .NET.
-
-Use OpenFeature when you want:
-
-- a standard flag/config interface
-- less vendor-specific application code
-- cleaner portability at the application layer
-
-OpenFeature is especially useful when your team thinks in feature flags first but still wants access to the same underlying Nona values and scopes.
+Nona ships OpenFeature integration for JavaScript and .NET. Use OpenFeature when you want a standard flag/config interface, less vendor-specific application code, and cleaner portability at the application layer. It is especially useful when your team thinks in feature flags first but still wants access to the same underlying Nona values and scopes.
 
 ## What to set up first
 
@@ -27,13 +19,7 @@ That gives the provider one real flag to resolve before you expand into broader 
 
 ## Why use OpenFeature with Nona
 
-Nona already works through plain HTTP and official clients. OpenFeature adds a different benefit:
-
-- your application code depends less on a Nona-specific API
-- flag reads can look the same across projects
-- teams that already use OpenFeature can adopt Nona without inventing a custom abstraction
-
-This is a good fit when you want self-hosted feature flags but still prefer a vendor-neutral interface at the application layer.
+Nona already works through plain HTTP and official clients. OpenFeature adds a different benefit: application code depends less on a Nona-specific API, flag reads can look the same across projects, and teams that already use OpenFeature can adopt Nona without inventing a custom abstraction.
 
 ## How Nona maps into OpenFeature
 
@@ -55,17 +41,7 @@ In practice, most teams start with boolean flags such as `Features:Checkout`, th
 
 ## Why this pairing works
 
-OpenFeature gives you the application-side abstraction.
-
-Nona still provides the operational model underneath:
-
-- projects
-- environments
-- scopes
-- API keys
-- history and rollback
-
-That means you can keep a vendor-neutral read API without giving up a practical self-hosted operations model.
+OpenFeature gives you the application-side abstraction, while Nona still provides the underlying projects, environments, scopes, API keys, history, and rollback. That lets you keep a vendor-neutral read API without giving up a practical self-hosted operations model.
 
 ## JavaScript
 
@@ -141,30 +117,15 @@ In .NET, the provider is built on top of a configured `NonaClient`, so the OpenF
 
 ## When OpenFeature is a good choice
 
-Use OpenFeature with Nona when:
-
-- your team already uses OpenFeature
-- you want feature-flag reads to stay portable
-- multiple applications should share one flag-reading model
-- you want to evaluate flags through a standard API instead of a product-specific client
+Use OpenFeature with Nona when your team already uses OpenFeature, you want feature-flag reads to stay portable, multiple applications should share one flag-reading model, or you want to evaluate flags through a standard API instead of a product-specific client.
 
 ## When the direct Nona client is simpler
 
-Use the direct Nona client when:
-
-- you want the smallest dependency surface
-- the app already uses Nona-specific reads directly
-- you need typed Nona value access without the OpenFeature abstraction
+Use the direct Nona client when you want the smallest dependency surface, the app already uses Nona-specific reads directly, or you need typed Nona value access without the OpenFeature abstraction.
 
 ## Good first rollout
 
-A practical adoption path is:
-
-1. resolve one boolean flag through OpenFeature
-2. confirm the value changes when you edit it in Nona
-3. add more flags only after the first path is working
-
-That keeps the OpenFeature adoption grounded in one real runtime path.
+Resolve one boolean flag through OpenFeature, confirm the value changes when you edit it in Nona, and only then add more flags. That keeps the rollout grounded in one real runtime path.
 
 ## Related docs
 
@@ -174,7 +135,26 @@ That keeps the OpenFeature adoption grounded in one real runtime path.
 - [.NET client](/docs/clients/dotnet/)
 - [Client vs server scope](/docs/concepts/client-vs-server-scope/)
 
-## Existing client docs
+JavaScript OpenFeature usage is also included in [JavaScript client](/docs/clients/javascript/), and .NET usage is included in [.NET client](/docs/clients/dotnet/).
 
-- JavaScript OpenFeature usage is included in [JavaScript client](/docs/clients/javascript/)
-- .NET OpenFeature usage is included in [.NET client](/docs/clients/dotnet/)
+## OpenFeature FAQ
+
+### When is OpenFeature a better fit than the direct client?
+
+OpenFeature is a better fit when your team already uses OpenFeature or wants a vendor-neutral feature-flag interface instead of direct Nona-specific reads.
+
+### Does OpenFeature replace Nona's operational model?
+
+No.
+
+OpenFeature only changes the application-side interface. Nona still provides the projects, environments, scopes, API keys, and history underneath.
+
+### Should I start with OpenFeature immediately?
+
+Usually only if your team already thinks in OpenFeature terms.
+
+Otherwise, many teams start with the direct client or raw HTTP first, then add OpenFeature once the basic read path is proven.
+
+### What is the best first OpenFeature test?
+
+Resolve one boolean flag such as `Features:Checkout` and verify that the application sees the value change after you edit it in Nona.

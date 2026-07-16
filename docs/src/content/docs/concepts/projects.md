@@ -86,6 +86,30 @@ For many teams, a strong first structure is:
 
 That is usually enough structure to get started without over-partitioning the system.
 
+## FAQ
+
+### Should one app always map to one project?
+
+Usually yes.
+
+One project per app or service boundary is the clearest starting model for keys, environments, and access.
+
+### When should I split into multiple projects?
+
+Split when apps should not share API keys, environments, ownership, or access boundaries.
+
+### Can one project contain both feature flags and remote config?
+
+Yes.
+
+That is a normal and intended Nona usage pattern.
+
+### What is the most common project mistake?
+
+Creating too many projects too early.
+
+If the same app and team own the values, one clear project is usually better than several tiny ones.
+
 ## Related docs
 
 - [Environments](/docs/concepts/environments/)

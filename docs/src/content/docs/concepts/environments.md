@@ -36,6 +36,12 @@ That same pattern also works for non-boolean config:
 
 ## How to create environments
 
+The first automated setup path is `nona init`, which creates or reuses the environment you pass with `--env` and defaults to `production`:
+
+```bash
+nona init --yes --base-url https://nona.example.com --email admin@example.com --password <password> --project storefront --env production
+```
+
 In admin:
 
 1. open `Projects`
@@ -47,7 +53,7 @@ In admin:
 
 Those environments then appear as selectable tabs on the project page.
 
-The current repo documents environment creation primarily through the admin project screen.
+Use `init` for bootstrap automation and the admin project screen for day-to-day environment management.
 
 ## Releases and active config
 
@@ -110,6 +116,32 @@ After creating environments:
 In the Firebase migration flow, Firebase conditions can be mapped into Nona environments during import.
 
 That does not mean Nona should be documented as using Firebase-style live condition targeting. The migration is a bridge from one model into another.
+
+## FAQ
+
+### How many environments should most teams start with?
+
+Most teams should start with `staging` and `production`.
+
+That is enough to test safely without creating an unnecessary environment sprawl.
+
+### Should environment names match real operational stages?
+
+Yes.
+
+Environment names should map to real runtime stages that your team actually uses.
+
+### Can the same key exist in multiple environments?
+
+Yes.
+
+That is one of the main reasons environments exist. The key stays stable while the value changes by stage.
+
+### Are Firebase conditions the same thing as Nona environments?
+
+No.
+
+Firebase conditions can be mapped into Nona environments during migration, but Nona environments are not a Firebase-style runtime targeting engine.
 
 ## Related docs
 

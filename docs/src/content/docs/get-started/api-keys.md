@@ -38,11 +38,7 @@ This reduces accidental cross-environment reads and keeps access narrower.
 
 ## Recommended first key
 
-For a simple first test:
-
-- create a project-scoped key
-- limit it to `production` if that is your target environment
-- match the key scope to the config entry scope
+For a simple first test, create a project-scoped key, limit it to `production` if that is your target environment, and match the key scope to the config entry scope.
 
 ## In admin
 
@@ -114,17 +110,6 @@ If the read fails, check the three most common causes first:
 - wrong project
 - wrong environment
 - wrong scope for the entry you are trying to read
-
-## Step-by-step API key summary
-
-Use this sequence for the safest first key:
-
-1. open the target project
-2. choose the smallest valid scope
-3. optionally limit the key to one environment
-4. create the key
-5. copy the key value immediately
-6. test one real read
 
 ## API key FAQ
 

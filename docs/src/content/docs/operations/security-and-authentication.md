@@ -3,9 +3,7 @@ title: Security and authentication
 description: Secure a self-hosted Nona deployment with scoped API keys, pinned JWT settings, controlled share links, and SSO-backed admin access.
 ---
 
-Nona is self-hosted, so basic security and authentication decisions belong to your deployment process, not only to the application code.
-
-In practice, the security model has a few distinct layers:
+Nona is self-hosted, so basic security and authentication decisions belong to your deployment process, not only to the application code. In practice, the security model has a few distinct layers:
 
 - admin authentication for people
 - API-key authentication for config reads
@@ -14,13 +12,7 @@ In practice, the security model has a few distinct layers:
 
 ## First production steps
 
-For a real deployment, the first security checklist is:
-
-1. pin JWT settings if that is your operating model
-2. create individual user accounts instead of shared credentials
-3. create narrow API keys for each app or service
-4. keep project access limited to the teams that need it
-5. use short-lived share links when temporary access is enough
+For a real deployment, pin JWT settings if that is your operating model, create individual user accounts instead of shared credentials, create narrow API keys for each app or service, keep project access limited to the teams that need it, and use short-lived share links when temporary access is enough.
 
 ## API keys
 
@@ -72,12 +64,7 @@ That matters because a self-hosted admin surface should not depend on shared ope
 
 ## Good admin-access pattern
 
-Prefer:
-
-- one account per operator
-- invitations for onboarding
-- SSO where it fits your identity workflow
-- project-level access instead of broad shared admin access
+Prefer one account per operator, invitations for onboarding, SSO where it fits your identity workflow, and project-level access instead of broad shared admin access.
 
 ## Share-link tokens
 
@@ -126,6 +113,30 @@ The repo includes audit-log support, which is especially relevant for:
 - config edits
 - rollback actions
 - share-link creation and revocation
+
+## FAQ
+
+### Does SSO replace API keys for runtime reads?
+
+No.
+
+SSO is for admin access. Runtime config consumers still authenticate with API keys.
+
+### What should I lock down first in production?
+
+Start with admin access, narrow API keys, limited project access, and stable JWT settings if you pin them.
+
+### Should teams share one broad admin account?
+
+No.
+
+One account per operator is a safer and more auditable operating model.
+
+### Are share links a replacement for user access?
+
+No.
+
+Share links are useful for narrow temporary collaboration, but they are not a replacement for normal user and project access control.
 
 ## Related docs
 

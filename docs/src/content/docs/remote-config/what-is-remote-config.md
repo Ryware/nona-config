@@ -100,3 +100,23 @@ That makes Nona a good fit for teams that want:
 - a model that is smaller and easier to reason about than a larger hosted platform
 
 If you want to see where that matters, read [Firebase Remote Config alternative](/docs/comparisons/firebase-remote-config-alternative/).
+
+## FAQ
+
+### Is remote config only for feature flags?
+
+No.
+
+Feature flags are one remote-config use case, but remote config also includes text, number, and JSON values that change runtime behavior.
+
+### What is the main benefit of remote config?
+
+The main benefit is changing application behavior without shipping a new build for every small adjustment.
+
+### How does Nona make remote config concrete?
+
+Nona turns it into an explicit model of projects, environments, typed entries, scopes, and API keys instead of treating it as a vague dynamic-settings layer.
+
+### What is a good first remote-config value?
+
+A simple value such as `App:BannerText` or `Limits:MaxItems` is usually a good first step because it is easy to create and verify.

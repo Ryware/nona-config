@@ -5,6 +5,9 @@ description: Self-hosted remote config and feature flags docs for Docker deploym
 
 Nona is an open source, self-hosted remote config and feature flag service for web, mobile, and backend apps.
 
+Important product scope:
+Nona is remote config plus simple on/off flags, not a runtime targeting engine. It does not do built-in per-user evaluation, segments, cohorts, or percentage rollouts on the read path.
+
 Use Nona when you want to:
 
 - manage runtime configuration on your own infrastructure
@@ -15,18 +18,7 @@ Use Nona when you want to:
 
 ## Why teams use Nona
 
-Nona is built for teams that want remote config without platform lock-in.
-
-Core product traits:
-
-- self-hosted
-- open source
-- Docker-first
-- plain HTTP plus official clients
-- projects and environments
-- client, server, and shared scopes
-- config history and rollback
-- Firebase migration tooling
+Nona is built for teams that want remote config without platform lock-in. The core product traits are self-hosted deployment, open source code, Docker-first operations, plain HTTP plus official clients, projects and environments, client/server/shared scopes, config history and rollback, and Firebase migration tooling.
 
 If you are evaluating alternatives, start with [Firebase Remote Config alternative](/docs/comparisons/firebase-remote-config-alternative/).
 
@@ -51,16 +43,7 @@ If you want the shortest route to a working setup:
 3. [Add your first parameter](/docs/get-started/first-parameter/)
 4. [Create an API key](/docs/get-started/api-keys/)
 5. [Fetch your first config value](/docs/get-started/first-api-call/)
-
-## Core paths
-
-- [Deploy with Docker](/docs/get-started/docker/)
-- [Create your first project](/docs/get-started/first-project/)
-- [Create an API key](/docs/get-started/api-keys/)
-- [Fetch your first config value](/docs/get-started/first-api-call/)
-- [HTTP client](/docs/clients/http/)
-- [JavaScript client](/docs/clients/javascript/)
-- [.NET client](/docs/clients/dotnet/)
+6. Continue with [HTTP client](/docs/clients/http/), [JavaScript client](/docs/clients/javascript/), or [.NET client](/docs/clients/dotnet/)
 
 ## What you can do with Nona
 
@@ -77,13 +60,9 @@ See [Remote config use cases](/docs/remote-config/use-cases/) for more examples.
 
 ## Feature flags
 
-Nona is not only a remote config tool. It is also a feature flag system for teams that want:
+Nona is not only a remote config tool. It is also a feature flag system for teams that want self-hosted flags, kill switches, frontend and backend flag separation, OpenFeature support, and simple boolean release gates without a hosted control plane.
 
-- self-hosted flags
-- kill switches
-- frontend and backend flag separation
-- OpenFeature support
-- simple boolean rollout gates without a hosted control plane
+The tradeoff is intentional: Nona keeps feature flags simple. A flag read is not evaluated against user context, segments, cohorts, or percentage rules at runtime.
 
 Start here:
 
@@ -97,13 +76,7 @@ Start here:
 
 ## Remote config
 
-Nona also works as a self-hosted remote config system for teams that want:
-
-- runtime values outside deploy-time env vars
-- environment-specific behavior
-- client and server scope separation
-- server-side remote config
-- one system for config and feature flags
+Nona also works as a self-hosted remote config system for teams that want runtime values outside deploy-time env vars, environment-specific behavior, client and server scope separation, server-side remote config, and one system for config plus feature flags.
 
 Start here:
 
@@ -155,3 +128,29 @@ For production deployment and operations:
 - [Upgrades](/docs/operations/upgrades/)
 - [Audit logs](/docs/concepts/audit-logs/)
 - [Users and project access](/docs/concepts/users-and-project-access/)
+
+## FAQ
+
+### What is Nona in one sentence?
+
+Nona is an open source, self-hosted remote config and feature flag service for web, mobile, and backend applications.
+
+### Is Nona only for remote config?
+
+No.
+
+Nona supports both feature flags and broader runtime config in the same system.
+
+### Does Nona support per-user targeting or percentage rollout?
+
+No.
+
+Nona does not evaluate flags against `userId`, request context, segments, cohorts, or percentage rules on the read path. The built-in model is environment plus key lookup with scope and API-key access control.
+
+### What is the fastest way to understand whether Nona fits my team?
+
+Deploy the Docker image, create one project, add one boolean flag and one non-boolean value, then read both over HTTP or a client.
+
+### Who is Nona best for?
+
+Teams that want self-hosted runtime control, plain HTTP access, Docker-first deployment, and a smaller product model than a hosted control plane are usually a strong fit.

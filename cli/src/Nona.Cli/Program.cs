@@ -21,7 +21,7 @@ internal static class Program
             defaultsStore: defaultsStore,
             sessionStore: sessionStore);
 
-        var root = new RootCommand("Nona CLI for key management and Firebase Remote Config migrations.");
+        var root = new RootCommand("Administer Nona configuration through a command-line interface.");
 
         foreach (var type in System.Reflection.Assembly.GetExecutingAssembly().GetTypes()
             .Where(t => t.IsClass && !t.IsAbstract && typeof(ICliCommandGroup).IsAssignableFrom(t)))

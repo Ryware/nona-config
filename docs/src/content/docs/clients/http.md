@@ -12,6 +12,8 @@ X-Api-Key: <api-key>
 
 The API key is bound to one project. The request only includes the environment and key. Without a `version` query parameter, Nona reads the environment's active release.
 
+Important scope note: this endpoint does not evaluate per-user context. Parameters or headers such as `userId`, `X-User-Id`, segments, cohorts, or percentage-rollout hints are not part of the Nona HTTP read model.
+
 This makes HTTP the smallest possible integration path for:
 
 - backend services
