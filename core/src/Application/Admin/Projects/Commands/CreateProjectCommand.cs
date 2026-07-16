@@ -66,6 +66,7 @@ public class CreateProjectCommandHandler(
                 CreatedAt = now,
                 UpdatedAt = now
             }, cancellationToken);
+            project.Environments.Add(env);
         }
 
         if (auditLogService is not null)

@@ -24,6 +24,7 @@ public class ListProjectsQueryTests
 
         var handler = new ListProjectsQueryHandler(
             fixture.ProjectRepository,
+            fixture.EnvironmentRepository,
             fixture.ProjectMemberRepository,
             fixture.UserAuthorizationService);
 
@@ -34,6 +35,33 @@ public class ListProjectsQueryTests
 
         // Assert
         await Assert.That(result.Count).IsEqualTo(3);
+    }
+
+    [Test]
+    public async Task SystemAdmin_ListIncludesEnvironmentsFromEnvironmentRepository()
+    {
+        var fixture = new TestFixture();
+        fixture.SetupAsSystemAdmin();
+
+        fixture.ProjectRepository.ListAsync(Arg.Any<CancellationToken>())
+            .Returns(new List<Project> { new() { Name = "project1" } });
+        fixture.EnvironmentRepository.ListByProjectAsync("project1", Arg.Any<CancellationToken>())
+            .Returns(new List<ProjectEnvironment>
+            {
+                new() { Name = "production", Project = "project1" },
+                new() { Name = "staging", Project = "project1" }
+            });
+
+        var handler = new ListProjectsQueryHandler(
+            fixture.ProjectRepository,
+            fixture.EnvironmentRepository,
+            fixture.ProjectMemberRepository,
+            fixture.UserAuthorizationService);
+
+        var result = await handler.Handle(new ListProjectsQuery(), CancellationToken.None);
+
+        await Assert.That(result.Count).IsEqualTo(1);
+        await Assert.That(result[0].Environments).IsEquivalentTo(["production", "staging"]);
     }
 
     [Test]
@@ -61,6 +89,7 @@ public class ListProjectsQueryTests
 
         var handler = new ListProjectsQueryHandler(
             fixture.ProjectRepository,
+            fixture.EnvironmentRepository,
             fixture.ProjectMemberRepository,
             fixture.UserAuthorizationService);
 
@@ -99,6 +128,7 @@ public class ListProjectsQueryTests
 
         var handler = new ListProjectsQueryHandler(
             fixture.ProjectRepository,
+            fixture.EnvironmentRepository,
             fixture.ProjectMemberRepository,
             fixture.UserAuthorizationService);
 
@@ -140,6 +170,7 @@ public class ListProjectsQueryTests
 
         var handler = new ListProjectsQueryHandler(
             fixture.ProjectRepository,
+            fixture.EnvironmentRepository,
             fixture.ProjectMemberRepository,
             fixture.UserAuthorizationService);
 
@@ -177,6 +208,7 @@ public class ListProjectsQueryTests
 
         var handler = new ListProjectsQueryHandler(
             fixture.ProjectRepository,
+            fixture.EnvironmentRepository,
             fixture.ProjectMemberRepository,
             fixture.UserAuthorizationService);
 
@@ -207,6 +239,7 @@ public class ListProjectsQueryTests
 
         var handler = new ListProjectsQueryHandler(
             fixture.ProjectRepository,
+            fixture.EnvironmentRepository,
             fixture.ProjectMemberRepository,
             fixture.UserAuthorizationService);
 
@@ -235,6 +268,7 @@ public class ListProjectsQueryTests
 
         var handler = new ListProjectsQueryHandler(
             fixture.ProjectRepository,
+            fixture.EnvironmentRepository,
             fixture.ProjectMemberRepository,
             fixture.UserAuthorizationService);
 
