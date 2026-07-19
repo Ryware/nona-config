@@ -9,7 +9,7 @@ import {
   readAllConfigValuesResponse,
   readRawEntryValueResponse,
 } from "./response-helpers.js";
-import { TtlCache } from "./ttl-cache.js";
+import { ClientCache, cloneConfigValues } from "./client-cache.js";
 import type {
   NonaClientOptions,
   NonaConfigValues,
@@ -22,12 +22,6 @@ interface SendOptions extends NonaRequestOptions {
   headers?: HeadersInit;
   method: string;
   path: string;
-}
-
-interface BulkCacheEntry {
-  etag?: string;
-  valueRequestIds: Set<string>;
-  values: NonaConfigValues;
 }
 
 export interface NonaClient {
@@ -68,14 +62,12 @@ export function createNonaClient(
   const defaultHeaders = resolvedOptions.defaultHeaders;
   const fetchImpl = resolvedOptions.fetch ?? globalThis.fetch?.bind(globalThis);
 
-  const cache = new TtlCache({
+  const cache = new ClientCache({
     ttlMs: resolvedOptions.cacheTtlMs,
     memoryLimitMegabytes: resolvedOptions.cacheMemoryLimitMegabytes,
   });
   const pendingRequests = new Map<string, Promise<NonaConfigValue>>();
   const pendingBulkRequests = new Map<string, Promise<NonaConfigValues>>();
-  const bulkCache = new Map<string, BulkCacheEntry>();
-  const primedValues = new Map<string, NonaConfigValue>();
   const apiKey = resolvedOptions.apiKey;
 
   if (!fetchImpl) {
@@ -165,7 +157,7 @@ export function createNonaClient(
         return cached;
       }
 
-      const primed = primedValues.get(id);
+      const primed = cache.getPrimed(id);
       if (primed) {
         return primed;
       }
@@ -197,10 +189,10 @@ export function createNonaClient(
 
       const pending = pendingBulkRequests.get(id);
       if (pending) {
-        return pending;
+        return cloneConfigValues(await pending);
       }
 
-      const previous = bulkCache.get(id);
+      const previous = cache.getBulk(id);
       const request: SendOptions = {
         method: "GET",
         path,
@@ -213,11 +205,7 @@ export function createNonaClient(
       const inFlight = sendRequest(request)
         .then(async (response) => {
           if (response.status === 304 && previous) {
-            previous.valueRequestIds = primeValues(
-              previous.values,
-              releaseVersion,
-              previous,
-            );
+            cache.primeBulk(id);
             return previous.values;
           }
 
@@ -226,13 +214,12 @@ export function createNonaClient(
             request.method,
             response.url,
           );
-          const entry: BulkCacheEntry = {
-            etag: response.headers.get("ETag") ?? undefined,
-            valueRequestIds: primeValues(values, releaseVersion, previous),
+          cache.setBulk(
+            id,
+            response.headers.get("ETag") ?? undefined,
             values,
-          };
-
-          bulkCache.set(id, entry);
+            configValueRequestIds(values, releaseVersion),
+          );
           return values;
         })
         .finally(() => {
@@ -240,7 +227,7 @@ export function createNonaClient(
         });
 
       pendingBulkRequests.set(id, inFlight);
-      return inFlight;
+      return cloneConfigValues(await inFlight);
     },
     invalidateTtlCache(
       key: string,
@@ -254,14 +241,10 @@ export function createNonaClient(
         ),
       };
       const id = buildRequestKey(baseUrl, request.method, request.path, apiKey);
-      const ttlInvalidated = cache.invalidate(id);
-      const primedInvalidated = primedValues.delete(id);
-      return ttlInvalidated || primedInvalidated;
+      return cache.invalidate(id);
     },
     clearTtlCache(): void {
       cache.clear();
-      primedValues.clear();
-      bulkCache.clear();
     },
     async tryGetConfigValue(
       key: string,
@@ -299,24 +282,14 @@ export function createNonaClient(
     },
   };
 
-  function primeValues(
+  function configValueRequestIds(
     values: NonaConfigValues,
     releaseVersion: string | undefined,
-    previous?: BulkCacheEntry,
-  ): Set<string> {
-    if (previous) {
-      for (const valueRequestId of previous.valueRequestIds) {
-        primedValues.delete(valueRequestId);
-        cache.invalidate(valueRequestId);
-      }
-    }
-
-    const valueRequestIds = new Set<string>();
-    for (const [key, value] of Object.entries(values)) {
+  ): Map<string, string> {
+    const valueRequestIds = new Map<string, string>();
+    for (const key of Object.keys(values)) {
       const valueRequestId = configValueRequestId(key, releaseVersion);
-      cache.invalidate(valueRequestId);
-      primedValues.set(valueRequestId, value);
-      valueRequestIds.add(valueRequestId);
+      valueRequestIds.set(valueRequestId, key);
     }
 
     return valueRequestIds;

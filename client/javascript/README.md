@@ -129,7 +129,7 @@ try {
 - `fetch`: custom fetch implementation
 - `defaultHeaders`: headers added to every request
 - `cacheTtlMs`: cache TTL in milliseconds (disabled by default; set a positive value to enable)
-- `cacheMemoryLimitMegabytes`: in-memory cache size limit in MB (default `5`)
+- `cacheMemoryLimitMegabytes`: shared TTL and bulk-snapshot cache limit in MB (default `5`)
 
 Cache helpers:
 

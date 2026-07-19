@@ -219,6 +219,7 @@ const nona = createNonaClient({
 Use `invalidateTtlCache(key)` to remove one cached value or `clearTtlCache()` to clear all cached values, including a snapshot primed by `getAllValues()`.
 
 The JavaScript client cache is optional and disabled by default. Set a positive `cacheTtlMs` value to enable it.
+The `cacheMemoryLimitMegabytes` budget is shared by TTL entries and bulk snapshots; least-recently-used data is evicted when the total exceeds that limit.
 
 Cache is useful when:
 

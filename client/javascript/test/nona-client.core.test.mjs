@@ -200,6 +200,112 @@ test("getAllValues uses ETag validation and reuses the snapshot on 304", async (
   assert.equal(calls[1].headers.get("If-None-Match"), '"snapshot"');
 });
 
+test("getAllValues isolates cached values from caller mutation", async () => {
+  const calls = [];
+  const flags = { banner: { value: "hello", contentType: "text" } };
+  const client = createNonaClient("https://nona.test", {
+    environmentId: "production",
+    apiKey: "api-key",
+    fetch: async (url, init) => {
+      calls.push(capture(url, init));
+      if (calls.length === 1) {
+        return new Response(JSON.stringify(flags), {
+          status: 200,
+          headers: { "Content-Type": "application/json", ETag: '"snapshot"' }
+        });
+      }
+
+      return new Response(null, {
+        status: 304,
+        headers: { ETag: '"snapshot"' }
+      });
+    }
+  });
+
+  const first = await client.getAllValues();
+  first.banner.value = "caller-mutated";
+  assert.deepEqual(
+    await client.getConfigValue("banner"),
+    { value: "hello", contentType: "text" }
+  );
+
+  const second = await client.getAllValues();
+  second.banner.value = "mutated-again";
+  assert.deepEqual(
+    await client.getConfigValue("banner"),
+    { value: "hello", contentType: "text" }
+  );
+  assert.equal(calls.length, 2);
+});
+
+test("getAllValues re-primes an invalidated value after 304 validation", async () => {
+  const calls = [];
+  const flags = { banner: { value: "hello", contentType: "text" } };
+  const client = createNonaClient("https://nona.test", {
+    environmentId: "production",
+    apiKey: "api-key",
+    fetch: async (url, init) => {
+      calls.push(capture(url, init));
+      if (calls.length === 1) {
+        return new Response(JSON.stringify(flags), {
+          status: 200,
+          headers: { "Content-Type": "application/json", ETag: '"snapshot"' }
+        });
+      }
+
+      return new Response(null, {
+        status: 304,
+        headers: { ETag: '"snapshot"' }
+      });
+    }
+  });
+
+  await client.getAllValues();
+  assert.equal(client.invalidateTtlCache("banner"), true);
+  await client.getAllValues();
+  assert.deepEqual(
+    await client.getConfigValue("banner"),
+    { value: "hello", contentType: "text" }
+  );
+  assert.equal(calls.length, 2);
+});
+
+test("bulk snapshots share the configured memory limit and evict least-recently-used data", async () => {
+  const calls = [];
+  const flags = {
+    banner: { value: "x".repeat(200), contentType: "text" }
+  };
+  const client = createNonaClient("https://nona.test", {
+    environmentId: "production",
+    apiKey: "api-key",
+    cacheMemoryLimitMegabytes: 0.0008,
+    fetch: async (url, init) => {
+      calls.push(capture(url, init));
+      const version = new URL(url).searchParams.get("version");
+      if (calls.at(-1).headers.get("If-None-Match")) {
+        return new Response(null, {
+          status: 304,
+          headers: { ETag: `"${version}"` }
+        });
+      }
+
+      return new Response(JSON.stringify(flags), {
+        status: 200,
+        headers: { "Content-Type": "application/json", ETag: `"${version}"` }
+      });
+    }
+  });
+
+  await client.getAllValues({ releaseVersion: "1.0.0" });
+  await client.getAllValues({ releaseVersion: "2.0.0" });
+  await client.getAllValues({ releaseVersion: "2.0.0" });
+  await client.getAllValues({ releaseVersion: "1.0.0" });
+
+  assert.equal(calls.length, 4);
+  assert.equal(calls[2].headers.get("If-None-Match"), '"2.0.0"');
+  assert.equal(calls[3].headers.get("If-None-Match"), null);
+});
+
 test("getAllValues supports a release selector", async () => {
   const calls = [];
   const client = createNonaClient("https://nona.test", {
