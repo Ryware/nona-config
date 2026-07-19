@@ -187,6 +187,14 @@ public static class NonaEndpointRouteBuilderExtensions
 
     private static void MapConfigApiEndpoints(RouteGroupBuilder api)
     {
+        api.MapGet("/{environmentId}", GetAllConfigValuesAsync)
+            .Produces<Dictionary<string, ClientConfigValueDto>>()
+            .Produces(StatusCodes.Status304NotModified)
+            .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
+            .Produces<ErrorResponse>(StatusCodes.Status401Unauthorized)
+            .Produces<ErrorResponse>(StatusCodes.Status404NotFound)
+            .RequireAuthorization(ApiKeyAuthenticationHandler.SchemeName);
+
         api.MapGet("/{environmentId}/{key}", GetConfigValueAsync)
             .RequireAuthorization(ApiKeyAuthenticationHandler.SchemeName);
     }
@@ -1043,6 +1051,38 @@ public static class NonaEndpointRouteBuilderExtensions
             result.LogicalContentType ?? ConfigEntryContentTypes.Text;
 
         return Results.Content(result.Value!, "application/json");
+    }
+
+    public static async Task<IResult> GetAllConfigValuesAsync(
+        string environmentId,
+        string? version,
+        HttpContext httpContext,
+        IMediator mediator,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(
+            new GetAllConfigValuesQuery(
+                environmentId,
+                version,
+                httpContext.Request.Headers.IfNoneMatch.ToString()),
+            cancellationToken);
+        if (!result.Success)
+        {
+            return result.Error switch
+            {
+                "API key is required" or "Invalid API key" => Unauthorized(result.Error),
+                "Version must use major.minor.patch or major.minor.x format." => BadRequest(result.Error),
+                _ => NotFound(result.Error ?? "Config values not found")
+            };
+        }
+
+        httpContext.Response.Headers.ETag = result.Etag;
+        httpContext.Response.Headers.CacheControl = "private, no-cache";
+
+        if (result.NotModified)
+            return Results.StatusCode(StatusCodes.Status304NotModified);
+
+        return Results.Ok(result.Values);
     }
 
     private static async Task<IResult?> ValidateRequestAsync<TRequest>(

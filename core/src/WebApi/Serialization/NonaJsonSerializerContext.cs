@@ -17,6 +17,7 @@ using Nona.Application.Admin.Users.Commands;
 using Nona.Application.Admin.Users.DTOs;
 using Nona.Application.Auth.Commands;
 using Nona.Application.Auth.DTOs;
+using Nona.Application.Api.ConfigEntries.Queries;
 using Nona.Application.Shared.ParameterShareLinks.Commands;
 using Nona.Application.Shared.ParameterShareLinks.DTOs;
 using Nona.WebApi.Endpoints;
@@ -76,4 +77,6 @@ namespace Nona.WebApi.Serialization;
 [JsonSerializable(typeof(AuditLogDto))]
 [JsonSerializable(typeof(IReadOnlyList<AuditLogDto>))]
 [JsonSerializable(typeof(DashboardCountDto))]
+[JsonSerializable(typeof(ClientConfigValueDto))]
+[JsonSerializable(typeof(Dictionary<string, ClientConfigValueDto>))]
 internal sealed partial class NonaJsonSerializerContext : JsonSerializerContext;

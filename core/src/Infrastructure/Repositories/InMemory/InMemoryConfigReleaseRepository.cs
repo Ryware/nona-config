@@ -1,4 +1,5 @@
 using Nona.Domain.Entities;
+using Nona.Domain.Enums;
 using Nona.Domain.Interfaces;
 using System.Collections.Concurrent;
 
@@ -43,6 +44,24 @@ public class InMemoryConfigReleaseRepository : IConfigReleaseRepository
             .ToList();
 
         return Task.FromResult<IReadOnlyList<ConfigRelease>>(releases);
+    }
+
+    public Task<IReadOnlyList<ConfigReleaseEntry>> ListEntriesAsync(
+        string projectName,
+        string environmentName,
+        string version,
+        KeyScope requiredScope,
+        CancellationToken ct = default)
+    {
+        if (!_releases.TryGetValue(GetKey(projectName, environmentName, version), out var release))
+        {
+            return Task.FromResult<IReadOnlyList<ConfigReleaseEntry>>([]);
+        }
+
+        var entries = release.Entries
+            .Where(entry => (entry.Scope & requiredScope) != 0)
+            .ToList();
+        return Task.FromResult<IReadOnlyList<ConfigReleaseEntry>>(entries);
     }
 
     public Task<bool> ExistsAsync(string projectName, string environmentName, string version, CancellationToken ct = default)

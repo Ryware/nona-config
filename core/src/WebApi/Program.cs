@@ -34,7 +34,9 @@ public partial class Program
                 .SetIsOriginAllowed(_ => true)
                 .AllowAnyHeader()
                 .AllowAnyMethod()
-                .WithExposedHeaders(NonaResponseHeaders.LogicalContentType)
+                .WithExposedHeaders(
+                    NonaResponseHeaders.LogicalContentType,
+                    NonaResponseHeaders.EntityTag)
                 .AllowCredentials());
         });
 

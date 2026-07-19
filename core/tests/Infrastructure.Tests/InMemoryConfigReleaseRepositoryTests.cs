@@ -47,6 +47,46 @@ public class InMemoryConfigReleaseRepositoryTests
         await Assert.That(releases[0].Version).IsEqualTo("1.1.2");
     }
 
+    [Test]
+    public async Task ListEntriesAsync_ReturnsOnlyEntriesMatchingRequiredScope()
+    {
+        var repository = new InMemoryConfigReleaseRepository();
+        var release = CreateRelease("1.1.0", "false", patch: 0);
+        release = new ConfigRelease
+        {
+            Project = release.Project,
+            Environment = release.Environment,
+            Version = release.Version,
+            Major = release.Major,
+            Minor = release.Minor,
+            Patch = release.Patch,
+            Entries =
+            [
+                release.Entries[0],
+                new ConfigReleaseEntry
+                {
+                    Project = release.Project,
+                    Environment = release.Environment,
+                    ReleaseVersion = release.Version,
+                    Key = "server.secret",
+                    Value = "secret",
+                    Scope = KeyScope.Backend
+                }
+            ],
+            EntryCount = 2
+        };
+        await repository.AddAsync(release);
+
+        var entries = await repository.ListEntriesAsync(
+            "test-project",
+            "production",
+            "1.1.0",
+            KeyScope.Frontend);
+
+        await Assert.That(entries).Count().IsEqualTo(1);
+        await Assert.That(entries[0].Key).IsEqualTo("feature.enabled");
+    }
+
     private static ConfigRelease CreateRelease(string version, string value, int patch)
     {
         return new ConfigRelease

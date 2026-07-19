@@ -57,6 +57,51 @@ public class LibsqlConfigReleaseRepositoryTests
     }
 
     [Test]
+    public async Task ListEntriesAsync_Sqld_ReturnsOnlyEntriesMatchingRequiredScope()
+    {
+        await using var server = await LocalSqldTestServer.StartAsync();
+        using var client = server.CreateClient();
+        var migrations = new LibsqlMigrationRunner(client, ResolveMigrationsFolder());
+        await migrations.RunMigrationsAsync();
+
+        var repository = new LibsqlConfigReleaseRepository(client);
+        var release = CreateRelease("1.1.0", "false", patch: 0);
+        release = new ConfigRelease
+        {
+            Project = release.Project,
+            Environment = release.Environment,
+            Version = release.Version,
+            Major = release.Major,
+            Minor = release.Minor,
+            Patch = release.Patch,
+            Entries =
+            [
+                release.Entries[0],
+                new ConfigReleaseEntry
+                {
+                    Project = release.Project,
+                    Environment = release.Environment,
+                    ReleaseVersion = release.Version,
+                    Key = "server.secret",
+                    Value = "secret",
+                    Scope = KeyScope.Backend
+                }
+            ],
+            EntryCount = 2
+        };
+        await repository.AddAsync(release);
+
+        var entries = await repository.ListEntriesAsync(
+            "test-project",
+            "production",
+            "1.1.0",
+            KeyScope.Frontend);
+
+        await Assert.That(entries).Count().IsEqualTo(1);
+        await Assert.That(entries[0].Key).IsEqualTo("feature.enabled");
+    }
+
+    [Test]
     public async Task DeleteAsync_Sqld_RemovesReleaseAndSnapshotEntries()
     {
         await using var server = await LocalSqldTestServer.StartAsync();
