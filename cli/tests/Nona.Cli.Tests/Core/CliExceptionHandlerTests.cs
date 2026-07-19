@@ -1,0 +1,78 @@
+using System.CommandLine;
+using System.CommandLine.Invocation;
+using System.CommandLine.IO;
+using System.CommandLine.Parsing;
+using Nona.Cli.Generated.Models;
+
+namespace Nona.Cli.Tests.Core;
+
+public sealed class CliExceptionHandlerTests
+{
+    [Test]
+    [Arguments(400, CliExitCodes.ValidationError)]
+    [Arguments(401, CliExitCodes.AuthenticationError)]
+    [Arguments(403, CliExitCodes.AuthenticationError)]
+    [Arguments(404, CliExitCodes.NotFound)]
+    [Arguments(409, CliExitCodes.Conflict)]
+    [Arguments(500, CliExitCodes.ServerError)]
+    public async Task Describe_MapsApiStatusToDocumentedExitCode(int statusCode, int expectedExitCode)
+    {
+        var result = CliExceptionHandler.Describe(new ErrorResponse
+        {
+            Error = "server message",
+            ResponseStatusCode = statusCode
+        });
+
+        await Assert.That(result.ExitCode).IsEqualTo(expectedExitCode);
+        await Assert.That(result.Message).IsEqualTo($"Error: server message ({statusCode})");
+    }
+
+    [Test]
+    public async Task Parser_PrintsSingleLineServerErrorWithoutStackTrace()
+    {
+        var exception = new ErrorResponse
+        {
+            Error = "value is not a valid\nnumber",
+            ErrorCode = "INVALID_VALUE",
+            ResponseStatusCode = 400
+        };
+
+        var (exitCode, output) = await InvokeThrowingCommandAsync(exception);
+
+        await Assert.That(exitCode).IsEqualTo(CliExitCodes.ValidationError);
+        await Assert.That(output).IsEqualTo(
+            $"Error: value is not a valid number (400, INVALID_VALUE){Environment.NewLine}");
+        await Assert.That(output).DoesNotContain(nameof(ErrorResponse));
+        await Assert.That(output).DoesNotContain(" at ");
+    }
+
+    [Test]
+    public async Task Parser_VerbosePrintsFullExceptionDetails()
+    {
+        var exception = new ErrorResponse
+        {
+            Error = "environment not found",
+            ResponseStatusCode = 404
+        };
+
+        var (exitCode, output) = await InvokeThrowingCommandAsync(exception, "--verbose");
+
+        await Assert.That(exitCode).IsEqualTo(CliExitCodes.NotFound);
+        await Assert.That(output).Contains("Error: environment not found (404)");
+        await Assert.That(output).Contains(typeof(ErrorResponse).FullName!);
+    }
+
+    private static async Task<(int ExitCode, string Error)> InvokeThrowingCommandAsync(
+        Exception exception,
+        params string[] args)
+    {
+        var root = new RootCommand();
+        var verboseOption = new Option<bool>("--verbose");
+        root.AddGlobalOption(verboseOption);
+        root.SetHandler((InvocationContext _) => throw exception);
+
+        var console = new TestConsole();
+        var exitCode = await Program.CreateParser(root, verboseOption).InvokeAsync(args, console);
+        return (exitCode, console.Error.ToString()!);
+    }
+}
