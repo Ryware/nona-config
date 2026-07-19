@@ -1,0 +1,79 @@
+using System.Net;
+using System.Text;
+using Microsoft.Kiota.Abstractions;
+using Nona.Migrator.Core.Services;
+
+namespace Nona.Cli.Tests.Core;
+
+public sealed class NonaClientFactoryErrorResponseTests
+{
+    [Test]
+    [Arguments(400, "text/plain", "value is wrong", "Bad Request", CliExitCodes.ValidationError, "Error: value is wrong (400)")]
+    [Arguments(401, null, null, "Unauthorized", CliExitCodes.AuthenticationError, "Error: Unauthorized (401)")]
+    [Arguments(502, "application/json", "{", "Bad Gateway", CliExitCodes.ServerError, "Error: Bad Gateway (502)")]
+    [Arguments(502, "text/html", "<html>gateway failure</html>", "Bad Gateway", CliExitCodes.ServerError, "Error: Bad Gateway (502)")]
+    public async Task Client_NormalizesUnexpectedErrorBodies(
+        int statusCode,
+        string? mediaType,
+        string? body,
+        string reasonPhrase,
+        int expectedExitCode,
+        string expectedMessage)
+    {
+        using var transport = new StubHandler(_ => CreateResponse(
+            statusCode,
+            mediaType,
+            body,
+            reasonPhrase));
+        using var normalizer = new NonaApiErrorResponseHandler { InnerHandler = transport };
+        using var httpClient = new HttpClient(normalizer);
+        var client = NonaClientFactory.Create(
+            new NonaCliConnectionOptions("https://nona.example", "token"),
+            () => httpClient);
+
+        ApiException? exception = null;
+        try
+        {
+            await client.Admin.Projects.GetAsync();
+        }
+        catch (ApiException caught)
+        {
+            exception = caught;
+        }
+
+        await Assert.That(exception).IsNotNull();
+        var error = CliExceptionHandler.Describe(exception!);
+        await Assert.That(error.ExitCode).IsEqualTo(expectedExitCode);
+        await Assert.That(error.Message).IsEqualTo(expectedMessage);
+    }
+
+    private static HttpResponseMessage CreateResponse(
+        int statusCode,
+        string? mediaType,
+        string? body,
+        string reasonPhrase)
+    {
+        var response = new HttpResponseMessage((HttpStatusCode)statusCode)
+        {
+            ReasonPhrase = reasonPhrase
+        };
+
+        if (body is not null)
+        {
+            response.Content = mediaType is null
+                ? new StringContent(body, Encoding.UTF8)
+                : new StringContent(body, Encoding.UTF8, mediaType);
+        }
+
+        return response;
+    }
+
+    private sealed class StubHandler(Func<HttpRequestMessage, HttpResponseMessage> responseFactory)
+        : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+            => Task.FromResult(responseFactory(request));
+    }
+}

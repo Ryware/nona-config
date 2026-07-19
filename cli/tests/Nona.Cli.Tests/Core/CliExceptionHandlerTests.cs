@@ -62,6 +62,24 @@ public sealed class CliExceptionHandlerTests
         await Assert.That(output).Contains(typeof(ErrorResponse).FullName!);
     }
 
+    [Test]
+    public async Task Parser_RemovesTerminalControlCharactersFromSummary()
+    {
+        var exception = new ErrorResponse
+        {
+            Error = "danger\u001b[31mred\u001b[0m\u0007",
+            ErrorCode = "BAD\u001b]8;;https://example.test\u0007CODE",
+            ResponseStatusCode = 400
+        };
+
+        var (exitCode, output) = await InvokeThrowingCommandAsync(exception);
+
+        await Assert.That(exitCode).IsEqualTo(CliExitCodes.ValidationError);
+        await Assert.That(output).DoesNotContain("\u001b");
+        await Assert.That(output).DoesNotContain("\u0007");
+        await Assert.That(output).Contains("Error: danger [31mred [0m (400, BAD ]8;;https://example.test CODE)");
+    }
+
     private static async Task<(int ExitCode, string Error)> InvokeThrowingCommandAsync(
         Exception exception,
         params string[] args)

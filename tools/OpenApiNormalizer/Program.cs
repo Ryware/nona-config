@@ -244,7 +244,6 @@ static JsonObject Response(string description, JsonNode schema) => new()
 
 static JsonObject JsonContent(JsonNode schema) => new()
 {
-    ["text/plain"] = new JsonObject { ["schema"] = schema.DeepClone() },
     ["application/json"] = new JsonObject { ["schema"] = schema.DeepClone() },
     ["text/json"] = new JsonObject { ["schema"] = schema.DeepClone() }
 };
