@@ -128,3 +128,24 @@ Resolution order is:
 2. `NONA_CLI_*` environment variables
 3. Saved CLI defaults from `nona config set`
 4. Saved auth session from `nona auth login` for base URL and bearer token reuse
+
+## Error output and exit codes
+
+API failures are written to standard error as one human-readable line, including the HTTP status and the server's error code when available:
+
+```text
+Error: value is not a valid number (400, INVALID_VALUE)
+```
+
+Pass the global `--verbose` option to include the full exception and stack trace for debugging. Without `--verbose`, stack traces are suppressed.
+
+| Exit code | Meaning |
+| --- | --- |
+| `0` | Success |
+| `1` | Unexpected local or API error |
+| `2` | Validation or other client request error (`400`, `422`, or another `4xx`) |
+| `3` | Authentication or authorization error (`401` or `403`) |
+| `4` | Resource not found (`404`) |
+| `5` | Conflict (`409`) |
+| `6` | Server error (`5xx`) |
+| `130` | Command cancelled |

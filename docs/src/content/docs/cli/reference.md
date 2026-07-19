@@ -16,8 +16,24 @@ npm run generate:cli
 The command help below omits repeated common options from individual option lists.
 
 - `-?, -h, --help` is accepted by every command and subcommand.
+- `--verbose` is accepted by every command and includes full exception details when a command fails.
 - Commands that connect to the Nona API may also accept `--api-url, --base-url <base-url>` and `--bearer-token, --token <bearer-token>`.
 - Connection values can come from flags, `NONA_CLI_*` environment variables, saved defaults, or a matching `nona auth login` session.
+
+## Error output and exit codes
+
+API failures print one human-readable line to standard error. The line includes the HTTP status and includes the server's error code when one is available. Stack traces are suppressed unless `--verbose` is supplied.
+
+| Exit code | Meaning |
+| --- | --- |
+| `0` | Success |
+| `1` | Unexpected local or API error |
+| `2` | Validation or other client request error (`400`, `422`, or another `4xx`) |
+| `3` | Authentication or authorization error (`401` or `403`) |
+| `4` | Resource not found (`404`) |
+| `5` | Conflict (`409`) |
+| `6` | Server error (`5xx`) |
+| `130` | Command cancelled |
 
 ## `nona`
 
@@ -43,6 +59,7 @@ nona [command] [options]
 **Options**
 
 ```text
+--verbose       Show full exception details when a command fails.
 --version       Show version information
 ```
 
