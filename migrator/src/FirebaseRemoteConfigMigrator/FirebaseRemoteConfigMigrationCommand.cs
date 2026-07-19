@@ -24,7 +24,7 @@ public static class FirebaseRemoteConfigMigrationCommand
             var configuration = await MigrationConfiguration.LoadAsync(args, cancellationToken);
             configuration.Validate();
 
-            using var nonaHttpClient = new HttpClient();
+            using var nonaHttpClient = NonaApiHttpClientFactory.Create();
 
             var firebaseClient = new FirebaseRemoteConfigClient(configuration.Firebase);
             var sourcePlans = new List<MigrationPlan>();
@@ -95,10 +95,15 @@ public static class FirebaseRemoteConfigMigrationCommand
         }
         catch (Exception exception)
         {
-            await error.WriteLineAsync(exception.Message);
+            await error.WriteLineAsync(DescribeException(exception));
             return 1;
         }
     }
+
+    internal static string DescribeException(Exception exception)
+        => exception is Microsoft.Kiota.Abstractions.ApiException apiException
+            ? NonaApiExceptionFormatter.Format(apiException)
+            : $"Error: {TerminalSafeText.SingleLine(exception.Message)}";
 
     private static async Task<string> EnsureProjectAsync(
         NonaMigrationApiClient client, string projectName, CancellationToken ct)
