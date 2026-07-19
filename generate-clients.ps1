@@ -3,6 +3,8 @@ Set-StrictMode -Version Latest
 
 $scriptDir = Split-Path -Parent $PSCommandPath
 $webApiProject = Join-Path $scriptDir 'core/src/WebApi/WebApi.csproj'
+$webApiProjectDirectory = Split-Path -Parent $webApiProject
+$normalizerProject = Join-Path $scriptDir 'tools/OpenApiNormalizer/OpenApiNormalizer.csproj'
 $openApiDirectory = if ([string]::IsNullOrWhiteSpace($env:OPENAPI_DIR)) {
     Join-Path $scriptDir 'obj/openapi'
 }
@@ -146,11 +148,22 @@ try {
     if ($buildSpec) {
         Write-Host "Building OpenAPI spec from $webApiProject..."
         New-Item -ItemType Directory -Force -Path $openApiDirectory | Out-Null
+        Remove-Item -LiteralPath $Spec -Force -ErrorAction SilentlyContinue
+        $fallbackSpec = Join-Path $webApiProjectDirectory 'obj/openapi/WebApi.json'
+        Remove-Item -LiteralPath $fallbackSpec -Force -ErrorAction SilentlyContinue
+        Get-ChildItem -Path (Join-Path $webApiProjectDirectory 'obj') `
+            -Filter '*.OpenApiFiles.cache' `
+            -File `
+            -ErrorAction SilentlyContinue | Remove-Item -Force
         $env:Storage__Type = 'InMemory'
         Invoke-Checked {
             dotnet build "$webApiProject" `
                 /p:OpenApiGenerateDocuments=true `
                 "/p:OpenApiDocumentsDirectory=$openApiDirectory"
+        }
+        if (-not (Test-Path -LiteralPath $Spec -PathType Leaf) -and
+            (Test-Path -LiteralPath $fallbackSpec -PathType Leaf)) {
+            Copy-Item -LiteralPath $fallbackSpec -Destination $Spec
         }
         Require-File -Path $Spec -Description 'generated OpenAPI spec'
         Write-Host "  -> $Spec"
@@ -178,6 +191,9 @@ try {
         Require-File -Path $Spec -Description 'OpenAPI spec'
         Write-Host "Using OpenAPI spec: $Spec"
     }
+
+    Write-Host 'Normalizing OpenAPI spec...'
+    Invoke-Checked { dotnet run --project "$normalizerProject" -- "$Spec" }
 
     Write-Host ''
     Write-Host 'Generating C# client for Migrator...'
