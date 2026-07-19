@@ -1,4 +1,4 @@
-import { For, Show } from "solid-js";
+import { For, Show, createSignal, onCleanup, onMount } from "solid-js";
 import { MIcon } from "../../../shared/ui/icons";
 import type { Project, User } from "../../../types";
 import { UserForm, type UserFormValue } from "./UserForm";
@@ -43,9 +43,202 @@ function roleMeta(role: string) {
 }
 
 export function UsersTable(props: UsersTableProps) {
+  const [isMobile, setIsMobile] = createSignal(false);
+
+  onMount(() => {
+    const syncViewport = () => setIsMobile(window.innerWidth < 768);
+    syncViewport();
+    window.addEventListener("resize", syncViewport);
+    onCleanup(() => window.removeEventListener("resize", syncViewport));
+  });
+
   return (
-    <div class="bg-surface-container-low border-outline-variant/15 overflow-hidden rounded-xl border">
-      <div class="overflow-x-auto">
+    <div class="space-y-3">
+      <Show when={isMobile()}>
+        <div class="space-y-3">
+          <Show when={props.isLoading}>
+            <For each={[1, 2, 3]}>
+              {() => <div class="skeleton h-36 w-full rounded-2xl" />}
+            </For>
+          </Show>
+
+          <Show
+            when={!props.isLoading && props.filteredUsers.length === 0 && props.totalUsersCount === 0}
+          >
+            <div class="bg-surface-container-low border-outline-variant/15 animate-fade-in rounded-2xl border p-10 text-center">
+              <div class="bg-primary/5 mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl">
+                <MIcon name="group_add" class="text-primary/60 text-3xl" />
+              </div>
+              <p class="text-on-surface font-headline mb-1 text-[14px] font-bold">
+                No team members yet
+              </p>
+              <p class="text-on-surface-variant mb-4 text-[13px]">
+                Invite your first team member to get started.
+              </p>
+              <Show when={props.onInvite}>
+                <button
+                  type="button"
+                  onClick={() => props.onInvite?.()}
+                  class="bg-primary text-on-primary inline-flex cursor-pointer items-center gap-2 rounded-lg border-0 px-4 py-2 text-[13px] font-semibold transition-all hover:brightness-105 active:scale-[0.98]"
+                >
+                  <MIcon name="person_add" class="text-[17px]" />
+                  Invite Member
+                </button>
+              </Show>
+            </div>
+          </Show>
+
+          <Show
+            when={!props.isLoading && props.filteredUsers.length === 0 && props.totalUsersCount > 0}
+          >
+            <div class="text-on-surface-variant py-10 text-center text-sm">
+              No members match your search
+            </div>
+          </Show>
+
+          <Show when={!props.isLoading}>
+            <For each={props.filteredUsers}>
+              {(user: User) => {
+                const initials = user.name
+                  ? user.name.slice(0, 2).toUpperCase()
+                  : user.email.slice(0, 2).toUpperCase();
+                const rm = roleMeta(user.role);
+                const isCurrentUser =
+                  props.currentUserEmail?.toLowerCase() === user.email.toLowerCase();
+                const canEditUser = props.canManageUsers || isCurrentUser;
+                const isExpanded = () => props.editingUserId === user.id;
+
+                return (
+                  <article class="bg-surface-container border-outline-variant/10 overflow-hidden rounded-2xl border">
+                    <div
+                      data-testid={`team-row-${user.id}`}
+                      role={canEditUser ? "button" : undefined}
+                      tabindex={canEditUser ? 0 : undefined}
+                      aria-label={canEditUser ? `Edit ${user.email}` : undefined}
+                      onClick={() => {
+                        if (canEditUser) props.onEdit(user);
+                      }}
+                      onKeyDown={e => {
+                        if (!canEditUser) return;
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          props.onEdit(user);
+                        }
+                      }}
+                      class={`p-4 ${canEditUser ? "cursor-pointer" : ""}`}
+                    >
+                      <div class="flex items-start gap-3">
+                        <Show when={canEditUser}>
+                          <div
+                            class={`bg-surface-container-high text-outline mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-transform ${
+                              isExpanded() ? "rotate-180" : ""
+                            }`}
+                          >
+                            <MIcon name="expand_more" class="text-[16px]" />
+                          </div>
+                        </Show>
+                        <div class="font-headline bg-primary/10 text-primary border-primary/20 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-xs font-bold">
+                          {initials}
+                        </div>
+                        <div class="min-w-0 flex-1 space-y-3">
+                          <div class="min-w-0">
+                            <div class="font-headline text-on-surface text-sm font-semibold">
+                              {user.name || "Pending Invite"}
+                            </div>
+                            <div class="text-outline mt-0.5 break-all font-mono text-[11.5px]">
+                              {user.email}
+                            </div>
+                          </div>
+
+                          <div class="flex flex-wrap gap-2">
+                            <span
+                              class={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-medium ${rm.class}`}
+                            >
+                              {rm.label}
+                            </span>
+                            <span class="text-on-surface-variant inline-flex items-center gap-1.5 text-[12px]">
+                              <span class="material-symbols-outlined text-outline text-[16px]">
+                                {user.role === "admin" ? "public" : "lock_person"}
+                              </span>
+                              <span>
+                                {user.role === "admin" ? "Global Access" : "Scoped Access"}
+                              </span>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Show when={props.canManageUsers}>
+                      <div class="border-outline-variant/10 flex justify-end border-t px-4 py-2">
+                        <button
+                          data-testid={`team-remove-${user.id}`}
+                          type="button"
+                          disabled={isCurrentUser}
+                          onClick={() => {
+                            if (!isCurrentUser) props.onDelete(user);
+                          }}
+                          class={
+                            isCurrentUser
+                              ? "text-outline/35 cursor-not-allowed rounded-lg border-0 bg-transparent p-1.5 opacity-60"
+                              : "text-outline hover:text-error hover:bg-error/10 cursor-pointer rounded-lg border-0 bg-transparent p-1.5"
+                          }
+                          title={
+                            isCurrentUser
+                              ? "You cannot remove your own account"
+                              : `Remove ${user.name || user.email}`
+                          }
+                          aria-label={
+                            isCurrentUser
+                              ? "You cannot remove your own account"
+                              : `Remove ${user.name || user.email}`
+                          }
+                        >
+                          <MIcon name="delete_outline" class="text-[18px]" />
+                        </button>
+                      </div>
+                    </Show>
+
+                    <Show when={isExpanded()}>
+                      <div
+                        data-testid={`team-edit-row-${user.id}`}
+                        class="bg-surface-container-lowest/30 border-outline-variant/10 border-t px-4 py-4"
+                      >
+                        <Show
+                          when={!props.isEditLoading && props.editingUser}
+                          fallback={<div class="skeleton h-48 w-full rounded-xl" />}
+                        >
+                          <UserForm
+                            mode="edit"
+                            initial={{
+                              name: props.editingUser!.name,
+                              email: props.editingUser!.email,
+                              role: props.editingUser!.role,
+                              isAdmin: props.editingUser!.isAdmin,
+                              projects: (props.editingUser!.projects ?? []).map(
+                                p => p.projectName
+                              )
+                            }}
+                            projects={props.projects}
+                            allowManagement={props.canManageUsers}
+                            isPending={props.isSaving}
+                            onCancel={props.onCancelEdit}
+                            onSubmit={props.onSubmitEdit}
+                          />
+                        </Show>
+                      </div>
+                    </Show>
+                  </article>
+                );
+              }}
+            </For>
+          </Show>
+        </div>
+      </Show>
+
+      <Show when={!isMobile()}>
+        <div class="bg-surface-container-low border-outline-variant/15 overflow-hidden rounded-xl border">
+          <div class="overflow-x-auto">
         <table class="w-full border-collapse text-left">
           <thead>
             <tr class="border-outline-variant/15 bg-surface-container-lowest/50 border-b">
@@ -267,7 +460,9 @@ export function UsersTable(props: UsersTableProps) {
             </Show>
           </tbody>
         </table>
-      </div>
+          </div>
+        </div>
+      </Show>
     </div>
   );
 }

@@ -12,6 +12,18 @@ npm install
 npm run dev
 ```
 
+## Verify
+
+Run from `nona-config/admin`:
+
+```bash
+npx tsc -b
+npx vitest run
+npx eslint src --max-warnings 0
+```
+
+`eslint` is currently clean apart from the known `boundaries` deprecation warning emitted by the plugin itself.
+
 ## Configuration
 
 Development uses same-origin API URLs and proxies backend routes through Vite:
@@ -31,3 +43,15 @@ origins.
 - Vite
 - Tailwind CSS
 - TanStack Query
+
+## Key Admin Flows
+
+### Project sub-pages
+
+- Project detail pages do not use a shared project title/description header anymore.
+- Each sub-page owns its own section header and actions:
+  - Parameters: search, bulk import, add parameter
+  - Environments: add environment
+  - API Keys: add API key
+  - Releases / Shared Links: page-specific actions in the section header
+

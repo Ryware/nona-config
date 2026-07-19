@@ -269,7 +269,7 @@ describe('ProjectPage', () => {
     expect(await screen.findByText('API_URL')).toBeInTheDocument();
   });
 
-  it('publishes a configuration release', async () => {
+  it('publishes a configuration release without auto-activating when a release is already active', async () => {
     const publishRequests: Array<{ version: string; makeActive: boolean }> = [];
     server.use(
       http.post(
@@ -293,17 +293,22 @@ describe('ProjectPage', () => {
 
     renderProjectPage('/projects/my-app/releases');
 
+    // Guided flow: Create a version -> enter version -> land on the parameters
+    // step -> Create release. Publishing must not auto-activate here.
+    fireEvent.click(await screen.findByTestId('release-create-version-button'));
     fireEvent.input(await screen.findByTestId('release-version-input'), {
-      target: { value: '1.2.0' },
+      target: { value: '1.2' },
     });
-    fireEvent.click(screen.getByTestId('release-publish-button'));
+    fireEvent.click(screen.getByTestId('release-version-confirm-button'));
+
+    fireEvent.click(await screen.findByTestId('release-create-confirm-button'));
 
     await waitFor(() => {
-      expect(publishRequests).toEqual([{ version: '1.2.0', makeActive: true }]);
+      expect(publishRequests).toEqual([{ version: '1.2.0', makeActive: false }]);
     });
   });
 
-  it('keeps the release version when publishing fails', async () => {
+  it('keeps you on the parameters step when creating the release fails', async () => {
     server.use(
       http.post(
         'http://localhost:5027/admin/projects/:projectId/environments/:envName/releases',
@@ -313,12 +318,57 @@ describe('ProjectPage', () => {
 
     renderProjectPage('/projects/my-app/releases');
 
-    const versionInput = await screen.findByTestId('release-version-input');
-    fireEvent.input(versionInput, { target: { value: '1.2.0' } });
-    fireEvent.click(screen.getByTestId('release-publish-button'));
+    fireEvent.click(await screen.findByTestId('release-create-version-button'));
+    fireEvent.input(await screen.findByTestId('release-version-input'), {
+      target: { value: '1.2' },
+    });
+    fireEvent.click(screen.getByTestId('release-version-confirm-button'));
+
+    fireEvent.click(await screen.findByTestId('release-create-confirm-button'));
 
     expect(await screen.findByText('Release already exists')).toBeInTheDocument();
-    expect(versionInput).toHaveValue('1.2.0');
+    // Still on the parameters step so the user can retry.
+    expect(screen.getByTestId('release-create-confirm-button')).toBeInTheDocument();
+  });
+
+  it('amends a release into a new patch version via the guided flow', async () => {
+    const draftRequests: string[] = [];
+    const publishRequests: Array<{ version: string; makeActive: boolean }> = [];
+    server.use(
+      http.post(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/releases/:version/draft',
+        ({ params }) => {
+          draftRequests.push(String(params.version));
+          return HttpResponse.json([]);
+        },
+      ),
+      http.post(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/releases',
+        async ({ request }) => {
+          publishRequests.push(
+            (await request.json()) as { version: string; makeActive: boolean },
+          );
+          return HttpResponse.json({}, { status: 201 });
+        },
+      ),
+    );
+
+    renderProjectPage('/projects/my-app/releases');
+
+    // Amend the release -> auto next patch and jump straight into compose mode.
+    fireEvent.click(await screen.findByTestId('release-amend-1.1.0'));
+
+    await waitFor(() => {
+      expect(draftRequests).toEqual(['1.1.0']);
+    });
+
+    expect(screen.queryByTestId('release-version-dialog')).not.toBeInTheDocument();
+    expect(await screen.findByTestId('release-create-confirm-button')).toBeInTheDocument();
+
+    fireEvent.click(await screen.findByTestId('release-create-confirm-button'));
+    await waitFor(() => {
+      expect(publishRequests).toEqual([{ version: '1.1.1', makeActive: false }]);
+    });
   });
 
   it('activates a configuration release', async () => {
@@ -347,33 +397,23 @@ describe('ProjectPage', () => {
     const enabledActivate = activateButtons.find(button => !button.hasAttribute('disabled'));
     expect(enabledActivate).toBeTruthy();
     fireEvent.click(enabledActivate!);
+    expect(await screen.findByTestId('release-activate-dialog')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('release-activate-confirm-button'));
 
     await waitFor(() => {
       expect(activeRequests).toEqual([{ version: '1.1.0' }]);
     });
   });
 
-  it('creates a working draft from a release after confirmation', async () => {
-    const draftRequests: string[] = [];
-    server.use(
-      http.post(
-        'http://localhost:5027/admin/projects/:projectId/environments/:envName/releases/:version/draft',
-        ({ params }) => {
-          draftRequests.push(String(params.version));
-          return HttpResponse.json([]);
-        },
-      ),
-    );
-
+  it('opens release parameters on the parameters page without starting an amend flow', async () => {
     renderProjectPage('/projects/my-app/releases');
 
-    fireEvent.click(await screen.findByTestId('release-draft-1.1.0'));
-    expect(await screen.findByTestId('release-draft-dialog')).toBeInTheDocument();
-    fireEvent.click(screen.getByTestId('release-draft-confirm-button'));
+    fireEvent.click(await screen.findByTestId('release-view-1.1.0'));
 
-    await waitFor(() => {
-      expect(draftRequests).toEqual(['1.1.0']);
-    });
+    expect(await screen.findByTestId('release-view-banner')).toBeInTheDocument();
+    expect(await screen.findByTestId('project-parameters-heading')).toBeInTheDocument();
+    expect(await screen.findByTestId('parameter-row-API_URL')).toBeInTheDocument();
+    expect(screen.queryByTestId('release-create-confirm-button')).not.toBeInTheDocument();
   });
 
   it('deletes a non-active release after confirmation', async () => {

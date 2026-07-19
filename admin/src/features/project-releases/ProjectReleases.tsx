@@ -1,7 +1,4 @@
-import { For, Show, createMemo, createSignal } from "solid-js";
-import { Button } from "../../shared/ui/button";
-import { Input } from "../../shared/ui/input";
-import { Label } from "../../shared/ui/label";
+import { For, Show, createMemo } from "solid-js";
 import { MIcon } from "../../shared/ui/icons";
 import type { ConfigRelease } from "../../types";
 
@@ -10,45 +7,22 @@ interface ProjectReleasesProps {
   activeReleaseVersion?: string | null;
   releases: ConfigRelease[];
   isLoading: boolean;
-  isPublishing: boolean;
   isActivating: boolean;
-  draftingVersion: string | null;
+  amendingVersion: string | null;
   deletingVersion: string | null;
   canManage: boolean;
-  onPublish: (version: string, makeActive: boolean) => Promise<unknown>;
+  onCreateVersion: () => void;
+  onView: (version: string) => void;
+  onAmend: (version: string) => void;
   onActivate: (version: string) => void;
   onClearActive: () => void;
-  onDraft: (version: string) => void;
   onDelete: (version: string) => void;
 }
 
-const exactVersionPattern = /^\d+\.\d+\.\d+$/;
-
 export function ProjectReleases(props: ProjectReleasesProps) {
-  const [version, setVersion] = createSignal("");
-  const [makeActive, setMakeActive] = createSignal(true);
-  const [error, setError] = createSignal("");
-
   const activeRelease = createMemo(() =>
     props.releases.find(release => release.version === props.activeReleaseVersion)
   );
-
-  const handlePublish = async (event: Event) => {
-    event.preventDefault();
-    const trimmed = version().trim();
-    if (!exactVersionPattern.test(trimmed)) {
-      setError("Use major.minor.patch.");
-      return;
-    }
-
-    setError("");
-    try {
-      await props.onPublish(trimmed, makeActive());
-      setVersion("");
-    } catch {
-      return;
-    }
-  };
 
   return (
     <section
@@ -56,88 +30,58 @@ export function ProjectReleases(props: ProjectReleasesProps) {
       data-testid="project-releases-section"
       class="bg-surface-container-low border-outline-variant/15 space-y-4 rounded-2xl border p-5 scroll-mt-20"
     >
-      <div>
-        <p
-          data-testid="project-releases-heading"
-          class="text-outline font-headline flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase"
-        >
-          <MIcon name="deployed_code_history" class="text-[15px]" />
-          Releases
-        </p>
-        <div class="mt-1 flex flex-wrap items-center gap-2 text-xs">
-          <span class="text-on-surface-variant">
-            Publish and activate releases for the active environment: {props.environmentName}.
-          </span>
-          <span class="text-on-surface-variant">Active release:</span>
-          <Show
-            when={activeRelease()}
-            fallback={<span class="text-outline font-mono">none</span>}
+      <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <div>
+          <p
+            data-testid="project-releases-heading"
+            class="text-outline font-headline flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase"
           >
-            {release => (
-              <span class="bg-primary/10 text-primary rounded-md px-2 py-0.5 font-mono text-[11px] font-bold">
-                {release().version}
-              </span>
-            )}
-          </Show>
-          <Show when={props.canManage && props.activeReleaseVersion}>
-            <button
-              type="button"
-              onClick={() => props.onClearActive()}
-              disabled={props.isActivating}
-              class="text-on-surface-variant hover:text-on-surface cursor-pointer border-0 bg-transparent p-0 text-[12px] font-semibold disabled:opacity-50"
+            <MIcon name="deployed_code_history" class="text-[15px]" />
+            Releases
+          </p>
+          <div class="mt-1 flex flex-wrap items-center gap-2 text-xs">
+            <span class="text-on-surface-variant">
+              Publish immutable snapshots for {props.environmentName}, then activate one for clients.
+            </span>
+            <span class="text-on-surface-variant">Active release:</span>
+            <Show
+              when={activeRelease()}
+              fallback={<span class="text-outline font-mono">none</span>}
             >
-              Clear
-            </button>
-          </Show>
-        </div>
-      </div>
-
-      <Show when={props.canManage}>
-        <form
-          onSubmit={handlePublish}
-          class="bg-surface-container border-outline-variant/15 grid gap-3 rounded-2xl border p-4 shadow-sm md:grid-cols-[minmax(180px,1fr)_auto]"
-        >
-          <div class="space-y-2">
-            <div>
-              <Label for="release-version-input">Version</Label>
-              <Input
-                data-testid="release-version-input"
-                id="release-version-input"
-                aria-label="Release version"
-                value={version()}
-                onInput={event => {
-                  setVersion(event.currentTarget.value);
-                  if (error()) setError("");
-                }}
-                placeholder="1.1.0"
-                class="font-mono"
-              />
-            </div>
-            <label class="text-on-surface-variant flex cursor-pointer items-center gap-2 text-[12px]">
-              <input
-                type="checkbox"
-                checked={makeActive()}
-                onChange={event => setMakeActive(event.currentTarget.checked)}
-                class="accent-primary"
-              />
-              Set active after publish
-            </label>
-            <Show when={error()}>
-              <p class="text-error text-[11px] font-bold">{error()}</p>
+              {release => (
+                <span class="bg-primary/10 text-primary rounded-md px-2 py-0.5 font-mono text-[11px] font-bold">
+                  {release().version}
+                </span>
+              )}
+            </Show>
+            <Show when={props.canManage && props.activeReleaseVersion}>
+              <button
+                type="button"
+                onClick={() => props.onClearActive()}
+                disabled={props.isActivating}
+                class="text-on-surface-variant hover:text-on-surface cursor-pointer border-0 bg-transparent p-0 text-[12px] font-semibold disabled:opacity-50"
+              >
+                Clear
+              </button>
             </Show>
           </div>
-          <div class="flex items-center justify-end">
-            <Button
-              data-testid="release-publish-button"
-              type="submit"
-              disabled={props.isPublishing || !props.environmentName}
-            >
-              <MIcon name="add" class="text-[16px]" />
-              {props.isPublishing ? "Publishing" : "Create"}
-            </Button>
-          </div>
-        </form>
-      </Show>
+        </div>
+
+        <Show when={props.canManage}>
+          <button
+            data-testid="release-create-version-button"
+            type="button"
+            onClick={() => props.onCreateVersion()}
+            disabled={!props.environmentName}
+            aria-label="Create a version"
+            title="Create a version"
+            class="bg-primary text-on-primary inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center gap-1.5 self-end rounded-lg border-0 px-0 text-[13px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] disabled:opacity-50 md:h-10 md:w-auto md:px-4 md:self-auto"
+          >
+            <MIcon name="add" class="text-[17px]" />
+            <span class="hidden md:inline">Create a version</span>
+          </button>
+        </Show>
+      </div>
 
       <Show
         when={!props.isLoading}
@@ -172,26 +116,43 @@ export function ProjectReleases(props: ProjectReleasesProps) {
                     <p class="text-outline mt-0.5 text-[11px]">Published by {release.actor}</p>
                   </div>
 
-                  <Show when={props.canManage}>
-                    <div class="flex flex-wrap items-center justify-end gap-2">
+                  <div class="flex flex-wrap items-center justify-end gap-2">
+                    <button
+                      data-testid={`release-view-${release.version}`}
+                      type="button"
+                      onClick={() => props.onView(release.version)}
+                      aria-label={`View parameters for release ${release.version}`}
+                      title={`View parameters for release ${release.version}`}
+                      class="bg-surface-container-high text-on-surface hover:bg-surface-bright inline-flex h-9 w-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-0 px-0 text-[12px] font-semibold disabled:cursor-default disabled:opacity-50 md:w-auto md:px-3"
+                    >
+                      <MIcon name="visibility" class="text-[15px]" />
+                      <span class="hidden md:inline">View parameters</span>
+                    </button>
+                    <Show when={props.canManage}>
                       <button
                         type="button"
                         onClick={() => props.onActivate(release.version)}
                         disabled={props.isActivating || release.isActive}
-                        class="bg-surface-container-high text-on-surface hover:bg-surface-bright inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border-0 px-3 text-[12px] font-semibold disabled:cursor-default disabled:opacity-50"
+                        aria-label={`Activate release ${release.version}`}
+                        title={`Activate release ${release.version}`}
+                        class="bg-surface-container-high text-on-surface hover:bg-surface-bright inline-flex h-9 w-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-0 px-0 text-[12px] font-semibold disabled:cursor-default disabled:opacity-50 md:w-auto md:px-3"
                       >
                         <MIcon name="check_circle" class="text-[15px]" />
-                        Activate
+                        <span class="hidden md:inline">Activate</span>
                       </button>
                       <button
-                        data-testid={`release-draft-${release.version}`}
+                        data-testid={`release-amend-${release.version}`}
                         type="button"
-                        onClick={() => props.onDraft(release.version)}
-                        disabled={props.draftingVersion !== null}
-                        class="bg-surface-container-high text-on-surface hover:bg-surface-bright inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border-0 px-3 text-[12px] font-semibold disabled:opacity-50"
+                        onClick={() => props.onAmend(release.version)}
+                        disabled={props.amendingVersion !== null}
+                        aria-label={`Amend release ${release.version}`}
+                        class="bg-surface-container-high text-on-surface hover:bg-surface-bright inline-flex h-9 w-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-0 px-0 text-[12px] font-semibold md:w-auto md:px-3"
+                        title={`Amend release ${release.version} as a new patch`}
                       >
-                        <MIcon name="edit_document" class="text-[15px]" />
-                        {props.draftingVersion === release.version ? "Drafting" : "Draft"}
+                        <MIcon name="edit" class="text-[15px]" />
+                        <span class="hidden md:inline">
+                          {props.amendingVersion === release.version ? "Amending" : "Amend"}
+                        </span>
                       </button>
                       <button
                         data-testid={`release-delete-${release.version}`}
@@ -203,13 +164,16 @@ export function ProjectReleases(props: ProjectReleasesProps) {
                             ? "Clear the active release before deleting it"
                             : `Delete release ${release.version}`
                         }
-                        class="bg-error-container/10 text-error hover:bg-error-container/20 inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border-0 px-3 text-[12px] font-semibold disabled:cursor-default disabled:opacity-50"
+                        aria-label={`Delete release ${release.version}`}
+                        class="bg-error-container/10 text-error hover:bg-error-container/20 inline-flex h-9 w-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-0 px-0 text-[12px] font-semibold disabled:cursor-default disabled:opacity-50 md:w-auto md:px-3"
                       >
                         <MIcon name="delete" class="text-[15px]" />
-                        {props.deletingVersion === release.version ? "Deleting" : "Delete"}
+                        <span class="hidden md:inline">
+                          {props.deletingVersion === release.version ? "Deleting" : "Delete"}
+                        </span>
                       </button>
-                    </div>
-                  </Show>
+                    </Show>
+                  </div>
                 </div>
               )}
             </For>

@@ -12,7 +12,7 @@ interface UserIdentityFormProps {
 
 export function UserIdentityForm(props: UserIdentityFormProps) {
   return (
-    <section class="bg-surface-container-low border-outline-variant/15 space-y-6 rounded-xl border p-8">
+    <section class="bg-surface-container-low border-outline-variant/15 space-y-5 rounded-xl border p-4 sm:p-8">
       <div class="flex items-center gap-3">
         <div class="bg-primary/10 border-primary/20 text-primary flex h-7 w-7 shrink-0 items-center justify-center rounded-full border font-mono text-xs font-bold shadow-[0_0_12px_rgba(99,102,241,0.15)]">
           01
@@ -21,7 +21,7 @@ export function UserIdentityForm(props: UserIdentityFormProps) {
           {props.isEditMode ? "Member Identity" : "Invitee Identity"}
         </h3>
       </div>
-      <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
         <div class="space-y-2">
           <Label for="user-full-name" class="mb-0">
             Full Name or Alias

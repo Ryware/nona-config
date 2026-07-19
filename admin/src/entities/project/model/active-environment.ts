@@ -4,11 +4,16 @@ import type { Environment } from "./types";
 
 type ActiveEnvironmentMap = Record<string, string>;
 
-// eslint-disable-next-line solid/reactivity -- persisted signal intentionally lives at module scope.
-const [activeEnvironmentByProjectSignal, setActiveEnvironmentByProjectSignal] =
-  makePersisted(createSignal<ActiveEnvironmentMap>({}), {
+const persistedActiveEnvironmentState =
+  makePersisted(
+    // eslint-disable-next-line solid/reactivity -- persisted signal intentionally lives at module scope.
+    createSignal<ActiveEnvironmentMap>({}),
+    {
     name: "active_environment_by_project",
-  });
+    }
+  );
+const [activeEnvironmentByProjectSignal, setActiveEnvironmentByProjectSignal] =
+  persistedActiveEnvironmentState;
 
 function normalizeProjectSlug(projectSlug: string) {
   return projectSlug.trim();

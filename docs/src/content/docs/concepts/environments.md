@@ -65,11 +65,15 @@ Public config reads use releases:
 - `version=1.1.0` reads that exact release
 - `version=1.1.x` reads the highest patch in the `1.1` line
 
-To publish a release, edit the working configuration, open the environment's `Releases` panel, enter a version such as `1.1.0`, and publish it.
+To publish a release, open the environment's `Releases` panel and choose **Create a version**. Enter a major-minor version such as `1.1`; Nona normalizes that to `1.1.0`, opens the parameters editor loaded with the current working configuration, and lets you adjust the parameters before choosing **Create release**.
 
-To patch an older line, create a working draft from an existing release, make the fix, and publish a new patch version such as `1.1.1`.
+Publishing does not change what clients receive. It only creates the snapshot. Use **Activate** on a release when you are ready for it to serve clients that omit a `version`.
+
+To patch an older line, choose **Amend** on that release. Nona automatically targets the next patch version, for example `1.1.1`, loads that release's parameters into the editor, and lets you snapshot your changes as the new patch. Amending replaces the editable working configuration with the selected release's parameters.
 
 Non-active releases can be permanently deleted from the release list. Clear or replace the active release before deleting it. Deleting a release does not change the editable working configuration.
+
+For the full release workflow, see [Releases](/docs/concepts/releases/).
 
 ## Common environment models
 
@@ -146,5 +150,6 @@ Firebase conditions can be mapped into Nona environments during migration, but N
 ## Related docs
 
 - [Projects](/docs/concepts/projects/)
+- [Releases](/docs/concepts/releases/)
 - [Create your first project](/docs/get-started/first-project/)
 - [Migrate from Firebase Remote Config](/docs/migration/firebase-remote-config/)

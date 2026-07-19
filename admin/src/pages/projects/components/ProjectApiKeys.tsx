@@ -96,10 +96,12 @@ export function ProjectApiKeys(props: ProjectApiKeysProps) {
             data-testid="project-add-api-key-button"
             type="button"
             onClick={() => props.setShowCreateForm(!props.showCreateForm)}
-            class="bg-primary text-on-primary inline-flex h-10 cursor-pointer items-center gap-1.5 self-start rounded-lg border-0 px-4 text-[13px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] md:self-auto"
+            aria-label="Add API Key"
+            title="Add API Key"
+            class="bg-primary text-on-primary inline-flex h-10 w-10 cursor-pointer items-center justify-center gap-1.5 self-end rounded-lg border-0 px-0 text-[13px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] md:h-10 md:w-auto md:px-4 md:self-auto"
           >
             <MIcon name="add" class="text-[16px]" />
-            Add API Key
+            <span class="hidden md:inline">Add API Key</span>
           </button>
         </Show>
       </div>

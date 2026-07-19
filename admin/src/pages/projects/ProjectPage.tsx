@@ -1,7 +1,7 @@
 import { writeClipboard } from "@solid-primitives/clipboard";
 import { createTimer } from "@solid-primitives/timer";
 import { Title } from "@solidjs/meta";
-import { useParams } from "@solidjs/router";
+import { useNavigate, useParams, useSearchParams } from "@solidjs/router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/solid-query";
 import { Show, createEffect, createMemo, createSignal } from "solid-js";
 
@@ -18,6 +18,7 @@ import { ProjectEnvironments } from "../../features/project-environments/Project
 import { ParameterShareDialog } from "../../features/project-param-share/ParameterShareDialog";
 import { ProjectParamsTab } from "../../features/project-params/ProjectParamsTab";
 import { ProjectReleases } from "../../features/project-releases/ProjectReleases";
+import { ReleaseVersionDialog } from "../../features/project-releases/ReleaseVersionDialog";
 import { ProjectShareLinks } from "../../features/project-share-links/ProjectShareLinks";
 import { ProjectApiKeys } from "./components/ProjectApiKeys";
 import { ProjectPageSkeleton } from "./components/ProjectPageSkeleton";
@@ -75,8 +76,15 @@ export function ProjectReleasesPage() {
 
 function ProjectPageContent(props: { section: ProjectPageSection }) {
   const params = useParams<{ slug: string }>();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { addToast } = useToast();
+
+  const releaseDraftVersion = () =>
+    typeof searchParams.release === "string" ? searchParams.release : undefined;
+  const viewedReleaseVersion = () =>
+    typeof searchParams.viewRelease === "string" ? searchParams.viewRelease : undefined;
 
   const [paramSearch, setParamSearch] = createSignal("");
   const [copiedKey, setCopiedKey] = createSignal<string | null>(null);
@@ -99,10 +107,12 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
   const [editDescription, setEditDescription] = createSignal("");
   const [showBulkImport, setShowBulkImport] = createSignal(false);
   const [deletingApiKeyId, setDeletingApiKeyId] = createSignal<string | null>(null);
-  const [confirmDraftRelease, setConfirmDraftRelease] = createSignal<string | null>(null);
-  const [draftingReleaseVersion, setDraftingReleaseVersion] = createSignal<string | null>(null);
   const [confirmDeleteRelease, setConfirmDeleteRelease] = createSignal<string | null>(null);
+  const [confirmActivateRelease, setConfirmActivateRelease] = createSignal<string | null>(null);
+  const [confirmClearActiveRelease, setConfirmClearActiveRelease] = createSignal(false);
   const [deletingReleaseVersion, setDeletingReleaseVersion] = createSignal<string | null>(null);
+  const [amendingReleaseVersion, setAmendingReleaseVersion] = createSignal<string | null>(null);
+  const [createVersionOpen, setCreateVersionOpen] = createSignal(false);
 
   createTimer(
     () => setCopiedKey(null),
@@ -115,6 +125,7 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
   const isSharedLinksPage = () => props.section === "sharedLinks";
   const isApiKeysPage = () => props.section === "apiKeys";
   const isReleasesPage = () => props.section === "releases";
+  const isViewingReleaseSnapshot = () => isParametersPage() && !!viewedReleaseVersion();
 
   const projectsQuery = useQuery(() => ({
     queryKey: projectKeys.list(),
@@ -167,13 +178,25 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
   const configQuery = useQuery(() => ({
     queryKey: projectKeys.configEntries(params.slug, activeEnvName()),
     queryFn: () => configEntryService.getAll(projectId(), activeEnvName()),
-    enabled: !!project() && !!activeEnvName() && isParametersPage()
+    enabled: !!project() && !!activeEnvName() && isParametersPage() && !isViewingReleaseSnapshot()
   }));
 
   const releasesQuery = useQuery(() => ({
     queryKey: projectKeys.configReleases(params.slug, activeEnvName()),
     queryFn: () => configReleaseService.getAll(projectId(), activeEnvName()),
     enabled: !!project() && !!activeEnvName() && isReleasesPage()
+  }));
+
+  const releaseDetailsQuery = useQuery(() => ({
+    queryKey: projectKeys.configReleaseDetails(
+      params.slug,
+      activeEnvName(),
+      viewedReleaseVersion() ?? ""
+    ),
+    queryFn: () =>
+      configReleaseService.get(projectId(), activeEnvName(), viewedReleaseVersion() ?? ""),
+    enabled: !!project() && !!activeEnvName() && isViewingReleaseSnapshot(),
+    staleTime: 60_000
   }));
 
   const sharedLinksQuery = useQuery(() => ({
@@ -207,14 +230,24 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
   const configHistoryQuery = useQuery(() => ({
     queryKey: projectKeys.configEntryHistory(params.slug, activeEnvName(), editHistoryQueryKey()),
     queryFn: () => configEntryService.history(projectId(), activeEnvName(), editHistoryQueryKey()),
-    enabled: !!project() && !!activeEnvName() && !!editHistoryQueryKey() && isParametersPage(),
+    enabled:
+      !!project() &&
+      !!activeEnvName() &&
+      !!editHistoryQueryKey() &&
+      isParametersPage() &&
+      !isViewingReleaseSnapshot(),
     staleTime: 60_000
   }));
 
   const shareLinksQuery = useQuery(() => ({
     queryKey: projectKeys.configEntryShareLinks(params.slug, activeEnvName(), shareLinksQueryKey()),
     queryFn: () => configEntryService.listShareLinks(projectId(), activeEnvName(), shareLinksQueryKey()),
-    enabled: !!project() && !!activeEnvName() && !!shareLinksQueryKey() && isParametersPage(),
+    enabled:
+      !!project() &&
+      !!activeEnvName() &&
+      !!shareLinksQueryKey() &&
+      isParametersPage() &&
+      !isViewingReleaseSnapshot(),
     staleTime: 60_000
   }));
 
@@ -223,6 +256,43 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
     queryFn: () => userService.getAll(),
     enabled: !!project()
   }));
+
+  const normalizeContentType = (
+    contentType: string
+  ): ConfigEntry["contentType"] =>
+    contentType === "number" ||
+    contentType === "boolean" ||
+    contentType === "json" ||
+    contentType === "text"
+      ? contentType
+      : "text";
+
+  const normalizeScope = (scope: string): ConfigEntry["scope"] =>
+    scope === "client" || scope === "server" || scope === "all" ? scope : "all";
+
+  const parameterEntries = createMemo<ConfigEntry[]>(() => {
+    if (isViewingReleaseSnapshot()) {
+      const release = releaseDetailsQuery.status === "success" ? releaseDetailsQuery.data : undefined;
+
+      return (release?.entries ?? []).map(entry => ({
+        project: release?.project ?? projectId(),
+        environment: release?.environment ?? activeEnvName(),
+        key: entry.key,
+        value: entry.value,
+        contentType: normalizeContentType(entry.contentType),
+        scope: normalizeScope(entry.scope),
+        activeVersion: 1,
+        createdAt: release?.createdAt ?? "",
+        updatedAt: release?.createdAt ?? ""
+      }));
+    }
+
+    return configQuery.status === "success" ? (configQuery.data ?? []) : [];
+  });
+
+  const parametersLoading = createMemo(() =>
+    isViewingReleaseSnapshot() ? releaseDetailsQuery.isLoading : configQuery.isLoading
+  );
 
   const canManageProject = createMemo(() =>
     canManageProjectResources(projectId(), usersQuery.status === "success" ? (usersQuery.data ?? []) : [])
@@ -236,7 +306,7 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
 
   const filteredConfig = createMemo(() => {
     const q = paramSearch().toLowerCase().trim();
-    const data = configQuery.status === "success" ? (configQuery.data ?? []) : [];
+    const data = parameterEntries();
     if (!q) return data;
     return data.filter(
       (e: ConfigEntry) =>
@@ -293,6 +363,7 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
       : false;
     const shouldAutoOpen =
       isParametersPage() &&
+      !isViewingReleaseSnapshot() &&
       configQuery.status === "success" &&
       canManageProject() &&
       !!environmentKey &&
@@ -331,6 +402,9 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
     setGeneratedShareUrl(null);
     setConfirmDeleteEntry(null);
     setEditDescription("");
+    setConfirmDeleteRelease(null);
+    setConfirmActivateRelease(null);
+    setConfirmClearActiveRelease(false);
   });
 
   const copyValue = async (key: string, value: string) => {
@@ -366,6 +440,10 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
     setShowEnvForm(false);
     setShowApiKeyForm(false);
     setShowBulkImport(false);
+    setCreateVersionOpen(false);
+    setConfirmDeleteRelease(null);
+    setConfirmActivateRelease(null);
+    setConfirmClearActiveRelease(false);
   });
 
   // Env creation mutation
@@ -399,9 +477,44 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
       });
       queryClient.invalidateQueries({ queryKey: projectKeys.environments(params.slug) });
       addToast(MSG.RELEASE_PUBLISHED, "success");
+      navigate(`/projects/${params.slug}/releases`);
     },
     onError: error => addToast(errorMessage(error, MSG.RELEASE_PUBLISH_FAILED), "error")
   }));
+
+  const amendReleaseMutation = useMutation(() => ({
+    mutationFn: (data: { source: string; target: string }) => {
+      setAmendingReleaseVersion(data.source);
+      return configReleaseService.createDraft(projectId(), activeEnvName(), data.source);
+    },
+    onSuccess: (_entries, data) => {
+      queryClient.invalidateQueries({
+        queryKey: projectKeys.configEntries(params.slug, activeEnvName())
+      });
+      navigate(`/projects/${params.slug}?release=${encodeURIComponent(data.target)}`);
+    },
+    onError: error => addToast(errorMessage(error, MSG.RELEASE_AMEND_FAILED), "error"),
+    onSettled: () => setAmendingReleaseVersion(null)
+  }));
+
+  const releaseVersions = createMemo(() =>
+    (releasesQuery.status === "success" ? (releasesQuery.data ?? []) : []).map(
+      release => release.version
+    )
+  );
+
+  const nextPatchVersion = (source: string) => {
+    const [major, minor] = source.split(".");
+    let maxPatch = 0;
+    for (const version of releaseVersions()) {
+      const [vMajor, vMinor, vPatch] = version.split(".");
+      if (vMajor === major && vMinor === minor) {
+        const patch = Number(vPatch);
+        if (Number.isFinite(patch) && patch > maxPatch) maxPatch = patch;
+      }
+    }
+    return `${major}.${minor}.${maxPatch + 1}`;
+  };
 
   const setActiveReleaseMutation = useMutation(() => ({
     mutationFn: (version: string | null) =>
@@ -416,22 +529,6 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
       addToast(MSG.RELEASE_ACTIVATED, "success");
     },
     onError: error => addToast(errorMessage(error, MSG.RELEASE_ACTIVATE_FAILED), "error")
-  }));
-
-  const createReleaseDraftMutation = useMutation(() => ({
-    mutationFn: (version: string) => {
-      setDraftingReleaseVersion(version);
-      return configReleaseService.createDraft(projectId(), activeEnvName(), version);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: projectKeys.configEntries(params.slug, activeEnvName())
-      });
-      setConfirmDraftRelease(null);
-      addToast(MSG.RELEASE_DRAFT_CREATED, "success");
-    },
-    onError: error => addToast(errorMessage(error, MSG.RELEASE_DRAFT_FAILED), "error"),
-    onSettled: () => setDraftingReleaseVersion(null)
   }));
 
   const deleteReleaseMutation = useMutation(() => ({
@@ -511,6 +608,10 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
     setEditHistoryQueryKey("");
     const meta = localParamMetadataService.getMeta(projectId(), activeEnvName(), entry.key);
     setEditDescription(meta.description);
+
+    if (isViewingReleaseSnapshot()) {
+      return;
+    }
 
     requestAnimationFrame(() => {
       if (editingEntry()?.key === entry.key) {
@@ -768,17 +869,22 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
                   activeReleaseVersion={activeEnvironment()?.activeReleaseVersion}
                   releases={releasesQuery.status === "success" ? (releasesQuery.data ?? []) : []}
                   isLoading={releasesQuery.isLoading}
-                  isPublishing={publishReleaseMutation.isPending}
                   isActivating={setActiveReleaseMutation.isPending}
-                  draftingVersion={draftingReleaseVersion()}
+                  amendingVersion={amendingReleaseVersion()}
                   deletingVersion={deletingReleaseVersion()}
                   canManage={canManageProject()}
-                  onPublish={(version, makeActive) =>
-                    publishReleaseMutation.mutateAsync({ version, makeActive })
+                  onCreateVersion={() => setCreateVersionOpen(true)}
+                  onView={version =>
+                    navigate(`/projects/${params.slug}?viewRelease=${encodeURIComponent(version)}`)
                   }
-                  onActivate={version => setActiveReleaseMutation.mutate(version)}
-                  onClearActive={() => setActiveReleaseMutation.mutate(null)}
-                  onDraft={setConfirmDraftRelease}
+                  onAmend={version =>
+                    amendReleaseMutation.mutate({
+                      source: version,
+                      target: nextPatchVersion(version)
+                    })
+                  }
+                  onActivate={setConfirmActivateRelease}
+                  onClearActive={() => setConfirmClearActiveRelease(true)}
                   onDelete={setConfirmDeleteRelease}
                 />
               </Show>
@@ -807,15 +913,96 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
             </Show>
 
             <Show when={isParametersPage()}>
+              <Show when={isViewingReleaseSnapshot()}>
+                <div
+                  data-testid="release-view-banner"
+                  class="border-secondary/25 bg-secondary/5 animate-fade-in flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div class="flex items-center gap-2 text-[13px]">
+                    <span class="material-symbols-outlined text-secondary text-[18px]">
+                      visibility
+                    </span>
+                    <span class="text-on-surface-variant">
+                      Viewing release{" "}
+                      <span class="text-secondary font-mono font-bold">{viewedReleaseVersion()}</span>
+                      {" "}for {activeEnvName()}.
+                    </span>
+                  </div>
+                  <div class="flex flex-wrap justify-end gap-2">
+                    <button
+                      data-testid="release-view-back-to-releases-button"
+                      type="button"
+                      onClick={() => navigate(`/projects/${params.slug}/releases`)}
+                      class="bg-surface-container-high text-on-surface hover:bg-surface-bright inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border-0 px-4 text-[12px] font-semibold"
+                    >
+                      <span class="material-symbols-outlined text-[16px]">arrow_back</span>
+                      Back to releases
+                    </button>
+                    <button
+                      data-testid="release-view-back-button"
+                      type="button"
+                      onClick={() => navigate(`/projects/${params.slug}`)}
+                      class="border-outline-variant/30 bg-surface-container-low text-on-surface-variant hover:bg-surface-container inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border px-4 text-[12px] font-semibold"
+                    >
+                      <span class="material-symbols-outlined text-[16px]">tune</span>
+                      Live parameters
+                    </button>
+                  </div>
+                </div>
+              </Show>
+              <Show when={canManageProject() && releaseDraftVersion()}>
+                <div
+                  data-testid="release-draft-banner"
+                  class="border-primary/25 bg-primary/5 animate-fade-in flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div class="flex items-center gap-2 text-[13px]">
+                    <span class="material-symbols-outlined text-primary text-[18px]">
+                      deployed_code_history
+                    </span>
+                    <span class="text-on-surface-variant">
+                      Composing release{" "}
+                      <span class="text-primary font-mono font-bold">{releaseDraftVersion()}</span> —
+                      adjust the parameters below, then create it.
+                    </span>
+                  </div>
+                  <div class="flex shrink-0 flex-wrap justify-end gap-2">
+                    <button
+                      data-testid="release-create-confirm-button"
+                      type="button"
+                      disabled={publishReleaseMutation.isPending || !activeEnvName()}
+                      onClick={() =>
+                        publishReleaseMutation.mutate({
+                          version: releaseDraftVersion()!,
+                          makeActive: false
+                        })
+                      }
+                      class="bg-primary text-on-primary inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border-0 px-4 text-[12px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] disabled:opacity-50"
+                    >
+                      <span class="material-symbols-outlined text-[16px]">check</span>
+                      {publishReleaseMutation.isPending ? "Creating…" : "Create release"}
+                    </button>
+                    <button
+                      data-testid="release-create-cancel-button"
+                      type="button"
+                      disabled={publishReleaseMutation.isPending}
+                      onClick={() => navigate(`/projects/${params.slug}/releases`)}
+                      class="border-outline-variant/30 bg-surface-container-low text-on-surface-variant hover:bg-surface-container inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border px-4 text-[12px] font-semibold transition-all disabled:opacity-50"
+                    >
+                      <span class="material-symbols-outlined text-[16px]">close</span>
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </Show>
               <ProjectParamsTab
                 activeEnvName={activeEnvName()}
                 environments={
                   environmentsQuery.status === "success" ? (environmentsQuery.data ?? []) : []
                 }
-                configEntries={configQuery.status === "success" ? (configQuery.data ?? []) : []}
+                configEntries={parameterEntries()}
                 filteredConfig={filteredConfig()}
                 editingEntry={editingEntry()}
-                isLoading={configQuery.isLoading}
+                isLoading={parametersLoading()}
                 projectId={projectId()}
                 paramSearch={paramSearch()}
                 onParamSearch={setParamSearch}
@@ -829,11 +1016,11 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
                 }}
                 showConfigForm={showConfigForm()}
                 bulkImportPanel={
-                  canManageProject() && showBulkImport() ? (
+                  !isViewingReleaseSnapshot() && canManageProject() && showBulkImport() ? (
                     <ProjectBulkImport
                       onCancel={() => setShowBulkImport(false)}
                       onImport={handleBulkImport}
-                      existingEntries={configQuery.status === "success" ? (configQuery.data ?? []) : []}
+                      existingEntries={parameterEntries()}
                       isPending={updateConfigMutation.isPending}
                       addToast={addToast}
                     />
@@ -857,7 +1044,7 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
                 onSelectEntry={handleOpenEditDrawer}
                 onShareEntry={handleOpenShareDialog}
                 onDeleteEntry={setConfirmDeleteEntry}
-                canManage={canManageProject()}
+                canManage={canManageProject() && !isViewingReleaseSnapshot()}
                 copiedKey={copiedKey()}
                 onCopyValue={copyValue}
                 getParamMeta={(proj, env, key) => localParamMetadataService.getMeta(proj, env, key)}
@@ -882,6 +1069,8 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
                 isHistoryLoading={configHistoryQuery.isLoading}
                 isRollingBack={rollbackConfigMutation.isPending}
                 onRollbackVersion={handleRollbackVersion}
+                isReadOnly={isViewingReleaseSnapshot()}
+                viewingReleaseVersion={viewedReleaseVersion()}
               />
 
               <ParameterShareDialog
@@ -965,29 +1154,51 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
 
       <Show when={isReleasesPage()}>
         <ConfirmDialog
-          open={confirmDraftRelease() !== null}
-          title="Load Release into Workspace?"
+          open={confirmActivateRelease() !== null}
+          title="Activate Release?"
           message={
             <>
-              Load release <span class="text-primary font-mono font-bold">{confirmDraftRelease()}</span>{" "}
-              into the editable working configuration for{" "}
-              <span class="text-on-surface font-medium">{activeEnvName()}</span>? This replaces any
-              unpublished changes, but does not change the active release or what clients receive.
+              Make release{" "}
+              <span class="text-primary font-mono font-bold">{confirmActivateRelease()}</span> the
+              active version for the{" "}
+              <span class="text-on-surface font-medium">{activeEnvName()}</span> environment?
             </>
           }
-          confirmLabel="Load Release"
-          variant="info"
-          isLoading={createReleaseDraftMutation.isPending}
+          confirmLabel="Activate Release"
+          isLoading={setActiveReleaseMutation.isPending}
           onConfirm={() => {
-            const version = confirmDraftRelease();
+            const version = confirmActivateRelease();
             if (version) {
-              createReleaseDraftMutation.mutate(version);
+              setActiveReleaseMutation.mutate(version);
+              setConfirmActivateRelease(null);
             }
           }}
-          onCancel={() => setConfirmDraftRelease(null)}
-          testId="release-draft-dialog"
-          confirmTestId="release-draft-confirm-button"
-          cancelTestId="release-draft-cancel-button"
+          onCancel={() => setConfirmActivateRelease(null)}
+          testId="release-activate-dialog"
+          confirmTestId="release-activate-confirm-button"
+          cancelTestId="release-activate-cancel-button"
+        />
+
+        <ConfirmDialog
+          open={confirmClearActiveRelease()}
+          title="Clear Active Release?"
+          message={
+            <>
+              Remove the active release from the{" "}
+              <span class="text-on-surface font-medium">{activeEnvName()}</span> environment? Clients
+              will no longer resolve to a pinned release until another one is activated.
+            </>
+          }
+          confirmLabel="Clear Active Release"
+          isLoading={setActiveReleaseMutation.isPending}
+          onConfirm={() => {
+            setActiveReleaseMutation.mutate(null);
+            setConfirmClearActiveRelease(false);
+          }}
+          onCancel={() => setConfirmClearActiveRelease(false)}
+          testId="release-clear-active-dialog"
+          confirmTestId="release-clear-active-confirm-button"
+          cancelTestId="release-clear-active-cancel-button"
         />
 
         <ConfirmDialog
@@ -1014,6 +1225,24 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
           testId="release-delete-dialog"
           confirmTestId="release-delete-confirm-button"
           cancelTestId="release-delete-cancel-button"
+        />
+
+        <ReleaseVersionDialog
+          open={createVersionOpen()}
+          title="Create a version"
+          description="Choose a major and minor version. The release will start at patch .0 after you review its parameters."
+          initialVersion=""
+          existingVersions={releaseVersions()}
+          confirmLabel="Continue to parameters"
+          placeholder="1.2"
+          validationMessage="Use major.minor."
+          versionFormat="majorMinor"
+          normalizeVersion={version => `${version}.0`}
+          onConfirm={version => {
+            setCreateVersionOpen(false);
+            navigate(`/projects/${params.slug}?release=${encodeURIComponent(version)}`);
+          }}
+          onCancel={() => setCreateVersionOpen(false)}
         />
       </Show>
     </>

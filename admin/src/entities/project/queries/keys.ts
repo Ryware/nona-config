@@ -30,6 +30,10 @@ export const projectKeys = {
   configReleases: (slug: string, env: string) =>
     [...projectKeys.detail(slug), "config-releases", env] as const,
 
+  /** Details for a specific config release version */
+  configReleaseDetails: (slug: string, env: string, version: string) =>
+    [...projectKeys.configReleases(slug, env), version] as const,
+
   /** Version history for a specific config entry */
   configEntryHistory: (slug: string, env: string, key: string) =>
     [...projectKeys.configEntries(slug, env), key, "history"] as const,

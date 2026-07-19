@@ -1,4 +1,4 @@
-import { For, Show, createMemo } from "solid-js";
+import { For, Show, createMemo, createSignal, onCleanup, onMount } from "solid-js";
 import { ProjectParamEditDrawer } from "../project-param-edit/ProjectParamEditDrawer";
 import { MIcon } from "../../shared/ui/icons";
 import type { ConfigEntry, ConfigEntryVersion } from "../../types";
@@ -29,6 +29,8 @@ interface ProjectParamsTableProps {
   isRollingBack: boolean;
   onRollbackVersion: (version: ConfigEntryVersion) => void;
   search: string;
+  isReadOnly?: boolean;
+  releaseVersion?: string;
 }
 
 const TYPE_STYLE: Record<string, string> = {
@@ -45,9 +47,185 @@ const SCOPE_STYLE: Record<string, string> = {
 };
 
 export function ProjectParamsTable(props: ProjectParamsTableProps) {
+  const [isMobile, setIsMobile] = createSignal(false);
+
+  onMount(() => {
+    const syncViewport = () => setIsMobile(window.innerWidth < 768);
+
+    syncViewport();
+    window.addEventListener("resize", syncViewport);
+    onCleanup(() => window.removeEventListener("resize", syncViewport));
+  });
+
+  const renderEditor = () => (
+    <ProjectParamEditDrawer
+      entry={props.editingEntry}
+      activeEnvName={props.activeEnvName}
+      initialDescription={props.initialDescription}
+      onClose={props.onCloseEntry}
+      onSaveSettings={props.onSaveSettings}
+      isSaving={props.isSaving}
+      canManage={props.canManage}
+      historyVersions={props.historyVersions}
+      isHistoryLoading={props.isHistoryLoading}
+      isRollingBack={props.isRollingBack}
+      onRollbackVersion={props.onRollbackVersion}
+      isReadOnly={props.isReadOnly}
+      releaseVersion={props.releaseVersion}
+    />
+  );
+
   return (
-    <div class="bg-surface-container-low border-outline-variant/15 overflow-hidden rounded-xl border">
-      <div class="overflow-x-auto">
+    <div class="space-y-3">
+      <Show when={isMobile()}>
+        <div class="space-y-3">
+        <Show when={props.isLoading}>
+          <For each={[1, 2, 3]}>
+            {() => <div class="skeleton h-36 w-full rounded-2xl" />}
+          </For>
+        </Show>
+
+        <Show when={!props.isLoading}>
+          <For each={props.filteredConfig}>
+            {entry => {
+              const meta = createMemo(() =>
+                props.getParamMeta(props.projectId, props.activeEnvName, entry.key)
+              );
+              const isExpanded = () => props.editingEntry?.key === entry.key;
+
+              return (
+                <article class="bg-surface-container border-outline-variant/10 overflow-hidden rounded-2xl border">
+                  <div
+                    data-testid={`parameter-row-${entry.key}`}
+                    role="button"
+                    tabindex="0"
+                    onClick={() => props.onSelectEntry(entry)}
+                    onKeyDown={event => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        props.onSelectEntry(entry);
+                      }
+                    }}
+                    class="w-full cursor-pointer border-0 bg-transparent p-4 text-left"
+                  >
+                    <div class="flex items-start gap-3">
+                      <div
+                        class={`bg-surface-container-high text-outline mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-transform ${
+                          isExpanded() ? "rotate-180" : ""
+                        }`}
+                      >
+                        <MIcon name="expand_more" class="text-[16px]" />
+                      </div>
+
+                      <div class="min-w-0 flex-1 space-y-3">
+                        <div class="min-w-0">
+                          <span
+                            data-testid={`parameter-display-${entry.key}`}
+                            class="text-on-surface block text-[13.5px] font-bold"
+                          >
+                            {meta().displayName}
+                          </span>
+                          <span
+                            data-testid={`parameter-key-${entry.key}`}
+                            class="text-outline mt-0.5 block font-mono text-[10px] tracking-tight break-all"
+                          >
+                            {entry.key}
+                          </span>
+                        </div>
+
+                        <div class="flex flex-wrap gap-2">
+                          <span
+                            class={`rounded-full px-2 py-0.5 text-[9px] font-bold tracking-wider uppercase ${
+                              TYPE_STYLE[entry.contentType] ?? ""
+                            }`}
+                          >
+                            {entry.contentType}
+                          </span>
+                          <span
+                            class={`rounded-full px-2 py-0.5 text-[9px] font-bold tracking-wider uppercase ${
+                              SCOPE_STYLE[entry.scope] ?? ""
+                            }`}
+                          >
+                            {entry.scope}
+                          </span>
+                        </div>
+
+                        <div
+                          class="bg-surface-container-lowest/60 flex items-center gap-2 rounded-xl px-3 py-2"
+                          onClick={e => e.stopPropagation()}
+                        >
+                          <span
+                            data-testid={`parameter-value-${entry.key}`}
+                            class="text-on-surface-variant min-w-0 flex-1 truncate font-mono text-[12px]"
+                          >
+                            {entry.value}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => void props.onCopyValue(entry.key, entry.value)}
+                            title="Copy value"
+                            class="text-outline hover:text-primary hover:bg-primary/10 flex shrink-0 cursor-pointer items-center justify-center rounded border-0 bg-transparent p-1"
+                          >
+                            <MIcon
+                              name={props.copiedKey === entry.key ? "check" : "content_copy"}
+                              class="text-[14px]"
+                            />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Show when={props.canManage}>
+                    <div class="border-outline-variant/10 flex justify-end gap-1 border-t px-4 py-2">
+                      <button
+                        data-testid={`parameter-share-${entry.key}`}
+                        type="button"
+                        onClick={() => props.onShareEntry(entry)}
+                        class="text-outline hover:text-primary hover:bg-primary/10 cursor-pointer rounded-lg border-0 bg-transparent p-1.5"
+                        title={`Share parameter ${entry.key}`}
+                        aria-label={`Share parameter ${entry.key}`}
+                      >
+                        <MIcon name="ios_share" class="text-[18px]" />
+                      </button>
+                      <button
+                        data-testid={`parameter-delete-${entry.key}`}
+                        type="button"
+                        onClick={() => props.onDeleteEntry(entry.key)}
+                        class="text-outline hover:text-error hover:bg-error/10 cursor-pointer rounded-lg border-0 bg-transparent p-1.5"
+                        title={`Delete parameter ${entry.key}`}
+                        aria-label={`Delete parameter ${entry.key}`}
+                      >
+                        <MIcon name="delete_outline" class="text-[18px]" />
+                      </button>
+                    </div>
+                  </Show>
+
+                  <Show when={isExpanded()}>
+                    <div
+                      data-testid={`parameter-accordion-${entry.key}`}
+                      class="bg-surface-container-lowest/30 border-outline-variant/10 border-t px-4 py-4"
+                    >
+                      {renderEditor()}
+                    </div>
+                  </Show>
+                </article>
+              );
+            }}
+          </For>
+        </Show>
+
+        <Show when={!props.isLoading && props.search && props.filteredConfig.length === 0}>
+          <div class="text-on-surface-variant py-10 text-center text-sm">
+            No parameters match "<span class="text-on-surface font-medium">{props.search}</span>"
+          </div>
+        </Show>
+        </div>
+      </Show>
+
+      <Show when={!isMobile()}>
+        <div class="bg-surface-container-low border-outline-variant/15 overflow-hidden rounded-xl border">
+        <div class="overflow-x-auto">
         <table class="w-full border-collapse text-left text-[12px]">
           <thead class="sticky top-0 z-10">
             <tr class="border-outline-variant/15 bg-surface-container-lowest/50 border-b">
@@ -64,7 +242,9 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
                 Scope
               </th>
               <th class="text-outline w-24 px-6 py-3 text-right text-[11px] font-medium tracking-[0.05em] uppercase">
-                Actions
+                <Show when={!props.isReadOnly} fallback={<>Details</>}>
+                  Actions
+                </Show>
               </th>
             </tr>
           </thead>
@@ -198,19 +378,7 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
                       <Show when={isExpanded()}>
                         <tr data-testid={`parameter-accordion-${entry.key}`}>
                           <td colspan="5" class="bg-surface-container-lowest/30 px-6 py-4">
-                            <ProjectParamEditDrawer
-                              entry={props.editingEntry}
-                              activeEnvName={props.activeEnvName}
-                              initialDescription={props.initialDescription}
-                              onClose={props.onCloseEntry}
-                              onSaveSettings={props.onSaveSettings}
-                              isSaving={props.isSaving}
-                              canManage={props.canManage}
-                              historyVersions={props.historyVersions}
-                              isHistoryLoading={props.isHistoryLoading}
-                              isRollingBack={props.isRollingBack}
-                              onRollbackVersion={props.onRollbackVersion}
-                            />
+                            {renderEditor()}
                           </td>
                         </tr>
                       </Show>
@@ -229,7 +397,9 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
             </Show>
           </tbody>
         </table>
-      </div>
+        </div>
+        </div>
+      </Show>
     </div>
   );
 }

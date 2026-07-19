@@ -16,6 +16,7 @@ import { userKeys } from "../../entities/user/queries/keys";
 import { MSG } from "../../shared/lib/messages";
 import { ConfirmDialog } from "../../shared/ui/confirm-dialog";
 import { MIcon } from "../../shared/ui/icons";
+import { Input } from "../../shared/ui/input";
 import { QueryErrorBanner } from "../../shared/ui/QueryGuard";
 import { useToast } from "../../shared/ui/toast";
 import type { CreateUserResponse, User } from "../../types";
@@ -201,16 +202,34 @@ export default function UsersPage() {
                 />
               </div>
             </div>
-            <Show when={allowUserManagement()}>
-              <button
-                data-testid="team-invite-button"
-                onClick={toggleInvite}
-                class="bg-primary text-on-primary flex shrink-0 cursor-pointer items-center gap-2 rounded-lg border-0 px-4 py-2 text-[13px] font-semibold transition-all hover:brightness-105 active:scale-[0.98]"
-              >
-                <MIcon name={showInvite() ? "close" : "person_add"} class="text-[17px]" />
-                {showInvite() ? "Cancel" : "Invite Member"}
-              </button>
-            </Show>
+            <div class="flex w-full min-w-0 items-center justify-end gap-2 md:w-auto md:flex-row md:flex-wrap md:items-center md:justify-end">
+              <Input
+                data-testid="team-search-input"
+                type="text"
+                placeholder="Search by name or email..."
+                value={search()}
+                onInput={(e: InputEvent & { currentTarget: HTMLInputElement }) =>
+                  setSearch(e.currentTarget.value)
+                }
+                class="h-10 min-w-0 flex-1 md:w-72"
+                leftIcon="search"
+                wrapperStyle="min-w-0 flex-1 md:w-auto md:flex-none"
+              />
+              <Show when={allowUserManagement()}>
+                <button
+                  data-testid="team-invite-button"
+                  onClick={toggleInvite}
+                  aria-label={showInvite() ? "Cancel invite" : "Invite Member"}
+                  title={showInvite() ? "Cancel invite" : "Invite Member"}
+                  class="bg-primary text-on-primary inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-lg border-0 px-0 text-[13px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] md:h-10 md:w-auto md:px-4"
+                >
+                  <MIcon name={showInvite() ? "close" : "person_add"} class="text-[17px]" />
+                  <span class="hidden md:inline">
+                    {showInvite() ? "Cancel" : "Invite Member"}
+                  </span>
+                </button>
+              </Show>
+            </div>
           </div>
 
           {/* Error banner */}
@@ -227,6 +246,7 @@ export default function UsersPage() {
             roleFilter={roleFilter()}
             onSearchChange={setSearch}
             onRoleFilterChange={setRoleFilter}
+            hideSearch
           />
 
           {/* Inline invite form */}

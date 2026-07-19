@@ -58,10 +58,12 @@ export function ProjectEnvironments(props: ProjectEnvironmentsProps) {
             data-testid="project-add-environment-button"
             type="button"
             onClick={() => props.setShowEnvForm(!props.showEnvForm)}
-            class="bg-primary text-on-primary inline-flex h-10 cursor-pointer items-center gap-1.5 self-start rounded-lg border-0 px-4 text-[13px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] md:self-auto"
+            aria-label="Add Environment"
+            title="Add Environment"
+            class="bg-primary text-on-primary inline-flex h-10 w-10 cursor-pointer items-center justify-center gap-1.5 self-end rounded-lg border-0 px-0 text-[13px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] md:h-10 md:w-auto md:px-4 md:self-auto"
           >
             <MIcon name="add" class="text-[17px]" />
-            Add Environment
+            <span class="hidden md:inline">Add Environment</span>
           </button>
         </Show>
       </div>
@@ -159,10 +161,12 @@ export function ProjectEnvironments(props: ProjectEnvironmentsProps) {
                     <button
                       type="button"
                       onClick={() => props.setActiveEnvName(env.name)}
-                      class="bg-surface-container-high text-on-surface hover:bg-surface-bright inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border-0 px-3 text-[12px] font-semibold"
+                      aria-label={`Set ${env.name} as active`}
+                      title={`Set ${env.name} as active`}
+                      class="bg-surface-container-high text-on-surface hover:bg-surface-bright inline-flex h-9 w-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-0 px-0 text-[12px] font-semibold md:w-auto md:px-3"
                     >
                       <MIcon name="check_circle" class="text-[15px]" />
-                      Set Active
+                      <span class="hidden md:inline">Set Active</span>
                     </button>
                   </Show>
                   <Show when={props.canManage}>
@@ -170,11 +174,12 @@ export function ProjectEnvironments(props: ProjectEnvironmentsProps) {
                       data-testid={`environment-delete-${env.name}`}
                       type="button"
                       onClick={() => props.onDeleteEnv(env.name)}
-                      class="bg-error-container/10 text-error hover:bg-error-container/20 inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border-0 px-3 text-[12px] font-semibold"
+                      aria-label={`Delete environment ${env.name}`}
+                      class="bg-error-container/10 text-error hover:bg-error-container/20 inline-flex h-9 w-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-0 px-0 text-[12px] font-semibold md:w-auto md:px-3"
                       title={`Delete environment ${env.name}`}
                     >
                       <MIcon name="delete" class="text-[15px]" />
-                      Delete
+                      <span class="hidden md:inline">Delete</span>
                     </button>
                   </Show>
                 </div>

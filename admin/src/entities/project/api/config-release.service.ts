@@ -17,6 +17,16 @@ export const configReleaseService = {
     );
   },
 
+  async get(
+    projectId: string,
+    environmentName: string,
+    version: string,
+  ): Promise<ConfigReleaseDetails> {
+    return apiClient.get<ConfigReleaseDetails>(
+      `/admin/projects/${segment(projectId)}/environments/${segment(environmentName)}/releases/${segment(version)}`,
+    );
+  },
+
   async publish(
     projectId: string,
     environmentName: string,

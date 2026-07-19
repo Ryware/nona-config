@@ -182,7 +182,14 @@ export default function AuditLogsPage() {
           data-testid="audit-logs-section"
           class="bg-surface-container-low border-outline-variant/15 space-y-4 rounded-2xl border p-5"
         >
-          <AuditLogsHeader onExport={exportLogs} />
+          <AuditLogsHeader
+            onExport={exportLogs}
+            search={search()}
+            setSearch={v => {
+              setSearch(v);
+              setPage(0);
+            }}
+          />
 
           <Show when={auditQuery.isError}>
             <QueryErrorBanner
@@ -220,6 +227,7 @@ export default function AuditLogsPage() {
           uniqueActions={uniqueActions()}
           uniqueEnvs={uniqueEnvs()}
           clearAllFilters={clearFilters}
+          hideSearch
         />
 
         <AuditLogsTable

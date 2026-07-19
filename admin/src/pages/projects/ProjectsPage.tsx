@@ -139,7 +139,7 @@ export default function ProjectsPage() {
               </div>
             </div>
 
-            <div class="flex flex-col gap-2 md:w-auto md:flex-row md:flex-wrap md:items-center md:justify-end">
+            <div class="flex w-full min-w-0 items-center justify-end gap-2 md:w-auto md:flex-row md:flex-wrap md:items-center md:justify-end">
               <Show when={projectsQuery.isSuccess && allProjects().length > 0}>
                 <Input
                   data-testid="projects-search-input"
@@ -149,19 +149,21 @@ export default function ProjectsPage() {
                   onInput={(e: InputEvent & { currentTarget: HTMLInputElement }) =>
                     setSearch(e.currentTarget.value)
                   }
-                  class="h-10 w-full md:w-64"
+                  class="h-10 min-w-0 flex-1 md:w-64"
                   leftIcon="search"
-                  wrapperStyle="w-full md:w-auto"
+                  wrapperStyle="min-w-0 flex-1 md:w-auto md:flex-none"
                 />
               </Show>
               <Show when={allowProjectManagement()}>
                 <button
                   data-testid="projects-new-button"
                   onClick={() => setShowCreate(!showCreate())}
-                  class="bg-primary text-on-primary flex shrink-0 cursor-pointer items-center gap-2 rounded-lg border-0 px-4 py-2 text-[13px] font-semibold transition-all hover:brightness-105 active:scale-[0.98]"
+                  aria-label={showCreate() ? "Cancel new project" : "New Project"}
+                  title={showCreate() ? "Cancel new project" : "New Project"}
+                  class="bg-primary text-on-primary inline-flex h-10 w-10 shrink-0 self-end cursor-pointer items-center justify-center gap-2 rounded-lg border-0 px-0 text-[13px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] md:h-10 md:w-auto md:px-4 md:self-auto"
                 >
                   <MIcon name={showCreate() ? "close" : "add"} class="text-[17px]" />
-                  {showCreate() ? "Cancel" : "New Project"}
+                  <span class="hidden md:inline">{showCreate() ? "Cancel" : "New Project"}</span>
                 </button>
               </Show>
             </div>

@@ -1,4 +1,4 @@
-import { A, type RouteSectionProps, useNavigate } from "@solidjs/router";
+import { type RouteSectionProps, useNavigate } from "@solidjs/router";
 import { useMutation, useQuery } from "@tanstack/solid-query";
 import { createEffect, createSignal, Show } from "solid-js";
 import { authService } from "../../entities/auth/api/auth.service";
@@ -247,16 +247,7 @@ export default function LoginPage(props: LoginPageProps = {}) {
             </div>
           </form>
 
-          <div class="mt-5 flex items-center justify-between text-[12px]">
-            <span class="text-on-surface-variant">
-              Don't have an account?{" "}
-              <A
-                href="/register"
-                class="text-primary hover:text-primary/80 font-bold transition-colors hover:underline"
-              >
-                Register
-              </A>
-            </span>
+          <div class="mt-5 flex items-center justify-end text-[12px]">
             <button
               data-testid="forgot-open-button"
               type="button"

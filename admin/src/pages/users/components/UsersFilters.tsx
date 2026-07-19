@@ -1,3 +1,4 @@
+import { Show } from "solid-js";
 import { Input } from "../../../shared/ui/input";
 import { Select } from "../../../shared/ui/select";
 
@@ -6,24 +7,27 @@ interface UsersFiltersProps {
   roleFilter: string;
   onSearchChange: (val: string) => void;
   onRoleFilterChange: (val: string) => void;
+  hideSearch?: boolean;
 }
 
 export function UsersFilters(props: UsersFiltersProps) {
   return (
     <div class="flex flex-col gap-3 sm:flex-row">
-      <div class="max-w-sm flex-1">
-        <Input
-          data-testid="team-search-input"
-          type="text"
-          placeholder="Search by name or email…"
-          value={props.search}
-          onInput={(e: InputEvent & { currentTarget: HTMLInputElement }) =>
-            props.onSearchChange(e.currentTarget.value)
-          }
-          class="h-10"
-          leftIcon="search"
-        />
-      </div>
+      <Show when={!props.hideSearch}>
+        <div class="max-w-sm flex-1">
+          <Input
+            data-testid="team-search-input"
+            type="text"
+            placeholder="Search by name or email..."
+            value={props.search}
+            onInput={(e: InputEvent & { currentTarget: HTMLInputElement }) =>
+              props.onSearchChange(e.currentTarget.value)
+            }
+            class="h-10"
+            leftIcon="search"
+          />
+        </div>
+      </Show>
       <div class="w-full sm:w-48">
         <Select
           value={props.roleFilter}

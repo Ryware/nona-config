@@ -27,6 +27,8 @@ Choose the shortest lifetime that still fits the task. In most cases, short-live
 
 The admin dialog also lets you generate a new link, copy the generated URL, review existing links for that parameter, and revoke an active link.
 
+If you need an environment-wide view, the admin also has a dedicated **Shared Links** page inside each project that lists all share links for the currently active environment.
+
 ## Create a link with the CLI
 
 ```bash
@@ -84,6 +86,7 @@ nona entries share revoke \
 ```
 
 In admin, revocation is handled from the same share dialog that lists the existing links.
+The dedicated Shared Links page can also copy and revoke links across the active environment.
 
 ## Good use cases
 
