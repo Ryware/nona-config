@@ -40,6 +40,8 @@ namespace Nona.Migrator.Core.Generated.Auth.Register
         /// <exception cref="global::Nona.Migrator.Core.Generated.Models.ErrorResponse">When receiving a 400 status code</exception>
         /// <exception cref="global::Nona.Migrator.Core.Generated.Models.ErrorResponse">When receiving a 403 status code</exception>
         /// <exception cref="global::Nona.Migrator.Core.Generated.Models.ErrorResponse">When receiving a 409 status code</exception>
+        /// <exception cref="global::Nona.Migrator.Core.Generated.Models.ErrorResponse">When receiving a 4XX status code</exception>
+        /// <exception cref="global::Nona.Migrator.Core.Generated.Models.ProblemDetails">When receiving a 5XX status code</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public async Task<global::Nona.Migrator.Core.Generated.Models.LoginResponse?> PostAsync(global::Nona.Migrator.Core.Generated.Models.RegisterCommand body, Action<RequestConfiguration<DefaultQueryParameters>>? requestConfiguration = default, CancellationToken cancellationToken = default)
@@ -56,6 +58,8 @@ namespace Nona.Migrator.Core.Generated.Auth.Register
                 { "400", global::Nona.Migrator.Core.Generated.Models.ErrorResponse.CreateFromDiscriminatorValue },
                 { "403", global::Nona.Migrator.Core.Generated.Models.ErrorResponse.CreateFromDiscriminatorValue },
                 { "409", global::Nona.Migrator.Core.Generated.Models.ErrorResponse.CreateFromDiscriminatorValue },
+                { "4XX", global::Nona.Migrator.Core.Generated.Models.ErrorResponse.CreateFromDiscriminatorValue },
+                { "5XX", global::Nona.Migrator.Core.Generated.Models.ProblemDetails.CreateFromDiscriminatorValue },
             };
             return await RequestAdapter.SendAsync<global::Nona.Migrator.Core.Generated.Models.LoginResponse>(requestInfo, global::Nona.Migrator.Core.Generated.Models.LoginResponse.CreateFromDiscriminatorValue, errorMapping, cancellationToken).ConfigureAwait(false);
         }
