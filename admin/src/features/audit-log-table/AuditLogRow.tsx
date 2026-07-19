@@ -13,7 +13,6 @@ import { ParamDiffSection } from "./ParamDiffSection";
 
 interface AuditLogRowProps {
   entry: AuditEntry;
-  onSelect: (entry: AuditEntry) => void;
 }
 
 export function AuditLogRow(props: AuditLogRowProps) {
@@ -22,13 +21,9 @@ export function AuditLogRow(props: AuditLogRowProps) {
   const desc = () => getActionDescription(props.entry.action);
 
   return (
-    <tr
-      data-testid={`audit-row-${props.entry.id}`}
-      onClick={() => props.onSelect(props.entry)}
-      class="group hover:bg-surface-container-high/20 cursor-pointer transition-colors"
-    >
+    <tr data-testid={`audit-row-${props.entry.id}`} class="transition-colors">
       {/* Activity */}
-      <td class="py-4 pr-4 pl-5 align-top">
+      <td class="px-6 py-4 align-top">
         <div class="flex min-w-0 items-start gap-3">
           <div class="bg-surface-container-high mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg">
             <MIcon name={ks().icon} class={`text-[14px] ${ks().iconColor}`} />
@@ -80,7 +75,7 @@ export function AuditLogRow(props: AuditLogRowProps) {
       </td>
 
       {/* Context */}
-      <td class="w-32 px-4 py-4 align-top">
+      <td class="w-32 px-6 py-4 align-top">
         <div class="flex flex-col items-center gap-1.5">
           <span class={`rounded-md px-2 py-0.5 text-[10px] font-semibold ${props.entry.envStyle}`}>
             {props.entry.env === "Global Scope" ? "System" : props.entry.env}
@@ -97,8 +92,8 @@ export function AuditLogRow(props: AuditLogRowProps) {
       </td>
 
       {/* When */}
-      <td class="w-44 py-4 pr-5 pl-4 text-right align-top">
-        <div class="text-on-surface-variant group-hover:text-on-surface text-[12.5px] font-medium transition-colors">
+      <td class="w-44 px-6 py-4 text-right align-top">
+        <div class="text-on-surface-variant text-[12.5px] font-medium">
           {timeAgo(props.entry.time)}
         </div>
         <div

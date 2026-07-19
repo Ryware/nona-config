@@ -1,10 +1,11 @@
 import { Title } from "@solidjs/meta";
-import { useNavigate } from "@solidjs/router";
+import { useLocation, useNavigate } from "@solidjs/router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/solid-query";
-import { createMemo, createSignal, Show } from "solid-js";
+import { createEffect, createMemo, createSignal, Show } from "solid-js";
 import { canManageProjects, canManageProjectsFor } from "../../entities/auth/model/permissions";
 import { authStore } from "../../entities/auth/model/store";
 import { projectService } from "../../entities/project/api/project.service";
+import { syncActiveProject } from "../../entities/project/model/active-project";
 import { projectKeys } from "../../entities/project/queries/keys";
 import { userService } from "../../entities/user/api/user.service";
 import { userKeys } from "../../entities/user/queries/keys";
@@ -20,11 +21,13 @@ import { ProjectGrid } from "./components/ProjectGrid";
 import { ProjectsStats } from "./components/ProjectsStats";
 
 export default function ProjectsPage() {
+  const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { addToast } = useToast();
 
   const [showCreate, setShowCreate] = createSignal(false);
+  const [hasAutoOpenedCreate, setHasAutoOpenedCreate] = createSignal(false);
   const [deleteTarget, setDeleteTarget] = createSignal<Project | null>(null);
   const [search, setSearch] = createSignal("");
   const sessionAllowsProjectManagement = canManageProjects();
@@ -82,84 +85,120 @@ export default function ProjectsPage() {
     );
   });
 
+  createEffect(() => {
+    if (projectsQuery.status === "success") {
+      syncActiveProject(allProjects());
+    }
+  });
+
+  createEffect(() => {
+    const shouldAutoOpen =
+      projectsQuery.status === "success" &&
+      allowProjectManagement() &&
+      allProjects().length === 0;
+
+    if (shouldAutoOpen && !hasAutoOpenedCreate()) {
+      setShowCreate(true);
+      setHasAutoOpenedCreate(true);
+      return;
+    }
+
+    if (!shouldAutoOpen && hasAutoOpenedCreate()) {
+      setHasAutoOpenedCreate(false);
+    }
+  });
+
+  createEffect(() => {
+    if (new URLSearchParams(location.search).get("new") === "1") {
+      setShowCreate(allowProjectManagement());
+      navigate("/projects", { replace: true });
+    }
+  });
+
   return (
     <>
       <Title>Projects | Nona Config Admin</Title>
       <div class="space-y-6">
-        {/* Page header */}
-        <div class="flex items-start justify-between gap-4 sm:items-center">
-          <div class="space-y-1.5">
-            <h2
-              data-testid="projects-heading"
-              class="font-headline text-on-surface text-[17px] font-bold tracking-tight"
-            >
-              Projects
-            </h2>
-            <ProjectsStats
-              isSuccess={projectsQuery.isSuccess}
-              projects={allProjects()}
-              filteredCount={filteredProjects().length}
-            />
+        <section class="bg-surface-container-low border-outline-variant/15 space-y-4 rounded-2xl border p-5">
+          {/* Section header */}
+          <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+              <h2
+                data-testid="projects-heading"
+                class="text-outline font-headline flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase"
+              >
+                <MIcon name="folder" class="text-[15px]" />
+                Projects
+              </h2>
+              <div class="mt-1">
+                <ProjectsStats
+                  isSuccess={projectsQuery.isSuccess}
+                  projects={allProjects()}
+                  filteredCount={filteredProjects().length}
+                />
+              </div>
+            </div>
+
+            <div class="flex flex-col gap-2 md:w-auto md:flex-row md:flex-wrap md:items-center md:justify-end">
+              <Show when={projectsQuery.isSuccess && allProjects().length > 0}>
+                <Input
+                  data-testid="projects-search-input"
+                  type="text"
+                  placeholder="Search projects…"
+                  value={search()}
+                  onInput={(e: InputEvent & { currentTarget: HTMLInputElement }) =>
+                    setSearch(e.currentTarget.value)
+                  }
+                  class="h-10 w-full md:w-64"
+                  leftIcon="search"
+                  wrapperStyle="w-full md:w-auto"
+                />
+              </Show>
+              <Show when={allowProjectManagement()}>
+                <button
+                  data-testid="projects-new-button"
+                  onClick={() => setShowCreate(!showCreate())}
+                  class="bg-primary text-on-primary flex shrink-0 cursor-pointer items-center gap-2 rounded-lg border-0 px-4 py-2 text-[13px] font-semibold transition-all hover:brightness-105 active:scale-[0.98]"
+                >
+                  <MIcon name={showCreate() ? "close" : "add"} class="text-[17px]" />
+                  {showCreate() ? "Cancel" : "New Project"}
+                </button>
+              </Show>
+            </div>
           </div>
-          <Show when={allowProjectManagement()}>
-            <button
-              data-testid="projects-new-button"
-              onClick={() => setShowCreate(!showCreate())}
-              class="bg-primary text-on-primary flex shrink-0 cursor-pointer items-center gap-2 rounded-lg border-0 px-4 py-2 text-[13px] font-semibold transition-all hover:brightness-105 active:scale-[0.98]"
-            >
-              <MIcon name={showCreate() ? "close" : "add"} class="text-[17px]" />
-              {showCreate() ? "Cancel" : "New Project"}
-            </button>
+
+          {/* Error banner */}
+          <Show when={projectsQuery.isError}>
+            <QueryErrorBanner
+              message="Failed to load projects."
+              onRetry={() => projectsQuery.refetch()}
+            />
           </Show>
-        </div>
 
-        {/* Error banner */}
-        <Show when={projectsQuery.isError}>
-          <QueryErrorBanner
-            message="Failed to load projects."
-            onRetry={() => projectsQuery.refetch()}
-          />
-        </Show>
-
-        {/* Search bar */}
-        <Show when={projectsQuery.isSuccess && allProjects().length > 0}>
-          <div class="max-w-sm">
-            <Input
-              data-testid="projects-search-input"
-              type="text"
-              placeholder="Search projects…"
-              value={search()}
-              onInput={(e: InputEvent & { currentTarget: HTMLInputElement }) =>
-                setSearch(e.currentTarget.value)
-              }
-              leftIcon="search"
+          {/* Create form */}
+          <Show when={allowProjectManagement() && showCreate()}>
+            <ProjectCreateForm
+              onCancel={() => setShowCreate(false)}
+              onSubmit={data => createMutation.mutate(data)}
+              isPending={createMutation.isPending}
+              projects={allProjects()}
             />
-          </div>
-        </Show>
+          </Show>
 
-        {/* Create form */}
-        <Show when={allowProjectManagement() && showCreate()}>
-          <ProjectCreateForm
-            onCancel={() => setShowCreate(false)}
-            onSubmit={data => createMutation.mutate(data)}
-            isPending={createMutation.isPending}
+          {/* Project grid */}
+          <ProjectGrid
+            isLoading={projectsQuery.isLoading}
+            isSuccess={projectsQuery.isSuccess}
             projects={allProjects()}
+            filteredProjects={filteredProjects()}
+            search={search()}
+            onNavigate={slug => navigate(`/projects/${slug}`)}
+            onDeleteTarget={setDeleteTarget}
+            onCreateClick={() => setShowCreate(true)}
+            canCreateProjects={allowProjectManagement()}
+            canDeleteProjects={allowProjectManagement()}
           />
-        </Show>
-
-        {/* Project grid */}
-        <ProjectGrid
-          isLoading={projectsQuery.isLoading}
-          isSuccess={projectsQuery.isSuccess}
-          projects={allProjects()}
-          filteredProjects={filteredProjects()}
-          search={search()}
-          onNavigate={slug => navigate(`/projects/${slug}`)}
-          onDeleteTarget={setDeleteTarget}
-          onCreateClick={() => setShowCreate(true)}
-          canCreateProjects={allowProjectManagement()}
-          canDeleteProjects={allowProjectManagement()}
-        />
+        </section>
 
         {/* Delete confirmation modal */}
         <ConfirmDialog

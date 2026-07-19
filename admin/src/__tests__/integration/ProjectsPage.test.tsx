@@ -60,6 +60,7 @@ describe('ProjectsPage', () => {
       // "No projects yet" appears in both sidebar and page content — check at least one exists
       expect(screen.getAllByText(/no projects yet/i).length).toBeGreaterThanOrEqual(1);
     });
+    expect(screen.getByLabelText(/project name/i)).toBeInTheDocument();
   });
 
   it('shows the create project form when "Create New Project" is clicked', async () => {

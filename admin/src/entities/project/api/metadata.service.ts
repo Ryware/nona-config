@@ -92,28 +92,56 @@ const PRESET_METADATA: Record<string, ParamMeta> = {
 class LocalParamMetadataService {
   private readonly metaKey = "nonaconfig_param_meta";
   private readonly historyKey = "nonaconfig_param_history";
+  private metaCache: Record<string, ParamMeta> | null = null;
+  private historyCache: ParamRevision[] | null = null;
+
+  private loadMetaCache(): Record<string, ParamMeta> {
+    if (this.metaCache) {
+      return this.metaCache;
+    }
+
+    try {
+      const raw = localStorage.getItem(this.metaKey);
+      this.metaCache = raw ? (JSON.parse(raw) as Record<string, ParamMeta>) : {};
+    } catch (e) {
+      console.error("Failed to read param metadata", e);
+      this.metaCache = {};
+    }
+
+    return this.metaCache;
+  }
+
+  private loadHistoryCache(): ParamRevision[] {
+    if (this.historyCache) {
+      return this.historyCache;
+    }
+
+    try {
+      const raw = localStorage.getItem(this.historyKey);
+      this.historyCache = raw ? (JSON.parse(raw) as ParamRevision[]) : [];
+    } catch (e) {
+      console.error("Failed to read param history", e);
+      this.historyCache = [];
+    }
+
+    return this.historyCache;
+  }
 
   getMeta(
     project: string,
     env: string,
     key: string,
   ): { displayName: string; description: string } {
-    try {
-      const raw = localStorage.getItem(this.metaKey);
-      if (raw) {
-        const dict = JSON.parse(raw);
-        const keyPath = `${project}:${env}:${key}`;
-        if (dict[keyPath]) {
-          return {
-            displayName: dict[keyPath].displayName || autoFormatKey(key),
-            description:
-              dict[keyPath].description || `Configuration setting for ${key}.`,
-          };
-        }
-      }
-    } catch (e) {
-      console.error("Failed to read param metadata", e);
+    const dict = this.loadMetaCache();
+    const keyPath = `${project}:${env}:${key}`;
+    if (dict[keyPath]) {
+      return {
+        displayName: dict[keyPath].displayName || autoFormatKey(key),
+        description:
+          dict[keyPath].description || `Configuration setting for ${key}.`,
+      };
     }
+
     const preset = PRESET_METADATA[key];
     return {
       displayName: preset?.displayName || autoFormatKey(key),
@@ -123,10 +151,10 @@ class LocalParamMetadataService {
 
   setMeta(project: string, env: string, key: string, meta: ParamMeta): void {
     try {
-      const raw = localStorage.getItem(this.metaKey) || "{}";
-      const dict = JSON.parse(raw);
+      const dict = { ...this.loadMetaCache() };
       const keyPath = `${project}:${env}:${key}`;
       dict[keyPath] = { ...dict[keyPath], ...meta };
+      this.metaCache = dict;
       localStorage.setItem(this.metaKey, JSON.stringify(dict));
     } catch (e) {
       console.error("Failed to save param metadata", e);
@@ -143,8 +171,7 @@ class LocalParamMetadataService {
     description?: string,
   ): void {
     try {
-      const raw = localStorage.getItem(this.historyKey) || "[]";
-      const history: ParamRevision[] = JSON.parse(raw);
+      const history = [...this.loadHistoryCache()];
       history.push({
         timestamp: new Date().toISOString(),
         project,
@@ -155,6 +182,7 @@ class LocalParamMetadataService {
         displayName,
         description,
       });
+      this.historyCache = history;
       localStorage.setItem(this.historyKey, JSON.stringify(history));
     } catch (e) {
       console.error("Failed to write param history", e);
@@ -163,8 +191,7 @@ class LocalParamMetadataService {
 
   getRevisions(project: string, env: string, key: string): ParamRevision[] {
     try {
-      const raw = localStorage.getItem(this.historyKey) || "[]";
-      const history: ParamRevision[] = JSON.parse(raw);
+      const history = this.loadHistoryCache();
       return history
         .filter(
           (h) => h.project === project && h.environment === env && h.key === key,

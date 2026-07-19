@@ -5,6 +5,13 @@ import { QueryClientProvider } from "@tanstack/solid-query";
 import { type JSX, lazy, onMount, Show, Suspense } from "solid-js";
 import { authService } from "../entities/auth/api/auth.service";
 import { authStore } from "../entities/auth/model/store";
+import { getActiveProjectHref } from "../entities/project/model/active-project";
+import ProjectPage, {
+  ProjectApiKeysPage,
+  ProjectEnvironmentsPage,
+  ProjectShareLinksPage,
+  ProjectReleasesPage
+} from "../pages/projects/ProjectPage";
 import { ThemeProvider } from "../shared/hooks/useTheme";
 import { RouteLoader } from "../shared/ui/Skeleton";
 import { ToastProvider } from "../shared/ui/toast";
@@ -33,7 +40,7 @@ export default function App(): JSX.Element {
               }
             >
               <Router>
-                <Route path="/" component={() => <Navigate href="/projects" />} />
+                <Route path="/" component={HomeRoute} />
 
                 <Route component={PublicRoute}>
                   <Route path="/login" component={lazy(() => import("../pages/auth/LoginPage"))} />
@@ -63,18 +70,30 @@ export default function App(): JSX.Element {
                 <Route component={ProtectedRoute}>
                   <Route
                     path="/dashboard"
-                    component={lazy(() => import("../pages/dashboard/DashboardPage"))}
+                    component={() => <Navigate href={getActiveProjectHref()} />}
                   />
                   <Route
                     path="/projects"
                     component={lazy(() => import("../pages/projects/ProjectsPage"))}
                   />
                   <Route
-                    path="/projects/:slug"
-                    component={lazy(() => import("../pages/projects/ProjectPage"))}
+                    path="/projects/:slug/environments"
+                    component={lazy(async () => ({ default: ProjectEnvironmentsPage }))}
                   />
+                  <Route
+                    path="/projects/:slug/shared-links"
+                    component={lazy(async () => ({ default: ProjectShareLinksPage }))}
+                  />
+                  <Route
+                    path="/projects/:slug/api-keys"
+                    component={lazy(async () => ({ default: ProjectApiKeysPage }))}
+                  />
+                  <Route
+                    path="/projects/:slug/releases"
+                    component={lazy(async () => ({ default: ProjectReleasesPage }))}
+                  />
+                  <Route path="/projects/:slug" component={lazy(async () => ({ default: ProjectPage }))} />
                   <Route path="/users" component={lazy(() => import("../pages/users/UsersPage"))} />
-                  <Route path="/user" component={lazy(() => import("../pages/users/UserPage"))} />
                   <Route
                     path="/audit-logs"
                     component={lazy(() => import("../pages/audit-logs/AuditLogsPage"))}
@@ -114,7 +133,7 @@ const AuthLayout = lazy(() =>
 // Public route layout (redirect to dashboard if already authenticated)
 function PublicRoute(props: { children?: JSX.Element }) {
   return (
-    <Show when={!authService.isAuthenticated()} fallback={<Navigate href="/projects" />}>
+    <Show when={!authService.isAuthenticated()} fallback={<Navigate href={getActiveProjectHref()} />}>
       <AuthLayout>{props.children}</AuthLayout>
     </Show>
   );
@@ -122,4 +141,8 @@ function PublicRoute(props: { children?: JSX.Element }) {
 
 function InvitationRoute(props: { children?: JSX.Element }) {
   return <AuthLayout>{props.children}</AuthLayout>;
+}
+
+function HomeRoute() {
+  return <Navigate href={authService.isAuthenticated() ? getActiveProjectHref() : "/projects"} />;
 }

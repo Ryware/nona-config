@@ -1,8 +1,6 @@
 import { useLocation } from "@solidjs/router";
 import { makePersisted } from "@solid-primitives/storage";
-import { createEffect, createSignal, on, type JSX, Show } from "solid-js";
-import { useKeyboardShortcut } from "../../shared/hooks/useKeyboardShortcut";
-import { CommandPalette } from "./CommandPalette";
+import { createEffect, createSignal, on, type JSX } from "solid-js";
 import { Header } from "./Header";
 import { Sidebar } from "./Sidebar";
 
@@ -15,7 +13,6 @@ export function AppLayout(props: { children?: JSX.Element }): JSX.Element {
     name: "sidebar_collapsed",
     serialize: value => String(value)
   });
-  const [showPalette, setShowPalette] = createSignal(false);
 
   const sidebarWidth = () => (collapsed() ? "lg:ml-16" : "lg:ml-64");
 
@@ -25,20 +22,6 @@ export function AppLayout(props: { children?: JSX.Element }): JSX.Element {
 
   // Close mobile sidebar on navigation
   createEffect(on(() => location.pathname, () => setIsSidebarOpen(false)));
-
-  // Setup Keyboard Shortcuts
-  useKeyboardShortcut("k", () => setShowPalette(v => !v), {
-    metaOrCtrl: true
-  });
-  useKeyboardShortcut(
-    "Escape",
-    () => {
-      if (showPalette()) {
-        setShowPalette(false);
-      }
-    },
-    { metaOrCtrl: false }
-  );
 
   return (
     <div class="bg-background flex min-h-screen overflow-hidden">
@@ -56,17 +39,11 @@ export function AppLayout(props: { children?: JSX.Element }): JSX.Element {
         <Header
           isSidebarOpen={isSidebarOpen()}
           onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen())}
-          onSearchClick={() => setShowPalette(true)}
         />
 
         {/* Page content */}
         <main class="flex-1 overflow-auto p-6 md:p-8">{props.children}</main>
       </div>
-
-      {/* Command Palette */}
-      <Show when={showPalette()}>
-        <CommandPalette onClose={() => setShowPalette(false)} />
-      </Show>
     </div>
   );
 }

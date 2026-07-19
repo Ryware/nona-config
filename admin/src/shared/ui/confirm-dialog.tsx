@@ -95,8 +95,9 @@ export const ConfirmDialog = (props: ConfirmDialogProps) => {
               data-testid={props.cancelTestId}
               onClick={() => props.onCancel()}
               disabled={props.isLoading}
-              class="text-on-surface-variant bg-surface-container-high hover:bg-surface-bright flex-1 cursor-pointer rounded-lg border-0 py-2.5 text-[13px] font-semibold transition-all disabled:opacity-50"
+              class="text-on-surface-variant bg-surface-container-high hover:bg-surface-bright flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border-0 py-2.5 text-[13px] font-semibold transition-all disabled:opacity-50"
             >
+              <span class="material-symbols-outlined text-[14px]">close</span>
               {props.cancelLabel ?? "Cancel"}
             </button>
           </div>

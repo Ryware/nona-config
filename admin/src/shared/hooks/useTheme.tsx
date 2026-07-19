@@ -11,7 +11,7 @@ import {
 export type Theme = "dark" | "light";
 
 const THEME_STORAGE_KEY = "nona_theme";
-const DEFAULT_THEME: Theme = "dark";
+const DEFAULT_THEME: Theme = "light";
 
 interface ThemeContextValue {
   theme: Accessor<Theme>;

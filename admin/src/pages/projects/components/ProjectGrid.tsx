@@ -87,7 +87,7 @@ export function ProjectGrid(props: ProjectGridProps) {
                   role="link"
                   tabindex="0"
                   aria-label={`Open project ${project.name}`}
-                  class="group bg-surface-container-low hover:bg-surface-container border-outline-variant/15 hover:border-outline-variant/30 focus-visible:ring-primary focus-visible:ring-offset-background cursor-pointer rounded-2xl border transition-all duration-200 hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+                  class="group bg-surface-container-low hover:bg-surface-container border-outline-variant/45 hover:border-outline-variant/30 focus-visible:ring-primary focus-visible:ring-offset-background cursor-pointer rounded-2xl border transition-all duration-200 hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
                   onClick={() => props.onNavigate(project.urlSlug)}
                   onKeyDown={e => {
                     if (e.key === "Enter" || e.key === " ") {
@@ -147,7 +147,7 @@ export function ProjectGrid(props: ProjectGridProps) {
               <button
                 data-testid="project-grid-new-button"
                 onClick={() => props.onCreateClick()}
-                class="border-outline-variant/20 text-outline hover:border-primary/30 hover:text-primary hover:bg-primary/5 flex min-h-37 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed bg-transparent p-5 transition-all"
+                class="border-outline-variant/40 text-outline hover:border-primary/30 hover:text-primary hover:bg-primary/5 flex min-h-37 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed bg-transparent p-5 transition-all"
               >
                 <MIcon name="add" class="text-2xl" />
                 <span class="text-[12.5px] font-medium">New Project</span>

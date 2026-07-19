@@ -1,12 +1,14 @@
 import { For, Show, createMemo } from "solid-js";
+import { ProjectParamEditDrawer } from "../project-param-edit/ProjectParamEditDrawer";
 import { MIcon } from "../../shared/ui/icons";
-import type { ConfigEntry } from "../../types";
+import type { ConfigEntry, ConfigEntryVersion } from "../../types";
 
 interface ProjectParamsTableProps {
   isLoading: boolean;
   projectId: string;
   activeEnvName: string;
   filteredConfig: ConfigEntry[];
+  editingEntry: ConfigEntry | null;
   onSelectEntry: (entry: ConfigEntry) => void;
   onShareEntry: (entry: ConfigEntry) => void;
   onDeleteEntry: (key: string) => void;
@@ -18,6 +20,14 @@ interface ProjectParamsTableProps {
     env: string,
     key: string
   ) => { displayName: string; description: string };
+  initialDescription: string;
+  onCloseEntry: () => void;
+  onSaveSettings: (data: { value: string; description: string }) => void;
+  isSaving: boolean;
+  historyVersions: ConfigEntryVersion[];
+  isHistoryLoading: boolean;
+  isRollingBack: boolean;
+  onRollbackVersion: (version: ConfigEntryVersion) => void;
   search: string;
 }
 
@@ -86,93 +96,125 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
                   const meta = createMemo(() =>
                     props.getParamMeta(props.projectId, props.activeEnvName, entry.key)
                   );
+                  const isExpanded = () => props.editingEntry?.key === entry.key;
+
                   return (
-                    <tr
-                      data-testid={`parameter-row-${entry.key}`}
-                      onClick={() => props.onSelectEntry(entry)}
-                      class="group hover:bg-surface-container-high/40 cursor-pointer transition-colors"
-                    >
-                      <td class="px-6 py-4">
-                        <div class="flex items-center gap-1.5">
-                          <div class="flex flex-col gap-0.5">
-                            <span
-                              data-testid={`parameter-display-${entry.key}`}
-                              class="text-on-surface text-[13.5px] font-bold"
+                    <>
+                      <tr
+                        data-testid={`parameter-row-${entry.key}`}
+                        onClick={() => props.onSelectEntry(entry)}
+                        class={`group cursor-pointer transition-colors ${
+                          isExpanded() ? "bg-surface-container-high/40" : "hover:bg-surface-container-high/40"
+                        }`}
+                      >
+                        <td class="px-6 py-4">
+                          <div class="flex items-center gap-3">
+                            <div
+                              class={`bg-surface-container-high text-outline flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-transform ${
+                                isExpanded() ? "rotate-180" : ""
+                              }`}
                             >
-                              {meta().displayName}
-                            </span>
-                            <span
-                              data-testid={`parameter-key-${entry.key}`}
-                              class="text-outline font-mono text-[10px] tracking-tight"
-                            >
-                              {entry.key}
-                            </span>
+                              <MIcon name="expand_more" class="text-[16px]" />
+                            </div>
+                            <div class="flex flex-col gap-0.5">
+                              <span
+                                data-testid={`parameter-display-${entry.key}`}
+                                class="text-on-surface text-[13.5px] font-bold"
+                              >
+                                {meta().displayName}
+                              </span>
+                              <span
+                                data-testid={`parameter-key-${entry.key}`}
+                                class="text-outline font-mono text-[10px] tracking-tight"
+                              >
+                                {entry.key}
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                      <td class="px-6 py-4">
-                        <div class="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                        </td>
+                        <td class="px-6 py-4">
+                          <div class="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                            <span
+                              data-testid={`parameter-value-${entry.key}`}
+                              class="text-on-surface-variant block max-w-45 truncate font-mono"
+                            >
+                              {entry.value}
+                            </span>
+                            <button
+                              onClick={() => void props.onCopyValue(entry.key, entry.value)}
+                              title="Copy value"
+                              class="text-outline hover:text-primary hover:bg-primary/10 flex shrink-0 cursor-pointer items-center justify-center rounded border-0 bg-transparent p-1 opacity-40 transition-all group-hover:opacity-100 focus:opacity-100"
+                            >
+                              <MIcon
+                                name={props.copiedKey === entry.key ? "check" : "content_copy"}
+                                class="text-[14px]"
+                              />
+                            </button>
+                          </div>
+                        </td>
+                        <td class="px-6 py-4 font-mono">
                           <span
-                            data-testid={`parameter-value-${entry.key}`}
-                            class="text-on-surface-variant block max-w-45 truncate font-mono"
+                            class={`rounded-full px-2 py-0.5 text-[9px] font-bold tracking-wider uppercase ${
+                              TYPE_STYLE[entry.contentType] ?? ""
+                            }`}
                           >
-                            {entry.value}
+                            {entry.contentType}
                           </span>
-                          <button
-                            onClick={() => void props.onCopyValue(entry.key, entry.value)}
-                            title="Copy value"
-                            class="text-outline hover:text-primary hover:bg-primary/10 flex shrink-0 cursor-pointer items-center justify-center rounded border-0 bg-transparent p-1 opacity-40 transition-all group-hover:opacity-100 focus:opacity-100"
+                        </td>
+                        <td class="px-6 py-4 font-mono">
+                          <span
+                            class={`rounded-full px-2 py-0.5 text-[9px] font-bold tracking-wider uppercase ${
+                              SCOPE_STYLE[entry.scope] ?? ""
+                            }`}
                           >
-                            <MIcon
-                              name={props.copiedKey === entry.key ? "check" : "content_copy"}
-                              class="text-[14px]"
+                            {entry.scope}
+                          </span>
+                        </td>
+                        <td class="px-6 py-4 text-right" onClick={e => e.stopPropagation()}>
+                          <Show when={props.canManage}>
+                            <div class="flex justify-end gap-1">
+                              <button
+                                data-testid={`parameter-share-${entry.key}`}
+                                onClick={() => props.onShareEntry(entry)}
+                                class="text-outline hover:text-primary hover:bg-primary/10 cursor-pointer rounded-lg border-0 bg-transparent p-1.5 opacity-40 transition-opacity group-hover:opacity-100 focus:opacity-100"
+                                title={`Share parameter ${entry.key}`}
+                                aria-label={`Share parameter ${entry.key}`}
+                              >
+                                <MIcon name="ios_share" class="text-[18px]" />
+                              </button>
+                              <button
+                                data-testid={`parameter-delete-${entry.key}`}
+                                onClick={() => props.onDeleteEntry(entry.key)}
+                                class="text-outline hover:text-error hover:bg-error/10 cursor-pointer rounded-lg border-0 bg-transparent p-1.5 opacity-40 transition-opacity group-hover:opacity-100 focus:opacity-100"
+                                title={`Delete parameter ${entry.key}`}
+                                aria-label={`Delete parameter ${entry.key}`}
+                              >
+                                <MIcon name="delete_outline" class="text-[18px]" />
+                              </button>
+                            </div>
+                          </Show>
+                        </td>
+                      </tr>
+                      <Show when={isExpanded()}>
+                        <tr data-testid={`parameter-accordion-${entry.key}`}>
+                          <td colspan="5" class="bg-surface-container-lowest/30 px-6 py-4">
+                            <ProjectParamEditDrawer
+                              entry={props.editingEntry}
+                              activeEnvName={props.activeEnvName}
+                              initialDescription={props.initialDescription}
+                              onClose={props.onCloseEntry}
+                              onSaveSettings={props.onSaveSettings}
+                              isSaving={props.isSaving}
+                              canManage={props.canManage}
+                              historyVersions={props.historyVersions}
+                              isHistoryLoading={props.isHistoryLoading}
+                              isRollingBack={props.isRollingBack}
+                              onRollbackVersion={props.onRollbackVersion}
                             />
-                          </button>
-                        </div>
-                      </td>
-                      <td class="px-6 py-4 font-mono">
-                        <span
-                          class={`rounded-full px-2 py-0.5 text-[9px] font-bold tracking-wider uppercase ${
-                            TYPE_STYLE[entry.contentType] ?? ""
-                          }`}
-                        >
-                          {entry.contentType}
-                        </span>
-                      </td>
-                      <td class="px-6 py-4 font-mono">
-                        <span
-                          class={`rounded-full px-2 py-0.5 text-[9px] font-bold tracking-wider uppercase ${
-                            SCOPE_STYLE[entry.scope] ?? ""
-                          }`}
-                        >
-                          {entry.scope}
-                        </span>
-                      </td>
-                      <td class="px-6 py-4 text-right" onClick={e => e.stopPropagation()}>
-                        <Show when={props.canManage}>
-                          <div class="flex justify-end gap-1">
-                            <button
-                              data-testid={`parameter-share-${entry.key}`}
-                              onClick={() => props.onShareEntry(entry)}
-                              class="text-outline hover:text-primary hover:bg-primary/10 cursor-pointer rounded-lg border-0 bg-transparent p-1.5 opacity-40 transition-opacity group-hover:opacity-100 focus:opacity-100"
-                              title={`Share parameter ${entry.key}`}
-                              aria-label={`Share parameter ${entry.key}`}
-                            >
-                              <MIcon name="ios_share" class="text-[18px]" />
-                            </button>
-                            <button
-                              data-testid={`parameter-delete-${entry.key}`}
-                              onClick={() => props.onDeleteEntry(entry.key)}
-                              class="text-outline hover:text-error hover:bg-error/10 cursor-pointer rounded-lg border-0 bg-transparent p-1.5 opacity-40 transition-opacity group-hover:opacity-100 focus:opacity-100"
-                              title={`Delete parameter ${entry.key}`}
-                              aria-label={`Delete parameter ${entry.key}`}
-                            >
-                              <MIcon name="delete_outline" class="text-[18px]" />
-                            </button>
-                          </div>
-                        </Show>
-                      </td>
-                    </tr>
+                          </td>
+                        </tr>
+                      </Show>
+                    </>
                   );
                 }}
               </For>

@@ -9,15 +9,16 @@ export function AuditLogsHeader(props: AuditLogsHeaderProps) {
   const [showExportMenu, setShowExportMenu] = createSignal(false);
 
   return (
-    <div class="flex items-start justify-between gap-4 md:items-center">
+    <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
       <div>
         <h2
           data-testid="audit-logs-heading"
-          class="font-headline text-on-surface text-[17px] font-bold tracking-tight"
+          class="text-outline font-headline flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase"
         >
+          <MIcon name="history" class="text-[15px]" />
           Audit Logs
         </h2>
-        <p class="text-on-surface-variant mt-1 text-[12.5px]">
+        <p class="text-on-surface-variant mt-1 text-xs">
           All administrative actions across your organization.
         </p>
       </div>

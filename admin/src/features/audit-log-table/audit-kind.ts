@@ -19,8 +19,8 @@ export const KIND_STYLES: Record<
   },
   update: {
     icon: "edit",
-    iconColor: "text-primary-container",
-    badge: "bg-primary/8 text-primary-container",
+    iconColor: "text-primary",
+    badge: "bg-primary/10 text-primary",
     label: "Updated",
   },
   delete: {

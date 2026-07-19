@@ -69,24 +69,16 @@ describe('UsersPage', () => {
     });
   });
 
-  it('navigates to edit when clicking a user row', async () => {
-    const navigatedPaths: string[] = [];
-    vi.spyOn(window.history, 'pushState').mockImplementation((...args) => {
-      const path = args[2] as string;
-      if (path) navigatedPaths.push(path);
-    });
-
+  it('expands an inline edit form when clicking a user row', async () => {
     renderWithProviders(() => <UsersPage />);
 
     const emailCell = await screen.findByText(mockUsers[0].email);
     // Click the row (the <tr> ancestor)
     fireEvent.click(emailCell.closest('tr')!);
 
-    await waitFor(() => {
-      expect(navigatedPaths.some((p) => p.includes('/user'))).toBe(true);
-    });
-
-    vi.restoreAllMocks();
+    // Inline edit form expands under the row (no navigation)
+    expect(await screen.findByTestId(`team-edit-row-${mockUsers[0].id}`)).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /save changes/i })).toBeInTheDocument();
   });
 
   it('opens delete confirmation dialog when trash icon is clicked', async () => {
@@ -126,22 +118,47 @@ describe('UsersPage', () => {
     });
   });
 
-  it('"Invite Team Member" button navigates to /user', async () => {
-    const navigatedPaths: string[] = [];
-    vi.spyOn(window.history, 'pushState').mockImplementation((...args) => {
-      const path = args[2] as string;
-      if (path) navigatedPaths.push(path);
-    });
-
+  it('"Invite Member" button reveals the inline invite form', async () => {
     renderWithProviders(() => <UsersPage />);
 
     fireEvent.click(await screen.findByRole('button', { name: /invite member/i }));
 
-    await waitFor(() => {
-      expect(navigatedPaths.some((p) => p.includes('/user'))).toBe(true);
-    });
+    expect(await screen.findByTestId('user-create-form')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', { name: /generate invitation link/i }),
+    ).toBeInTheDocument();
+  });
 
-    vi.restoreAllMocks();
+  it('submitting the inline invite form shows the invitation link dialog', async () => {
+    renderWithProviders(() => <UsersPage />);
+
+    fireEvent.click(await screen.findByRole('button', { name: /invite member/i }));
+    await screen.findByTestId('user-create-form');
+
+    fireEvent.input(await screen.findByPlaceholderText(/john smith/i), {
+      target: { value: 'New User' },
+    });
+    fireEvent.input(await screen.findByPlaceholderText(/alex@company\.com/i), {
+      target: { value: 'newuser@example.com' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /generate invitation link/i }));
+
+    expect(await screen.findByTestId('invite-link-heading')).toBeInTheDocument();
+    expect(screen.getByDisplayValue(/\/invite\/invite-token-123$/i)).toBeInTheDocument();
+  });
+
+  it('pre-fills the email when editing a member inline', async () => {
+    renderWithProviders(() => <UsersPage />);
+
+    const emailCell = await screen.findByText(mockUsers[0].email);
+    fireEvent.click(emailCell.closest('tr')!);
+
+    const emailInput = (await screen.findByPlaceholderText(
+      /alex@company\.com/i,
+    )) as HTMLInputElement;
+    await waitFor(() => {
+      expect(emailInput.value).toBe(mockUsers[0].email);
+    });
   });
 
   it('hides management actions when persisted current user is viewer despite stale session role', async () => {

@@ -6,21 +6,27 @@ import { MetaProvider } from '@solidjs/meta';
 import { http, HttpResponse } from 'msw';
 import { writeClipboard } from '@solid-primitives/clipboard';
 import { server } from '../mocks/server';
+import { clearActiveEnvironmentName } from '../../entities/project/model/active-environment';
+import { clearActiveProjectSlug } from '../../entities/project/model/active-project';
 import { ToastProvider } from '../../shared/ui/toast';
-import ProjectPage from '../../pages/projects/ProjectPage';
+import ProjectPage, {
+  ProjectApiKeysPage,
+  ProjectEnvironmentsPage,
+  ProjectShareLinksPage,
+  ProjectReleasesPage,
+} from '../../pages/projects/ProjectPage';
 import { mockToken } from '../mocks/data';
 
 vi.mock('@solid-primitives/clipboard', () => ({
   writeClipboard: vi.fn(() => Promise.resolve()),
 }));
 
-function renderProjectPage(slug = 'my-app') {
+function renderProjectPage(path = '/projects/my-app') {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
 
-  // Set URL so the router matches the route and useParams returns the slug
-  window.history.pushState({}, '', `/projects/${slug}`);
+  window.history.pushState({}, '', path);
 
   return render(() => (
     <MetaProvider>
@@ -28,6 +34,10 @@ function renderProjectPage(slug = 'my-app') {
         <ToastProvider>
           <Router>
             <Route path="/projects/:slug" component={ProjectPage} />
+            <Route path="/projects/:slug/environments" component={ProjectEnvironmentsPage} />
+            <Route path="/projects/:slug/shared-links" component={ProjectShareLinksPage} />
+            <Route path="/projects/:slug/api-keys" component={ProjectApiKeysPage} />
+            <Route path="/projects/:slug/releases" component={ProjectReleasesPage} />
           </Router>
         </ToastProvider>
       </QueryClientProvider>
@@ -37,6 +47,10 @@ function renderProjectPage(slug = 'my-app') {
 
 describe('ProjectPage', () => {
   beforeEach(() => {
+    clearActiveEnvironmentName('my-app');
+    clearActiveProjectSlug();
+    localStorage.removeItem('active_environment_by_project');
+    localStorage.removeItem('active_project_slug');
     localStorage.setItem('auth_token', mockToken);
     localStorage.setItem('auth_session', JSON.stringify({ email: 'admin@example.com', role: 'admin', isAdmin: true }));
     vi.restoreAllMocks();
@@ -44,26 +58,35 @@ describe('ProjectPage', () => {
     window.history.pushState({}, '', '/');
   });
 
-  it('renders the project name', async () => {
-    renderProjectPage('my-app');
-    // Use heading role to distinguish from sidebar nav span
-    expect(await screen.findByRole('heading', { name: 'my-app' })).toBeInTheDocument();
+  it('renders the parameters section without the legacy project header', async () => {
+    renderProjectPage('/projects/my-app');
+
+    expect(await screen.findByTestId('project-parameters-heading')).toBeInTheDocument();
+    expect(screen.queryByTestId('project-detail-heading')).not.toBeInTheDocument();
   });
 
   it('displays environments returned by the API', async () => {
-    renderProjectPage('my-app');
+    renderProjectPage('/projects/my-app/environments');
 
     expect(await screen.findByText('production')).toBeInTheDocument();
     expect(await screen.findByText('staging')).toBeInTheDocument();
   });
 
   it('shows config entries when an environment is selected', async () => {
-    renderProjectPage('my-app');
+    renderProjectPage('/projects/my-app');
 
     // Production is auto-selected as the first environment by createEffect
     // Config entries load automatically — no manual click needed
     expect(await screen.findByText('API_URL')).toBeInTheDocument();
     expect(await screen.findByText('MAX_RETRIES')).toBeInTheDocument();
+  });
+
+  it('opens parameter details inline as an accordion', async () => {
+    renderProjectPage('/projects/my-app');
+
+    fireEvent.click(await screen.findByTestId('parameter-row-API_URL'));
+
+    expect(await screen.findByTestId('parameter-accordion-API_URL')).toBeInTheDocument();
   });
 
   it('shows prompt to select environment when none is active', async () => {
@@ -74,17 +97,17 @@ describe('ProjectPage', () => {
       ),
     );
 
-    renderProjectPage('my-app');
+    renderProjectPage('/projects/my-app');
 
     await waitFor(() => {
       expect(
-        screen.getByText(/select an environment above to view its parameters/i),
+        screen.getByText(/select an active environment from the header to view its parameters/i),
       ).toBeInTheDocument();
     });
   });
 
   it('shows "Add Environment" form when button is clicked', async () => {
-    renderProjectPage('my-app');
+    renderProjectPage('/projects/my-app/environments');
 
     const addEnvButton = await screen.findByRole('button', { name: /add environment/i });
     fireEvent.click(addEnvButton);
@@ -92,8 +115,20 @@ describe('ProjectPage', () => {
     expect(screen.getByLabelText(/environment name/i)).toBeInTheDocument();
   });
 
+  it('auto-opens the environment form when there are no environments', async () => {
+    server.use(
+      http.get('http://localhost:5027/admin/projects/:projectId/environments', () =>
+        HttpResponse.json([]),
+      ),
+    );
+
+    renderProjectPage('/projects/my-app/environments');
+
+    expect(await screen.findByLabelText(/environment name/i)).toBeInTheDocument();
+  });
+
   it('shows "Add Parameter" form when button is clicked and env is active', async () => {
-    renderProjectPage('my-app');
+    renderProjectPage('/projects/my-app');
 
     // Production is auto-selected by createEffect — just wait for the button to appear
     const addParamButton = await screen.findByRole('button', { name: /add parameter/i });
@@ -103,6 +138,19 @@ describe('ProjectPage', () => {
       expect(screen.getByLabelText(/^key$/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/^value$/i)).toBeInTheDocument();
     });
+  });
+
+  it('auto-opens the parameter form when the environment has no parameters', async () => {
+    server.use(
+      http.get(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/config-entries',
+        () => HttpResponse.json([]),
+      ),
+    );
+
+    renderProjectPage('/projects/my-app');
+
+    expect(await screen.findByTestId('parameter-key-input')).toBeInTheDocument();
   });
 
   it('shows backend validation message when parameter creation fails', async () => {
@@ -117,7 +165,7 @@ describe('ProjectPage', () => {
       ),
     );
 
-    renderProjectPage('my-app');
+    renderProjectPage('/projects/my-app');
 
     const addParamButton = await screen.findByRole('button', { name: /add parameter/i });
     fireEvent.click(addParamButton);
@@ -136,7 +184,7 @@ describe('ProjectPage', () => {
   });
 
   it('shows the Projects fallback when slug does not match any project', async () => {
-    renderProjectPage('nonexistent-project');
+    renderProjectPage('/projects/nonexistent-project');
 
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: /^projects$/i })).toBeInTheDocument();
@@ -170,17 +218,19 @@ describe('ProjectPage', () => {
       ),
     );
 
-    renderProjectPage('my-app');
+    const environmentPage = renderProjectPage('/projects/my-app/environments');
 
-    // Select staging environment
     const stagingTab = await screen.findByText('staging');
     fireEvent.click(stagingTab);
+
+    environmentPage.unmount();
+    renderProjectPage('/projects/my-app');
 
     expect(await screen.findByText('STAGING_ONLY_KEY')).toBeInTheDocument();
   });
 
   it('generates a shareable link for a parameter', async () => {
-    renderProjectPage('my-app');
+    renderProjectPage('/projects/my-app');
 
     expect(await screen.findByText('API_URL')).toBeInTheDocument();
 
@@ -191,6 +241,32 @@ describe('ProjectPage', () => {
 
     const generatedUrl = await screen.findByTestId('parameter-share-generated-url');
     expect(generatedUrl).toHaveValue(`${window.location.origin}/share/AbCdEf1234567890`);
+  });
+
+  it('renders API keys on the dedicated api keys page', async () => {
+    renderProjectPage('/projects/my-app/api-keys');
+
+    expect(await screen.findByTestId('project-api-keys-heading')).toBeInTheDocument();
+    expect(await screen.findByText('Web Client')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /add environment/i })).not.toBeInTheDocument();
+  });
+
+  it('opens the API key form when the add button is clicked', async () => {
+    renderProjectPage('/projects/my-app/api-keys');
+
+    expect(await screen.findByTestId('project-api-keys-heading')).toBeInTheDocument();
+    expect(screen.queryByTestId('api-key-name-input')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /add api key/i }));
+
+    expect(await screen.findByTestId('api-key-name-input')).toBeInTheDocument();
+  });
+
+  it('renders shared links on the dedicated shared links page', async () => {
+    renderProjectPage('/projects/my-app/shared-links');
+
+    expect(await screen.findByTestId('project-shared-links-heading')).toBeInTheDocument();
+    expect(await screen.findByText('API_URL')).toBeInTheDocument();
   });
 
   it('publishes a configuration release', async () => {
@@ -215,7 +291,7 @@ describe('ProjectPage', () => {
       ),
     );
 
-    renderProjectPage('my-app');
+    renderProjectPage('/projects/my-app/releases');
 
     fireEvent.input(await screen.findByTestId('release-version-input'), {
       target: { value: '1.2.0' },
@@ -235,7 +311,7 @@ describe('ProjectPage', () => {
       ),
     );
 
-    renderProjectPage('my-app');
+    renderProjectPage('/projects/my-app/releases');
 
     const versionInput = await screen.findByTestId('release-version-input');
     fireEvent.input(versionInput, { target: { value: '1.2.0' } });
@@ -264,7 +340,7 @@ describe('ProjectPage', () => {
       ),
     );
 
-    renderProjectPage('my-app');
+    renderProjectPage('/projects/my-app/releases');
 
     await screen.findByText('1.1.0');
     const activateButtons = screen.getAllByRole('button', { name: /activate/i });
@@ -289,7 +365,7 @@ describe('ProjectPage', () => {
       ),
     );
 
-    renderProjectPage('my-app');
+    renderProjectPage('/projects/my-app/releases');
 
     fireEvent.click(await screen.findByTestId('release-draft-1.1.0'));
     expect(await screen.findByTestId('release-draft-dialog')).toBeInTheDocument();
@@ -312,7 +388,7 @@ describe('ProjectPage', () => {
       ),
     );
 
-    renderProjectPage('my-app');
+    renderProjectPage('/projects/my-app/releases');
 
     const activeDeleteButton = await screen.findByTestId('release-delete-1.0.0');
     expect(activeDeleteButton).toBeDisabled();
@@ -326,7 +402,7 @@ describe('ProjectPage', () => {
   });
 
   it('copies a share link from history', async () => {
-    renderProjectPage('my-app');
+    renderProjectPage('/projects/my-app');
 
     expect(await screen.findByText('API_URL')).toBeInTheDocument();
 

@@ -38,6 +38,10 @@ export const projectKeys = {
   configEntryShareLinks: (slug: string, env: string, key: string) =>
     [...projectKeys.configEntries(slug, env), key, "share-links"] as const,
 
+  /** Aggregated share links for a specific environment */
+  environmentShareLinks: (slug: string, env: string) =>
+    [...projectKeys.detail(slug), "share-links", env] as const,
+
   /** Managed API keys for a project */
   apiKeys: (slug: string) => [...projectKeys.detail(slug), "api-keys"] as const,
 } as const;
