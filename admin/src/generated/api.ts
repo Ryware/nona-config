@@ -41,7 +41,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -52,7 +51,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -96,7 +94,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -107,7 +104,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -159,7 +155,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -170,7 +165,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -220,7 +214,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -231,7 +224,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -275,7 +267,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -286,7 +277,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -365,7 +355,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -376,7 +365,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -424,7 +412,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -435,7 +422,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -481,7 +467,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -492,7 +477,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -546,7 +530,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -557,7 +540,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -610,7 +592,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -621,7 +602,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -665,7 +645,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -676,7 +655,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -712,7 +690,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -723,7 +700,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -770,7 +746,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -781,7 +756,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -826,7 +800,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -837,7 +810,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -875,7 +847,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -886,7 +857,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -934,7 +904,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -945,7 +914,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -991,7 +959,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -1002,7 +969,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -1041,7 +1007,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -1052,7 +1017,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -1100,7 +1064,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -1111,7 +1074,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -1146,7 +1108,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -1157,7 +1118,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -1206,7 +1166,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -1217,7 +1176,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -1269,7 +1227,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -1280,7 +1237,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -1315,7 +1271,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -1326,7 +1281,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -1371,7 +1325,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -1382,7 +1335,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -1420,7 +1372,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -1431,7 +1382,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -1479,7 +1429,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -1490,7 +1439,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -1536,7 +1484,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -1547,7 +1494,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -1597,7 +1543,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -1608,7 +1553,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -1647,7 +1591,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -1658,7 +1601,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -1692,7 +1634,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -1703,7 +1644,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -1741,7 +1681,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ConfigEntryVersionDto"][];
                         "application/json": components["schemas"]["ConfigEntryVersionDto"][];
                         "text/json": components["schemas"]["ConfigEntryVersionDto"][];
                     };
@@ -1752,7 +1691,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -1763,7 +1701,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -1774,7 +1711,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -1823,7 +1759,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ConfigEntryDto"];
                         "application/json": components["schemas"]["ConfigEntryDto"];
                         "text/json": components["schemas"]["ConfigEntryDto"];
                     };
@@ -1834,7 +1769,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -1845,7 +1779,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -1856,7 +1789,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -1867,7 +1799,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -1915,7 +1846,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -1926,7 +1856,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -1966,7 +1895,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -1977,7 +1905,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -2027,7 +1954,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -2038,7 +1964,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -2081,7 +2006,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -2092,7 +2016,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -2128,7 +2051,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -2139,7 +2061,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -2185,7 +2106,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -2196,7 +2116,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -2233,7 +2152,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -2244,7 +2162,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -2276,7 +2193,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -2287,7 +2203,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -2332,7 +2247,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -2343,7 +2257,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -2397,7 +2310,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -2408,7 +2320,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -2441,7 +2352,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -2452,7 +2362,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -2495,7 +2404,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -2506,7 +2414,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -2552,7 +2459,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -2563,7 +2469,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -2649,7 +2554,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -2660,7 +2564,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -2709,7 +2612,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -2720,7 +2622,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -2768,7 +2669,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -2779,7 +2679,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
@@ -2816,7 +2715,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ErrorResponse"];
                         "application/json": components["schemas"]["ErrorResponse"];
                         "text/json": components["schemas"]["ErrorResponse"];
                     };
@@ -2827,7 +2725,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["ProblemDetails"];
                         "application/json": components["schemas"]["ProblemDetails"];
                         "text/json": components["schemas"]["ProblemDetails"];
                     };
