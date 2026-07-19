@@ -50,7 +50,11 @@ public class ConfigApiEndpointTests
         {
             ["Features:Checkout"] = new("true", "boolean")
         };
-        var mediator = new StubMediator(new GetAllConfigValuesResult(true, values, null));
+        var mediator = new StubMediator(new GetAllConfigValuesResult(
+            true,
+            values,
+            null,
+            "\"release-1\""));
         var httpContext = CreateHttpContext();
 
         var result = await NonaEndpointRouteBuilderExtensions.GetAllConfigValuesAsync(
@@ -76,35 +80,26 @@ public class ConfigApiEndpointTests
     [Test]
     public async Task GetAllConfigValues_ReturnsNotModifiedForMatchingEtag()
     {
-        var values = new Dictionary<string, ClientConfigValueDto>
-        {
-            ["flag"] = new("true", "boolean")
-        };
-        var mediator = new StubMediator(new GetAllConfigValuesResult(true, values, null));
-
-        var firstContext = CreateHttpContext();
-        var firstResult = await NonaEndpointRouteBuilderExtensions.GetAllConfigValuesAsync(
+        const string etag = "\"release-1\"";
+        var mediator = new StubMediator(new GetAllConfigValuesResult(
+            true,
+            null,
+            null,
+            etag,
+            true));
+        var httpContext = CreateHttpContext();
+        httpContext.Request.Headers.IfNoneMatch = etag;
+        var result = await NonaEndpointRouteBuilderExtensions.GetAllConfigValuesAsync(
             "production",
             null,
-            firstContext,
+            httpContext,
             mediator,
             CancellationToken.None);
-        await firstResult.ExecuteAsync(firstContext);
-        var etag = firstContext.Response.Headers.ETag.ToString();
+        await result.ExecuteAsync(httpContext);
 
-        var secondContext = CreateHttpContext();
-        secondContext.Request.Headers.IfNoneMatch = etag;
-        var secondResult = await NonaEndpointRouteBuilderExtensions.GetAllConfigValuesAsync(
-            "production",
-            null,
-            secondContext,
-            mediator,
-            CancellationToken.None);
-        await secondResult.ExecuteAsync(secondContext);
-
-        await Assert.That(secondContext.Response.StatusCode).IsEqualTo(StatusCodes.Status304NotModified);
-        await Assert.That(secondContext.Response.Headers.ETag.ToString()).IsEqualTo(etag);
-        await Assert.That(secondContext.Response.Body.Length).IsEqualTo(0);
+        await Assert.That(httpContext.Response.StatusCode).IsEqualTo(StatusCodes.Status304NotModified);
+        await Assert.That(httpContext.Response.Headers.ETag.ToString()).IsEqualTo(etag);
+        await Assert.That(httpContext.Response.Body.Length).IsEqualTo(0);
     }
 
     [Test]

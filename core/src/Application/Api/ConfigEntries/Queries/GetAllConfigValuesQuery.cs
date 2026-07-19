@@ -5,10 +5,16 @@ using Nona.Application.Common.Interfaces;
 using Nona.Domain.Entities;
 using Nona.Domain.Enums;
 using Nona.Domain.Interfaces;
+using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Nona.Application.Api.ConfigEntries.Queries;
 
-public record GetAllConfigValuesQuery(string EnvironmentId, string? Version = null)
+public record GetAllConfigValuesQuery(
+    string EnvironmentId,
+    string? Version = null,
+    string? IfNoneMatch = null)
     : IRequest<GetAllConfigValuesResult>;
 
 public record ClientConfigValueDto(string Value, string ContentType);
@@ -16,7 +22,9 @@ public record ClientConfigValueDto(string Value, string ContentType);
 public record GetAllConfigValuesResult(
     bool Success,
     Dictionary<string, ClientConfigValueDto>? Values,
-    string? Error);
+    string? Error,
+    string? Etag = null,
+    bool NotModified = false);
 
 public class GetAllConfigValuesQueryHandler(
     IApiKeyRepository apiKeyRepository,
@@ -57,16 +65,29 @@ public class GetAllConfigValuesQueryHandler(
         if (environment is null)
             return Failure("Environment not found");
 
-        var release = await ResolveReleaseAsync(
+        var releases = await configReleaseRepository.ListAsync(
             project.Name,
-            request.EnvironmentId,
-            environment.ActiveReleaseVersion,
-            request.Version,
+            environment.Name,
             cancellationToken);
+        var release = ResolveRelease(
+            releases,
+            environment.ActiveReleaseVersion,
+            request.Version);
         if (release.Error is not null)
             return Failure(release.Error);
 
-        var values = release.Release!.Entries
+        var resolvedRelease = release.Release!;
+        var etag = CreateReleaseEtag(project.Name, environment.Name, resolvedRelease);
+        if (MatchesIfNoneMatch(request.IfNoneMatch, etag))
+            return new GetAllConfigValuesResult(true, null, null, etag, true);
+
+        var entries = await configReleaseRepository.ListEntriesAsync(
+            project.Name,
+            environment.Name,
+            resolvedRelease.Version,
+            KeyScope.Frontend,
+            cancellationToken);
+        var values = entries
             .Where(entry => (entry.Scope & KeyScope.Frontend) != 0)
             .OrderBy(entry => entry.Key, StringComparer.Ordinal)
             .ToDictionary(
@@ -77,26 +98,21 @@ public class GetAllConfigValuesQueryHandler(
                         ?? ConfigEntryContentTypes.Infer(entry.Value)),
                 StringComparer.Ordinal);
 
-        return new GetAllConfigValuesResult(true, values, null);
+        return new GetAllConfigValuesResult(true, values, null, etag);
     }
 
-    private async Task<(ConfigRelease? Release, string? Error)> ResolveReleaseAsync(
-        string projectName,
-        string environmentName,
+    private static (ConfigRelease? Release, string? Error) ResolveRelease(
+        IReadOnlyList<ConfigRelease> releases,
         string? activeReleaseVersion,
-        string? requestedVersion,
-        CancellationToken cancellationToken)
+        string? requestedVersion)
     {
         if (string.IsNullOrWhiteSpace(requestedVersion))
         {
             if (string.IsNullOrWhiteSpace(activeReleaseVersion))
                 return (null, "Active release not configured");
 
-            var activeRelease = await configReleaseRepository.GetAsync(
-                projectName,
-                environmentName,
-                activeReleaseVersion,
-                cancellationToken);
+            var activeRelease = releases.FirstOrDefault(candidate =>
+                string.Equals(candidate.Version, activeReleaseVersion, StringComparison.OrdinalIgnoreCase));
 
             return activeRelease is null
                 ? (null, "Release not found")
@@ -107,21 +123,61 @@ public class GetAllConfigValuesQueryHandler(
             return (null, "Version must use major.minor.patch or major.minor.x format.");
 
         var release = version.Kind == ConfigReleaseVersionKind.Line
-            ? await configReleaseRepository.GetLatestPatchAsync(
-                projectName,
-                environmentName,
-                version.Major,
-                version.Minor,
-                cancellationToken)
-            : await configReleaseRepository.GetAsync(
-                projectName,
-                environmentName,
-                version.Normalized,
-                cancellationToken);
+            ? releases
+                .Where(candidate => candidate.Major == version.Major && candidate.Minor == version.Minor)
+                .OrderByDescending(candidate => candidate.Patch)
+                .FirstOrDefault()
+            : releases.FirstOrDefault(candidate =>
+                string.Equals(candidate.Version, version.Normalized, StringComparison.OrdinalIgnoreCase));
 
         return release is null
             ? (null, "Release not found")
             : (release, null);
+    }
+
+    private static string CreateReleaseEtag(
+        string projectName,
+        string environmentName,
+        ConfigRelease release)
+    {
+        var canonical = new StringBuilder("client-config-v1");
+        AppendEtagPart(canonical, projectName);
+        AppendEtagPart(canonical, environmentName);
+        AppendEtagPart(canonical, release.Version);
+        AppendEtagPart(
+            canonical,
+            release.CreatedAt.ToUniversalTime().Ticks.ToString(CultureInfo.InvariantCulture));
+        AppendEtagPart(canonical, release.EntryCount.ToString(CultureInfo.InvariantCulture));
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(canonical.ToString()));
+        return $"\"{Convert.ToHexString(hash).ToLowerInvariant()}\"";
+    }
+
+    private static void AppendEtagPart(StringBuilder builder, string value)
+    {
+        builder.Append(value.Length).Append(':').Append(value);
+    }
+
+    private static bool MatchesIfNoneMatch(string? headerValue, string etag)
+    {
+        if (string.IsNullOrWhiteSpace(headerValue))
+            return false;
+
+        foreach (var rawCandidate in headerValue.Split(
+                     ',',
+                     StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            if (rawCandidate == "*")
+                return true;
+
+            var candidate = rawCandidate.StartsWith("W/", StringComparison.OrdinalIgnoreCase)
+                ? rawCandidate[2..].TrimStart()
+                : rawCandidate;
+
+            if (string.Equals(candidate, etag, StringComparison.Ordinal))
+                return true;
+        }
+
+        return false;
     }
 
     private static GetAllConfigValuesResult Failure(string error) =>

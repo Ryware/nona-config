@@ -1,8 +1,6 @@
 using FluentValidation;
 using Mediator;
 using Microsoft.AspNetCore.Http.HttpResults;
-using System.Security.Cryptography;
-using System.Text;
 using Nona.Application.Admin.ApiKeys.Commands;
 using Nona.Application.Admin.ApiKeys.DTOs;
 using Nona.Application.Admin.ApiKeys.Queries;
@@ -192,6 +190,9 @@ public static class NonaEndpointRouteBuilderExtensions
         api.MapGet("/{environmentId}", GetAllConfigValuesAsync)
             .Produces<Dictionary<string, ClientConfigValueDto>>()
             .Produces(StatusCodes.Status304NotModified)
+            .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
+            .Produces<ErrorResponse>(StatusCodes.Status401Unauthorized)
+            .Produces<ErrorResponse>(StatusCodes.Status404NotFound)
             .RequireAuthorization(ApiKeyAuthenticationHandler.SchemeName);
 
         api.MapGet("/{environmentId}/{key}", GetConfigValueAsync)
@@ -1059,7 +1060,12 @@ public static class NonaEndpointRouteBuilderExtensions
         IMediator mediator,
         CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(new GetAllConfigValuesQuery(environmentId, version), cancellationToken);
+        var result = await mediator.Send(
+            new GetAllConfigValuesQuery(
+                environmentId,
+                version,
+                httpContext.Request.Headers.IfNoneMatch.ToString()),
+            cancellationToken);
         if (!result.Success)
         {
             return result.Error switch
@@ -1070,52 +1076,13 @@ public static class NonaEndpointRouteBuilderExtensions
             };
         }
 
-        var etag = CreateConfigValuesEtag(result.Values!);
-        httpContext.Response.Headers.ETag = etag;
+        httpContext.Response.Headers.ETag = result.Etag;
         httpContext.Response.Headers.CacheControl = "private, no-cache";
 
-        if (MatchesIfNoneMatch(httpContext.Request.Headers.IfNoneMatch.ToString(), etag))
+        if (result.NotModified)
             return Results.StatusCode(StatusCodes.Status304NotModified);
 
         return Results.Ok(result.Values);
-    }
-
-    private static string CreateConfigValuesEtag(
-        IReadOnlyDictionary<string, ClientConfigValueDto> values)
-    {
-        var canonical = new StringBuilder();
-        foreach (var (key, value) in values.OrderBy(pair => pair.Key, StringComparer.Ordinal))
-        {
-            AppendEtagPart(canonical, key);
-            AppendEtagPart(canonical, value.Value);
-            AppendEtagPart(canonical, value.ContentType);
-        }
-
-        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(canonical.ToString()));
-        return $"\"{Convert.ToHexString(hash).ToLowerInvariant()}\"";
-    }
-
-    private static void AppendEtagPart(StringBuilder builder, string value)
-    {
-        builder.Append(value.Length).Append(':').Append(value);
-    }
-
-    private static bool MatchesIfNoneMatch(string headerValue, string etag)
-    {
-        foreach (var rawCandidate in headerValue.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-        {
-            if (rawCandidate == "*")
-                return true;
-
-            var candidate = rawCandidate.StartsWith("W/", StringComparison.OrdinalIgnoreCase)
-                ? rawCandidate[2..].TrimStart()
-                : rawCandidate;
-
-            if (string.Equals(candidate, etag, StringComparison.Ordinal))
-                return true;
-        }
-
-        return false;
     }
 
     private static async Task<IResult?> ValidateRequestAsync<TRequest>(

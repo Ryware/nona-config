@@ -131,6 +131,33 @@ public sealed class LibsqlConfigReleaseRepository : IConfigReleaseRepository
         return result.Rows.Select(row => MapRelease(row, [])).ToList();
     }
 
+    public async Task<IReadOnlyList<ConfigReleaseEntry>> ListEntriesAsync(
+        string projectName,
+        string environmentName,
+        string version,
+        KeyScope requiredScope,
+        CancellationToken ct = default)
+    {
+        var result = await _client.ExecuteAsync(
+            """
+            SELECT Project, Environment, ReleaseVersion, Key, Value, ContentType, Scope
+            FROM ConfigReleaseEntries
+            WHERE Project = @ProjectName COLLATE NOCASE
+              AND Environment = @EnvironmentName COLLATE NOCASE
+              AND ReleaseVersion = @Version COLLATE NOCASE
+              AND (Scope & @RequiredScope) != 0
+            ORDER BY Key
+            """,
+            LibsqlParameters.Create(
+                ("ProjectName", projectName),
+                ("EnvironmentName", environmentName),
+                ("Version", version),
+                ("RequiredScope", (int)requiredScope)),
+            ct);
+
+        return result.Rows.Select(MapEntry).ToList();
+    }
+
     public async Task<bool> ExistsAsync(string projectName, string environmentName, string version, CancellationToken ct = default)
     {
         var result = await _client.ExecuteAsync(

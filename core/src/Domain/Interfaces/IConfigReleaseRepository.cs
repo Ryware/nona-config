@@ -1,4 +1,5 @@
 using Nona.Domain.Entities;
+using Nona.Domain.Enums;
 
 namespace Nona.Domain.Interfaces;
 
@@ -9,6 +10,13 @@ public interface IConfigReleaseRepository
     Task<ConfigRelease?> GetLatestPatchAsync(string projectName, string environmentName, int major, int minor, CancellationToken ct = default);
 
     Task<IReadOnlyList<ConfigRelease>> ListAsync(string projectName, string environmentName, CancellationToken ct = default);
+
+    Task<IReadOnlyList<ConfigReleaseEntry>> ListEntriesAsync(
+        string projectName,
+        string environmentName,
+        string version,
+        KeyScope requiredScope,
+        CancellationToken ct = default);
 
     Task<bool> ExistsAsync(string projectName, string environmentName, string version, CancellationToken ct = default);
 

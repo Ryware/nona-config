@@ -45,6 +45,12 @@ public class GetAllConfigValuesQueryTests
         await Assert.That(values.ContainsKey("shared")).IsTrue();
         await Assert.That(values.ContainsKey("server-only")).IsFalse();
         await Assert.That(values["client-only"].ContentType).IsEqualTo("boolean");
+        await _configReleaseRepository.Received(1).ListEntriesAsync(
+            ProjectName,
+            EnvironmentName,
+            "1.0.0",
+            KeyScope.Frontend,
+            Arg.Any<CancellationToken>());
     }
 
     [Test]
@@ -107,6 +113,33 @@ public class GetAllConfigValuesQueryTests
         await Assert.That(result.Error).IsEqualTo("Environment not found");
     }
 
+    [Test]
+    public async Task MatchingEtag_ReturnsNotModifiedWithoutLoadingReleaseEntries()
+    {
+        SetupApiKey(KeyScope.Frontend);
+        SetupRelease();
+
+        var first = await CreateHandler().Handle(
+            new GetAllConfigValuesQuery(EnvironmentName),
+            CancellationToken.None);
+        _configReleaseRepository.ClearReceivedCalls();
+
+        var result = await CreateHandler().Handle(
+            new GetAllConfigValuesQuery(EnvironmentName, IfNoneMatch: first.Etag),
+            CancellationToken.None);
+
+        await Assert.That(result.Success).IsTrue();
+        await Assert.That(result.NotModified).IsTrue();
+        await Assert.That(result.Values is null).IsTrue();
+        await Assert.That(result.Etag).IsEqualTo(first.Etag);
+        await _configReleaseRepository.DidNotReceive().ListEntriesAsync(
+            Arg.Any<string>(),
+            Arg.Any<string>(),
+            Arg.Any<string>(),
+            Arg.Any<KeyScope>(),
+            Arg.Any<CancellationToken>());
+    }
+
     private GetAllConfigValuesQueryHandler CreateHandler() => new(
         _apiKeyRepository,
         _environmentRepository,
@@ -132,27 +165,37 @@ public class GetAllConfigValuesQueryTests
                 Name = EnvironmentName,
                 ActiveReleaseVersion = "1.0.0"
             });
-        _configReleaseRepository.GetAsync(
+        var entries = new List<ConfigReleaseEntry>
+        {
+            Entry("client-only", "true", "bool", KeyScope.Frontend),
+            Entry("server-only", "secret", "text", KeyScope.Backend),
+            Entry("shared", "42", "number", KeyScope.All)
+        };
+        _configReleaseRepository.ListAsync(
+                ProjectName,
+                EnvironmentName,
+                Arg.Any<CancellationToken>())
+            .Returns(
+            [
+                new ConfigRelease
+                {
+                    Project = ProjectName,
+                    Environment = EnvironmentName,
+                    Version = "1.0.0",
+                    Major = 1,
+                    Minor = 0,
+                    Patch = 0,
+                    EntryCount = entries.Count
+                }
+            ]);
+        // Return all scopes here so the handler's defense-in-depth filter is also covered.
+        _configReleaseRepository.ListEntriesAsync(
                 ProjectName,
                 EnvironmentName,
                 "1.0.0",
+                KeyScope.Frontend,
                 Arg.Any<CancellationToken>())
-            .Returns(new ConfigRelease
-            {
-                Project = ProjectName,
-                Environment = EnvironmentName,
-                Version = "1.0.0",
-                Major = 1,
-                Minor = 0,
-                Patch = 0,
-                Entries =
-                [
-                    Entry("client-only", "true", "bool", KeyScope.Frontend),
-                    Entry("server-only", "secret", "text", KeyScope.Backend),
-                    Entry("shared", "42", "number", KeyScope.All)
-                ],
-                EntryCount = 3
-            });
+            .Returns(entries);
     }
 
     private static ConfigReleaseEntry Entry(
