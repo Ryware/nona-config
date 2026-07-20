@@ -3,7 +3,6 @@
 using Microsoft.Kiota.Abstractions.Extensions;
 using Microsoft.Kiota.Abstractions.Serialization;
 using Microsoft.Kiota.Abstractions;
-using Nona.Cli.Generated.Admin.Projects.Item.Environments.Item.Releases.Item.Draft;
 using Nona.Cli.Generated.Models;
 using System.Collections.Generic;
 using System.IO;
@@ -18,11 +17,6 @@ namespace Nona.Cli.Generated.Admin.Projects.Item.Environments.Item.Releases.Item
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
     public partial class WithVersionItemRequestBuilder : BaseRequestBuilder
     {
-        /// <summary>The draft property</summary>
-        public global::Nona.Cli.Generated.Admin.Projects.Item.Environments.Item.Releases.Item.Draft.DraftRequestBuilder Draft
-        {
-            get => new global::Nona.Cli.Generated.Admin.Projects.Item.Environments.Item.Releases.Item.Draft.DraftRequestBuilder(PathParameters, RequestAdapter);
-        }
         /// <summary>
         /// Instantiates a new <see cref="global::Nona.Cli.Generated.Admin.Projects.Item.Environments.Item.Releases.Item.WithVersionItemRequestBuilder"/> and sets the default values.
         /// </summary>

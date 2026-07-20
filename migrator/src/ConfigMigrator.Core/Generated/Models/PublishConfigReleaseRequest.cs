@@ -14,6 +14,14 @@ namespace Nona.Migrator.Core.Generated.Models
     {
         /// <summary>Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.</summary>
         public IDictionary<string, object> AdditionalData { get; set; }
+        /// <summary>The entries property</summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
+#nullable enable
+        public List<global::Nona.Migrator.Core.Generated.Models.ConfigReleaseEntryDto>? Entries { get; set; }
+#nullable restore
+#else
+        public List<global::Nona.Migrator.Core.Generated.Models.ConfigReleaseEntryDto> Entries { get; set; }
+#endif
         /// <summary>The makeActive property</summary>
         public bool? MakeActive { get; set; }
         /// <summary>The version property</summary>
@@ -49,6 +57,7 @@ namespace Nona.Migrator.Core.Generated.Models
         {
             return new Dictionary<string, Action<IParseNode>>
             {
+                { "entries", n => { Entries = n.GetCollectionOfObjectValues<global::Nona.Migrator.Core.Generated.Models.ConfigReleaseEntryDto>(global::Nona.Migrator.Core.Generated.Models.ConfigReleaseEntryDto.CreateFromDiscriminatorValue)?.AsList(); } },
                 { "makeActive", n => { MakeActive = n.GetBoolValue(); } },
                 { "version", n => { Version = n.GetStringValue(); } },
             };
@@ -60,6 +69,7 @@ namespace Nona.Migrator.Core.Generated.Models
         public virtual void Serialize(ISerializationWriter writer)
         {
             if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));
+            writer.WriteCollectionOfObjectValues<global::Nona.Migrator.Core.Generated.Models.ConfigReleaseEntryDto>("entries", Entries);
             writer.WriteBoolValue("makeActive", MakeActive);
             writer.WriteStringValue("version", Version);
             writer.WriteAdditionalData(AdditionalData);
