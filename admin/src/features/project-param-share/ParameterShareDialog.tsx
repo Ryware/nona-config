@@ -1,6 +1,8 @@
 import { createEffect, createSignal, For, Show } from "solid-js";
+import { Portal } from "solid-js/web";
 import { Button } from "../../shared/ui/button";
 import { Input } from "../../shared/ui/input";
+import { Label } from "../../shared/ui/label";
 import { MIcon } from "../../shared/ui/icons";
 import { Select } from "../../shared/ui/select";
 import type {
@@ -69,7 +71,7 @@ export function ParameterShareDialog(props: ParameterShareDialogProps) {
   return (
     <Show when={props.entry}>
       {entry => (
-        <>
+        <Portal>
           <div
             onClick={() => props.onClose()}
             class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
@@ -99,9 +101,7 @@ export function ParameterShareDialog(props: ParameterShareDialogProps) {
             <div class="flex-1 space-y-5 overflow-y-auto pr-1">
               <div class="grid gap-3 sm:grid-cols-2">
                 <div class="space-y-2">
-                  <label class="text-on-surface-variant block text-[11px] font-medium tracking-[0.05em]">
-                    Expiration
-                  </label>
+                  <Label class="mb-0">Expiration</Label>
                   <Select
                     value={expiration()}
                     onChange={value => setExpiration(value as ExpirationOption)}
@@ -109,9 +109,7 @@ export function ParameterShareDialog(props: ParameterShareDialogProps) {
                   />
                 </div>
                 <div class="space-y-2">
-                  <label class="text-on-surface-variant block text-[11px] font-medium tracking-[0.05em]">
-                    Permission
-                  </label>
+                  <Label class="mb-0">Permission</Label>
                   <Select
                     value={permission()}
                     onChange={value => setPermission(value as "edit" | "view")}
@@ -247,7 +245,7 @@ export function ParameterShareDialog(props: ParameterShareDialogProps) {
               </div>
             </div>
           </div>
-        </>
+        </Portal>
       )}
     </Show>
   );

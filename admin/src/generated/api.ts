@@ -1129,65 +1129,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/admin/projects/{projectId}/environments/{environmentName}/releases/{version}/draft": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    projectId: string;
-                    environmentName: string;
-                    version: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ConfigEntryDto"][];
-                    };
-                };
-                /** @description Client Error */
-                "4XX": {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ErrorResponse"];
-                        "text/json": components["schemas"]["ErrorResponse"];
-                    };
-                };
-                /** @description Server Error */
-                "5XX": {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ProblemDetails"];
-                        "text/json": components["schemas"]["ProblemDetails"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/admin/projects/{projectId}/environments/{environmentName}/active-release": {
         parameters: {
             query?: never;
@@ -2946,6 +2887,7 @@ export interface components {
             version: string;
             /** @default false */
             makeActive: boolean;
+            entries?: null | components["schemas"]["ConfigReleaseEntryDto"][];
         };
         RegisterCommand: {
             email: string;

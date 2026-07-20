@@ -4,6 +4,7 @@ import { createSignal, Show } from "solid-js";
 import { authService } from "../../entities/auth/api/auth.service";
 import { authStore } from "../../entities/auth/model/store";
 import { ApiRequestError } from "../../shared/api/client";
+import { Button } from "../../shared/ui/button";
 import { MIcon } from "../../shared/ui/icons";
 import type { LoginResponse } from "../../types";
 import { AuthCard } from "../../widgets/auth-shell/AuthCard";
@@ -139,16 +140,17 @@ export default function InvitePage() {
               leftIcon="shield_lock"
             />
             <div class="pt-2">
-              <button
+              <Button
                 type="submit"
+                size="lg"
                 disabled={isBusy()}
-                class="bg-primary text-on-primary flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border-0 py-3.5 text-xs font-bold tracking-wider uppercase shadow-md transition-all hover:brightness-105 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+                class="w-full"
               >
                 <span>
                   {passwordMutation.isPending ? "Activating account…" : "Set Password and Continue"}
                 </span>
                 <MIcon name="lock" class="text-[18px]" />
-              </button>
+              </Button>
             </div>
           </form>
 

@@ -6,6 +6,7 @@ import { sharedParameterService } from "../../entities/project/api/config-entry.
 import { ApiRequestError } from "../../shared/api/client";
 import { Button } from "../../shared/ui/button";
 import { Input } from "../../shared/ui/input";
+import { Label } from "../../shared/ui/label";
 import { MIcon } from "../../shared/ui/icons";
 import { Select } from "../../shared/ui/select";
 import { useToast } from "../../shared/ui/toast";
@@ -158,9 +159,7 @@ export default function SharedParameterPage() {
 
                 <div class="space-y-4">
                   <div class="space-y-2">
-                    <label class="text-on-surface-variant block text-[11px] font-medium tracking-[0.05em]">
-                      Current value
-                    </label>
+                    <Label class="mb-0">Current value</Label>
                     <Show
                       when={current().canEdit}
                       fallback={

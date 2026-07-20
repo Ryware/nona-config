@@ -1,4 +1,4 @@
-import { createEffect, createMemo, createSignal, For, Show } from "solid-js";
+import { createEffect, createMemo, createSignal, Index, Show, on } from "solid-js";
 import { Input } from "./input";
 
 export interface JsonGridItem {
@@ -118,6 +118,7 @@ export function VisualJsonEditor(props: VisualJsonEditorProps) {
   const [isVisual, setIsVisual] = createSignal(true);
   const [isNested, setIsNested] = createSignal(false);
   const [errorMsg, setErrorMsg] = createSignal<string | null>(null);
+  let pendingVisualSyncValue: string | null = null;
 
   // Helper to parse JSON
   const tryParseFlatJson = (jsonStr: string): JsonGridItem[] | null => {
@@ -140,9 +141,15 @@ export function VisualJsonEditor(props: VisualJsonEditorProps) {
     return null;
   };
 
-  // Sync value from props to internal state
-  createEffect(() => {
-    const rawVal = props.value;
+  // Sync value from props to internal state.
+  // This must react only to external value changes, not local item edits.
+  createEffect(on(() => props.value, rawVal => {
+    if (pendingVisualSyncValue !== null) {
+      if (rawVal === pendingVisualSyncValue) {
+        pendingVisualSyncValue = null;
+      }
+      return;
+    }
 
     try {
       if (rawVal.trim() === "") {
@@ -177,11 +184,10 @@ export function VisualJsonEditor(props: VisualJsonEditorProps) {
       setIsNested(true);
       setIsVisual(false); // Force raw mode if nested
     }
-  });
+  }));
 
   // Compile items to JSON string and trigger onChange
   const updateFromItems = (newItems: JsonGridItem[]) => {
-    setItems(newItems);
     const obj: Record<string, string | number | boolean> = {};
     for (const item of newItems) {
       if (!item.key.trim()) continue;
@@ -194,7 +200,10 @@ export function VisualJsonEditor(props: VisualJsonEditorProps) {
         obj[item.key] = item.value;
       }
     }
-    props.onChange(JSON.stringify(obj, null, 2));
+    const nextValue = JSON.stringify(obj, null, 2);
+    pendingVisualSyncValue = nextValue;
+    setItems(newItems);
+    props.onChange(nextValue);
   };
 
   const handleAddField = () => {
@@ -346,17 +355,17 @@ export function VisualJsonEditor(props: VisualJsonEditorProps) {
                 </div>
               }
             >
-              <For each={items()}>
+              <Index each={items()}>
                 {(item, index) => (
                   <VisualJsonRow
-                    item={item}
-                    index={index()}
-                    isDuplicate={duplicateKeys().has(item.key.trim())}
+                    item={item()}
+                    index={index}
+                    isDuplicate={duplicateKeys().has(item().key.trim())}
                     onItemChange={handleItemChange}
                     onRemove={handleRemoveField}
                   />
                 )}
-              </For>
+              </Index>
             </Show>
           </div>
 
@@ -365,6 +374,7 @@ export function VisualJsonEditor(props: VisualJsonEditorProps) {
             <button
               type="button"
               onClick={handleAddField}
+              data-testid="visual-json-editor-add-item"
               class="flex items-center gap-1 text-[11px] font-bold text-primary hover:text-primary-container bg-transparent border-0 cursor-pointer p-1 rounded select-none"
             >
               <span class="material-symbols-outlined text-[14px]">add</span>

@@ -28,8 +28,6 @@ export const MSG = {
   RELEASE_PUBLISH_FAILED: "Failed to publish release",
   RELEASE_ACTIVATED: "Active release updated",
   RELEASE_ACTIVATE_FAILED: "Failed to update active release",
-  RELEASE_DRAFT_CREATED: "Working draft created",
-  RELEASE_DRAFT_FAILED: "Failed to create working draft",
   RELEASE_DELETED: "Release deleted",
   RELEASE_DELETE_FAILED: "Failed to delete release",
 

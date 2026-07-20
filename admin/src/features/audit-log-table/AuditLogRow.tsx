@@ -6,32 +6,59 @@ import {
   getActionDescription,
   getActionKind,
   isDeleteAction,
-  isParamAction,
-  KIND_STYLES
+  isParamAction
 } from "./audit-kind";
 import { ParamDiffSection } from "./ParamDiffSection";
 
 interface AuditLogRowProps {
   entry: AuditEntry;
-  onSelect: (entry: AuditEntry) => void;
+}
+
+function getKindMeta(kind: ReturnType<typeof getActionKind>) {
+  switch (kind) {
+    case "create":
+      return {
+        icon: "add_circle",
+        iconColor: "text-success",
+        badge: "bg-success/10 text-success",
+        label: "Created"
+      };
+    case "update":
+      return {
+        icon: "edit",
+        iconColor: "text-primary",
+        badge: "bg-primary/10 text-primary",
+        label: "Updated"
+      };
+    case "delete":
+      return {
+        icon: "delete",
+        iconColor: "text-error",
+        badge: "bg-error/8 text-error",
+        label: "Deleted"
+      };
+    default:
+      return {
+        icon: "settings",
+        iconColor: "text-outline",
+        badge: "bg-surface-container-highest text-outline",
+        label: "System"
+      };
+  }
 }
 
 export function AuditLogRow(props: AuditLogRowProps) {
   const kind = () => getActionKind(props.entry.action);
-  const ks = () => KIND_STYLES[kind()];
+  const kindMeta = () => getKindMeta(kind());
   const desc = () => getActionDescription(props.entry.action);
 
   return (
-    <tr
-      data-testid={`audit-row-${props.entry.id}`}
-      onClick={() => props.onSelect(props.entry)}
-      class="group hover:bg-surface-container-high/20 cursor-pointer transition-colors"
-    >
+    <tr data-testid={`audit-row-${props.entry.id}`} class="transition-colors">
       {/* Activity */}
-      <td class="py-4 pr-4 pl-5 align-top">
+      <td class="px-6 py-4 align-top">
         <div class="flex min-w-0 items-start gap-3">
           <div class="bg-surface-container-high mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg">
-            <MIcon name={ks().icon} class={`text-[14px] ${ks().iconColor}`} />
+            <MIcon name={kindMeta().icon} class={`text-[14px] ${kindMeta().iconColor}`} />
           </div>
           <div class="min-w-0 flex-1">
             <div class="flex flex-wrap items-center gap-2">
@@ -39,9 +66,9 @@ export function AuditLogRow(props: AuditLogRowProps) {
                 {props.entry.actor}
               </span>
               <span
-                class={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${ks().badge}`}
+                class={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${kindMeta().badge}`}
               >
-                {ks().label}
+                {kindMeta().label}
               </span>
               <code
                 data-testid={`audit-target-${props.entry.id}`}
@@ -80,7 +107,7 @@ export function AuditLogRow(props: AuditLogRowProps) {
       </td>
 
       {/* Context */}
-      <td class="w-32 px-4 py-4 align-top">
+      <td class="w-32 px-6 py-4 align-top">
         <div class="flex flex-col items-center gap-1.5">
           <span class={`rounded-md px-2 py-0.5 text-[10px] font-semibold ${props.entry.envStyle}`}>
             {props.entry.env === "Global Scope" ? "System" : props.entry.env}
@@ -97,8 +124,8 @@ export function AuditLogRow(props: AuditLogRowProps) {
       </td>
 
       {/* When */}
-      <td class="w-44 py-4 pr-5 pl-4 text-right align-top">
-        <div class="text-on-surface-variant group-hover:text-on-surface text-[12.5px] font-medium transition-colors">
+      <td class="w-44 px-6 py-4 text-right align-top">
+        <div class="text-on-surface-variant text-[12.5px] font-medium">
           {timeAgo(props.entry.time)}
         </div>
         <div

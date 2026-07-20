@@ -1,6 +1,7 @@
 using Mediator;
 using Nona.Application.Admin.ApiKeys.DTOs;
 using Nona.Application.Admin.Projects;
+using Nona.Application.Common;
 using Nona.Application.Common.Interfaces;
 using Nona.Domain.Entities;
 using Nona.Domain.Enums;
@@ -64,24 +65,16 @@ public class CreateApiKeyCommandHandler(
 
     private static bool TryParseScope(string? value, out KeyScope scope)
     {
-        scope = KeyScope.Frontend;
+        // An unspecified scope defaults to client (frontend) for API keys.
         if (string.IsNullOrWhiteSpace(value))
-            return true;
-
-        switch (value.Trim().ToLowerInvariant())
         {
-            case "client":
-                scope = KeyScope.Frontend;
-                return true;
-            case "server":
-                scope = KeyScope.Backend;
-                return true;
-            case "all":
-                scope = KeyScope.All;
-                return true;
-            default:
-                return false;
+            scope = KeyScope.Frontend;
+            return true;
         }
+
+        var parsed = EnumExtensions.ParseKeyScope(value);
+        scope = parsed ?? KeyScope.Frontend;
+        return parsed is not null;
     }
 
     private static async Task<string> GenerateUniqueApiKeyAsync(

@@ -8,14 +8,6 @@ public interface IConfigEntryRepository
 
     Task<ConfigEntry?> AddVersionAsync(ConfigEntry entry, string actor, CancellationToken ct = default);
 
-    Task ReplaceEnvironmentAsync(
-        string projectName,
-        string environmentName,
-        IReadOnlyList<ConfigEntry> entries,
-        IReadOnlyList<string> deletedKeys,
-        string actor,
-        CancellationToken ct = default);
-
     Task<IReadOnlyList<ConfigEntryVersion>> ListVersionsAsync(string projectName, string environmentName, string key, CancellationToken ct = default);
 
     Task<ConfigEntryVersion?> GetVersionAsync(string projectName, string environmentName, string key, int version, CancellationToken ct = default);

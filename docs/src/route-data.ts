@@ -370,6 +370,28 @@ const PAGE_FAQS: Record<string, FaqItem[]> = {
 				'No. Firebase conditions can be mapped into Nona environments during migration, but Nona environments are not a Firebase-style runtime targeting engine.',
 		},
 	],
+	'concepts/releases': [
+		{
+			question: 'Does editing parameters immediately affect clients?',
+			answer:
+				'No. Editing changes the working configuration only. Clients read releases, either the active release or an explicitly requested version.',
+		},
+		{
+			question: 'Why does Create a version ask for 1.2 instead of 1.2.0?',
+			answer:
+				'Because the admin flow treats the first release in a line as patch .0 automatically, which keeps version entry simpler while still storing full release versions.',
+		},
+		{
+			question: 'Does creating a release activate it automatically?',
+			answer:
+				'No. Activation is a separate deliberate action on the Releases page.',
+		},
+		{
+			question: 'What does Amend do?',
+			answer:
+				'Amend loads an existing release into the working configuration and targets the next free patch in that same line.',
+		},
+	],
 	'concepts/parameters-and-content-types': [
 		{
 			question: 'What is the best first parameter type to create?',

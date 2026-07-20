@@ -106,8 +106,6 @@ public static class NonaEndpointRouteBuilderExtensions
         configReleases.MapGet("/{version}", GetConfigReleaseAsync)
             .Produces<ConfigReleaseDetailsDto>();
         configReleases.MapDelete("/{version}", DeleteConfigReleaseAsync);
-        configReleases.MapPost("/{version}/draft", CreateConfigReleaseDraftAsync)
-            .Produces<IReadOnlyList<ConfigEntryDto>>();
 
         var activeRelease = projects.MapGroup("/{projectId}/environments/{environmentName}/active-release");
         activeRelease.MapPut(
@@ -482,7 +480,7 @@ public static class NonaEndpointRouteBuilderExtensions
         }
 
         var result = await mediator.Send(
-            new PublishConfigReleaseCommand(projectId, environmentName, request.Version, request.MakeActive),
+            new PublishConfigReleaseCommand(projectId, environmentName, request.Version, request.MakeActive, request.Entries),
             cancellationToken);
 
         if (result.Success)
@@ -544,27 +542,6 @@ public static class NonaEndpointRouteBuilderExtensions
             "Project not found" or "Environment not found" or "Release not found" => NotFound(result.Error),
             "Active release cannot be deleted" => Conflict(result.Error),
             _ => BadRequest(result.Error ?? "Config release could not be deleted")
-        };
-    }
-
-    private static async Task<IResult> CreateConfigReleaseDraftAsync(
-        string projectId,
-        string environmentName,
-        string version,
-        IMediator mediator,
-        CancellationToken cancellationToken)
-    {
-        var result = await mediator.Send(new CreateConfigReleaseDraftCommand(projectId, environmentName, version), cancellationToken);
-        if (result.Success)
-        {
-            return Results.Ok(result.ConfigEntries);
-        }
-
-        return result.Error switch
-        {
-            "Access denied" => Forbidden(result.Error),
-            "Project not found" or "Environment not found" or "Release not found" => NotFound(result.Error),
-            _ => BadRequest(result.Error ?? "Config release draft could not be created")
         };
     }
 

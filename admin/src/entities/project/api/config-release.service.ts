@@ -1,6 +1,5 @@
 import { apiClient } from "../../../shared/api/client";
 import type {
-  ConfigEntry,
   ConfigRelease,
   ConfigReleaseDetails,
   Environment,
@@ -14,6 +13,16 @@ export const configReleaseService = {
   async getAll(projectId: string, environmentName: string): Promise<ConfigRelease[]> {
     return apiClient.get<ConfigRelease[]>(
       `/admin/projects/${segment(projectId)}/environments/${segment(environmentName)}/releases`,
+    );
+  },
+
+  async get(
+    projectId: string,
+    environmentName: string,
+    version: string,
+  ): Promise<ConfigReleaseDetails> {
+    return apiClient.get<ConfigReleaseDetails>(
+      `/admin/projects/${segment(projectId)}/environments/${segment(environmentName)}/releases/${segment(version)}`,
     );
   },
 
@@ -42,16 +51,6 @@ export const configReleaseService = {
   async clearActive(projectId: string, environmentName: string): Promise<Environment> {
     return apiClient.delete<Environment>(
       `/admin/projects/${segment(projectId)}/environments/${segment(environmentName)}/active-release`,
-    );
-  },
-
-  async createDraft(
-    projectId: string,
-    environmentName: string,
-    version: string,
-  ): Promise<ConfigEntry[]> {
-    return apiClient.post<ConfigEntry[]>(
-      `/admin/projects/${segment(projectId)}/environments/${segment(environmentName)}/releases/${segment(version)}/draft`,
     );
   },
 

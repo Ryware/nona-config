@@ -1,4 +1,5 @@
 import { createSignal, Show } from "solid-js";
+import { Button } from "../../../shared/ui/button";
 import { MIcon } from "../../../shared/ui/icons";
 import { FormField } from "../../../widgets/auth-shell/FormField";
 import type { Project } from "../../../types";
@@ -83,24 +84,24 @@ export function ProjectCreateForm(props: ProjectCreateFormProps) {
           leftIcon="notes"
           testId="project-description-input"
         />
-        <div class="flex gap-3 md:col-span-2">
-          <button
+        <div class="flex justify-end gap-3 md:col-span-2">
+          <Button
             data-testid="project-create-submit-button"
             type="submit"
             disabled={props.isPending}
-            class="bg-primary text-on-primary flex cursor-pointer items-center gap-2 rounded-lg border-0 px-6 py-2.5 text-xs font-bold tracking-wider uppercase shadow-md transition-all hover:brightness-105 active:scale-[0.98] disabled:opacity-50"
           >
             <MIcon name="add" class="text-[16px]" />
             {props.isPending ? "Creating…" : "Create Project"}
-          </button>
-          <button
+          </Button>
+          <Button
             data-testid="project-create-cancel-button"
             type="button"
+            variant="outline"
             onClick={() => props.onCancel()}
-            class="text-on-surface-variant bg-surface-container-high hover:bg-surface-bright cursor-pointer rounded-lg border-0 px-6 py-2.5 text-xs font-bold tracking-wider uppercase transition-all"
           >
+            <MIcon name="close" class="text-[16px]" />
             Cancel
-          </button>
+          </Button>
         </div>
       </form>
     </div>

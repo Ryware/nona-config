@@ -22,6 +22,7 @@ interface FormFieldProps {
   autocomplete?: string;
   maxLength?: number;
   testId?: string;
+  inputRef?: (element: HTMLInputElement) => void;
 }
 
 export const FormField: Component<FormFieldProps> = props => {
@@ -37,6 +38,7 @@ export const FormField: Component<FormFieldProps> = props => {
       </label>
       <div class="relative flex items-center">
         <Input
+          ref={props.inputRef}
           id={props.id}
           type={
             props.type === "password"

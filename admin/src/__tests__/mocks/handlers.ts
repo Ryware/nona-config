@@ -238,6 +238,35 @@ export const handlers = [
     return HttpResponse.json(releases);
   }),
 
+  http.get(`${BASE}/admin/projects/:projectId/environments/:envName/releases/:version`, ({ params }) => {
+    const release = mockConfigReleases.find(
+      (item) =>
+        item.project === params.projectId &&
+        item.environment === params.envName &&
+        item.version === params.version,
+    );
+
+    if (!release) {
+      return HttpResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+
+    const entries = mockConfigEntries
+      .filter(
+        (entry) => entry.project === params.projectId && entry.environment === params.envName,
+      )
+      .map((entry) => ({
+        key: entry.key,
+        value: entry.value,
+        contentType: entry.contentType,
+        scope: entry.scope,
+      }));
+
+    return HttpResponse.json({
+      ...release,
+      entries,
+    });
+  }),
+
   http.post(`${BASE}/admin/projects/:projectId/environments/:envName/releases`, async ({ params, request }) => {
     const body = await request.json() as { version: string; makeActive?: boolean };
     return HttpResponse.json({

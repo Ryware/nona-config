@@ -26,32 +26,6 @@ public class InMemoryConfigEntryRepository : IConfigEntryRepository
         }
     }
 
-    public Task ReplaceEnvironmentAsync(
-        string projectName,
-        string environmentName,
-        IReadOnlyList<ConfigEntry> entries,
-        IReadOnlyList<string> deletedKeys,
-        string actor,
-        CancellationToken ct = default)
-    {
-        lock (_versionGate)
-        {
-            foreach (var entry in entries)
-            {
-                AddVersionCore(entry, actor);
-            }
-
-            foreach (var key in deletedKeys)
-            {
-                var storageKey = GetKey(projectName, environmentName, key);
-                _entries.TryRemove(storageKey, out _);
-                _versions.TryRemove(storageKey, out _);
-            }
-        }
-
-        return Task.CompletedTask;
-    }
-
     public Task<IReadOnlyList<ConfigEntryVersion>> ListVersionsAsync(string projectName, string environmentName, string key, CancellationToken ct = default)
     {
         var storageKey = GetKey(projectName, environmentName, key);

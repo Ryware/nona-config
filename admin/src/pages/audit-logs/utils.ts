@@ -28,7 +28,7 @@ export const ACTION_STYLE: Record<string, string> = {
 export const ENV_STYLE: Record<string, string> = {
   "Production":   "text-on-primary bg-primary",
   "Staging":      "text-on-secondary-container bg-secondary-container",
-  "Global Scope": "text-outline-variant border border-outline-variant",
+  "Global Scope": "bg-surface-container-high text-on-surface-variant border border-outline-variant/30",
   "production":   "text-on-primary bg-primary",
   "staging":      "text-on-secondary-container bg-secondary-container",
 };

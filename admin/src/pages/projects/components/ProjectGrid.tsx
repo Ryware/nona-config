@@ -58,10 +58,12 @@ export function ProjectGrid(props: ProjectGridProps) {
                 <button
                   data-testid="empty-projects-new-button"
                   onClick={() => props.onCreateClick()}
-                  class="bg-primary text-on-primary inline-flex cursor-pointer items-center gap-1.5 rounded-lg border-0 px-4 py-2 text-[13px] font-semibold transition-all hover:brightness-105"
+                  aria-label="New Project"
+                  title="New Project"
+                  class="bg-primary text-on-primary inline-flex h-10 w-10 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-0 px-0 text-[13px] font-semibold transition-all hover:brightness-105 md:h-auto md:w-auto md:px-4 md:py-2"
                 >
                   <MIcon name="add" class="text-[17px]" />
-                  New Project
+                  <span class="hidden md:inline">New Project</span>
                 </button>
               </Show>
             </div>
@@ -87,7 +89,7 @@ export function ProjectGrid(props: ProjectGridProps) {
                   role="link"
                   tabindex="0"
                   aria-label={`Open project ${project.name}`}
-                  class="group bg-surface-container-low hover:bg-surface-container border-outline-variant/15 hover:border-outline-variant/30 focus-visible:ring-primary focus-visible:ring-offset-background cursor-pointer rounded-2xl border transition-all duration-200 hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+                  class="group bg-surface-container-low hover:bg-surface-container border-outline-variant/45 hover:border-outline-variant/30 focus-visible:ring-primary focus-visible:ring-offset-background cursor-pointer rounded-2xl border transition-all duration-200 hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
                   onClick={() => props.onNavigate(project.urlSlug)}
                   onKeyDown={e => {
                     if (e.key === "Enter" || e.key === " ") {
@@ -147,10 +149,12 @@ export function ProjectGrid(props: ProjectGridProps) {
               <button
                 data-testid="project-grid-new-button"
                 onClick={() => props.onCreateClick()}
-                class="border-outline-variant/20 text-outline hover:border-primary/30 hover:text-primary hover:bg-primary/5 flex min-h-37 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed bg-transparent p-5 transition-all"
+                class="border-outline-variant/40 text-outline hover:border-primary/30 hover:text-primary hover:bg-primary/5 flex min-h-37 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed bg-transparent p-5 transition-all"
+                aria-label="New Project"
+                title="New Project"
               >
                 <MIcon name="add" class="text-2xl" />
-                <span class="text-[12.5px] font-medium">New Project</span>
+                <span class="hidden md:inline text-[12.5px] font-medium">New Project</span>
               </button>
             </Show>
           </div>

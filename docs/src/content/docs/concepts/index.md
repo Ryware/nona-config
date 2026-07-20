@@ -14,6 +14,7 @@ At a high level, Nona works like this:
 - a project represents one app or service boundary
 - environments separate runtime stages like staging and production
 - entries store typed values
+- releases snapshot environment config for client reads
 - scopes control who should be allowed to read them
 - API keys control application access
 
@@ -41,6 +42,7 @@ After that, the terms in this section stop being abstract because you have alrea
 
 - [Projects](/docs/concepts/projects/)
 - [Environments](/docs/concepts/environments/)
+- [Releases](/docs/concepts/releases/)
 - [Parameters and content types](/docs/concepts/parameters-and-content-types/)
 - [Client vs server scope](/docs/concepts/client-vs-server-scope/)
 - [API keys](/docs/concepts/api-keys/)

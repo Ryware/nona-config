@@ -1,4 +1,5 @@
 import { For, Show, createSignal } from "solid-js";
+import { Button } from "../../shared/ui/button";
 import { MIcon } from "../../shared/ui/icons";
 import type { Environment } from "../../types";
 import { FormField } from "../../widgets/auth-shell/FormField";
@@ -36,60 +37,46 @@ export function ProjectEnvironments(props: ProjectEnvironmentsProps) {
   };
 
   return (
-    <div class="space-y-4">
-      {/* Environments Tabs */}
-      <div class="space-y-3">
-        <p class="text-on-surface-variant text-[12px] font-semibold">Environments</p>
-        <Show
-          when={props.environments.length > 0}
-          fallback={<span class="text-on-surface-variant block text-sm">No environments yet</span>}
-        >
-          <div class="flex flex-wrap gap-2.5">
-            <For each={props.environments}>
-              {env => (
-                <button
-                  data-testid={`environment-tab-${env.name}`}
-                  type="button"
-                  class={`group focus-visible:ring-primary/40 flex cursor-pointer items-center gap-2 rounded-xl border px-4 py-2 font-mono text-[12px] transition-all duration-300 outline-none focus-visible:ring-2 ${
-                    props.activeEnvName === env.name
-                      ? "border-primary/20 bg-primary/10 text-primary font-bold shadow-[0_0_15px_rgba(99,102,241,0.05)]"
-                      : "border-outline-variant/10 bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high/60 hover:text-on-surface"
-                  }`}
-                  title={env.name}
-                  onClick={() =>
-                    props.setActiveEnvName(props.activeEnvName === env.name ? "" : env.name)
-                  }
-                >
-                  <span class="max-w-50 truncate">{env.name}</span>
-                  <Show when={props.canManage}>
-                    <span
-                      data-testid={`environment-delete-${env.name}`}
-                      role="button"
-                      tabindex="0"
-                      onClick={e => {
-                        e.stopPropagation();
-                        props.onDeleteEnv(env.name);
-                      }}
-                      aria-label={`Delete environment ${env.name}`}
-                      class="text-outline hover:text-error ml-1 flex cursor-pointer items-center justify-center border-0 bg-transparent p-0 opacity-40 transition-opacity group-hover:opacity-100 focus:opacity-100"
-                    >
-                      <MIcon name="close" class="text-[14px]" />
-                    </span>
-                  </Show>
-                </button>
-              )}
-            </For>
-          </div>
+    <section
+      id="environments"
+      data-testid="project-environments-section"
+      class="bg-surface-container-low border-outline-variant/15 space-y-4 rounded-2xl border p-5 scroll-mt-20"
+    >
+      <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <div>
+          <p class="text-outline font-headline flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase">
+            <MIcon name="dns" class="text-[15px]" />
+            Environments
+          </p>
+          <p class="text-on-surface-variant mt-1 text-xs">
+            Choose the active environment for this project and manage the available environments.
+          </p>
+        </div>
+
+        <Show when={props.canManage}>
+          <button
+            data-testid="project-add-environment-button"
+            type="button"
+            onClick={() => props.setShowEnvForm(!props.showEnvForm)}
+            aria-label="Add Environment"
+            title="Add Environment"
+            class="bg-primary text-on-primary inline-flex h-10 w-10 cursor-pointer items-center justify-center gap-1.5 self-end rounded-lg border-0 px-0 text-[13px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] md:h-10 md:w-auto md:px-4 md:self-auto"
+          >
+            <MIcon name="add" class="text-[17px]" />
+            <span class="hidden md:inline">Add Environment</span>
+          </button>
         </Show>
       </div>
 
-      {/* Create env form */}
       <Show when={props.canManage && props.showEnvForm}>
         <form
           onSubmit={handleSubmit}
-          class="bg-surface-container-low border-outline-variant/15 animate-fade-in flex flex-col items-end gap-4 rounded-2xl border p-6 shadow-sm sm:flex-row"
+          class="bg-surface-container-low border-outline-variant/15 animate-fade-in rounded-2xl border p-6 shadow-sm"
         >
-          <div class="group w-full flex-1">
+          <h3 class="font-headline text-on-surface mb-6 text-xs font-bold tracking-wider uppercase">
+            New Environment
+          </h3>
+          <div class="group">
             <FormField
               id="env-name"
               label="Environment Name *"
@@ -108,26 +95,99 @@ export function ProjectEnvironments(props: ProjectEnvironmentsProps) {
               <p class="text-error mt-2 text-[11px] font-bold">{createError()}</p>
             </Show>
           </div>
-          <div class="flex w-full gap-2 sm:w-auto">
-            <button
+          <div class="mt-6 flex justify-end gap-3">
+            <Button
               data-testid="environment-create-submit-button"
               type="submit"
               disabled={props.createEnvPending}
-              class="bg-primary text-on-primary flex-1 cursor-pointer rounded-lg border-0 px-4 py-2.5 text-[13px] font-semibold transition-all hover:brightness-105 disabled:opacity-50 sm:flex-none"
             >
-              {props.createEnvPending ? "Creating…" : "Create"}
-            </button>
-            <button
+              <MIcon name="add" class="text-[16px]" />
+              {props.createEnvPending ? "Creating..." : "Create"}
+            </Button>
+            <Button
               data-testid="environment-create-cancel-button"
               type="button"
+              variant="outline"
               onClick={() => props.setShowEnvForm(false)}
-              class="text-on-surface-variant bg-surface-container-high hover:bg-surface-bright flex-1 cursor-pointer rounded-lg border-0 px-4 py-2.5 text-[13px] font-semibold transition-all sm:flex-none"
             >
+              <MIcon name="close" class="text-[16px]" />
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
       </Show>
-    </div>
+
+      <Show
+        when={props.environments.length > 0}
+        fallback={
+          <div class="bg-surface-container rounded-xl px-4 py-5 text-center text-xs text-on-surface-variant">
+            No environments yet.
+          </div>
+        }
+      >
+        <div class="space-y-2">
+          <For each={props.environments}>
+            {env => (
+              <div
+                class={`bg-surface-container grid gap-3 rounded-xl px-4 py-3 md:grid-cols-[minmax(180px,1fr)_auto] md:items-center ${
+                  props.activeEnvName === env.name ? "ring-1 ring-primary/20" : ""
+                }`}
+              >
+                <button
+                  data-testid={`environment-tab-${env.name}`}
+                  type="button"
+                  onClick={() => props.setActiveEnvName(env.name)}
+                  class="flex min-w-0 items-start gap-3 rounded-lg border-0 bg-transparent p-0 text-left"
+                >
+                  <div class="min-w-0">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <span class="text-on-surface truncate font-mono text-[13px] font-bold">
+                        {env.name}
+                      </span>
+                      <Show when={props.activeEnvName === env.name}>
+                        <span class="bg-primary/10 text-primary rounded-md px-2 py-0.5 text-[11px] font-bold">
+                          Active
+                        </span>
+                      </Show>
+                    </div>
+                    <p class="text-on-surface-variant mt-1 text-[12px]">
+                      Active release: {env.activeReleaseVersion ?? "none"}
+                    </p>
+                  </div>
+                </button>
+
+                <div class="flex items-center justify-end gap-2">
+                  <Show when={props.activeEnvName !== env.name}>
+                    <button
+                      type="button"
+                      onClick={() => props.setActiveEnvName(env.name)}
+                      aria-label={`Set ${env.name} as active`}
+                      title={`Set ${env.name} as active`}
+                      class="bg-surface-container-high text-on-surface hover:bg-surface-bright inline-flex h-9 w-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-0 px-0 text-[12px] font-semibold md:w-auto md:px-3"
+                    >
+                      <MIcon name="check_circle" class="text-[15px]" />
+                      <span class="hidden md:inline">Set Active</span>
+                    </button>
+                  </Show>
+                  <Show when={props.canManage}>
+                    <button
+                      data-testid={`environment-delete-${env.name}`}
+                      type="button"
+                      onClick={() => props.onDeleteEnv(env.name)}
+                      aria-label={`Delete environment ${env.name}`}
+                      class="bg-error-container/10 text-error hover:bg-error-container/20 inline-flex h-9 w-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-0 px-0 text-[12px] font-semibold md:w-auto md:px-3"
+                      title={`Delete environment ${env.name}`}
+                    >
+                      <MIcon name="delete" class="text-[15px]" />
+                      <span class="hidden md:inline">Delete</span>
+                    </button>
+                  </Show>
+                </div>
+              </div>
+            )}
+          </For>
+        </div>
+      </Show>
+    </section>
   );
 }
