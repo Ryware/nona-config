@@ -6,12 +6,6 @@ import { type JSX, lazy, onMount, Show, Suspense } from "solid-js";
 import { authService } from "../entities/auth/api/auth.service";
 import { authStore } from "../entities/auth/model/store";
 import { getActiveProjectHref } from "../entities/project/model/active-project";
-import ProjectPage, {
-  ProjectApiKeysPage,
-  ProjectEnvironmentsPage,
-  ProjectShareLinksPage,
-  ProjectReleasesPage
-} from "../pages/projects/ProjectPage";
 import { ThemeProvider } from "../shared/hooks/useTheme";
 import { RouteLoader } from "../shared/ui/Skeleton";
 import { ToastProvider } from "../shared/ui/toast";
@@ -78,21 +72,15 @@ export default function App(): JSX.Element {
                   />
                   <Route
                     path="/projects/:slug/environments"
-                    component={lazy(async () => ({ default: ProjectEnvironmentsPage }))}
+                    component={ProjectEnvironmentsPage}
                   />
                   <Route
                     path="/projects/:slug/shared-links"
-                    component={lazy(async () => ({ default: ProjectShareLinksPage }))}
+                    component={ProjectShareLinksPage}
                   />
-                  <Route
-                    path="/projects/:slug/api-keys"
-                    component={lazy(async () => ({ default: ProjectApiKeysPage }))}
-                  />
-                  <Route
-                    path="/projects/:slug/releases"
-                    component={lazy(async () => ({ default: ProjectReleasesPage }))}
-                  />
-                  <Route path="/projects/:slug" component={lazy(async () => ({ default: ProjectPage }))} />
+                  <Route path="/projects/:slug/api-keys" component={ProjectApiKeysPage} />
+                  <Route path="/projects/:slug/releases" component={ProjectReleasesPage} />
+                  <Route path="/projects/:slug" component={ProjectPage} />
                   <Route path="/users" component={lazy(() => import("../pages/users/UsersPage"))} />
                   <Route
                     path="/audit-logs"
@@ -107,6 +95,22 @@ export default function App(): JSX.Element {
     </MetaProvider>
   );
 }
+
+// The project detail page and its section variants all live in one module, so
+// they share a single lazily-loaded chunk (the dynamic import is cached).
+const ProjectPage = lazy(() => import("../pages/projects/ProjectPage"));
+const ProjectEnvironmentsPage = lazy(() =>
+  import("../pages/projects/ProjectPage").then(module => ({ default: module.ProjectEnvironmentsPage }))
+);
+const ProjectApiKeysPage = lazy(() =>
+  import("../pages/projects/ProjectPage").then(module => ({ default: module.ProjectApiKeysPage }))
+);
+const ProjectShareLinksPage = lazy(() =>
+  import("../pages/projects/ProjectPage").then(module => ({ default: module.ProjectShareLinksPage }))
+);
+const ProjectReleasesPage = lazy(() =>
+  import("../pages/projects/ProjectPage").then(module => ({ default: module.ProjectReleasesPage }))
+);
 
 const AppLayout = lazy(() =>
   import("../widgets/app-shell/AppLayout").then(module => ({ default: module.AppLayout }))

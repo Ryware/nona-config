@@ -23,20 +23,12 @@ import { ReleaseVersionDialog } from "../../features/project-releases/ReleaseVer
 import { ProjectShareLinks } from "../../features/project-share-links/ProjectShareLinks";
 import { ProjectApiKeys } from "./components/ProjectApiKeys";
 import { ProjectPageSkeleton } from "./components/ProjectPageSkeleton";
+import { useProjectContext } from "./hooks/useProjectContext";
 
-import { canManageProjectResources } from "../../entities/auth/model/permissions";
 import {
   localParamMetadataService
 } from "../../entities/project/api/metadata.service";
-import {
-  getActiveEnvironmentName,
-  setActiveEnvironmentName,
-  syncActiveEnvironment,
-} from "../../entities/project/model/active-environment";
-import { setActiveProjectSlug } from "../../entities/project/model/active-project";
 import { projectKeys } from "../../entities/project/queries/keys";
-import { userService } from "../../entities/user/api/user.service";
-import { userKeys } from "../../entities/user/queries/keys";
 import { useEscapeKey } from "../../shared/hooks/useEscapeKey";
 import { MSG } from "../../shared/lib/messages";
 import type {
@@ -47,7 +39,6 @@ import type {
   CreateApiKeyRequest,
   CreateEnvironmentRequest,
   ParameterShareLink,
-  Project,
   PublishConfigReleaseRequest
 } from "../../types";
 
@@ -133,53 +124,17 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
   const isViewingReleaseSnapshot = () => isParametersPage() && !!viewedReleaseVersion();
   const isAmendMode = () => isParametersPage() && !!amendSourceVersion();
 
-  const projectsQuery = useQuery(() => ({
-    queryKey: projectKeys.list(),
-    queryFn: () => projectService.getAll()
-  }));
-
-  const project = createMemo(() =>
-    projectsQuery.status === "success"
-      ? projectsQuery.data?.find((p: Project) => p.urlSlug === params.slug)
-      : undefined
-  );
-
-  const projectId = createMemo(() => project()?.name ?? "");
-
-  createEffect(() => {
-    if (project()) {
-      setActiveProjectSlug(project()!.urlSlug);
-    }
-  });
-
-  const activeEnvName = createMemo(() =>
-    project() ? getActiveEnvironmentName(project()!.urlSlug) : ""
-  );
-
-  const setProjectActiveEnvName = (environmentName: string) => {
-    const currentProject = project();
-    if (!currentProject) {
-      return;
-    }
-
-    setActiveEnvironmentName(currentProject.urlSlug, environmentName);
-  };
-
-  const environmentsQuery = useQuery(() => ({
-    queryKey: projectKeys.environments(params.slug),
-    queryFn: () => environmentService.getAll(projectId()),
-    enabled: !!project()
-  }));
-
-  createEffect(() => {
-    const currentProject = project();
-    const environments =
-      environmentsQuery.status === "success" ? (environmentsQuery.data ?? []) : undefined;
-
-    if (currentProject && environments) {
-      syncActiveEnvironment(currentProject.urlSlug, environments);
-    }
-  });
+  const {
+    projectsQuery,
+    project,
+    projectId,
+    activeEnvName,
+    setProjectActiveEnvName,
+    environmentsQuery,
+    activeEnvironment,
+    activeEnvironmentKey,
+    canManageProject
+  } = useProjectContext();
 
   const configQuery = useQuery(() => ({
     queryKey: projectKeys.configEntries(params.slug, activeEnvName()),
@@ -243,14 +198,6 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
     enabled: !!project() && !!activeEnvName() && isSharedLinksPage()
   }));
 
-  const activeEnvironment = createMemo(() => {
-    const envs = environmentsQuery.status === "success" ? environmentsQuery.data ?? [] : [];
-    return envs.find(env => env.name === activeEnvName());
-  });
-  const activeEnvironmentKey = createMemo(() =>
-    project() && activeEnvName() ? `${project()!.urlSlug}:${activeEnvName()}` : ""
-  );
-
   const configHistoryQuery = useQuery(() => ({
     queryKey: projectKeys.configEntryHistory(params.slug, activeEnvName(), editHistoryQueryKey()),
     queryFn: () => configEntryService.history(projectId(), activeEnvName(), editHistoryQueryKey()),
@@ -273,12 +220,6 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
       isParametersPage() &&
       !isViewingReleaseSnapshot(),
     staleTime: 60_000
-  }));
-
-  const usersQuery = useQuery(() => ({
-    queryKey: userKeys.list(),
-    queryFn: () => userService.getAll(),
-    enabled: !!project()
   }));
 
   const normalizeContentType = (
@@ -316,10 +257,6 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
 
   const parametersLoading = createMemo(() =>
     isViewingReleaseSnapshot() ? releaseDetailsQuery.isLoading : configQuery.isLoading
-  );
-
-  const canManageProject = createMemo(() =>
-    canManageProjectResources(projectId(), usersQuery.status === "success" ? (usersQuery.data ?? []) : [])
   );
 
   const apiKeysQuery = useQuery(() => ({

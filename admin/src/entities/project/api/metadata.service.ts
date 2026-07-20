@@ -88,10 +88,23 @@ const PRESET_METADATA: Record<string, ParamMeta> = {
   },
 };
 
-/** @deprecated See module-level deprecation notice above. */
+/**
+ * Client-side store for per-parameter display names, descriptions, and a local
+ * revision log, persisted in `localStorage` keyed by `project:env:key`. Unknown
+ * keys fall back to {@link PRESET_METADATA} / {@link autoFormatKey}.
+ *
+ * Exposed as a single shared instance ({@link localParamMetadataService}). Kept
+ * as a class purely for that encapsulated-singleton shape and its private cache;
+ * a future remote adapter can implement the same surface.
+ *
+ * @deprecated See the module-level deprecation notice above.
+ */
 class LocalParamMetadataService {
   private readonly metaKey = "nonaconfig_param_meta";
   private readonly historyKey = "nonaconfig_param_history";
+  // In-memory cache. getMeta() runs per parameter row and inside the search
+  // filter, so this avoids re-reading and JSON.parsing localStorage on every
+  // call. Writes keep the cache and localStorage in sync.
   private metaCache: Record<string, ParamMeta> | null = null;
   private historyCache: ParamRevision[] | null = null;
 
@@ -127,6 +140,7 @@ class LocalParamMetadataService {
     return this.historyCache;
   }
 
+  /** Resolves a parameter's display name and description (stored → preset → auto-formatted). */
   getMeta(
     project: string,
     env: string,
@@ -149,6 +163,7 @@ class LocalParamMetadataService {
     };
   }
 
+  /** Persists (merges) display name / description overrides for a parameter. */
   setMeta(project: string, env: string, key: string, meta: ParamMeta): void {
     try {
       const dict = { ...this.loadMetaCache() };
@@ -161,6 +176,7 @@ class LocalParamMetadataService {
     }
   }
 
+  /** Appends a local revision-log entry for a parameter change. */
   addRevision(
     project: string,
     env: string,
@@ -189,6 +205,7 @@ class LocalParamMetadataService {
     }
   }
 
+  /** Returns this parameter's local revisions, newest first. */
   getRevisions(project: string, env: string, key: string): ParamRevision[] {
     try {
       const history = this.loadHistoryCache();

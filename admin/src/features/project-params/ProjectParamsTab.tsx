@@ -153,28 +153,8 @@ export function ProjectParamsTab(props: ProjectParamsTabProps) {
 
       <Show when={props.activeEnvName && (props.isLoading || props.filteredConfig.length > 0)}>
         <ProjectParamsTable
-          isLoading={props.isLoading}
-          projectId={props.projectId}
-          activeEnvName={props.activeEnvName}
-          filteredConfig={props.filteredConfig}
-          editingEntry={props.editingEntry}
-          onSelectEntry={props.onSelectEntry}
-          onShareEntry={props.onShareEntry}
-          onDeleteEntry={props.onDeleteEntry}
-          canManage={props.canManage}
-          copiedKey={props.copiedKey}
-          onCopyValue={props.onCopyValue}
-          getParamMeta={props.getParamMeta}
-          initialDescription={props.initialDescription}
-          onCloseEntry={props.onCloseEntry}
-          onSaveSettings={props.onSaveSettings}
-          isSaving={props.isSaving}
-          historyVersions={props.historyVersions}
-          isHistoryLoading={props.isHistoryLoading}
-          isRollingBack={props.isRollingBack}
-          onRollbackVersion={props.onRollbackVersion}
+          {...props}
           search={props.paramSearch}
-          isReadOnly={props.isReadOnly}
           releaseVersion={props.viewingReleaseVersion}
         />
       </Show>
