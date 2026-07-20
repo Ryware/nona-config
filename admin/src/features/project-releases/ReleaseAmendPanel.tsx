@@ -1,3 +1,4 @@
+import { createStore } from "solid-js/store";
 import { For, Show, createEffect, createSignal } from "solid-js";
 import { Button } from "../../shared/ui/button";
 import { MIcon } from "../../shared/ui/icons";
@@ -35,7 +36,7 @@ interface ReleaseAmendPanelProps {
  * this buffer to the server as an explicit payload.
  */
 export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
-  const [rows, setRows] = createSignal<ConfigReleaseEntry[]>([]);
+  const [rows, setRows] = createStore<ConfigReleaseEntry[]>([]);
   const [ready, setReady] = createSignal(false);
   const [newKey, setNewKey] = createSignal("");
   const [newValue, setNewValue] = createSignal("");
@@ -52,9 +53,12 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
   });
 
   const updateRow = (index: number, patch: Partial<ConfigReleaseEntry>) =>
-    setRows(prev => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)));
+    setRows(index, row => ({ ...row, ...patch }));
 
-  const removeRow = (index: number) => setRows(prev => prev.filter((_, i) => i !== index));
+  const removeRow = (index: number) => {
+    const nextRows = rows.filter((_, rowIndex) => rowIndex !== index);
+    setRows(nextRows);
+  };
 
   const addRow = () => {
     const key = newKey().trim();
@@ -62,12 +66,12 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
       setError("Key is required.");
       return;
     }
-    if (rows().some(row => row.key.toLowerCase() === key.toLowerCase())) {
+    if (rows.some(row => row.key.toLowerCase() === key.toLowerCase())) {
       setError("That key already exists.");
       return;
     }
-    setRows(prev => [
-      ...prev,
+    setRows(currentRows => [
+      ...currentRows,
       { key, value: newValue(), contentType: newType(), scope: newScope() }
     ]);
     setNewKey("");
@@ -96,7 +100,7 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
             data-testid="release-amend-confirm-button"
             type="button"
             disabled={props.isPublishing || props.isLoading}
-            onClick={() => props.onPublish(rows())}
+            onClick={() => props.onPublish([...rows])}
           >
             <MIcon name="check" class="text-[16px]" />
             {props.isPublishing ? "Creating…" : "Create release"}
@@ -172,7 +176,7 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
         </div>
 
         <Show
-          when={rows().length > 0}
+          when={rows.length > 0}
           fallback={
             <div class="bg-surface-container rounded-xl px-4 py-5 text-center text-xs text-on-surface-variant">
               This release has no parameters.
@@ -180,7 +184,7 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
           }
         >
           <div class="space-y-2">
-            <For each={rows()}>
+            <For each={rows}>
               {(row, index) => (
                 <div
                   data-testid={`amend-row-${row.key}`}

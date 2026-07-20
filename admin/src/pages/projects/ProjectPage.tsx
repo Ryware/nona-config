@@ -959,14 +959,9 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
               <Show when={!isAmendMode()}>
               <ProjectParamsTab
                 activeEnvName={activeEnvName()}
-                environments={
-                  environmentsQuery.status === "success" ? (environmentsQuery.data ?? []) : []
-                }
                 configEntries={parameterEntries()}
                 filteredConfig={filteredConfig()}
-                editingEntry={editingEntry()}
                 isLoading={parametersLoading()}
-                projectId={projectId()}
                 paramSearch={paramSearch()}
                 onParamSearch={setParamSearch}
                 onToggleBulkImport={() => {
@@ -989,51 +984,65 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
                     />
                   ) : undefined
                 }
-                onCancelCreate={() => setShowConfigForm(false)}
-                onSubmitCreate={data => {
-                  if (!canManageProject()) return;
-                  localParamMetadataService.setMeta(projectId(), activeEnvName(), data.key, {
-                    description: data.description
-                  });
-                  createConfigMutation.mutate({
-                    projectId: projectId(),
-                    key: data.key,
-                    value: data.value,
-                    contentType: data.contentType,
-                    scope: data.scope
-                  });
-                }}
-                isCreatePending={createConfigMutation.isPending}
-                onSelectEntry={handleOpenEditDrawer}
-                onShareEntry={handleOpenShareDialog}
-                onDeleteEntry={setConfirmDeleteEntry}
                 canManage={canManageProject() && !isViewingReleaseSnapshot()}
-                copiedKey={copiedKey()}
-                onCopyValue={copyValue}
-                getParamMeta={(proj, env, key) => localParamMetadataService.getMeta(proj, env, key)}
-                initialDescription={editDescription()}
-                onCloseEntry={() => {
-                  setEditingEntry(null);
-                  setEditHistoryQueryKey("");
-                }}
-                onSaveSettings={data => {
-                  if (!canManageProject()) return;
-                  setEditDescription(data.description);
-                  updateConfigMutation.mutate({
-                    key: editingEntry()!.key,
-                    value: data.value,
-                    contentType: editingEntry()!.contentType,
-                    scope: editingEntry()!.scope,
-                    description: data.description
-                  });
-                }}
-                isSaving={updateConfigMutation.isPending}
-                historyVersions={configHistoryQuery.status === "success" ? (configHistoryQuery.data ?? []) : []}
-                isHistoryLoading={configHistoryQuery.isLoading}
-                isRollingBack={rollbackConfigMutation.isPending}
-                onRollbackVersion={handleRollbackVersion}
                 isReadOnly={isViewingReleaseSnapshot()}
                 viewingReleaseVersion={viewedReleaseVersion()}
+                createForm={{
+                  onCancel: () => setShowConfigForm(false),
+                  onSubmit: data => {
+                    if (!canManageProject()) return;
+                    localParamMetadataService.setMeta(projectId(), activeEnvName(), data.key, {
+                      description: data.description
+                    });
+                    createConfigMutation.mutate({
+                      projectId: projectId(),
+                      key: data.key,
+                      value: data.value,
+                      contentType: data.contentType,
+                      scope: data.scope
+                    });
+                  },
+                  isPending: createConfigMutation.isPending
+                }}
+                table={{
+                  isLoading: parametersLoading(),
+                  projectId: projectId(),
+                  activeEnvName: activeEnvName(),
+                  filteredConfig: filteredConfig(),
+                  editingEntry: editingEntry(),
+                  onSelectEntry: handleOpenEditDrawer,
+                  onShareEntry: handleOpenShareDialog,
+                  onDeleteEntry: setConfirmDeleteEntry,
+                  canManage: canManageProject() && !isViewingReleaseSnapshot(),
+                  copiedKey: copiedKey(),
+                  onCopyValue: copyValue,
+                  getParamMeta: (proj, env, key) => localParamMetadataService.getMeta(proj, env, key),
+                  initialDescription: editDescription(),
+                  onCloseEntry: () => {
+                    setEditingEntry(null);
+                    setEditHistoryQueryKey("");
+                  },
+                  onSaveSettings: data => {
+                    if (!canManageProject()) return;
+                    setEditDescription(data.description);
+                    updateConfigMutation.mutate({
+                      key: editingEntry()!.key,
+                      value: data.value,
+                      contentType: editingEntry()!.contentType,
+                      scope: editingEntry()!.scope,
+                      description: data.description
+                    });
+                  },
+                  isSaving: updateConfigMutation.isPending,
+                  historyVersions:
+                    configHistoryQuery.status === "success" ? (configHistoryQuery.data ?? []) : [],
+                  isHistoryLoading: configHistoryQuery.isLoading,
+                  isRollingBack: rollbackConfigMutation.isPending,
+                  onRollbackVersion: handleRollbackVersion,
+                  search: paramSearch(),
+                  isReadOnly: isViewingReleaseSnapshot(),
+                  releaseVersion: viewedReleaseVersion()
+                }}
               />
               </Show>
 

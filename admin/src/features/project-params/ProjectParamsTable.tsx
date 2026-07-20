@@ -1,9 +1,11 @@
-import { For, Show, createMemo, createSignal, onCleanup, onMount } from "solid-js";
+import { createMediaQuery } from "@solid-primitives/media";
+import { For, Show, createMemo } from "solid-js";
 import { ProjectParamEditDrawer } from "../project-param-edit/ProjectParamEditDrawer";
 import { MIcon } from "../../shared/ui/icons";
+import { cn } from "../../shared/lib/utils";
 import type { ConfigEntry, ConfigEntryVersion } from "../../types";
 
-interface ProjectParamsTableProps {
+export interface ProjectParamsTableProps {
   isLoading: boolean;
   projectId: string;
   activeEnvName: string;
@@ -47,33 +49,7 @@ const SCOPE_STYLE: Record<string, string> = {
 };
 
 export function ProjectParamsTable(props: ProjectParamsTableProps) {
-  const [isMobile, setIsMobile] = createSignal(false);
-
-  onMount(() => {
-    const syncViewport = () => setIsMobile(window.innerWidth < 768);
-
-    syncViewport();
-    window.addEventListener("resize", syncViewport);
-    onCleanup(() => window.removeEventListener("resize", syncViewport));
-  });
-
-  const renderEditor = () => (
-    <ProjectParamEditDrawer
-      entry={props.editingEntry}
-      activeEnvName={props.activeEnvName}
-      initialDescription={props.initialDescription}
-      onClose={props.onCloseEntry}
-      onSaveSettings={props.onSaveSettings}
-      isSaving={props.isSaving}
-      canManage={props.canManage}
-      historyVersions={props.historyVersions}
-      isHistoryLoading={props.isHistoryLoading}
-      isRollingBack={props.isRollingBack}
-      onRollbackVersion={props.onRollbackVersion}
-      isReadOnly={props.isReadOnly}
-      releaseVersion={props.releaseVersion}
-    />
-  );
+  const isMobile = createMediaQuery("(max-width: 767px)");
 
   return (
     <div class="space-y-3">
@@ -135,16 +111,18 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
 
                         <div class="flex flex-wrap gap-2">
                           <span
-                            class={`rounded-full px-2 py-0.5 text-[9px] font-bold tracking-wider uppercase ${
+                            class={cn(
+                              "rounded-full px-2 py-0.5 text-[9px] font-bold tracking-wider uppercase",
                               TYPE_STYLE[entry.contentType] ?? ""
-                            }`}
+                            )}
                           >
                             {entry.contentType}
                           </span>
                           <span
-                            class={`rounded-full px-2 py-0.5 text-[9px] font-bold tracking-wider uppercase ${
+                            class={cn(
+                              "rounded-full px-2 py-0.5 text-[9px] font-bold tracking-wider uppercase",
                               SCOPE_STYLE[entry.scope] ?? ""
-                            }`}
+                            )}
                           >
                             {entry.scope}
                           </span>
@@ -206,7 +184,11 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
                       data-testid={`parameter-accordion-${entry.key}`}
                       class="bg-surface-container-lowest/30 border-outline-variant/10 border-t px-4 py-4"
                     >
-                      {renderEditor()}
+                      <ProjectParamEditDrawer
+                       {...props}
+                        entry={props.editingEntry}
+                        onClose={props.onCloseEntry}
+                      />
                     </div>
                   </Show>
                 </article>
@@ -283,9 +265,12 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
                       <tr
                         data-testid={`parameter-row-${entry.key}`}
                         onClick={() => props.onSelectEntry(entry)}
-                        class={`group cursor-pointer transition-colors ${
-                          isExpanded() ? "bg-surface-container-high/40" : "hover:bg-surface-container-high/40"
-                        }`}
+                        class={cn(
+                          "group cursor-pointer transition-colors",
+                          isExpanded()
+                            ? "bg-surface-container-high/40"
+                            : "hover:bg-surface-container-high/40"
+                        )}
                       >
                         <td class="px-6 py-4">
                           <div class="flex items-center gap-3">
@@ -334,18 +319,20 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
                         </td>
                         <td class="px-6 py-4 font-mono">
                           <span
-                            class={`rounded-full px-2 py-0.5 text-[9px] font-bold tracking-wider uppercase ${
+                            class={cn(
+                              "rounded-full px-2 py-0.5 text-[9px] font-bold tracking-wider uppercase",
                               TYPE_STYLE[entry.contentType] ?? ""
-                            }`}
+                            )}
                           >
                             {entry.contentType}
                           </span>
                         </td>
                         <td class="px-6 py-4 font-mono">
                           <span
-                            class={`rounded-full px-2 py-0.5 text-[9px] font-bold tracking-wider uppercase ${
+                            class={cn(
+                              "rounded-full px-2 py-0.5 text-[9px] font-bold tracking-wider uppercase",
                               SCOPE_STYLE[entry.scope] ?? ""
-                            }`}
+                            )}
                           >
                             {entry.scope}
                           </span>
@@ -377,8 +364,22 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
                       </tr>
                       <Show when={isExpanded()}>
                         <tr data-testid={`parameter-accordion-${entry.key}`}>
-                          <td colspan="5" class="bg-surface-container-lowest/30 px-6 py-4">
-                            {renderEditor()}
+                          <td colSpan={5} class="bg-surface-container-lowest/30 px-6 py-4">
+                            <ProjectParamEditDrawer
+                              entry={props.editingEntry}
+                              activeEnvName={props.activeEnvName}
+                              initialDescription={props.initialDescription}
+                              onClose={props.onCloseEntry}
+                              onSaveSettings={props.onSaveSettings}
+                              isSaving={props.isSaving}
+                              canManage={props.canManage}
+                              historyVersions={props.historyVersions}
+                              isHistoryLoading={props.isHistoryLoading}
+                              isRollingBack={props.isRollingBack}
+                              onRollbackVersion={props.onRollbackVersion}
+                              isReadOnly={props.isReadOnly}
+                              releaseVersion={props.releaseVersion}
+                            />
                           </td>
                         </tr>
                       </Show>
@@ -389,7 +390,7 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
             </Show>
             <Show when={!props.isLoading && props.search && props.filteredConfig.length === 0}>
               <tr>
-                <td colspan="5" class="text-on-surface-variant py-10 text-center text-sm">
+                <td colSpan={5} class="text-on-surface-variant py-10 text-center text-sm">
                   No parameters match "
                   <span class="text-on-surface font-medium">{props.search}</span>"
                 </td>

@@ -14,21 +14,6 @@ interface ProjectShareLinksProps {
   buildShareUrl: (token: string) => string;
 }
 
-function formatDate(value: string): string {
-  return new Date(value).toLocaleString([], {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit"
-  });
-}
-
-function linkStatus(link: ParameterShareLink): "active" | "expired" | "revoked" {
-  if (link.revokedAt) return "revoked";
-  return new Date(link.expiresAt).getTime() <= Date.now() ? "expired" : "active";
-}
-
 export function ProjectShareLinks(props: ProjectShareLinksProps) {
   return (
     <section
@@ -136,4 +121,19 @@ export function ProjectShareLinks(props: ProjectShareLinksProps) {
       </Show>
     </section>
   );
+}
+
+function formatDate(value: string): string {
+  return new Date(value).toLocaleString([], {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+function linkStatus(link: ParameterShareLink): "active" | "expired" | "revoked" {
+  if (link.revokedAt) return "revoked";
+  return new Date(link.expiresAt).getTime() <= Date.now() ? "expired" : "active";
 }

@@ -4,57 +4,41 @@ import { Input } from "../../shared/ui/input";
 import { Show } from "solid-js";
 import type {
   ConfigEntry,
-  ConfigEntryVersion,
   CreateConfigEntryRequest,
-  Environment
 } from "../../types";
 import { ProjectParamCreateForm } from "../project-param-edit/ProjectParamCreateForm";
-import { ProjectParamsTable } from "./ProjectParamsTable";
+import { ProjectParamsTable, type ProjectParamsTableProps } from "./ProjectParamsTable";
+
+interface ProjectParamsCreateFormData {
+  key: string;
+  value: string;
+  contentType: CreateConfigEntryRequest["contentType"];
+  scope: CreateConfigEntryRequest["scope"];
+  description: string;
+}
+
+interface ProjectParamsCreateFormProps {
+  onCancel: () => void;
+  onSubmit: (data: ProjectParamsCreateFormData) => void;
+  isPending: boolean;
+}
 
 interface ProjectParamsTabProps {
   activeEnvName: string;
-  environments: Environment[];
   configEntries: ConfigEntry[];
   filteredConfig: ConfigEntry[];
-  editingEntry: ConfigEntry | null;
   isLoading: boolean;
-  projectId: string;
   paramSearch: string;
   onParamSearch: (q: string) => void;
   onToggleBulkImport: () => void;
   onToggleConfigForm: () => void;
   showConfigForm: boolean;
   bulkImportPanel?: JSX.Element;
-  onCancelCreate: () => void;
-  onSubmitCreate: (data: {
-    key: string;
-    value: string;
-    contentType: CreateConfigEntryRequest["contentType"];
-    scope: CreateConfigEntryRequest["scope"];
-    description: string;
-  }) => void;
-  isCreatePending: boolean;
-  onSelectEntry: (entry: ConfigEntry) => void;
-  onShareEntry: (entry: ConfigEntry) => void;
-  onDeleteEntry: (key: string) => void;
   canManage: boolean;
-  copiedKey: string | null;
-  onCopyValue: (key: string, value: string) => void;
-  getParamMeta: (
-    proj: string,
-    env: string,
-    key: string
-  ) => { displayName: string; description: string };
-  initialDescription: string;
-  onCloseEntry: () => void;
-  onSaveSettings: (data: { value: string; description: string }) => void;
-  isSaving: boolean;
-  historyVersions: ConfigEntryVersion[];
-  isHistoryLoading: boolean;
-  isRollingBack: boolean;
-  onRollbackVersion: (version: ConfigEntryVersion) => void;
   isReadOnly?: boolean;
   viewingReleaseVersion?: string;
+  createForm: ProjectParamsCreateFormProps;
+  table: ProjectParamsTableProps;
 }
 
 export function ProjectParamsTab(props: ProjectParamsTabProps) {
@@ -138,9 +122,9 @@ export function ProjectParamsTab(props: ProjectParamsTabProps) {
 
       <Show when={!props.isReadOnly && props.canManage && props.activeEnvName && props.showConfigForm}>
         <ProjectParamCreateForm
-          onCancel={props.onCancelCreate}
-          onSubmit={props.onSubmitCreate}
-          isPending={props.isCreatePending}
+          onCancel={props.createForm.onCancel}
+          onSubmit={props.createForm.onSubmit}
+          isPending={props.createForm.isPending}
           existingEntries={props.configEntries}
         />
       </Show>
@@ -153,7 +137,7 @@ export function ProjectParamsTab(props: ProjectParamsTabProps) {
 
       <Show when={props.activeEnvName && (props.isLoading || props.filteredConfig.length > 0)}>
         <ProjectParamsTable
-          {...props}
+          {...props.table}
           search={props.paramSearch}
           releaseVersion={props.viewingReleaseVersion}
         />

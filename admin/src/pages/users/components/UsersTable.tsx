@@ -1,4 +1,5 @@
-import { For, Show, createSignal, onCleanup, onMount } from "solid-js";
+import { createMediaQuery } from "@solid-primitives/media";
+import { For, Show } from "solid-js";
 import { MIcon } from "../../../shared/ui/icons";
 import type { Project, User } from "../../../types";
 import { UserForm, type UserFormValue } from "./UserForm";
@@ -43,14 +44,7 @@ function roleMeta(role: string) {
 }
 
 export function UsersTable(props: UsersTableProps) {
-  const [isMobile, setIsMobile] = createSignal(false);
-
-  onMount(() => {
-    const syncViewport = () => setIsMobile(window.innerWidth < 768);
-    syncViewport();
-    window.addEventListener("resize", syncViewport);
-    onCleanup(() => window.removeEventListener("resize", syncViewport));
-  });
+  const isMobile = createMediaQuery("(max-width: 767px)");
 
   return (
     <div class="space-y-3">
@@ -290,7 +284,7 @@ export function UsersTable(props: UsersTableProps) {
               }
             >
               <tr>
-                <td colspan="4" class="py-16 text-center">
+                <td colSpan={4} class="py-16 text-center">
                   <div class="bg-primary/5 mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl">
                     <MIcon name="group_add" class="text-primary/60 text-3xl" />
                   </div>
@@ -318,7 +312,7 @@ export function UsersTable(props: UsersTableProps) {
               when={!props.isLoading && props.filteredUsers.length === 0 && props.totalUsersCount > 0}
             >
               <tr>
-                <td colspan="4" class="text-on-surface-variant py-10 text-center text-sm">
+                <td colSpan={4} class="text-on-surface-variant py-10 text-center text-sm">
                   No members match your search
                 </td>
               </tr>

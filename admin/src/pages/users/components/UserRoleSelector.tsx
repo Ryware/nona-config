@@ -1,4 +1,5 @@
 import { For, Show } from "solid-js";
+import { cn } from "../../../shared/lib/utils";
 
 interface UserRoleSelectorProps {
   role: "editor" | "viewer";
@@ -50,23 +51,30 @@ export function UserRoleSelector(props: UserRoleSelectorProps) {
                     props.onChange(card.value);
                   }
                 }}
-                class={`focus-visible:ring-primary/40 h-full cursor-pointer rounded-lg border p-4 transition-all duration-300 select-none focus-visible:ring-2 focus-visible:outline-none active:scale-[0.98] sm:p-6 ${
+                class={cn(
+                  "focus-visible:ring-primary/40 h-full cursor-pointer rounded-lg border p-4 transition-all duration-300 select-none focus-visible:ring-2 focus-visible:outline-none active:scale-[0.98] sm:p-6",
                   isSelected()
                     ? "border-primary bg-primary/5 scale-[1.01] shadow-[0_0_20px_rgba(99,102,241,0.03)]"
                     : "bg-surface-container-low border-outline-variant/15 hover:bg-surface-container-high/40 hover:border-outline-variant/30"
-                }`}
+                )}
               >
                 <div class="mb-4 flex items-start justify-between">
                   <div
-                    class={`flex h-10 w-10 items-center justify-center rounded-lg transition-all ${isSelected() ? "bg-primary/10 text-primary border-primary/25 border" : "bg-surface-container-high text-outline border-outline-variant/10 border"}`}
+                    class={cn(
+                      "flex h-10 w-10 items-center justify-center rounded-lg border transition-all",
+                      isSelected()
+                        ? "border-primary/25 bg-primary/10 text-primary"
+                        : "bg-surface-container-high text-outline border-outline-variant/10"
+                    )}
                   >
                     <span class="material-symbols-outlined text-xl">{card.icon}</span>
                   </div>
                   {/* Radio indicator */}
                   <div
-                    class={`flex h-5 w-5 items-center justify-center rounded-full border-2 transition-all ${
+                    class={cn(
+                      "flex h-5 w-5 items-center justify-center rounded-full border-2 transition-all",
                       isSelected() ? "border-primary bg-primary" : "border-outline-variant"
-                    }`}
+                    )}
                   >
                     <Show when={isSelected()}>
                       <div class="bg-on-primary h-1.5 w-1.5 rounded-full" />
