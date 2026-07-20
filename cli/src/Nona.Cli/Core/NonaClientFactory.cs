@@ -1,6 +1,7 @@
 using Microsoft.Kiota.Abstractions.Authentication;
 using Microsoft.Kiota.Http.HttpClientLibrary;
 using Nona.Cli.Generated;
+using Nona.Migrator.Core.Services;
 
 namespace Nona.Cli;
 
@@ -12,7 +13,7 @@ internal static class NonaClientFactory
             new StaticTokenProvider(connection.BearerToken!));
 
         var adapter = httpClientFactory is null
-            ? new HttpClientRequestAdapter(authProvider)
+            ? new HttpClientRequestAdapter(authProvider, httpClient: NonaApiHttpClientFactory.Create())
             : new HttpClientRequestAdapter(authProvider, httpClient: httpClientFactory());
 
         adapter.BaseUrl = connection.BaseUrl.TrimEnd('/');

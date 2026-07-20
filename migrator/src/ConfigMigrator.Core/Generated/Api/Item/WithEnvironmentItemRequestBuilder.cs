@@ -52,6 +52,8 @@ namespace Nona.Migrator.Core.Generated.Api.Item
         /// <exception cref="global::Nona.Migrator.Core.Generated.Models.ErrorResponse">When receiving a 400 status code</exception>
         /// <exception cref="global::Nona.Migrator.Core.Generated.Models.ErrorResponse">When receiving a 401 status code</exception>
         /// <exception cref="global::Nona.Migrator.Core.Generated.Models.ErrorResponse">When receiving a 404 status code</exception>
+        /// <exception cref="global::Nona.Migrator.Core.Generated.Models.ErrorResponse">When receiving a 4XX status code</exception>
+        /// <exception cref="global::Nona.Migrator.Core.Generated.Models.ProblemDetails">When receiving a 5XX status code</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public async Task<global::Nona.Migrator.Core.Generated.Api.Item.WithEnvironmentGetResponse?> GetAsWithEnvironmentGetResponseAsync(Action<RequestConfiguration<global::Nona.Migrator.Core.Generated.Api.Item.WithEnvironmentItemRequestBuilder.WithEnvironmentItemRequestBuilderGetQueryParameters>>? requestConfiguration = default, CancellationToken cancellationToken = default)
@@ -67,6 +69,8 @@ namespace Nona.Migrator.Core.Generated.Api.Item
                 { "400", global::Nona.Migrator.Core.Generated.Models.ErrorResponse.CreateFromDiscriminatorValue },
                 { "401", global::Nona.Migrator.Core.Generated.Models.ErrorResponse.CreateFromDiscriminatorValue },
                 { "404", global::Nona.Migrator.Core.Generated.Models.ErrorResponse.CreateFromDiscriminatorValue },
+                { "4XX", global::Nona.Migrator.Core.Generated.Models.ErrorResponse.CreateFromDiscriminatorValue },
+                { "5XX", global::Nona.Migrator.Core.Generated.Models.ProblemDetails.CreateFromDiscriminatorValue },
             };
             return await RequestAdapter.SendAsync<global::Nona.Migrator.Core.Generated.Api.Item.WithEnvironmentGetResponse>(requestInfo, global::Nona.Migrator.Core.Generated.Api.Item.WithEnvironmentGetResponse.CreateFromDiscriminatorValue, errorMapping, cancellationToken).ConfigureAwait(false);
         }
@@ -76,6 +80,8 @@ namespace Nona.Migrator.Core.Generated.Api.Item
         /// <exception cref="global::Nona.Migrator.Core.Generated.Models.ErrorResponse">When receiving a 400 status code</exception>
         /// <exception cref="global::Nona.Migrator.Core.Generated.Models.ErrorResponse">When receiving a 401 status code</exception>
         /// <exception cref="global::Nona.Migrator.Core.Generated.Models.ErrorResponse">When receiving a 404 status code</exception>
+        /// <exception cref="global::Nona.Migrator.Core.Generated.Models.ErrorResponse">When receiving a 4XX status code</exception>
+        /// <exception cref="global::Nona.Migrator.Core.Generated.Models.ProblemDetails">When receiving a 5XX status code</exception>
         [Obsolete("This method is obsolete. Use GetAsWithEnvironmentGetResponseAsync instead.")]
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
@@ -92,6 +98,8 @@ namespace Nona.Migrator.Core.Generated.Api.Item
                 { "400", global::Nona.Migrator.Core.Generated.Models.ErrorResponse.CreateFromDiscriminatorValue },
                 { "401", global::Nona.Migrator.Core.Generated.Models.ErrorResponse.CreateFromDiscriminatorValue },
                 { "404", global::Nona.Migrator.Core.Generated.Models.ErrorResponse.CreateFromDiscriminatorValue },
+                { "4XX", global::Nona.Migrator.Core.Generated.Models.ErrorResponse.CreateFromDiscriminatorValue },
+                { "5XX", global::Nona.Migrator.Core.Generated.Models.ProblemDetails.CreateFromDiscriminatorValue },
             };
             return await RequestAdapter.SendAsync<global::Nona.Migrator.Core.Generated.Api.Item.WithEnvironmentResponse>(requestInfo, global::Nona.Migrator.Core.Generated.Api.Item.WithEnvironmentResponse.CreateFromDiscriminatorValue, errorMapping, cancellationToken).ConfigureAwait(false);
         }
