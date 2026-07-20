@@ -1,14 +1,71 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Nona.Domain.Interfaces;
 using Nona.Infrastructure.Repositories.Libsql;
+using Nona.Infrastructure.Services;
 using Nona.Libsql;
 
 namespace Nona.Infrastructure.Tests;
 
 public class ProviderSelectionTests
 {
+    [Test]
+    public async Task ConfigureServices_AutoSelectsSqliteAndReusesPersistentRepositories()
+    {
+        var dataSource = Path.Combine(Path.GetTempPath(), $"nona-auto-sqlite-{Guid.NewGuid():N}.db");
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Storage:Type"] = "Auto",
+                ["Storage:Sqlite:DataSource"] = dataSource
+            })
+            .Build();
+
+        var services = new ServiceCollection();
+        services.AddInfrastructureServices(configuration);
+
+        using var provider = services.BuildServiceProvider();
+        var client = provider.GetRequiredService<ILibsqlDatabaseClient>();
+        var repository = provider.GetRequiredService<IConfigEntryRepository>();
+        var hostedServices = provider.GetServices<IHostedService>().ToArray();
+
+        await Assert.That(client.GetType().FullName)
+            .IsEqualTo(typeof(SqliteDatabaseClient).FullName);
+        await Assert.That(repository.GetType().FullName)
+            .IsEqualTo(typeof(LibsqlConfigEntryRepository).FullName);
+        await Assert.That(hostedServices.Any(service => service is SqliteLegacyDatabaseMigrationHostedService)).IsTrue();
+        await Assert.That(hostedServices.Any(service => service is ManagedLibsqlPrimaryHostedService)).IsFalse();
+    }
+
+    [Test]
+    public async Task ConfigureServices_AutoRemoteLibsqlDoesNotStartManagedSqld()
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Storage:Type"] = "Auto",
+                ["ConnectionStrings:Libsql"] = "libsql://integration.test",
+                ["Storage:Libsql:ManagedPrimary:Enabled"] = "true"
+            })
+            .Build();
+
+        var services = new ServiceCollection();
+        services.AddInfrastructureServices(configuration);
+
+        using var provider = services.BuildServiceProvider();
+        var client = provider.GetRequiredService<ILibsqlDatabaseClient>();
+        var options = provider.GetRequiredService<IOptions<LibsqlOptions>>().Value;
+        var hostedServices = provider.GetServices<IHostedService>().ToArray();
+
+        await Assert.That(client.GetType().FullName)
+            .IsEqualTo(typeof(NelknetLibsqlDatabaseClient).FullName);
+        await Assert.That(options.ManagedPrimary.Enabled).IsFalse();
+        await Assert.That(options.DataSource).IsEqualTo("libsql://integration.test");
+        await Assert.That(hostedServices.Any(service => service is ManagedLibsqlPrimaryHostedService)).IsFalse();
+    }
+
     [Test]
     public async Task ConfigureServices_SelectsLibsqlRepositories_WhenConfigured()
     {

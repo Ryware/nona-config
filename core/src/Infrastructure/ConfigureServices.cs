@@ -41,15 +41,23 @@ public static class ConfigureServices
 
     private static void ConfigurePersistence(IServiceCollection services, IConfiguration configuration)
     {
-        var storageType = ConfigurationValueReader.GetString(configuration, "Storage:Type", "InMemory");
+        var resolution = StorageProviderResolver.Resolve(configuration);
+        services.AddSingleton(resolution);
+        services.AddHostedService<StorageProviderLoggingHostedService>();
 
-        if (storageType.Equals("Libsql", StringComparison.OrdinalIgnoreCase))
+        switch (resolution.Provider)
         {
-            ConfigureLibsqlPersistence(services, configuration);
-        }
-        else
-        {
-            ConfigureInMemoryPersistence(services);
+            case StorageProviderKind.Sqlite:
+                ConfigureSqlitePersistence(services, configuration);
+                break;
+            case StorageProviderKind.Libsql:
+                ConfigureLibsqlPersistence(services, configuration, resolution);
+                break;
+            case StorageProviderKind.InMemory:
+                ConfigureInMemoryPersistence(services);
+                break;
+            default:
+                throw new InvalidOperationException($"Unsupported storage provider '{resolution.Provider}'.");
         }
     }
 
@@ -69,11 +77,12 @@ public static class ConfigureServices
 
     private static void ConfigureLibsqlPersistence(
         IServiceCollection services,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        StorageProviderResolution resolution)
     {
         var managedPrimary = new LibsqlManagedPrimaryOptions
         {
-            Enabled = ConfigurationValueReader.GetBoolean(configuration, "Storage:Libsql:ManagedPrimary:Enabled"),
+            Enabled = resolution.UseManagedLibsql,
             ExecutablePath = configuration["Storage:Libsql:ManagedPrimary:ExecutablePath"] ?? "sqld",
             DatabasePath = configuration["Storage:Libsql:ManagedPrimary:DatabasePath"] ?? "nona-config-primary.db",
             HttpListenAddress = configuration["Storage:Libsql:ManagedPrimary:HttpListenAddress"] ?? "127.0.0.1:9080",
@@ -131,9 +140,54 @@ public static class ConfigureServices
         services.AddSingleton<NelknetLibsqlDatabaseClient>();
         services.AddSingleton<ILibsqlDatabaseClient>(sp => sp.GetRequiredService<NelknetLibsqlDatabaseClient>());
 
-        services.AddHostedService<ManagedLibsqlPrimaryHostedService>();
+        if (resolution.UseManagedLibsql)
+        {
+            services.AddHostedService<ManagedLibsqlPrimaryHostedService>();
+        }
+
         services.AddHostedService<LibsqlDatabaseInitializer>();
 
+        ConfigurePersistentRepositories(services);
+    }
+
+    private static void ConfigureSqlitePersistence(
+        IServiceCollection services,
+        IConfiguration configuration)
+    {
+        var dataSource = configuration["Storage:Sqlite:DataSource"] ?? "/var/lib/nona/nona.db";
+        var timeoutSeconds = ConfigurationValueReader.GetInt32(
+            configuration,
+            "Storage:Sqlite:TimeoutSeconds",
+            30);
+
+        services.AddOptions<SqliteOptions>()
+            .Configure(options =>
+            {
+                options.DataSource = dataSource;
+                options.TimeoutSeconds = timeoutSeconds;
+                options.LegacySqldDatabasePath =
+                    configuration["Storage:Libsql:ManagedPrimary:DatabasePath"]
+                    ?? "/var/lib/nona/primary.db";
+            })
+            .Validate(
+                options => !string.IsNullOrWhiteSpace(options.DataSource),
+                "Storage:Sqlite:DataSource must be configured.")
+            .Validate(
+                options => options.TimeoutSeconds > 0,
+                "Storage:Sqlite:TimeoutSeconds must be greater than zero.")
+            .ValidateOnStart();
+
+        services.AddSingleton<SqliteDatabaseClient>();
+        services.AddSingleton<ILibsqlDatabaseClient>(sp => sp.GetRequiredService<SqliteDatabaseClient>());
+
+        services.AddHostedService<SqliteLegacyDatabaseMigrationHostedService>();
+        services.AddHostedService<LibsqlDatabaseInitializer>();
+
+        ConfigurePersistentRepositories(services);
+    }
+
+    private static void ConfigurePersistentRepositories(IServiceCollection services)
+    {
         services.AddSingleton<IAuditLogRepository, LibsqlAuditLogRepository>();
         services.AddSingleton<IConfigEntryRepository, LibsqlConfigEntryRepository>();
         services.AddSingleton<IConfigReleaseRepository, LibsqlConfigReleaseRepository>();
@@ -175,8 +229,6 @@ public static class ConfigureServices
 
     private static bool IsLibsqlHttpDataSource(string dataSource)
     {
-        return dataSource.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
-            || dataSource.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
-            || dataSource.StartsWith("libsql://", StringComparison.OrdinalIgnoreCase);
+        return StorageProviderResolver.IsRemoteLibsqlDataSource(dataSource);
     }
 }

@@ -55,7 +55,7 @@ Nona is our attempt to keep this part of the stack small and understandable: one
 | Migration tool | ✅ Built into CLI | — |
 | Free forever | ✅ Self-host | Free tier with limits |
 
-Nona runs as a single Docker container with an embedded [libSQL](https://github.com/tursodatabase/libsql) database — no external database, no separate control plane, no cloud dependency.
+Nona runs as a single Docker container with SQLite in standalone mode and embedded [libSQL](https://github.com/tursodatabase/libsql) when primary/replica replication is configured — no external database, separate control plane, or cloud dependency.
 
 ---
 
@@ -297,7 +297,7 @@ See [`cli/src/Nona.Cli/README.md`](cli/src/Nona.Cli/README.md) for the full CLI 
 
 All measurements from production-equivalent environments.
 
-### Single-node (libSQL local)
+### Single-node (SQLite local)
 
 Dataset: **10,000 rows**, p95 latency:
 
@@ -335,13 +335,13 @@ Replica reads are **10–15× faster** for geographically distant clients.
 │  └──────────┘   └─────────┬───────┘ │
 │                           │         │
 │                  ┌────────▼────────┐│
-│                  │  embedded libSQL││
+│                  │ SQLite / libSQL ││
 │                  │  /var/lib/nona  ││
 │                  └─────────────────┘│
 └─────────────────────────────────────┘
 ```
 
-- **No external database** — libSQL is bundled in the container image
+- **No external database** — standalone uses SQLite; sqld is bundled for primary/replica mode
 - **Single port** — API and Web UI share port 8080
 - **Persistent volume** — mount `/var/lib/nona` to survive container restarts
 - **Optional replica** — add a read replica with the primary/replica compose file

@@ -27,7 +27,7 @@ public sealed class LibsqlDatabaseInitializer : IHostedService
         if (!Directory.Exists(_migrationsFolder))
         {
             Console.WriteLine($"Migrations folder not found at: {_migrationsFolder}");
-            Console.WriteLine("Skipping libSQL migrations.");
+            Console.WriteLine("Skipping persistent storage migrations.");
             return;
         }
 
