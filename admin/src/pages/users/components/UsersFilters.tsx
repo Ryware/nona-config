@@ -18,7 +18,7 @@ export function UsersFilters(props: UsersFiltersProps) {
           <Input
             data-testid="team-search-input"
             type="text"
-            placeholder="Search by name or email..."
+            placeholder="Search by name or email…"
             value={props.search}
             onInput={(e: InputEvent & { currentTarget: HTMLInputElement }) =>
               props.onSearchChange(e.currentTarget.value)
