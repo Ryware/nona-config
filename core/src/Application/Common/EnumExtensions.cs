@@ -13,6 +13,14 @@ public static class EnumExtensions
         _ => scope.ToString().ToLowerInvariant()
     };
 
+    public static KeyScope? ParseKeyScope(string? value) => value?.Trim().ToLowerInvariant() switch
+    {
+        "client" => KeyScope.Frontend,
+        "server" => KeyScope.Backend,
+        "all" => KeyScope.All,
+        _ => null
+    };
+
     public static string ToApiString(this UserRole role) => role switch
     {
         UserRole.Viewer => "viewer",

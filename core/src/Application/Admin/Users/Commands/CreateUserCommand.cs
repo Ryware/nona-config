@@ -33,7 +33,7 @@ public class CreateUserCommandHandler(
             return new CreateUserResult(false, null, "Invalid role. Must be 'viewer' or 'editor'");
 
 
-        var scope = ParseScope(request.Scope);
+        var scope = EnumExtensions.ParseKeyScope(request.Scope);
         if (scope is null && request.Scope is not null)
             return new CreateUserResult(false, null, "Invalid scope. Must be 'client', 'server', or 'all'");
 
@@ -84,20 +84,6 @@ public class CreateUserCommandHandler(
         {
             "viewer" => UserRole.Viewer,
             "editor" => UserRole.Editor,
-            _ => null
-        };
-    }
-
-    private static KeyScope? ParseScope(string? scope)
-    {
-        if (scope is null)
-            return null;
-
-        return scope.ToLowerInvariant() switch
-        {
-            "client" => KeyScope.Frontend,
-            "server" => KeyScope.Backend,
-            "all" => KeyScope.All,
             _ => null
         };
     }

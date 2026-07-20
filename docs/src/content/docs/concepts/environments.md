@@ -69,7 +69,7 @@ To publish a release, open the environment's `Releases` panel and choose **Creat
 
 Publishing does not change what clients receive. It only creates the snapshot. Use **Activate** on a release when you are ready for it to serve clients that omit a `version`.
 
-To patch an older line, choose **Amend** on that release. Nona automatically targets the next patch version, for example `1.1.1`, loads that release's parameters into the editor, and lets you snapshot your changes as the new patch. Amending replaces the editable working configuration with the selected release's parameters.
+To patch an older line, choose **Amend** on that release. Nona automatically targets the next patch version, for example `1.1.1`, and loads a **separate, editable copy** of that release's parameters. Adjust them and choose **Create release** to publish the new patch. Amend never touches the environment's working configuration — the copy is published directly from what you edit, so you can amend an old line without disturbing the config you are preparing for the next release.
 
 Non-active releases can be permanently deleted from the release list. Clear or replace the active release before deleting it. Deleting a release does not change the editable working configuration.
 

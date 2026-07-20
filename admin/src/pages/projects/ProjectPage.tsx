@@ -18,6 +18,7 @@ import { ProjectEnvironments } from "../../features/project-environments/Project
 import { ParameterShareDialog } from "../../features/project-param-share/ParameterShareDialog";
 import { ProjectParamsTab } from "../../features/project-params/ProjectParamsTab";
 import { ProjectReleases } from "../../features/project-releases/ProjectReleases";
+import { ReleaseAmendPanel } from "../../features/project-releases/ReleaseAmendPanel";
 import { ReleaseVersionDialog } from "../../features/project-releases/ReleaseVersionDialog";
 import { ProjectShareLinks } from "../../features/project-share-links/ProjectShareLinks";
 import { ProjectApiKeys } from "./components/ProjectApiKeys";
@@ -46,7 +47,8 @@ import type {
   CreateApiKeyRequest,
   CreateEnvironmentRequest,
   ParameterShareLink,
-  Project
+  Project,
+  PublishConfigReleaseRequest
 } from "../../types";
 
 const errorMessage = (caught: unknown, fallback: string) =>
@@ -85,6 +87,10 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
     typeof searchParams.release === "string" ? searchParams.release : undefined;
   const viewedReleaseVersion = () =>
     typeof searchParams.viewRelease === "string" ? searchParams.viewRelease : undefined;
+  // Source release being amended into a new patch (payload editing; the working
+  // configuration is never touched).
+  const amendSourceVersion = () =>
+    typeof searchParams.amend === "string" ? searchParams.amend : undefined;
 
   const [paramSearch, setParamSearch] = createSignal("");
   const [copiedKey, setCopiedKey] = createSignal<string | null>(null);
@@ -111,7 +117,6 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
   const [confirmActivateRelease, setConfirmActivateRelease] = createSignal<string | null>(null);
   const [confirmClearActiveRelease, setConfirmClearActiveRelease] = createSignal(false);
   const [deletingReleaseVersion, setDeletingReleaseVersion] = createSignal<string | null>(null);
-  const [amendingReleaseVersion, setAmendingReleaseVersion] = createSignal<string | null>(null);
   const [createVersionOpen, setCreateVersionOpen] = createSignal(false);
 
   createTimer(
@@ -126,6 +131,7 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
   const isApiKeysPage = () => props.section === "apiKeys";
   const isReleasesPage = () => props.section === "releases";
   const isViewingReleaseSnapshot = () => isParametersPage() && !!viewedReleaseVersion();
+  const isAmendMode = () => isParametersPage() && !!amendSourceVersion();
 
   const projectsQuery = useQuery(() => ({
     queryKey: projectKeys.list(),
@@ -178,7 +184,12 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
   const configQuery = useQuery(() => ({
     queryKey: projectKeys.configEntries(params.slug, activeEnvName()),
     queryFn: () => configEntryService.getAll(projectId(), activeEnvName()),
-    enabled: !!project() && !!activeEnvName() && isParametersPage() && !isViewingReleaseSnapshot()
+    enabled:
+      !!project() &&
+      !!activeEnvName() &&
+      isParametersPage() &&
+      !isViewingReleaseSnapshot() &&
+      !isAmendMode()
   }));
 
   const releasesQuery = useQuery(() => ({
@@ -196,6 +207,19 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
     queryFn: () =>
       configReleaseService.get(projectId(), activeEnvName(), viewedReleaseVersion() ?? ""),
     enabled: !!project() && !!activeEnvName() && isViewingReleaseSnapshot(),
+    staleTime: 60_000
+  }));
+
+  // Loads the release being amended so its parameters can seed the editable buffer.
+  const amendSourceQuery = useQuery(() => ({
+    queryKey: projectKeys.configReleaseDetails(
+      params.slug,
+      activeEnvName(),
+      amendSourceVersion() ?? ""
+    ),
+    queryFn: () =>
+      configReleaseService.get(projectId(), activeEnvName(), amendSourceVersion() ?? ""),
+    enabled: !!project() && !!activeEnvName() && isAmendMode(),
     staleTime: 60_000
   }));
 
@@ -469,7 +493,7 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
   }));
 
   const publishReleaseMutation = useMutation(() => ({
-    mutationFn: (req: { version: string; makeActive: boolean }) =>
+    mutationFn: (req: PublishConfigReleaseRequest) =>
       configReleaseService.publish(projectId(), activeEnvName(), req),
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -480,21 +504,6 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
       navigate(`/projects/${params.slug}/releases`);
     },
     onError: error => addToast(errorMessage(error, MSG.RELEASE_PUBLISH_FAILED), "error")
-  }));
-
-  const amendReleaseMutation = useMutation(() => ({
-    mutationFn: (data: { source: string; target: string }) => {
-      setAmendingReleaseVersion(data.source);
-      return configReleaseService.createDraft(projectId(), activeEnvName(), data.source);
-    },
-    onSuccess: (_entries, data) => {
-      queryClient.invalidateQueries({
-        queryKey: projectKeys.configEntries(params.slug, activeEnvName())
-      });
-      navigate(`/projects/${params.slug}?release=${encodeURIComponent(data.target)}`);
-    },
-    onError: error => addToast(errorMessage(error, MSG.RELEASE_AMEND_FAILED), "error"),
-    onSettled: () => setAmendingReleaseVersion(null)
   }));
 
   const releaseVersions = createMemo(() =>
@@ -870,7 +879,7 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
                   releases={releasesQuery.status === "success" ? (releasesQuery.data ?? []) : []}
                   isLoading={releasesQuery.isLoading}
                   isActivating={setActiveReleaseMutation.isPending}
-                  amendingVersion={amendingReleaseVersion()}
+                  amendingVersion={null}
                   deletingVersion={deletingReleaseVersion()}
                   canManage={canManageProject()}
                   onCreateVersion={() => setCreateVersionOpen(true)}
@@ -878,10 +887,9 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
                     navigate(`/projects/${params.slug}?viewRelease=${encodeURIComponent(version)}`)
                   }
                   onAmend={version =>
-                    amendReleaseMutation.mutate({
-                      source: version,
-                      target: nextPatchVersion(version)
-                    })
+                    navigate(
+                      `/projects/${params.slug}?release=${encodeURIComponent(nextPatchVersion(version))}&amend=${encodeURIComponent(version)}`
+                    )
                   }
                   onActivate={setConfirmActivateRelease}
                   onClearActive={() => setConfirmClearActiveRelease(true)}
@@ -950,7 +958,24 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
                   </div>
                 </div>
               </Show>
-              <Show when={canManageProject() && releaseDraftVersion()}>
+              <Show when={isAmendMode()}>
+                <ReleaseAmendPanel
+                  sourceVersion={amendSourceVersion()!}
+                  targetVersion={releaseDraftVersion() ?? ""}
+                  sourceEntries={amendSourceQuery.data?.entries ?? []}
+                  isLoading={amendSourceQuery.isLoading}
+                  isPublishing={publishReleaseMutation.isPending}
+                  onPublish={entries =>
+                    publishReleaseMutation.mutate({
+                      version: releaseDraftVersion() ?? "",
+                      makeActive: false,
+                      entries
+                    })
+                  }
+                  onCancel={() => navigate(`/projects/${params.slug}/releases`)}
+                />
+              </Show>
+              <Show when={canManageProject() && releaseDraftVersion() && !isAmendMode()}>
                 <div
                   data-testid="release-draft-banner"
                   class="border-primary/25 bg-primary/5 animate-fade-in flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between"
@@ -994,6 +1019,7 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
                   </div>
                 </div>
               </Show>
+              <Show when={!isAmendMode()}>
               <ProjectParamsTab
                 activeEnvName={activeEnvName()}
                 environments={
@@ -1072,6 +1098,7 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
                 isReadOnly={isViewingReleaseSnapshot()}
                 viewingReleaseVersion={viewedReleaseVersion()}
               />
+              </Show>
 
               <ParameterShareDialog
                 entry={sharingEntry()}

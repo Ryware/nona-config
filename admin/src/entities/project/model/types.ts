@@ -134,6 +134,7 @@ export interface ConfigReleaseDetails extends ConfigRelease {
 export interface PublishConfigReleaseRequest {
   version: string;
   makeActive: boolean;
+  entries?: ConfigReleaseEntry[];
 }
 
 export interface SetActiveConfigReleaseRequest {

@@ -1,6 +1,7 @@
 using Mediator;
 using Nona.Application.Admin.ConfigEntries.DTOs;
 using Nona.Application.Admin.Projects;
+using Nona.Application.Common;
 using Nona.Application.Common.Interfaces;
 using Nona.Domain.Entities;
 using Nona.Domain.Interfaces;
@@ -60,7 +61,7 @@ public class RollbackConfigEntryCommandHandler(
             UpdatedAt = now
         };
 
-        var savedEntry = await configEntryRepository.AddVersionAsync(rollbackEntry, ResolveActor(), cancellationToken);
+        var savedEntry = await configEntryRepository.AddVersionAsync(rollbackEntry, currentUserService.ResolveActor(), cancellationToken);
         if (savedEntry is null)
             return new RollbackConfigEntryResult(false, null, "Config entry could not be saved");
 
@@ -77,10 +78,4 @@ public class RollbackConfigEntryCommandHandler(
         return new RollbackConfigEntryResult(true, ConfigEntryMapping.ToDto(savedEntry), null);
     }
 
-    private string ResolveActor()
-    {
-        return string.IsNullOrWhiteSpace(currentUserService?.Username)
-            ? "System"
-            : currentUserService.Username!;
-    }
 }

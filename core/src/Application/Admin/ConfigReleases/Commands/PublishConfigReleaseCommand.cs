@@ -1,15 +1,31 @@
 using Mediator;
 using Nona.Application.Admin.ConfigReleases.DTOs;
 using Nona.Application.Admin.Projects;
+using Nona.Application.Common;
 using Nona.Application.Common.Interfaces;
 using Nona.Domain.Entities;
 using Nona.Domain.Interfaces;
 
 namespace Nona.Application.Admin.ConfigReleases.Commands;
 
-public record PublishConfigReleaseRequest(string Version, bool MakeActive = false);
+/// <summary>
+/// Publishes a release. When <see cref="Entries"/> is null the release is a
+/// snapshot of the environment's current working configuration (the "Create a
+/// version" flow). When <see cref="Entries"/> is provided the release is a
+/// snapshot of exactly those entries and the working configuration is left
+/// untouched (the "Amend" flow — publish from an explicit payload).
+/// </summary>
+public record PublishConfigReleaseRequest(
+    string Version,
+    bool MakeActive = false,
+    IReadOnlyList<ConfigReleaseEntryDto>? Entries = null);
 
-public record PublishConfigReleaseCommand(string ProjectId, string EnvironmentName, string Version, bool MakeActive)
+public record PublishConfigReleaseCommand(
+    string ProjectId,
+    string EnvironmentName,
+    string Version,
+    bool MakeActive,
+    IReadOnlyList<ConfigReleaseEntryDto>? Entries = null)
     : IRequest<PublishConfigReleaseResult>;
 
 public record PublishConfigReleaseResult(bool Success, ConfigReleaseDetailsDto? Release, string? Error);
@@ -45,20 +61,52 @@ public class PublishConfigReleaseCommandHandler(
         if (await configReleaseRepository.ExistsAsync(projectName, request.EnvironmentName, version.Normalized, cancellationToken))
             return new PublishConfigReleaseResult(false, null, "Release already exists");
 
-        var entries = await configEntryRepository.ListAsync(projectName, request.EnvironmentName, cancellationToken);
-        var snapshotEntries = entries.Select(entry => new ConfigReleaseEntry
+        List<ConfigReleaseEntry> snapshotEntries;
+        if (request.Entries is not null)
         {
-            Project = projectName,
-            Environment = request.EnvironmentName,
-            ReleaseVersion = version.Normalized,
-            Key = entry.Key,
-            Value = entry.Value,
-            ContentType = entry.ContentType,
-            Scope = entry.Scope
-        }).ToList();
+            // Amend / publish-from-payload: snapshot exactly what the caller sent.
+            // The working configuration is intentionally left untouched.
+            snapshotEntries = new List<ConfigReleaseEntry>(request.Entries.Count);
+            foreach (var entry in request.Entries)
+            {
+                if (string.IsNullOrWhiteSpace(entry.Key))
+                    return new PublishConfigReleaseResult(false, null, "Release entries must have a key.");
+
+                var scope = EnumExtensions.ParseKeyScope(entry.Scope);
+                if (scope is null)
+                    return new PublishConfigReleaseResult(false, null, "Invalid scope. Must be 'client', 'server', or 'all'.");
+
+                snapshotEntries.Add(new ConfigReleaseEntry
+                {
+                    Project = projectName,
+                    Environment = request.EnvironmentName,
+                    ReleaseVersion = version.Normalized,
+                    Key = entry.Key,
+                    Value = entry.Value,
+                    ContentType = ConfigEntryContentTypes.Normalize(entry.ContentType)
+                        ?? ConfigEntryContentTypes.Infer(entry.Value),
+                    Scope = scope.Value
+                });
+            }
+        }
+        else
+        {
+            // Create a version: snapshot the current working configuration.
+            var entries = await configEntryRepository.ListAsync(projectName, request.EnvironmentName, cancellationToken);
+            snapshotEntries = entries.Select(entry => new ConfigReleaseEntry
+            {
+                Project = projectName,
+                Environment = request.EnvironmentName,
+                ReleaseVersion = version.Normalized,
+                Key = entry.Key,
+                Value = entry.Value,
+                ContentType = entry.ContentType,
+                Scope = entry.Scope
+            }).ToList();
+        }
 
         var now = dateTime.NowUtc;
-        var actor = ResolveActor();
+        var actor = currentUserService.ResolveActor();
         var release = new ConfigRelease
         {
             Project = projectName,
@@ -99,10 +147,4 @@ public class PublishConfigReleaseCommandHandler(
             null);
     }
 
-    private string ResolveActor()
-    {
-        return string.IsNullOrWhiteSpace(currentUserService?.Username)
-            ? "System"
-            : currentUserService.Username!;
-    }
 }

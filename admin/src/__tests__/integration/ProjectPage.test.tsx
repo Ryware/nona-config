@@ -331,23 +331,43 @@ describe('ProjectPage', () => {
     expect(screen.getByTestId('release-create-confirm-button')).toBeInTheDocument();
   });
 
-  it('amends a release into a new patch version via the guided flow', async () => {
-    const draftRequests: string[] = [];
-    const publishRequests: Array<{ version: string; makeActive: boolean }> = [];
+  it('amends a release into a new patch (publish-from-payload, working config untouched)', async () => {
+    const draftCalls: string[] = [];
+    const publishRequests: Array<{
+      version: string;
+      makeActive: boolean;
+      entries?: Array<{ key: string; value: string }>;
+    }> = [];
     server.use(
+      // The draft endpoint is gone; assert it is never called.
       http.post(
         'http://localhost:5027/admin/projects/:projectId/environments/:envName/releases/:version/draft',
         ({ params }) => {
-          draftRequests.push(String(params.version));
+          draftCalls.push(String(params.version));
           return HttpResponse.json([]);
         },
+      ),
+      // Amend seeds its buffer from the source release's parameters.
+      http.get(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/releases/:version',
+        ({ params }) =>
+          HttpResponse.json({
+            project: params.projectId,
+            environment: params.envName,
+            version: params.version,
+            entryCount: 1,
+            isActive: false,
+            createdAt: '2024-01-01T00:00:00Z',
+            actor: 'alice',
+            entries: [
+              { key: 'feature.x', value: 'true', contentType: 'boolean', scope: 'client' },
+            ],
+          }),
       ),
       http.post(
         'http://localhost:5027/admin/projects/:projectId/environments/:envName/releases',
         async ({ request }) => {
-          publishRequests.push(
-            (await request.json()) as { version: string; makeActive: boolean },
-          );
+          publishRequests.push((await request.json()) as (typeof publishRequests)[number]);
           return HttpResponse.json({}, { status: 201 });
         },
       ),
@@ -355,20 +375,22 @@ describe('ProjectPage', () => {
 
     renderProjectPage('/projects/my-app/releases');
 
-    // Amend the release -> auto next patch and jump straight into compose mode.
+    // Amend -> auto next patch, jump straight into the buffer editor (no dialog).
     fireEvent.click(await screen.findByTestId('release-amend-1.1.0'));
-
-    await waitFor(() => {
-      expect(draftRequests).toEqual(['1.1.0']);
-    });
-
     expect(screen.queryByTestId('release-version-dialog')).not.toBeInTheDocument();
-    expect(await screen.findByTestId('release-create-confirm-button')).toBeInTheDocument();
 
-    fireEvent.click(await screen.findByTestId('release-create-confirm-button'));
+    // The source release's parameters seed the editable buffer.
+    await screen.findByTestId('amend-row-feature.x');
+
+    fireEvent.click(screen.getByTestId('release-amend-confirm-button'));
     await waitFor(() => {
-      expect(publishRequests).toEqual([{ version: '1.1.1', makeActive: false }]);
+      expect(publishRequests.length).toBe(1);
     });
+    expect(publishRequests[0].version).toBe('1.1.1');
+    expect(publishRequests[0].makeActive).toBe(false);
+    expect(publishRequests[0].entries?.some(entry => entry.key === 'feature.x')).toBe(true);
+    // Publish-from-payload: the removed draft endpoint is never hit.
+    expect(draftCalls).toEqual([]);
   });
 
   it('activates a configuration release', async () => {

@@ -14,6 +14,37 @@ public static class ConfigEntryContentTypes
     public static string Resolve(string? contentType, string value)
         => Normalize(contentType) ?? Infer(value);
 
+    /// <summary>
+    /// Resolves the effective content type for an upsert: prefers the requested
+    /// type, then the existing entry's type, then inference from the value.
+    /// Sets <paramref name="error"/> when the requested type is unrecognized or
+    /// the value is invalid for the resolved type.
+    /// </summary>
+    public static string Resolve(
+        string? requestedContentType,
+        string? existingContentType,
+        string value,
+        out string? error)
+    {
+        error = null;
+
+        var normalizedRequested = Normalize(requestedContentType);
+        if (!string.IsNullOrWhiteSpace(requestedContentType) && normalizedRequested is null)
+        {
+            error = $"Content type must be one of: {string.Join(", ", LogicalTypes)}.";
+            return Text;
+        }
+
+        var contentType = normalizedRequested
+            ?? Normalize(existingContentType)
+            ?? Infer(value);
+
+        if (!IsValidValue(value, contentType, out var validationError))
+            error = validationError;
+
+        return contentType;
+    }
+
     public static string? Normalize(string? contentType)
     {
         if (string.IsNullOrWhiteSpace(contentType))

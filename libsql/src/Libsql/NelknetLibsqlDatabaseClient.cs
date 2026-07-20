@@ -124,7 +124,7 @@ public sealed partial class NelknetLibsqlDatabaseClient : ILibsqlDatabaseClient,
         ObjectDisposedException.ThrowIf(_disposed, this);
         var httpClient = _httpClient ?? throw new InvalidOperationException("HTTP client was not initialized.");
 
-        var requestBody = new HranaPipelineRequest(null, requests);
+        var requestBody = new HranaPipelineRequest(requests);
         using var request = new HttpRequestMessage(HttpMethod.Post, "v2/pipeline")
         {
             Content = new StringContent(
@@ -328,7 +328,6 @@ public sealed partial class NelknetLibsqlDatabaseClient : ILibsqlDatabaseClient,
     }
 
     private sealed record HranaPipelineRequest(
-        [property: JsonPropertyName("baton")] string? Baton,
         [property: JsonPropertyName("requests")] IReadOnlyList<HranaStreamRequest> Requests);
 
     private sealed class HranaPipelineResponse

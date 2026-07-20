@@ -38,12 +38,12 @@ public class UpsertConfigEntryCommandHandler(
         if (!await environmentRepository.ExistsAsync(projectName, request.EnvironmentName, cancellationToken))
             return new UpsertConfigEntryResult(false, null, "Environment not found");
 
-        var scope = ParseScope(request.Scope);
+        var scope = EnumExtensions.ParseKeyScope(request.Scope);
         if (scope is null && request.Scope is not null)
             return new UpsertConfigEntryResult(false, null, "Invalid scope. Must be 'client', 'server', or 'all'");
 
         var existingEntry = await configEntryRepository.GetAsync(projectName, request.EnvironmentName, request.Key, cancellationToken);
-        var contentType = ResolveContentType(request.ContentType, existingEntry, request.Value, out var contentTypeError);
+        var contentType = ConfigEntryContentTypes.Resolve(request.ContentType, existingEntry?.ContentType, request.Value, out var contentTypeError);
         if (contentTypeError is not null)
             return new UpsertConfigEntryResult(false, null, contentTypeError);
 
@@ -61,7 +61,7 @@ public class UpsertConfigEntryCommandHandler(
             UpdatedAt = now
         };
 
-        var savedEntry = await configEntryRepository.AddVersionAsync(entry, ResolveActor(), cancellationToken);
+        var savedEntry = await configEntryRepository.AddVersionAsync(entry, currentUserService.ResolveActor(), cancellationToken);
         if (savedEntry is null)
             return new UpsertConfigEntryResult(false, null, "Config entry could not be saved");
 
@@ -78,49 +78,4 @@ public class UpsertConfigEntryCommandHandler(
         return new UpsertConfigEntryResult(true, ConfigEntryMapping.ToDto(savedEntry), null);
     }
 
-    private static KeyScope? ParseScope(string? scope)
-    {
-        if (scope is null)
-            return null;
-
-        return scope.ToLowerInvariant() switch
-        {
-            "client" => KeyScope.Frontend,
-            "server" => KeyScope.Backend,
-            "all" => KeyScope.All,
-            _ => null
-        };
-    }
-
-    private static string ResolveContentType(
-        string? requestedContentType,
-        ConfigEntry? existingEntry,
-        string value,
-        out string? error)
-    {
-        error = null;
-
-        var normalizedRequested = ConfigEntryContentTypes.Normalize(requestedContentType);
-        if (!string.IsNullOrWhiteSpace(requestedContentType) && normalizedRequested is null)
-        {
-            error = $"Content type must be one of: {string.Join(", ", ConfigEntryContentTypes.LogicalTypes)}.";
-            return ConfigEntryContentTypes.Text;
-        }
-
-        var contentType = normalizedRequested
-            ?? ConfigEntryContentTypes.Normalize(existingEntry?.ContentType)
-            ?? ConfigEntryContentTypes.Infer(value);
-
-        if (!ConfigEntryContentTypes.IsValidValue(value, contentType, out var validationError))
-            error = validationError;
-
-        return contentType;
-    }
-
-    private string ResolveActor()
-    {
-        return string.IsNullOrWhiteSpace(currentUserService?.Username)
-            ? "System"
-            : currentUserService.Username!;
-    }
 }
