@@ -8,13 +8,6 @@ using Nona.Domain.Interfaces;
 
 namespace Nona.Application.Admin.ConfigReleases.Commands;
 
-/// <summary>
-/// Publishes a release. When <see cref="Entries"/> is null the release is a
-/// snapshot of the environment's current working configuration (the "Create a
-/// version" flow). When <see cref="Entries"/> is provided the release is a
-/// snapshot of exactly those entries and the working configuration is left
-/// untouched (the "Amend" flow — publish from an explicit payload).
-/// </summary>
 public record PublishConfigReleaseRequest(
     string Version,
     bool MakeActive = false,

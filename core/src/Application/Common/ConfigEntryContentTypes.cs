@@ -14,12 +14,6 @@ public static class ConfigEntryContentTypes
     public static string Resolve(string? contentType, string value)
         => Normalize(contentType) ?? Infer(value);
 
-    /// <summary>
-    /// Resolves the effective content type for an upsert: prefers the requested
-    /// type, then the existing entry's type, then inference from the value.
-    /// Sets <paramref name="error"/> when the requested type is unrecognized or
-    /// the value is invalid for the resolved type.
-    /// </summary>
     public static string Resolve(
         string? requestedContentType,
         string? existingContentType,
