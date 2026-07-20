@@ -86,6 +86,16 @@ Create a scoped API key:
 nona keys create --project mobile-app --name "Web Client" --scope client --environment production --base-url https://nona.example.com --token <token>
 ```
 
+Manage project environments explicitly:
+
+```bash
+nona environments list --project mobile-app --base-url https://nona.example.com --token <token>
+nona environments create --project mobile-app --name development --base-url https://nona.example.com --token <token>
+nona environments delete --project mobile-app --name development --base-url https://nona.example.com --token <token>
+```
+
+Creating an environment is idempotent: requesting an existing environment succeeds and reuses it. Config entry commands do not create missing environments implicitly.
+
 Manage config entries:
 
 ```bash
