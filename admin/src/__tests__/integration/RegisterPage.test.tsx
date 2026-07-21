@@ -87,7 +87,7 @@ describe('RegisterPage', () => {
   it('shows an error message when the API returns an error', async () => {
     server.use(
       http.post('http://localhost:5027/auth/register', () =>
-        HttpResponse.json({ error: 'Email already exists' }, { status: 409 }),
+        HttpResponse.json({ detail: 'Email already exists' }, { status: 409 }),
       ),
     );
 

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
+using Nona.WebApi.Endpoints;
 
 namespace Nona.WebApi.Authentication;
 
@@ -38,4 +39,14 @@ public class ApiKeyAuthenticationHandler(
 
         return Task.FromResult(AuthenticateResult.Success(ticket));
     }
+
+    protected override Task HandleChallengeAsync(AuthenticationProperties properties)
+        => ApiProblemResults
+            .Unauthorized("An API key is required or invalid.")
+            .ExecuteAsync(Context);
+
+    protected override Task HandleForbiddenAsync(AuthenticationProperties properties)
+        => ApiProblemResults
+            .Forbidden("The API key does not grant access to this resource.")
+            .ExecuteAsync(Context);
 }

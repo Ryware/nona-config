@@ -106,6 +106,30 @@ test("failed requests throw NonaClientError with backend error message", async (
   );
 });
 
+test("failed requests read Problem Details messages", async () => {
+  const client = createNonaClient("https://nona.test", {
+    environmentId: "production",
+    apiKey: "api-key",
+    fetch: async () => jsonResponse({
+      type: "https://tools.ietf.org/html/rfc9110#section-15.5.5",
+      title: "Not Found",
+      status: 404,
+      detail: "Config entry not found",
+      instance: "/api/production/missing"
+    }, 404)
+  });
+
+  await assert.rejects(
+    () => client.getConfigValue("missing"),
+    error => {
+      assert.ok(error instanceof NonaClientError);
+      assert.equal(error.status, 404);
+      assert.equal(error.message, "Config entry not found");
+      return true;
+    }
+  );
+});
+
 test("missing apiKey throws before request execution", async () => {
   const client = createNonaClient("https://nona.test", {
     environmentId: "production",

@@ -17,9 +17,9 @@ public sealed class CliExceptionHandlerTests
     [Arguments(500, CliExitCodes.ServerError)]
     public async Task Describe_MapsApiStatusToDocumentedExitCode(int statusCode, int expectedExitCode)
     {
-        var result = CliExceptionHandler.Describe(new ErrorResponse
+        var result = CliExceptionHandler.Describe(new ApiProblemDetails
         {
-            Error = "server message",
+            Detail = "server message",
             ResponseStatusCode = statusCode
         });
 
@@ -30,9 +30,9 @@ public sealed class CliExceptionHandlerTests
     [Test]
     public async Task Parser_PrintsSingleLineServerErrorWithoutStackTrace()
     {
-        var exception = new ErrorResponse
+        var exception = new ApiProblemDetails
         {
-            Error = "value is not a valid\nnumber",
+            Detail = "value is not a valid\nnumber",
             ErrorCode = "INVALID_VALUE",
             ResponseStatusCode = 400
         };
@@ -42,16 +42,16 @@ public sealed class CliExceptionHandlerTests
         await Assert.That(exitCode).IsEqualTo(CliExitCodes.ValidationError);
         await Assert.That(output).IsEqualTo(
             $"Error: value is not a valid number (400, INVALID_VALUE){Environment.NewLine}");
-        await Assert.That(output).DoesNotContain(nameof(ErrorResponse));
+        await Assert.That(output).DoesNotContain(nameof(ApiProblemDetails));
         await Assert.That(output).DoesNotContain(" at ");
     }
 
     [Test]
     public async Task Parser_VerbosePrintsFullExceptionDetails()
     {
-        var exception = new ErrorResponse
+        var exception = new ApiProblemDetails
         {
-            Error = "environment not found",
+            Detail = "environment not found",
             ResponseStatusCode = 404
         };
 
@@ -59,15 +59,15 @@ public sealed class CliExceptionHandlerTests
 
         await Assert.That(exitCode).IsEqualTo(CliExitCodes.NotFound);
         await Assert.That(output).Contains("Error: environment not found (404)");
-        await Assert.That(output).Contains(typeof(ErrorResponse).FullName!);
+        await Assert.That(output).Contains(typeof(ApiProblemDetails).FullName!);
     }
 
     [Test]
     public async Task Parser_RemovesTerminalControlCharactersFromSummary()
     {
-        var exception = new ErrorResponse
+        var exception = new ApiProblemDetails
         {
-            Error = "danger\u001b[31mred\u001b[0m\u0007",
+            Detail = "danger\u001b[31mred\u001b[0m\u0007",
             ErrorCode = "BAD\u001b]8;;https://example.test\u0007CODE",
             ResponseStatusCode = 400
         };

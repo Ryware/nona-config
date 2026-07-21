@@ -188,6 +188,11 @@ public sealed partial class NonaClient
 
             if (root.ValueKind == JsonValueKind.Object)
             {
+                if (root.TryGetProperty("detail", out var detail) && detail.ValueKind == JsonValueKind.String)
+                {
+                    return detail.GetString();
+                }
+
                 if (root.TryGetProperty("error", out var error) && error.ValueKind == JsonValueKind.String)
                 {
                     return error.GetString();
@@ -196,6 +201,11 @@ public sealed partial class NonaClient
                 if (root.TryGetProperty("message", out var message) && message.ValueKind == JsonValueKind.String)
                 {
                     return message.GetString();
+                }
+
+                if (root.TryGetProperty("title", out var title) && title.ValueKind == JsonValueKind.String)
+                {
+                    return title.GetString();
                 }
             }
         }

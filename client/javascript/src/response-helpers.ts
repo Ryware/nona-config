@@ -155,15 +155,25 @@ function readErrorMessage(responseBody: string): string | undefined {
 
   try {
     const parsed = JSON.parse(responseBody) as {
+      detail?: unknown;
       error?: unknown;
       message?: unknown;
+      title?: unknown;
     };
+    if (typeof parsed.detail === "string") {
+      return parsed.detail;
+    }
+
     if (typeof parsed.error === "string") {
       return parsed.error;
     }
 
     if (typeof parsed.message === "string") {
       return parsed.message;
+    }
+
+    if (typeof parsed.title === "string") {
+      return parsed.title;
     }
   } catch {
     return undefined;

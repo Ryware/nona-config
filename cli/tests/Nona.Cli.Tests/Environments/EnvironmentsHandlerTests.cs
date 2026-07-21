@@ -75,8 +75,8 @@ public sealed class EnvironmentsHandlerTests
     {
         var factory = CreateHttpFactory((request, requestNumber) => requestNumber switch
         {
-            1 => JsonResponse(HttpStatusCode.Conflict,
-                """{"error":"Environment already exists","errorCode":"ENVIRONMENT_EXISTS"}"""),
+            1 => ProblemResponse(HttpStatusCode.Conflict,
+                """{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.10","title":"Conflict","status":409,"detail":"Environment already exists","instance":"/admin/projects/my-project/environments","errorCode":"ENVIRONMENT_EXISTS"}"""),
             2 => JsonResponse(HttpStatusCode.OK, $"[{EnvironmentJson}]"),
             _ => throw new InvalidOperationException($"Unexpected request: {request.Method} {request.RequestUri}")
         });
@@ -95,20 +95,20 @@ public sealed class EnvironmentsHandlerTests
     {
         var factory = CreateHttpFactory((_, requestNumber) => requestNumber switch
         {
-            1 => JsonResponse(HttpStatusCode.Conflict,
-                """{"error":"Environment already exists","errorCode":"ENVIRONMENT_EXISTS"}"""),
+            1 => ProblemResponse(HttpStatusCode.Conflict,
+                """{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.10","title":"Conflict","status":409,"detail":"Environment already exists","instance":"/admin/projects/my-project/environments","errorCode":"ENVIRONMENT_EXISTS"}"""),
             2 => JsonResponse(HttpStatusCode.OK, "[]"),
             _ => throw new InvalidOperationException("Unexpected request")
         });
 
-        ErrorResponse? error = null;
+        ApiProblemDetails? error = null;
         try
         {
             await new CreateEnvironmentCommandHandler(factory).HandleAsync(
                 new CreateEnvironmentCommand(TestConnection, "my-project", "development"),
                 CancellationToken.None);
         }
-        catch (ErrorResponse ex)
+        catch (ApiProblemDetails ex)
         {
             error = ex;
         }
@@ -157,8 +157,8 @@ public sealed class EnvironmentsHandlerTests
                 );
             }
 
-            return JsonResponse(HttpStatusCode.NotFound,
-                """{"error":"Environment not found","errorCode":"ENVIRONMENT_NOT_FOUND"}"""
+            return ProblemResponse(HttpStatusCode.NotFound,
+                """{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.5","title":"Not Found","status":404,"detail":"Environment not found","instance":"/admin/projects/my-project/environments/development/config-entries/Features%3ADarkMode","errorCode":"ENVIRONMENT_NOT_FOUND"}"""
             );
         });
 
@@ -183,11 +183,11 @@ public sealed class EnvironmentsHandlerTests
     [Test]
     public async Task SetEntryAgainstMissingEnvironment_MapsToCleanNotFoundError()
     {
-        var factory = CreateHttpFactory((_, _) => JsonResponse(
+        var factory = CreateHttpFactory((_, _) => ProblemResponse(
             HttpStatusCode.NotFound,
-            """{"error":"Environment not found","errorCode":"ENVIRONMENT_NOT_FOUND"}"""));
+            """{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.5","title":"Not Found","status":404,"detail":"Environment not found","instance":"/admin/projects/my-project/environments/missing/config-entries/Features%3ADarkMode","errorCode":"ENVIRONMENT_NOT_FOUND"}"""));
 
-        ErrorResponse? exception = null;
+        ApiProblemDetails? exception = null;
         try
         {
             await new SetEntryCommandHandler(factory).HandleAsync(
@@ -201,7 +201,7 @@ public sealed class EnvironmentsHandlerTests
                     "boolean"),
                 CancellationToken.None);
         }
-        catch (ErrorResponse ex)
+        catch (ApiProblemDetails ex)
         {
             exception = ex;
         }
@@ -211,7 +211,7 @@ public sealed class EnvironmentsHandlerTests
         await Assert.That(error.ExitCode).IsEqualTo(CliExitCodes.NotFound);
         await Assert.That(error.Message).IsEqualTo(
             "Error: Environment not found (404, ENVIRONMENT_NOT_FOUND)");
-        await Assert.That(error.Message).DoesNotContain(nameof(ErrorResponse));
+        await Assert.That(error.Message).DoesNotContain(nameof(ApiProblemDetails));
     }
 
     private static Func<HttpClient> CreateHttpFactory(
@@ -231,6 +231,12 @@ public sealed class EnvironmentsHandlerTests
         => new(statusCode)
         {
             Content = new StringContent(body, Encoding.UTF8, "application/json")
+        };
+
+    private static HttpResponseMessage ProblemResponse(HttpStatusCode statusCode, string body)
+        => new(statusCode)
+        {
+            Content = new StringContent(body, Encoding.UTF8, "application/problem+json")
         };
 
     private static void AssertRequest(HttpRequestMessage request, HttpMethod method, string path)

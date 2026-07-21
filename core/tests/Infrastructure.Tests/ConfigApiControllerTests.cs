@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Nona.Application.Api.ConfigEntries.Queries;
 using Nona.WebApi;
 using Nona.WebApi.Endpoints;
+using System.Text.Json;
 
 namespace Nona.Infrastructure.Tests;
 
@@ -120,6 +121,12 @@ public class ConfigApiEndpointTests
         await result.ExecuteAsync(httpContext);
 
         await Assert.That(httpContext.Response.StatusCode).IsEqualTo(StatusCodes.Status404NotFound);
+        await Assert.That(httpContext.Response.ContentType).IsEqualTo("application/problem+json");
+        httpContext.Response.Body.Seek(0, SeekOrigin.Begin);
+        using var body = await JsonDocument.ParseAsync(httpContext.Response.Body);
+        await Assert.That(body.RootElement.GetProperty("title").GetString()).IsEqualTo("Not Found");
+        await Assert.That(body.RootElement.GetProperty("detail").GetString()).IsEqualTo("Environment not found");
+        await Assert.That(body.RootElement.GetProperty("status").GetInt32()).IsEqualTo(404);
     }
 
     private static DefaultHttpContext CreateHttpContext()

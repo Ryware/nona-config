@@ -36,8 +36,7 @@ namespace Nona.Migrator.Core.Generated.Admin.Projects.Item.Environments.Item.Rel
         /// <returns>A <see cref="Stream"/></returns>
         /// <param name="cancellationToken">Cancellation token to use when cancelling requests</param>
         /// <param name="requestConfiguration">Configuration for the request such as headers, query parameters, and middleware options.</param>
-        /// <exception cref="global::Nona.Migrator.Core.Generated.Models.ErrorResponse">When receiving a 4XX status code</exception>
-        /// <exception cref="global::Nona.Migrator.Core.Generated.Models.ProblemDetails">When receiving a 5XX status code</exception>
+        /// <exception cref="global::Nona.Migrator.Core.Generated.Models.ApiProblemDetails">When receiving a 4XX or 5XX status code</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public async Task<Stream?> DeleteAsync(Action<RequestConfiguration<DefaultQueryParameters>>? requestConfiguration = default, CancellationToken cancellationToken = default)
@@ -50,16 +49,14 @@ namespace Nona.Migrator.Core.Generated.Admin.Projects.Item.Environments.Item.Rel
             var requestInfo = ToDeleteRequestInformation(requestConfiguration);
             var errorMapping = new Dictionary<string, ParsableFactory<IParsable>>
             {
-                { "4XX", global::Nona.Migrator.Core.Generated.Models.ErrorResponse.CreateFromDiscriminatorValue },
-                { "5XX", global::Nona.Migrator.Core.Generated.Models.ProblemDetails.CreateFromDiscriminatorValue },
+                { "XXX", global::Nona.Migrator.Core.Generated.Models.ApiProblemDetails.CreateFromDiscriminatorValue },
             };
             return await RequestAdapter.SendPrimitiveAsync<Stream>(requestInfo, errorMapping, cancellationToken).ConfigureAwait(false);
         }
         /// <returns>A <see cref="global::Nona.Migrator.Core.Generated.Models.ConfigReleaseDetailsDto"/></returns>
         /// <param name="cancellationToken">Cancellation token to use when cancelling requests</param>
         /// <param name="requestConfiguration">Configuration for the request such as headers, query parameters, and middleware options.</param>
-        /// <exception cref="global::Nona.Migrator.Core.Generated.Models.ErrorResponse">When receiving a 4XX status code</exception>
-        /// <exception cref="global::Nona.Migrator.Core.Generated.Models.ProblemDetails">When receiving a 5XX status code</exception>
+        /// <exception cref="global::Nona.Migrator.Core.Generated.Models.ApiProblemDetails">When receiving a 4XX or 5XX status code</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public async Task<global::Nona.Migrator.Core.Generated.Models.ConfigReleaseDetailsDto?> GetAsync(Action<RequestConfiguration<DefaultQueryParameters>>? requestConfiguration = default, CancellationToken cancellationToken = default)
@@ -72,8 +69,7 @@ namespace Nona.Migrator.Core.Generated.Admin.Projects.Item.Environments.Item.Rel
             var requestInfo = ToGetRequestInformation(requestConfiguration);
             var errorMapping = new Dictionary<string, ParsableFactory<IParsable>>
             {
-                { "4XX", global::Nona.Migrator.Core.Generated.Models.ErrorResponse.CreateFromDiscriminatorValue },
-                { "5XX", global::Nona.Migrator.Core.Generated.Models.ProblemDetails.CreateFromDiscriminatorValue },
+                { "XXX", global::Nona.Migrator.Core.Generated.Models.ApiProblemDetails.CreateFromDiscriminatorValue },
             };
             return await RequestAdapter.SendAsync<global::Nona.Migrator.Core.Generated.Models.ConfigReleaseDetailsDto>(requestInfo, global::Nona.Migrator.Core.Generated.Models.ConfigReleaseDetailsDto.CreateFromDiscriminatorValue, errorMapping, cancellationToken).ConfigureAwait(false);
         }
@@ -90,7 +86,7 @@ namespace Nona.Migrator.Core.Generated.Admin.Projects.Item.Environments.Item.Rel
 #endif
             var requestInfo = new RequestInformation(Method.DELETE, UrlTemplate, PathParameters);
             requestInfo.Configure(requestConfiguration);
-            requestInfo.Headers.TryAdd("Accept", "application/json");
+            requestInfo.Headers.TryAdd("Accept", "application/problem+json");
             return requestInfo;
         }
         /// <returns>A <see cref="RequestInformation"/></returns>

@@ -69,6 +69,25 @@ describe('ApiClient', () => {
       await expect(client.get('/test-message')).rejects.toThrow('Bad request');
     });
 
+    it('throws with Problem Details detail field', async () => {
+      server.use(
+        http.get(`${BASE}/test-problem`, () =>
+          HttpResponse.json(
+            {
+              type: 'https://tools.ietf.org/html/rfc9110#section-15.5.5',
+              title: 'Not Found',
+              status: 404,
+              detail: 'Resource was not found',
+              instance: '/test-problem',
+            },
+            { status: 404 },
+          ),
+        ),
+      );
+
+      await expect(client.get('/test-problem')).rejects.toThrow('Resource was not found');
+    });
+
     it('throws generic message when no error fields in body', async () => {
       server.use(
         http.get(`${BASE}/test-generic`, () =>
@@ -82,7 +101,7 @@ describe('ApiClient', () => {
     it('preserves backend errorCode on thrown API errors', async () => {
       server.use(
         http.get(`${BASE}/test-error-code`, () =>
-          HttpResponse.json({ error: 'Authentication failed', errorCode: 'sso_user_not_registered' }, { status: 401 }),
+          HttpResponse.json({ detail: 'Authentication failed', errorCode: 'sso_user_not_registered' }, { status: 401 }),
         ),
       );
 
@@ -115,7 +134,7 @@ describe('ApiClient', () => {
 
       server.use(
         http.get(`${BASE}/admin/projects`, () =>
-          HttpResponse.json({ error: 'Unauthorized' }, { status: 401 }),
+          HttpResponse.json({ detail: 'Unauthorized' }, { status: 401 }),
         ),
       );
 
@@ -132,7 +151,7 @@ describe('ApiClient', () => {
       // Override the default handler to return 401 for login
       server.use(
         http.post(`${BASE}/auth/login`, () =>
-          HttpResponse.json({ error: 'Invalid credentials' }, { status: 401 }),
+          HttpResponse.json({ detail: 'Invalid credentials' }, { status: 401 }),
         ),
       );
 
@@ -146,7 +165,7 @@ describe('ApiClient', () => {
 
       server.use(
         http.post(`${BASE}/auth/sso/google`, () =>
-          HttpResponse.json({ error: 'Authentication failed' }, { status: 401 }),
+          HttpResponse.json({ detail: 'Authentication failed' }, { status: 401 }),
         ),
       );
 

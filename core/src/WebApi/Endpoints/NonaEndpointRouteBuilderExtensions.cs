@@ -38,7 +38,6 @@ using Nona.Application.Shared.ParameterShareLinks.Commands;
 using Nona.Application.Shared.ParameterShareLinks.DTOs;
 using Nona.Application.Shared.ParameterShareLinks.Queries;
 using Nona.WebApi.Authentication;
-using Nona.WebApi.Serialization;
 
 namespace Nona.WebApi.Endpoints;
 
@@ -68,9 +67,9 @@ public static class NonaEndpointRouteBuilderExtensions
             .Produces<bool>();
         auth.MapPost("/register", RegisterAsync)
             .Produces<LoginResponse>()
-            .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
-            .Produces<ErrorResponse>(StatusCodes.Status403Forbidden)
-            .Produces<ErrorResponse>(StatusCodes.Status409Conflict);
+            .Produces<ApiValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")
+            .Produces<ApiProblemDetails>(StatusCodes.Status403Forbidden, "application/problem+json")
+            .Produces<ApiProblemDetails>(StatusCodes.Status409Conflict, "application/problem+json");
         auth.MapPost("/forgot-password", RequestPasswordResetAsync)
             .Produces(StatusCodes.Status204NoContent);
         auth.MapGet("/invitations/{token}", GetInvitationAsync)
@@ -188,9 +187,9 @@ public static class NonaEndpointRouteBuilderExtensions
         api.MapGet("/{environmentId}", GetAllConfigValuesAsync)
             .Produces<Dictionary<string, ClientConfigValueDto>>()
             .Produces(StatusCodes.Status304NotModified)
-            .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
-            .Produces<ErrorResponse>(StatusCodes.Status401Unauthorized)
-            .Produces<ErrorResponse>(StatusCodes.Status404NotFound)
+            .Produces<ApiProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")
+            .Produces<ApiProblemDetails>(StatusCodes.Status401Unauthorized, "application/problem+json")
+            .Produces<ApiProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")
             .RequireAuthorization(ApiKeyAuthenticationHandler.SchemeName);
 
         api.MapGet("/{environmentId}/{key}", GetConfigValueAsync)
@@ -1073,47 +1072,37 @@ public static class NonaEndpointRouteBuilderExtensions
             return null;
         }
 
-        var error = string.Join("; ", result.Errors.Select(failure => failure.ErrorMessage).Distinct());
-        return BadRequest(error);
+        return ApiProblemResults.Validation(result.Errors);
     }
 
     private static IResult BadRequest(string error, string? errorCode = null)
     {
-        return Results.BadRequest(new ErrorResponse(error, errorCode));
+        return ApiProblemResults.BadRequest(error, errorCode);
     }
 
     private static IResult Conflict(string error)
     {
-        return Results.Conflict(new ErrorResponse(error));
+        return ApiProblemResults.Conflict(error);
     }
 
     private static IResult NotFound(string error, string? errorCode = null)
     {
-        return Results.NotFound(new ErrorResponse(error, errorCode));
+        return ApiProblemResults.NotFound(error, errorCode);
     }
 
     private static IResult Unauthorized(string error, string? errorCode = null)
     {
-        return Results.Json(
-            new ErrorResponse(error, errorCode),
-            NonaJsonSerializerContext.Default.ErrorResponse,
-            statusCode: StatusCodes.Status401Unauthorized);
+        return ApiProblemResults.Unauthorized(error, errorCode);
     }
 
     private static IResult Forbidden(string error, string? errorCode = null)
     {
-        return Results.Json(
-            new ErrorResponse(error, errorCode),
-            NonaJsonSerializerContext.Default.ErrorResponse,
-            statusCode: StatusCodes.Status403Forbidden);
+        return ApiProblemResults.Forbidden(error, errorCode);
     }
 
     private static IResult Gone(string error, string? errorCode = null)
     {
-        return Results.Json(
-            new ErrorResponse(error, errorCode),
-            NonaJsonSerializerContext.Default.ErrorResponse,
-            statusCode: StatusCodes.Status410Gone);
+        return ApiProblemResults.Gone(error, errorCode);
     }
 
     private static IResult SharedLinkFailure(string? error, string? errorCode)

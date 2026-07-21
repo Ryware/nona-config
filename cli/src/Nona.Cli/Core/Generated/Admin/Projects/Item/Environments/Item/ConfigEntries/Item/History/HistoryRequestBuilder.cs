@@ -36,9 +36,8 @@ namespace Nona.Cli.Generated.Admin.Projects.Item.Environments.Item.ConfigEntries
         /// <returns>A List&lt;global::Nona.Cli.Generated.Models.ConfigEntryVersionDto&gt;</returns>
         /// <param name="cancellationToken">Cancellation token to use when cancelling requests</param>
         /// <param name="requestConfiguration">Configuration for the request such as headers, query parameters, and middleware options.</param>
-        /// <exception cref="global::Nona.Cli.Generated.Models.ErrorResponse">When receiving a 404 status code</exception>
-        /// <exception cref="global::Nona.Cli.Generated.Models.ErrorResponse">When receiving a 4XX status code</exception>
-        /// <exception cref="global::Nona.Cli.Generated.Models.ProblemDetails">When receiving a 5XX status code</exception>
+        /// <exception cref="global::Nona.Cli.Generated.Models.ApiProblemDetails">When receiving a 404 status code</exception>
+        /// <exception cref="global::Nona.Cli.Generated.Models.ApiProblemDetails">When receiving a 4XX or 5XX status code</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public async Task<List<global::Nona.Cli.Generated.Models.ConfigEntryVersionDto>?> GetAsync(Action<RequestConfiguration<DefaultQueryParameters>>? requestConfiguration = default, CancellationToken cancellationToken = default)
@@ -51,9 +50,8 @@ namespace Nona.Cli.Generated.Admin.Projects.Item.Environments.Item.ConfigEntries
             var requestInfo = ToGetRequestInformation(requestConfiguration);
             var errorMapping = new Dictionary<string, ParsableFactory<IParsable>>
             {
-                { "404", global::Nona.Cli.Generated.Models.ErrorResponse.CreateFromDiscriminatorValue },
-                { "4XX", global::Nona.Cli.Generated.Models.ErrorResponse.CreateFromDiscriminatorValue },
-                { "5XX", global::Nona.Cli.Generated.Models.ProblemDetails.CreateFromDiscriminatorValue },
+                { "404", global::Nona.Cli.Generated.Models.ApiProblemDetails.CreateFromDiscriminatorValue },
+                { "XXX", global::Nona.Cli.Generated.Models.ApiProblemDetails.CreateFromDiscriminatorValue },
             };
             var collectionResult = await RequestAdapter.SendCollectionAsync<global::Nona.Cli.Generated.Models.ConfigEntryVersionDto>(requestInfo, global::Nona.Cli.Generated.Models.ConfigEntryVersionDto.CreateFromDiscriminatorValue, errorMapping, cancellationToken).ConfigureAwait(false);
             return collectionResult?.AsList();
