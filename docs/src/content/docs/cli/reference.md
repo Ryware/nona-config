@@ -55,6 +55,7 @@ nona [command] [options]
 - `migrate` Run migration commands.
 - `keys` List, create, and delete project API keys.
 - `init` Bootstrap a Nona instance from first container start to first flag read. Exit codes: 0 success; 1 unexpected/API error; 2 invalid args; 3 auth failed; 4 cannot reach base-url.
+- `environments` List, create, and delete project environments.
 - `entries` Read, write, and share config entries.
 - `config` Show or save default CLI values.
 - `auth` Sign in and manage saved sessions.
@@ -303,6 +304,78 @@ nona init [options]
 --format <format>                         Output format: dotenv, json, or env-export. Default: dotenv.
 --print-key                               Print the full API key. By default only the last four characters are shown.
 --yes                                     Non-interactive mode; never prompt.
+```
+
+## `nona environments`
+
+List, create, and delete project environments.
+
+**Usage**
+
+```text
+nona environments [command] [options]
+```
+
+**Commands**
+
+- `list` List environments for a project.
+- `create` Create or reuse an environment.
+- `delete` Delete an environment.
+
+## `nona environments list`
+
+List environments for a project.
+
+**Usage**
+
+```text
+nona environments list [options]
+```
+
+**Options**
+
+```text
+--api-url, --base-url <base-url>          Nona base URL.
+--project, --project-name <project-name>  Nona project name.
+--bearer-token, --token <bearer-token>    Admin bearer token.
+```
+
+## `nona environments create`
+
+Create or reuse an environment.
+
+**Usage**
+
+```text
+nona environments create [options]
+```
+
+**Options**
+
+```text
+--api-url, --base-url <base-url>          Nona base URL.
+--project, --project-name <project-name>  Nona project name.
+--bearer-token, --token <bearer-token>    Admin bearer token.
+--name <name> (REQUIRED)                  Environment name. Letters, numbers, and hyphens only.
+```
+
+## `nona environments delete`
+
+Delete an environment.
+
+**Usage**
+
+```text
+nona environments delete [options]
+```
+
+**Options**
+
+```text
+--api-url, --base-url <base-url>          Nona base URL.
+--project, --project-name <project-name>  Nona project name.
+--bearer-token, --token <bearer-token>    Admin bearer token.
+--name <name> (REQUIRED)                  Environment name. Letters, numbers, and hyphens only.
 ```
 
 ## `nona entries`

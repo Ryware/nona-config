@@ -8,6 +8,7 @@ The `nona` CLI manages admin workflows from a terminal. Use it for:
 - login sessions
 - saved defaults
 - projects
+- environments
 - config entries
 - API keys
 - users
@@ -90,7 +91,17 @@ nona projects create --name mobile-app
 nona projects list
 ```
 
-Use `nona init` for the first project and environment in a fresh setup. For later manual administration, create the project from the CLI, then create additional environments in the admin UI.
+Use `nona init` for the first project and environment in a fresh setup. For later manual administration, create the project and manage its environments explicitly from the CLI.
+
+## Manage environments
+
+```bash
+nona environments list --project mobile-app
+nona environments create --project mobile-app --name development
+nona environments delete --project mobile-app --name development
+```
+
+Creating an environment is idempotent: requesting an existing environment succeeds and reuses it. Config entry commands do not create missing environments implicitly.
 
 ## Save defaults
 
@@ -201,9 +212,7 @@ Use the CLI for repeatable operations, scripting, migration work, history and ro
 
 ### Do I still need the admin UI if I use the CLI?
 
-Often yes.
-
-Some workflows such as adding extra environments are still documented primarily through the admin UI. `nona init` creates or reuses the first environment for bootstrap automation.
+Often yes. The CLI supports repeatable administration of projects, environments, config entries, API keys, and users. Use the admin UI when a visual workflow is more convenient.
 
 ### What is the best first CLI command to run?
 
