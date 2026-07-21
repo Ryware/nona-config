@@ -49,11 +49,10 @@ namespace Nona.Cli.Generated.Api.Item
         /// <returns>A <see cref="global::Nona.Cli.Generated.Api.Item.WithEnvironmentGetResponse"/></returns>
         /// <param name="cancellationToken">Cancellation token to use when cancelling requests</param>
         /// <param name="requestConfiguration">Configuration for the request such as headers, query parameters, and middleware options.</param>
-        /// <exception cref="global::Nona.Cli.Generated.Models.ErrorResponse">When receiving a 400 status code</exception>
-        /// <exception cref="global::Nona.Cli.Generated.Models.ErrorResponse">When receiving a 401 status code</exception>
-        /// <exception cref="global::Nona.Cli.Generated.Models.ErrorResponse">When receiving a 404 status code</exception>
-        /// <exception cref="global::Nona.Cli.Generated.Models.ErrorResponse">When receiving a 4XX status code</exception>
-        /// <exception cref="global::Nona.Cli.Generated.Models.ProblemDetails">When receiving a 5XX status code</exception>
+        /// <exception cref="global::Nona.Cli.Generated.Models.ApiProblemDetails">When receiving a 400 status code</exception>
+        /// <exception cref="global::Nona.Cli.Generated.Models.ApiProblemDetails">When receiving a 401 status code</exception>
+        /// <exception cref="global::Nona.Cli.Generated.Models.ApiProblemDetails">When receiving a 404 status code</exception>
+        /// <exception cref="global::Nona.Cli.Generated.Models.ApiProblemDetails">When receiving a 4XX or 5XX status code</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public async Task<global::Nona.Cli.Generated.Api.Item.WithEnvironmentGetResponse?> GetAsWithEnvironmentGetResponseAsync(Action<RequestConfiguration<global::Nona.Cli.Generated.Api.Item.WithEnvironmentItemRequestBuilder.WithEnvironmentItemRequestBuilderGetQueryParameters>>? requestConfiguration = default, CancellationToken cancellationToken = default)
@@ -66,22 +65,20 @@ namespace Nona.Cli.Generated.Api.Item
             var requestInfo = ToGetRequestInformation(requestConfiguration);
             var errorMapping = new Dictionary<string, ParsableFactory<IParsable>>
             {
-                { "400", global::Nona.Cli.Generated.Models.ErrorResponse.CreateFromDiscriminatorValue },
-                { "401", global::Nona.Cli.Generated.Models.ErrorResponse.CreateFromDiscriminatorValue },
-                { "404", global::Nona.Cli.Generated.Models.ErrorResponse.CreateFromDiscriminatorValue },
-                { "4XX", global::Nona.Cli.Generated.Models.ErrorResponse.CreateFromDiscriminatorValue },
-                { "5XX", global::Nona.Cli.Generated.Models.ProblemDetails.CreateFromDiscriminatorValue },
+                { "400", global::Nona.Cli.Generated.Models.ApiProblemDetails.CreateFromDiscriminatorValue },
+                { "401", global::Nona.Cli.Generated.Models.ApiProblemDetails.CreateFromDiscriminatorValue },
+                { "404", global::Nona.Cli.Generated.Models.ApiProblemDetails.CreateFromDiscriminatorValue },
+                { "XXX", global::Nona.Cli.Generated.Models.ApiProblemDetails.CreateFromDiscriminatorValue },
             };
             return await RequestAdapter.SendAsync<global::Nona.Cli.Generated.Api.Item.WithEnvironmentGetResponse>(requestInfo, global::Nona.Cli.Generated.Api.Item.WithEnvironmentGetResponse.CreateFromDiscriminatorValue, errorMapping, cancellationToken).ConfigureAwait(false);
         }
         /// <returns>A <see cref="global::Nona.Cli.Generated.Api.Item.WithEnvironmentResponse"/></returns>
         /// <param name="cancellationToken">Cancellation token to use when cancelling requests</param>
         /// <param name="requestConfiguration">Configuration for the request such as headers, query parameters, and middleware options.</param>
-        /// <exception cref="global::Nona.Cli.Generated.Models.ErrorResponse">When receiving a 400 status code</exception>
-        /// <exception cref="global::Nona.Cli.Generated.Models.ErrorResponse">When receiving a 401 status code</exception>
-        /// <exception cref="global::Nona.Cli.Generated.Models.ErrorResponse">When receiving a 404 status code</exception>
-        /// <exception cref="global::Nona.Cli.Generated.Models.ErrorResponse">When receiving a 4XX status code</exception>
-        /// <exception cref="global::Nona.Cli.Generated.Models.ProblemDetails">When receiving a 5XX status code</exception>
+        /// <exception cref="global::Nona.Cli.Generated.Models.ApiProblemDetails">When receiving a 400 status code</exception>
+        /// <exception cref="global::Nona.Cli.Generated.Models.ApiProblemDetails">When receiving a 401 status code</exception>
+        /// <exception cref="global::Nona.Cli.Generated.Models.ApiProblemDetails">When receiving a 404 status code</exception>
+        /// <exception cref="global::Nona.Cli.Generated.Models.ApiProblemDetails">When receiving a 4XX or 5XX status code</exception>
         [Obsolete("This method is obsolete. Use GetAsWithEnvironmentGetResponseAsync instead.")]
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
@@ -95,11 +92,10 @@ namespace Nona.Cli.Generated.Api.Item
             var requestInfo = ToGetRequestInformation(requestConfiguration);
             var errorMapping = new Dictionary<string, ParsableFactory<IParsable>>
             {
-                { "400", global::Nona.Cli.Generated.Models.ErrorResponse.CreateFromDiscriminatorValue },
-                { "401", global::Nona.Cli.Generated.Models.ErrorResponse.CreateFromDiscriminatorValue },
-                { "404", global::Nona.Cli.Generated.Models.ErrorResponse.CreateFromDiscriminatorValue },
-                { "4XX", global::Nona.Cli.Generated.Models.ErrorResponse.CreateFromDiscriminatorValue },
-                { "5XX", global::Nona.Cli.Generated.Models.ProblemDetails.CreateFromDiscriminatorValue },
+                { "400", global::Nona.Cli.Generated.Models.ApiProblemDetails.CreateFromDiscriminatorValue },
+                { "401", global::Nona.Cli.Generated.Models.ApiProblemDetails.CreateFromDiscriminatorValue },
+                { "404", global::Nona.Cli.Generated.Models.ApiProblemDetails.CreateFromDiscriminatorValue },
+                { "XXX", global::Nona.Cli.Generated.Models.ApiProblemDetails.CreateFromDiscriminatorValue },
             };
             return await RequestAdapter.SendAsync<global::Nona.Cli.Generated.Api.Item.WithEnvironmentResponse>(requestInfo, global::Nona.Cli.Generated.Api.Item.WithEnvironmentResponse.CreateFromDiscriminatorValue, errorMapping, cancellationToken).ConfigureAwait(false);
         }
