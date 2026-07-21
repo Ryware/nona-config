@@ -15,8 +15,6 @@ export async function readRawEntryValueResponse(
     throwResponseError(response, method, url, responseBody);
   }
 
-  throwIfHtmlResponse(response, method, url, responseBody);
-
   const contentType =
     response.headers.get(contentTypeHeaderName) ??
     response.headers.get(legacyContentTypeHeaderName);
@@ -54,8 +52,6 @@ export async function readJsonResponse<T>(
   if (!response.ok) {
     throwResponseError(response, method, url, responseBody);
   }
-
-  throwIfHtmlResponse(response, method, url, responseBody);
 
   if (!responseBody.trim()) {
     throw new NonaClientError(
@@ -184,23 +180,6 @@ function readErrorMessage(responseBody: string): string | undefined {
   }
 
   return undefined;
-}
-
-function throwIfHtmlResponse(
-  response: Response,
-  method: string,
-  url: string,
-  responseBody: string,
-): void {
-  if (response.headers.get("content-type")?.toLowerCase().startsWith("text/html")) {
-    throw new NonaClientError(
-      "Nona returned HTML for an API request.",
-      response.status,
-      method,
-      url,
-      responseBody,
-    );
-  }
 }
 
 function parseLegacyConfigValue(responseBody: string): NonaConfigValue {

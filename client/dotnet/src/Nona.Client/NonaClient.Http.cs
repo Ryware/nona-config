@@ -41,19 +41,6 @@ public sealed partial class NonaClient
             ThrowResponseException(response, request, responseBody);
         }
 
-        if (string.Equals(
-                response.Content?.Headers.ContentType?.MediaType,
-                "text/html",
-                StringComparison.OrdinalIgnoreCase))
-        {
-            throw new NonaClientException(
-                "Nona returned HTML for an API request.",
-                response.StatusCode,
-                request.Method.Method,
-                request.RequestUri,
-                responseBody);
-        }
-
         var contentType = TryGetHeaderValue(response, ContentTypeHeaderName)
             ?? TryGetHeaderValue(response, LegacyContentTypeHeaderName);
         if (!string.IsNullOrWhiteSpace(contentType))

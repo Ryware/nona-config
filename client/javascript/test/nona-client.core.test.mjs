@@ -130,26 +130,6 @@ test("failed requests read Problem Details messages", async () => {
   );
 });
 
-test("successful HTML API responses are rejected", async () => {
-  const client = createNonaClient("https://nona.test", {
-    environmentId: "production",
-    apiKey: "api-key",
-    fetch: async () => new Response("<html>spa shell</html>", {
-      status: 200,
-      headers: { "Content-Type": "text/html" }
-    })
-  });
-
-  await assert.rejects(
-    () => client.getConfigValue("missing"),
-    error => {
-      assert.ok(error instanceof NonaClientError);
-      assert.equal(error.message, "Nona returned HTML for an API request.");
-      return true;
-    }
-  );
-});
-
 test("missing apiKey throws before request execution", async () => {
   const client = createNonaClient("https://nona.test", {
     environmentId: "production",
