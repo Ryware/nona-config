@@ -7,7 +7,7 @@ Nona stores persistent state under `/var/lib/nona` in the Docker-based deploymen
 
 That means backups should focus on the persistent Docker volume data used by your deployment.
 
-From the shipped app configuration, libSQL working state lives under `/var/lib/nona/`, and the default primary database path is `/var/lib/nona/primary.db`.
+From the shipped app configuration, standalone SQLite data is `/var/lib/nona/nona.db`. Primary/replica libSQL working state uses `/var/lib/nona/primary.db`.
 
 Even if your exact storage layout changes later, the operational rule stays the same: back up the mounted persistent state, not just the container image or Compose file.
 
@@ -28,6 +28,8 @@ In standalone mode, the deployment guide mounts:
 - `nona-data` -> `/var/lib/nona`
 
 Treat that volume as production data and protect it before risky maintenance or upgrade work.
+
+The primary standalone database file is `/var/lib/nona/nona.db`. If you are changing storage providers, preserve the existing database separately until the new deployment has been validated; Nona does not automatically convert data between sqld and SQLite.
 
 For standalone, the most important backup question is simple: can you restore the contents behind `nona-data` if the host, container, or deployment changes unexpectedly?
 

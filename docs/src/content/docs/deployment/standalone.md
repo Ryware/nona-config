@@ -88,6 +88,16 @@ Keep this volume when upgrading the container.
 
 The mounted volume is what makes the deployment durable across restarts and upgrades, so it should be treated as production data.
 
+Standalone starts with SQLite automatically because no replication arguments are present. Its default database is:
+
+```text
+/var/lib/nona/nona.db
+```
+
+You can override the automatic choice with `Storage__Type`, but `Storage__Type=Sqlite` is rejected if primary/replica arguments are also configured.
+
+When upgrading an older standalone installation, Nona detects the former sqld database at `/var/lib/nona/primary.db/dbs/default/data` if `nona.db` does not exist. It creates and integrity-checks a SQLite backup before atomically installing `nona.db`; the old `primary.db` directory is retained for rollback.
+
 ## JWT settings
 
 By default, Nona can generate and persist JWT settings. To pin them, pass the same values every time the container starts.

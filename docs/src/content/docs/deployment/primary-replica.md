@@ -71,6 +71,8 @@ Storage__Libsql__ManagedPrimary__ExtraArgs__2: --http-self-url
 Storage__Libsql__ManagedPrimary__ExtraArgs__3: http://nona-primary:9080
 ```
 
+The `--grpc-listen-addr` argument also makes `Storage:Type=Auto` select the libSQL primary provider at startup. No separate storage-provider environment variable is required.
+
 The compose file also sets libSQL connection and request limits:
 
 ```yaml
@@ -92,6 +94,8 @@ Storage__Libsql__ManagedPrimary__ExtraArgs__3: http://nona-replica:9080
 ```
 
 Keep `--primary-grpc-url` pointed at the primary service unless you also change the Compose service name or network.
+
+The `--primary-grpc-url` argument makes `Storage:Type=Auto` select the libSQL replica provider at startup.
 
 ## Persistent data
 
