@@ -15,8 +15,6 @@ public class StorageProviderResolverTests
 
         await Assert.That(resolution.Provider).IsEqualTo(StorageProviderKind.Sqlite);
         await Assert.That(resolution.DeploymentMode).IsEqualTo(StorageDeploymentMode.Standalone);
-        await Assert.That(resolution.Message)
-            .IsEqualTo("Storage provider resolved to SQLite: no replication configuration detected.");
     }
 
     [Test]
@@ -32,8 +30,6 @@ public class StorageProviderResolverTests
         await Assert.That(resolution.Provider).IsEqualTo(StorageProviderKind.Libsql);
         await Assert.That(resolution.DeploymentMode).IsEqualTo(StorageDeploymentMode.Primary);
         await Assert.That(resolution.UseManagedLibsql).IsTrue();
-        await Assert.That(resolution.Message)
-            .IsEqualTo("Storage provider resolved to libSQL Primary: --grpc-listen-addr detected.");
     }
 
     [Test]
@@ -49,8 +45,6 @@ public class StorageProviderResolverTests
         await Assert.That(resolution.Provider).IsEqualTo(StorageProviderKind.Libsql);
         await Assert.That(resolution.DeploymentMode).IsEqualTo(StorageDeploymentMode.Replica);
         await Assert.That(resolution.UseManagedLibsql).IsTrue();
-        await Assert.That(resolution.Message)
-            .IsEqualTo("Storage provider resolved to libSQL Replica: --primary-grpc-url detected.");
     }
 
     [Test]

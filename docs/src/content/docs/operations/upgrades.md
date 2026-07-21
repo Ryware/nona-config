@@ -77,7 +77,7 @@ For standalone, the main goal is to replace the running container without losing
 
 For the one-container Docker path, that usually means stopping the old container, starting the new image against the same volume, and validating immediately.
 
-The first upgrade to automatic standalone SQLite performs a one-time migration when `/var/lib/nona/nona.db` is absent and the former sqld file exists at `/var/lib/nona/primary.db/dbs/default/data`. Nona copies it with SQLite's backup API, runs `PRAGMA integrity_check`, installs the copy atomically, and retains the original sqld directory. Back up the whole volume before this upgrade and keep the retained directory through your rollback window.
+Nona does not automatically convert an existing sqld database to SQLite. If an existing standalone deployment is moving to SQLite, treat that as a separate storage migration: back up the volume, migrate the data deliberately, and validate the new database before retiring the old one.
 
 ### Primary/replica
 

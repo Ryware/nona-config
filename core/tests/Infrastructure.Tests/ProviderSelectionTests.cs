@@ -35,7 +35,7 @@ public class ProviderSelectionTests
             .IsEqualTo(typeof(SqliteDatabaseClient).FullName);
         await Assert.That(repository.GetType().FullName)
             .IsEqualTo(typeof(LibsqlConfigEntryRepository).FullName);
-        await Assert.That(hostedServices.Any(service => service is SqliteLegacyDatabaseMigrationHostedService)).IsTrue();
+        await Assert.That(hostedServices.Any(service => service is LibsqlDatabaseInitializer)).IsTrue();
         await Assert.That(hostedServices.Any(service => service is ManagedLibsqlPrimaryHostedService)).IsFalse();
     }
 

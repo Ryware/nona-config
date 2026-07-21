@@ -21,8 +21,7 @@ public enum StorageDeploymentMode
 public sealed record StorageProviderResolution(
     StorageProviderKind Provider,
     StorageDeploymentMode DeploymentMode,
-    bool UseManagedLibsql,
-    string Message);
+    bool UseManagedLibsql);
 
 public static class StorageProviderResolver
 {
@@ -62,8 +61,7 @@ public static class StorageProviderResolver
             return new StorageProviderResolution(
                 StorageProviderKind.Sqlite,
                 StorageDeploymentMode.Explicit,
-                UseManagedLibsql: false,
-                "Storage provider resolved to SQLite: explicitly configured.");
+                UseManagedLibsql: false);
         }
 
         if (storageType.Equals("InMemory", StringComparison.OrdinalIgnoreCase))
@@ -72,8 +70,7 @@ public static class StorageProviderResolver
             return new StorageProviderResolution(
                 StorageProviderKind.InMemory,
                 StorageDeploymentMode.Explicit,
-                UseManagedLibsql: false,
-                "Storage provider resolved to InMemory: explicitly configured.");
+                UseManagedLibsql: false);
         }
 
         throw new InvalidOperationException(
@@ -100,15 +97,13 @@ public static class StorageProviderResolver
             return new StorageProviderResolution(
                 StorageProviderKind.Libsql,
                 StorageDeploymentMode.Remote,
-                UseManagedLibsql: false,
-                "Storage provider resolved to libSQL Remote: remote data source detected.");
+                UseManagedLibsql: false);
         }
 
         return new StorageProviderResolution(
             StorageProviderKind.Sqlite,
             StorageDeploymentMode.Standalone,
-            UseManagedLibsql: false,
-            "Storage provider resolved to SQLite: no replication configuration detected.");
+            UseManagedLibsql: false);
     }
 
     private static StorageProviderResolution ResolveLibsql(
@@ -131,15 +126,13 @@ public static class StorageProviderResolver
             return new StorageProviderResolution(
                 StorageProviderKind.Libsql,
                 StorageDeploymentMode.Remote,
-                UseManagedLibsql: false,
-                "Storage provider resolved to libSQL Remote: remote data source detected.");
+                UseManagedLibsql: false);
         }
 
         return new StorageProviderResolution(
             StorageProviderKind.Libsql,
             StorageDeploymentMode.Explicit,
-            ConfigurationValueReader.GetBoolean(configuration, "Storage:Libsql:ManagedPrimary:Enabled"),
-            "Storage provider resolved to libSQL: explicitly configured.");
+            ConfigurationValueReader.GetBoolean(configuration, "Storage:Libsql:ManagedPrimary:Enabled"));
     }
 
     private static StorageProviderResolution CreatePrimaryResolution()
@@ -147,8 +140,7 @@ public static class StorageProviderResolver
         return new StorageProviderResolution(
             StorageProviderKind.Libsql,
             StorageDeploymentMode.Primary,
-            UseManagedLibsql: true,
-            $"Storage provider resolved to libSQL Primary: {PrimaryMarker} detected.");
+            UseManagedLibsql: true);
     }
 
     private static StorageProviderResolution CreateReplicaResolution()
@@ -156,8 +148,7 @@ public static class StorageProviderResolver
         return new StorageProviderResolution(
             StorageProviderKind.Libsql,
             StorageDeploymentMode.Replica,
-            UseManagedLibsql: true,
-            $"Storage provider resolved to libSQL Replica: {ReplicaMarker} detected.");
+            UseManagedLibsql: true);
     }
 
     private static bool HasRemoteLibsqlDataSource(IConfiguration configuration)

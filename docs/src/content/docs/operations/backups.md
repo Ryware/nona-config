@@ -29,7 +29,7 @@ In standalone mode, the deployment guide mounts:
 
 Treat that volume as production data and protect it before risky maintenance or upgrade work.
 
-The primary standalone database file is `/var/lib/nona/nona.db`. Older upgraded volumes may also retain `/var/lib/nona/primary.db` as a rollback copy after the automatic sqld-to-SQLite migration; keep both until you have validated the upgrade and your rollback window has closed.
+The primary standalone database file is `/var/lib/nona/nona.db`. If you are changing storage providers, preserve the existing database separately until the new deployment has been validated; Nona does not automatically convert data between sqld and SQLite.
 
 For standalone, the most important backup question is simple: can you restore the contents behind `nona-data` if the host, container, or deployment changes unexpectedly?
 
