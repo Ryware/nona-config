@@ -28,7 +28,8 @@ namespace Nona.WebApi.Serialization;
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
 [JsonSerializable(typeof(bool))]
-[JsonSerializable(typeof(ErrorResponse))]
+[JsonSerializable(typeof(ApiProblemDetails))]
+[JsonSerializable(typeof(ApiValidationProblemDetails))]
 [JsonSerializable(typeof(LoginRequest))]
 [JsonSerializable(typeof(LoginResponse))]
 [JsonSerializable(typeof(RegisterCommand))]

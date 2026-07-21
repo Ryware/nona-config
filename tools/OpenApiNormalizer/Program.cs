@@ -26,32 +26,41 @@ static void Normalize(JsonObject spec)
     var components = GetOrAddObject(spec, "components");
     var schemas = GetOrAddObject(components, "schemas");
 
-    AddIfMissing(schemas, "ProblemDetails", new JsonObject
+    AddIfMissing(schemas, "ApiProblemDetails", new JsonObject
     {
+        ["required"] = StringArray("type", "title", "status", "detail", "instance"),
         ["type"] = "object",
         ["properties"] = new JsonObject
         {
-            ["type"] = NullableStringSchema(),
-            ["title"] = NullableStringSchema(),
-            ["status"] = new JsonObject
-            {
-                ["type"] = "integer",
-                ["format"] = "int32",
-                ["nullable"] = true
-            },
-            ["detail"] = NullableStringSchema(),
-            ["instance"] = NullableStringSchema()
-        },
-        ["additionalProperties"] = new JsonObject()
+            ["type"] = StringSchema(),
+            ["title"] = StringSchema(),
+            ["status"] = IntegerSchema(),
+            ["detail"] = StringSchema(),
+            ["instance"] = StringSchema(),
+            ["errorCode"] = NullableStringSchema()
+        }
     });
 
-    AddIfMissing(schemas, "ErrorResponse", new JsonObject
+    AddIfMissing(schemas, "ApiValidationProblemDetails", new JsonObject
     {
-        ["required"] = StringArray("error"),
+        ["required"] = StringArray("type", "title", "status", "detail", "instance", "errors"),
         ["type"] = "object",
         ["properties"] = new JsonObject
         {
-            ["error"] = StringSchema(),
+            ["type"] = StringSchema(),
+            ["title"] = StringSchema(),
+            ["status"] = IntegerSchema(),
+            ["detail"] = StringSchema(),
+            ["instance"] = StringSchema(),
+            ["errors"] = new JsonObject
+            {
+                ["type"] = "object",
+                ["additionalProperties"] = new JsonObject
+                {
+                    ["type"] = "array",
+                    ["items"] = StringSchema()
+                }
+            },
             ["errorCode"] = NullableStringSchema()
         }
     });
@@ -105,7 +114,7 @@ static void Normalize(JsonObject spec)
         PathParameter("projectId"),
         PathParameter("environmentName"),
         PathParameter("key"));
-    var errorResponse = Reference("#/components/schemas/ErrorResponse");
+    var errorResponse = Reference("#/components/schemas/ApiProblemDetails");
 
     GetOrAddObject(paths, $"{configEntryPath}/history")["get"] = new JsonObject
     {
@@ -120,7 +129,7 @@ static void Normalize(JsonObject spec)
                     ["type"] = "array",
                     ["items"] = Reference("#/components/schemas/ConfigEntryVersionDto")
                 }),
-            ["404"] = Response("Not Found", errorResponse)
+            ["404"] = ProblemResponse("Not Found", errorResponse)
         },
         ["security"] = BearerSecurity()
     };
@@ -133,8 +142,8 @@ static void Normalize(JsonObject spec)
         ["responses"] = new JsonObject
         {
             ["200"] = Response("OK", Reference("#/components/schemas/ConfigEntryDto")),
-            ["400"] = Response("Bad Request", errorResponse),
-            ["404"] = Response("Not Found", errorResponse)
+            ["400"] = ProblemResponse("Bad Request", errorResponse),
+            ["404"] = ProblemResponse("Not Found", errorResponse)
         },
         ["security"] = BearerSecurity()
     };
@@ -153,11 +162,11 @@ static void Normalize(JsonObject spec)
             }
 
             var responses = GetOrAddObject(operation, "responses");
-            AddIfMissing(responses, "4XX", Response("Client Error", errorResponse));
+            AddIfMissing(responses, "4XX", ProblemResponse("Client Error", errorResponse));
             AddIfMissing(
                 responses,
                 "5XX",
-                Response("Server Error", Reference("#/components/schemas/ProblemDetails")));
+                ProblemResponse("Server Error", Reference("#/components/schemas/ApiProblemDetails")));
         }
     }
 }
@@ -240,6 +249,15 @@ static JsonObject Response(string description, JsonNode schema) => new()
 {
     ["description"] = description,
     ["content"] = JsonContent(schema)
+};
+
+static JsonObject ProblemResponse(string description, JsonNode schema) => new()
+{
+    ["description"] = description,
+    ["content"] = new JsonObject
+    {
+        ["application/problem+json"] = new JsonObject { ["schema"] = schema.DeepClone() }
+    }
 };
 
 static JsonObject JsonContent(JsonNode schema) => new()

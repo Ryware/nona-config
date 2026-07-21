@@ -63,6 +63,7 @@ public partial class Program
         });
 
         app.UseCors(CorsPolicyName);
+        app.UseExceptionHandler();
 
         app.UseDefaultFiles();
         app.UseStaticFiles();

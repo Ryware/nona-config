@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using Mediator;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.TestHost;
@@ -31,11 +32,16 @@ public class RequestValidationEndpointTests
         await app.StartAsync();
 
         var response = await app.GetTestClient().PostAsJsonAsync("/auth/login", new LoginRequest("", ""));
-        var body = await response.Content.ReadAsStringAsync();
+        await using var responseStream = await response.Content.ReadAsStreamAsync();
+        using var body = await JsonDocument.ParseAsync(responseStream);
 
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
-        await Assert.That(body.Contains("Email is required", StringComparison.Ordinal)).IsTrue();
-        await Assert.That(body.Contains("Password is required", StringComparison.Ordinal)).IsTrue();
+        await Assert.That(response.Content.Headers.ContentType?.MediaType).IsEqualTo("application/problem+json");
+        await Assert.That(body.RootElement.GetProperty("status").GetInt32()).IsEqualTo(400);
+        await Assert.That(body.RootElement.GetProperty("errors").GetProperty("Email")[0].GetString())
+            .IsEqualTo("Email is required");
+        await Assert.That(body.RootElement.GetProperty("errors").GetProperty("Password")[0].GetString())
+            .IsEqualTo("Password is required");
         await Assert.That(mediator.SendCalls).IsEqualTo(0);
     }
 

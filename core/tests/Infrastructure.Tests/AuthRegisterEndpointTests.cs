@@ -47,7 +47,7 @@ public class AuthRegisterEndpointTests
             using var duplicateBody = await ParseJsonAsync(duplicateResponse);
 
             await Assert.That(duplicateResponse.StatusCode).IsEqualTo(HttpStatusCode.Conflict);
-            await Assert.That(duplicateBody.RootElement.GetProperty("error").GetString()).IsEqualTo("User already exists");
+            await AssertProblemAsync(duplicateResponse, duplicateBody.RootElement, 409, "Conflict", "User already exists");
         }
 
         using (var closedResponse = await client.PostAsJsonAsync(
@@ -57,7 +57,7 @@ public class AuthRegisterEndpointTests
             using var closedBody = await ParseJsonAsync(closedResponse);
 
             await Assert.That(closedResponse.StatusCode).IsEqualTo(HttpStatusCode.Forbidden);
-            await Assert.That(closedBody.RootElement.GetProperty("error").GetString()).IsEqualTo("Registration is disabled");
+            await AssertProblemAsync(closedResponse, closedBody.RootElement, 403, "Forbidden", "Registration is disabled");
             await Assert.That(closedBody.RootElement.GetProperty("errorCode").GetString()).IsEqualTo("registration_disabled");
         }
 
@@ -68,8 +68,16 @@ public class AuthRegisterEndpointTests
             using var invalidBody = await ParseJsonAsync(invalidResponse);
 
             await Assert.That(invalidResponse.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
-            await Assert.That(invalidBody.RootElement.GetProperty("error").GetString()).Contains("Email is required");
-            await Assert.That(invalidBody.RootElement.GetProperty("error").GetString()).Contains("Password is required");
+            await AssertProblemAsync(
+                invalidResponse,
+                invalidBody.RootElement,
+                400,
+                "One or more validation errors occurred.",
+                "One or more validation errors occurred.");
+            await Assert.That(invalidBody.RootElement.GetProperty("errors").GetProperty("Email")[0].GetString())
+                .IsEqualTo("Email is required");
+            await Assert.That(invalidBody.RootElement.GetProperty("errors").GetProperty("Password")[0].GetString())
+                .IsEqualTo("Password is required");
         }
     }
 
@@ -94,6 +102,12 @@ public class AuthRegisterEndpointTests
         await Assert.That(responses.TryGetProperty("400", out _)).IsTrue();
         await Assert.That(responses.TryGetProperty("403", out _)).IsTrue();
         await Assert.That(responses.TryGetProperty("409", out _)).IsTrue();
+        await Assert.That(responses.GetProperty("400").GetProperty("content").GetProperty("application/problem+json")
+                .GetProperty("schema").GetProperty("$ref").GetString())
+            .IsEqualTo("#/components/schemas/ApiValidationProblemDetails");
+        await Assert.That(responses.GetProperty("403").GetProperty("content").GetProperty("application/problem+json")
+                .GetProperty("schema").GetProperty("$ref").GetString())
+            .IsEqualTo("#/components/schemas/ApiProblemDetails");
     }
 
     private static async Task<WebApplication> StartAppAsync()
@@ -135,5 +149,20 @@ public class AuthRegisterEndpointTests
             .Select(property => property.Name)
             .Order(StringComparer.Ordinal)
             .ToArray();
+    }
+
+    private static async Task AssertProblemAsync(
+        HttpResponseMessage response,
+        JsonElement body,
+        int status,
+        string title,
+        string detail)
+    {
+        await Assert.That(response.Content.Headers.ContentType?.MediaType).IsEqualTo("application/problem+json");
+        await Assert.That(body.GetProperty("status").GetInt32()).IsEqualTo(status);
+        await Assert.That(body.GetProperty("title").GetString()).IsEqualTo(title);
+        await Assert.That(body.GetProperty("detail").GetString()).IsEqualTo(detail);
+        await Assert.That(body.GetProperty("instance").GetString()).IsEqualTo(response.RequestMessage?.RequestUri?.AbsolutePath);
+        await Assert.That(body.GetProperty("type").GetString()).Contains("rfc9110");
     }
 }
