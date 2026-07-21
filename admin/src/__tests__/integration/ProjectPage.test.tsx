@@ -159,7 +159,7 @@ describe('ProjectPage', () => {
         'http://localhost:5027/admin/projects/:projectId/environments/:envName/config-entries/:key',
         () =>
           HttpResponse.json(
-            { error: "Value must be 'true' or 'false' when contentType is 'boolean'." },
+            { detail: "Value must be 'true' or 'false' when contentType is 'boolean'." },
             { status: 400 },
           ),
       ),
@@ -312,7 +312,7 @@ describe('ProjectPage', () => {
     server.use(
       http.post(
         'http://localhost:5027/admin/projects/:projectId/environments/:envName/releases',
-        () => HttpResponse.json({ error: 'Release already exists' }, { status: 409 }),
+        () => HttpResponse.json({ detail: 'Release already exists' }, { status: 409 }),
       ),
     );
 

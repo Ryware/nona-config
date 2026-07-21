@@ -21,15 +21,16 @@ public sealed class NonaApiErrorResponseHandler : DelegatingHandler
         var fallback = FallbackMessage(response.StatusCode, response.ReasonPhrase);
         var message = error.Message ?? PlainTextMessage(response.Content, body) ?? fallback;
 
-        var normalized = statusCode < 500
-            ? JsonSerializer.Serialize(new ErrorEnvelope(message, error.ErrorCode))
-            : JsonSerializer.Serialize(new ProblemEnvelope(
-                Title: error.Title ?? fallback,
-                Detail: message,
-                Status: statusCode));
+        var normalized = JsonSerializer.Serialize(new ProblemEnvelope(
+            Type: error.Type ?? TypeFor(statusCode),
+            Title: error.Title ?? fallback,
+            Status: statusCode,
+            Detail: message,
+            Instance: error.Instance,
+            ErrorCode: error.ErrorCode));
 
         response.Content?.Dispose();
-        response.Content = new StringContent(normalized, Encoding.UTF8, "application/json");
+        response.Content = new StringContent(normalized, Encoding.UTF8, "application/problem+json");
         return response;
     }
 
@@ -66,7 +67,9 @@ public sealed class NonaApiErrorResponseHandler : DelegatingHandler
             return new ParsedError(
                 Message: error ?? detail ?? title,
                 ErrorCode: GetString(root, "errorCode"),
-                Title: title);
+                Title: title,
+                Type: GetString(root, "type"),
+                Instance: GetString(root, "instance"));
         }
         catch (JsonException)
         {
@@ -116,18 +119,37 @@ public sealed class NonaApiErrorResponseHandler : DelegatingHandler
         };
     }
 
-    private readonly record struct ParsedError(string? Message, string? ErrorCode, string? Title);
+    private static string TypeFor(int statusCode)
+        => $"https://tools.ietf.org/html/rfc9110#section-{statusCode switch
+        {
+            400 => "15.5.1",
+            401 => "15.5.2",
+            403 => "15.5.4",
+            404 => "15.5.5",
+            409 => "15.5.10",
+            410 => "15.5.11",
+            >= 500 => "15.6.1",
+            _ => "15.5.1"
+        }}";
 
-    private sealed record ErrorEnvelope(
-        [property: System.Text.Json.Serialization.JsonPropertyName("error")] string Error,
+    private readonly record struct ParsedError(
+        string? Message,
+        string? ErrorCode,
+        string? Title,
+        string? Type,
+        string? Instance);
+
+    private sealed record ProblemEnvelope(
+        [property: System.Text.Json.Serialization.JsonPropertyName("type")] string Type,
+        [property: System.Text.Json.Serialization.JsonPropertyName("title")] string Title,
+        [property: System.Text.Json.Serialization.JsonPropertyName("status")] int Status,
+        [property: System.Text.Json.Serialization.JsonPropertyName("detail")] string Detail,
+        [property: System.Text.Json.Serialization.JsonPropertyName("instance")]
+        [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        string? Instance,
         [property: System.Text.Json.Serialization.JsonPropertyName("errorCode")]
         [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         string? ErrorCode);
-
-    private sealed record ProblemEnvelope(
-        [property: System.Text.Json.Serialization.JsonPropertyName("title")] string Title,
-        [property: System.Text.Json.Serialization.JsonPropertyName("detail")] string Detail,
-        [property: System.Text.Json.Serialization.JsonPropertyName("status")] int Status);
 }
 
 public static class NonaApiHttpClientFactory

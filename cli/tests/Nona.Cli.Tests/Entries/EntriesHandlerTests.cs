@@ -74,23 +74,23 @@ public sealed class EntriesHandlerTests
     {
         var handler = new SetEntryCommandHandler(MockHttp(
             statusCode,
-            $$"""{"error":"{{serverMessage}}","errorCode":"TEST_ERROR"}"""));
+            $$"""{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.1","title":"Request failed","status":{{(int)statusCode}},"detail":"{{serverMessage}}","instance":"/admin/test","errorCode":"TEST_ERROR"}"""));
 
-        ErrorResponse? error = null;
+        ApiProblemDetails? error = null;
         try
         {
             await handler.HandleAsync(
                 new SetEntryCommand(TestConnection, "my-project", "production", "my.key", "bad", "client", "number"),
                 CancellationToken.None);
         }
-        catch (ErrorResponse ex)
+        catch (ApiProblemDetails ex)
         {
             error = ex;
         }
 
         await Assert.That(error).IsNotNull();
         await Assert.That(error!.ResponseStatusCode).IsEqualTo((int)statusCode);
-        await Assert.That(error.Error).IsEqualTo(serverMessage);
+        await Assert.That(error.Detail).IsEqualTo(serverMessage);
         await Assert.That(error.ErrorCode).IsEqualTo("TEST_ERROR");
     }
 

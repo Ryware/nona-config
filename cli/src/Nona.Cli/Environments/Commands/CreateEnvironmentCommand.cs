@@ -21,7 +21,7 @@ internal sealed class CreateEnvironmentCommandHandler(Func<HttpClient>? httpClie
                 new CreateEnvironmentRequest { Name = command.Name },
                 cancellationToken: ct);
         }
-        catch (ErrorResponse ex) when (ex.ResponseStatusCode == 409)
+        catch (ApiProblemDetails ex) when (ex.ResponseStatusCode == 409)
         {
             var environments = await api.Admin.Projects[command.Project].Environments
                 .GetAsync(cancellationToken: ct);

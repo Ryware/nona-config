@@ -511,6 +511,56 @@ public sealed class NonaClientTests
         Assert.Equal("Config entry not found", ex.Message);
     }
 
+    [Fact]
+    public async Task FailedRequest_ReadsProblemDetailsMessage()
+    {
+        var handler = new StubHttpMessageHandler(_ => JsonResponse(
+            """{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.5","title":"Not Found","status":404,"detail":"Config entry not found","instance":"/api/production/missing"}""",
+            HttpStatusCode.NotFound));
+
+        using var httpClient = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://nona.test/")
+        };
+
+        using var client = new NonaClient(httpClient, new NonaClientOptions
+        {
+            EnvironmentId = "production",
+            ApiKey = "api-key"
+        });
+
+        var ex = await Assert.ThrowsAsync<NonaClientException>(() =>
+            client.GetConfigValueAsync("missing"));
+
+        Assert.Equal(HttpStatusCode.NotFound, ex.StatusCode);
+        Assert.Equal("Config entry not found", ex.Message);
+    }
+
+    [Fact]
+    public async Task SuccessfulHtmlApiResponse_IsRejected()
+    {
+        var handler = new StubHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent("<html>spa shell</html>", System.Text.Encoding.UTF8, "text/html")
+        });
+
+        using var httpClient = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://nona.test/")
+        };
+
+        using var client = new NonaClient(httpClient, new NonaClientOptions
+        {
+            EnvironmentId = "production",
+            ApiKey = "api-key"
+        });
+
+        var ex = await Assert.ThrowsAsync<NonaClientException>(() =>
+            client.GetConfigValueAsync("missing"));
+
+        Assert.Equal("Nona returned HTML for an API request.", ex.Message);
+    }
+
     private static HttpResponseMessage JsonResponse(string json, HttpStatusCode statusCode = HttpStatusCode.OK)
     {
         return new HttpResponseMessage(statusCode)

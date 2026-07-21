@@ -41,6 +41,19 @@ public sealed partial class NonaClient
             ThrowResponseException(response, request, responseBody);
         }
 
+        if (string.Equals(
+                response.Content?.Headers.ContentType?.MediaType,
+                "text/html",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            throw new NonaClientException(
+                "Nona returned HTML for an API request.",
+                response.StatusCode,
+                request.Method.Method,
+                request.RequestUri,
+                responseBody);
+        }
+
         var contentType = TryGetHeaderValue(response, ContentTypeHeaderName)
             ?? TryGetHeaderValue(response, LegacyContentTypeHeaderName);
         if (!string.IsNullOrWhiteSpace(contentType))
@@ -188,6 +201,11 @@ public sealed partial class NonaClient
 
             if (root.ValueKind == JsonValueKind.Object)
             {
+                if (root.TryGetProperty("detail", out var detail) && detail.ValueKind == JsonValueKind.String)
+                {
+                    return detail.GetString();
+                }
+
                 if (root.TryGetProperty("error", out var error) && error.ValueKind == JsonValueKind.String)
                 {
                     return error.GetString();
@@ -196,6 +214,11 @@ public sealed partial class NonaClient
                 if (root.TryGetProperty("message", out var message) && message.ValueKind == JsonValueKind.String)
                 {
                     return message.GetString();
+                }
+
+                if (root.TryGetProperty("title", out var title) && title.ValueKind == JsonValueKind.String)
+                {
+                    return title.GetString();
                 }
             }
         }

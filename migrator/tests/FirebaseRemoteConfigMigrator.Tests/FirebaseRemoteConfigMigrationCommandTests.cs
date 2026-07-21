@@ -8,9 +8,9 @@ public sealed class FirebaseRemoteConfigMigrationCommandTests
     [Test]
     public async Task DescribeException_FormatsTypedApiError()
     {
-        var exception = new ErrorResponse
+        var exception = new ApiProblemDetails
         {
-            Error = "project not found",
+            Detail = "project not found",
             ErrorCode = "NOT_FOUND",
             ResponseStatusCode = 404
         };

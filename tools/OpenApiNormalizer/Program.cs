@@ -64,6 +64,8 @@ static void Normalize(JsonObject spec)
             ["errorCode"] = NullableStringSchema()
         }
     });
+    GetOrAddObject(GetOrAddObject(schemas, "ApiProblemDetails"), "properties")["status"] = IntegerSchema();
+    GetOrAddObject(GetOrAddObject(schemas, "ApiValidationProblemDetails"), "properties")["status"] = IntegerSchema();
 
     if (schemas["ConfigEntryDto"] is JsonObject configEntry)
     {
