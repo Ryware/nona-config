@@ -40,16 +40,22 @@ var client = new NonaClient(new NonaClientOptions
 });
 ```
 
+To select a different release for one request, use the corresponding named release method:
+
+```csharp
+var value = await client.GetConfigValueForReleaseAsync("Features:Checkout", "1.1.0");
+```
+
 ## Available Methods
 
-- `GetConfigValueAsync(key, cancellationToken)`
-- `GetConfigValueAsync(key, releaseVersion, cancellationToken)`
-- `TryGetConfigValueAsync(key, cancellationToken)`
-- `TryGetConfigValueAsync(key, releaseVersion, cancellationToken)`
-- `GetStringValueAsync(key, cancellationToken)`
-- `GetStringValueAsync(key, releaseVersion, cancellationToken)`
-- `GetJsonValueAsync<T>(key, jsonTypeInfo, cancellationToken)`
-- `GetJsonValueAsync<T>(key, jsonTypeInfo, releaseVersion, cancellationToken)`
+- `GetConfigValueAsync(string key, CancellationToken cancellationToken = default)`
+- `GetConfigValueForReleaseAsync(string key, string releaseVersion, CancellationToken cancellationToken = default)`
+- `TryGetConfigValueAsync(string key, CancellationToken cancellationToken = default)`
+- `TryGetConfigValueForReleaseAsync(string key, string releaseVersion, CancellationToken cancellationToken = default)`
+- `GetStringValueAsync(string key, CancellationToken cancellationToken = default)`
+- `GetStringValueForReleaseAsync(string key, string releaseVersion, CancellationToken cancellationToken = default)`
+- `GetJsonValueAsync<T>(string key, JsonTypeInfo<T> jsonTypeInfo, CancellationToken cancellationToken = default)`
+- `GetJsonValueForReleaseAsync<T>(string key, JsonTypeInfo<T> jsonTypeInfo, string releaseVersion, CancellationToken cancellationToken = default)`
 
 ## Options
 
