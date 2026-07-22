@@ -12,6 +12,27 @@ public class InMemoryConfigReleaseRepository : IConfigReleaseRepository
     private static string GetKey(string projectName, string environmentName, string version)
         => $"{projectName}:{environmentName}:{version}";
 
+    public Task<ConfigRelease?> GetMetadataAsync(
+        string projectName,
+        string environmentName,
+        string version,
+        CancellationToken ct = default)
+    {
+        _releases.TryGetValue(GetKey(projectName, environmentName, version), out var release);
+        return Task.FromResult(release is null ? null : ToMetadata(release));
+    }
+
+    public Task<ConfigRelease?> GetLatestPatchMetadataAsync(
+        string projectName,
+        string environmentName,
+        int major,
+        int minor,
+        CancellationToken ct = default)
+    {
+        var release = FindLatestPatch(projectName, environmentName, major, minor);
+        return Task.FromResult(release is null ? null : ToMetadata(release));
+    }
+
     public Task<ConfigRelease?> GetAsync(string projectName, string environmentName, string version, CancellationToken ct = default)
     {
         _releases.TryGetValue(GetKey(projectName, environmentName, version), out var release);
@@ -20,7 +41,12 @@ public class InMemoryConfigReleaseRepository : IConfigReleaseRepository
 
     public Task<ConfigRelease?> GetLatestPatchAsync(string projectName, string environmentName, int major, int minor, CancellationToken ct = default)
     {
-        var release = _releases.Values
+        return Task.FromResult(FindLatestPatch(projectName, environmentName, major, minor));
+    }
+
+    private ConfigRelease? FindLatestPatch(string projectName, string environmentName, int major, int minor)
+    {
+        return _releases.Values
             .Where(candidate =>
                 candidate.Project.Equals(projectName, StringComparison.OrdinalIgnoreCase)
                 && candidate.Environment.Equals(environmentName, StringComparison.OrdinalIgnoreCase)
@@ -28,8 +54,6 @@ public class InMemoryConfigReleaseRepository : IConfigReleaseRepository
                 && candidate.Minor == minor)
             .OrderByDescending(candidate => candidate.Patch)
             .FirstOrDefault();
-
-        return Task.FromResult(release);
     }
 
     public Task<IReadOnlyList<ConfigRelease>> ListAsync(string projectName, string environmentName, CancellationToken ct = default)
@@ -120,5 +144,21 @@ public class InMemoryConfigReleaseRepository : IConfigReleaseRepository
         }
 
         return Task.CompletedTask;
+    }
+
+    private static ConfigRelease ToMetadata(ConfigRelease release)
+    {
+        return new ConfigRelease
+        {
+            Project = release.Project,
+            Environment = release.Environment,
+            Version = release.Version,
+            Major = release.Major,
+            Minor = release.Minor,
+            Patch = release.Patch,
+            EntryCount = release.EntryCount,
+            CreatedAt = release.CreatedAt,
+            Actor = release.Actor
+        };
     }
 }

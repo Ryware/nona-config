@@ -65,14 +65,12 @@ public class GetAllConfigValuesQueryHandler(
         if (environment is null)
             return Failure("Environment not found");
 
-        var releases = await configReleaseRepository.ListAsync(
+        var release = await ResolveReleaseAsync(
             project.Name,
             environment.Name,
-            cancellationToken);
-        var release = ResolveRelease(
-            releases,
             environment.ActiveReleaseVersion,
-            request.Version);
+            request.Version,
+            cancellationToken);
         if (release.Error is not null)
             return Failure(release.Error);
 
@@ -101,18 +99,23 @@ public class GetAllConfigValuesQueryHandler(
         return new GetAllConfigValuesResult(true, values, null, etag);
     }
 
-    private static (ConfigRelease? Release, string? Error) ResolveRelease(
-        IReadOnlyList<ConfigRelease> releases,
+    private async Task<(ConfigRelease? Release, string? Error)> ResolveReleaseAsync(
+        string projectName,
+        string environmentName,
         string? activeReleaseVersion,
-        string? requestedVersion)
+        string? requestedVersion,
+        CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(requestedVersion))
         {
             if (string.IsNullOrWhiteSpace(activeReleaseVersion))
                 return (null, "Active release not configured");
 
-            var activeRelease = releases.FirstOrDefault(candidate =>
-                string.Equals(candidate.Version, activeReleaseVersion, StringComparison.OrdinalIgnoreCase));
+            var activeRelease = await configReleaseRepository.GetMetadataAsync(
+                projectName,
+                environmentName,
+                activeReleaseVersion,
+                cancellationToken);
 
             return activeRelease is null
                 ? (null, "Release not found")
@@ -123,12 +126,17 @@ public class GetAllConfigValuesQueryHandler(
             return (null, "Version must use major.minor.patch or major.minor.x format.");
 
         var release = version.Kind == ConfigReleaseVersionKind.Line
-            ? releases
-                .Where(candidate => candidate.Major == version.Major && candidate.Minor == version.Minor)
-                .OrderByDescending(candidate => candidate.Patch)
-                .FirstOrDefault()
-            : releases.FirstOrDefault(candidate =>
-                string.Equals(candidate.Version, version.Normalized, StringComparison.OrdinalIgnoreCase));
+            ? await configReleaseRepository.GetLatestPatchMetadataAsync(
+                projectName,
+                environmentName,
+                version.Major,
+                version.Minor,
+                cancellationToken)
+            : await configReleaseRepository.GetMetadataAsync(
+                projectName,
+                environmentName,
+                version.Normalized,
+                cancellationToken);
 
         return release is null
             ? (null, "Release not found")

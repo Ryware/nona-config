@@ -15,71 +15,84 @@ public sealed class LibsqlConfigReleaseRepository : IConfigReleaseRepository
         _client = client;
     }
 
-    public async Task<ConfigRelease?> GetAsync(string projectName, string environmentName, string version, CancellationToken ct = default)
+    public async Task<ConfigRelease?> GetMetadataAsync(
+        string projectName,
+        string environmentName,
+        string version,
+        CancellationToken ct = default)
     {
         var result = await _client.ExecuteAsync(
             """
+            WITH TargetRelease AS (
+                SELECT Project, Environment, Version, Major, Minor, Patch, CreatedAt, Actor
+                FROM ConfigReleases
+                WHERE Project = @ProjectName COLLATE NOCASE
+                  AND Environment = @EnvironmentName COLLATE NOCASE
+                  AND Version = @Version COLLATE NOCASE
+                LIMIT 1
+            )
             SELECT
-                Project,
-                Environment,
-                Version,
-                Major,
-                Minor,
-                Patch,
-                CreatedAt,
-                Actor,
+                release.Project,
+                release.Environment,
+                release.Version,
+                release.Major,
+                release.Minor,
+                release.Patch,
+                release.CreatedAt,
+                release.Actor,
                 (
                     SELECT COUNT(1)
                     FROM ConfigReleaseEntries entries
-                    WHERE entries.Project = ConfigReleases.Project COLLATE NOCASE
-                      AND entries.Environment = ConfigReleases.Environment COLLATE NOCASE
-                      AND entries.ReleaseVersion = ConfigReleases.Version COLLATE NOCASE
+                    WHERE entries.Project = release.Project COLLATE NOCASE
+                      AND entries.Environment = release.Environment COLLATE NOCASE
+                      AND entries.ReleaseVersion = release.Version COLLATE NOCASE
                 ) AS EntryCount
-            FROM ConfigReleases
-            WHERE Project = @ProjectName COLLATE NOCASE
-              AND Environment = @EnvironmentName COLLATE NOCASE
-              AND Version = @Version COLLATE NOCASE
-            LIMIT 1
+            FROM TargetRelease release
             """,
             CreateVersionParameters(projectName, environmentName, version),
             ct);
 
-        if (result.Rows.Count == 0)
-        {
-            return null;
-        }
-
-        var entries = await ListEntriesAsync(projectName, environmentName, version, ct);
-        return MapRelease(result.Rows[0], entries);
+        return result.Rows.Count == 0
+            ? null
+            : MapRelease(result.Rows[0], []);
     }
 
-    public async Task<ConfigRelease?> GetLatestPatchAsync(string projectName, string environmentName, int major, int minor, CancellationToken ct = default)
+    public async Task<ConfigRelease?> GetLatestPatchMetadataAsync(
+        string projectName,
+        string environmentName,
+        int major,
+        int minor,
+        CancellationToken ct = default)
     {
         var result = await _client.ExecuteAsync(
             """
+            WITH TargetRelease AS (
+                SELECT Project, Environment, Version, Major, Minor, Patch, CreatedAt, Actor
+                FROM ConfigReleases
+                WHERE Project = @ProjectName COLLATE NOCASE
+                  AND Environment = @EnvironmentName COLLATE NOCASE
+                  AND Major = @Major
+                  AND Minor = @Minor
+                ORDER BY Patch DESC
+                LIMIT 1
+            )
             SELECT
-                Project,
-                Environment,
-                Version,
-                Major,
-                Minor,
-                Patch,
-                CreatedAt,
-                Actor,
+                release.Project,
+                release.Environment,
+                release.Version,
+                release.Major,
+                release.Minor,
+                release.Patch,
+                release.CreatedAt,
+                release.Actor,
                 (
                     SELECT COUNT(1)
                     FROM ConfigReleaseEntries entries
-                    WHERE entries.Project = ConfigReleases.Project COLLATE NOCASE
-                      AND entries.Environment = ConfigReleases.Environment COLLATE NOCASE
-                      AND entries.ReleaseVersion = ConfigReleases.Version COLLATE NOCASE
+                    WHERE entries.Project = release.Project COLLATE NOCASE
+                      AND entries.Environment = release.Environment COLLATE NOCASE
+                      AND entries.ReleaseVersion = release.Version COLLATE NOCASE
                 ) AS EntryCount
-            FROM ConfigReleases
-            WHERE Project = @ProjectName COLLATE NOCASE
-              AND Environment = @EnvironmentName COLLATE NOCASE
-              AND Major = @Major
-              AND Minor = @Minor
-            ORDER BY Patch DESC
-            LIMIT 1
+            FROM TargetRelease release
             """,
             LibsqlParameters.Create(
                 ("ProjectName", projectName),
@@ -88,14 +101,38 @@ public sealed class LibsqlConfigReleaseRepository : IConfigReleaseRepository
                 ("Minor", minor)),
             ct);
 
-        if (result.Rows.Count == 0)
-        {
-            return null;
-        }
+        return result.Rows.Count == 0
+            ? null
+            : MapRelease(result.Rows[0], []);
+    }
 
-        var release = MapRelease(result.Rows[0], []);
+    public async Task<ConfigRelease?> GetAsync(
+        string projectName,
+        string environmentName,
+        string version,
+        CancellationToken ct = default)
+    {
+        var release = await GetMetadataAsync(projectName, environmentName, version, ct);
+        if (release is null)
+            return null;
+
         var entries = await ListEntriesAsync(projectName, environmentName, release.Version, ct);
-        return MapRelease(result.Rows[0], entries);
+        return WithEntries(release, entries);
+    }
+
+    public async Task<ConfigRelease?> GetLatestPatchAsync(
+        string projectName,
+        string environmentName,
+        int major,
+        int minor,
+        CancellationToken ct = default)
+    {
+        var release = await GetLatestPatchMetadataAsync(projectName, environmentName, major, minor, ct);
+        if (release is null)
+            return null;
+
+        var entries = await ListEntriesAsync(projectName, environmentName, release.Version, ct);
+        return WithEntries(release, entries);
     }
 
     public async Task<IReadOnlyList<ConfigRelease>> ListAsync(string projectName, string environmentName, CancellationToken ct = default)
@@ -308,6 +345,25 @@ public sealed class LibsqlConfigReleaseRepository : IConfigReleaseRepository
             EntryCount = row.GetInt32("EntryCount"),
             CreatedAt = ParseTimestamp(row.GetString("CreatedAt")),
             Actor = row.GetString("Actor")
+        };
+    }
+
+    private static ConfigRelease WithEntries(
+        ConfigRelease release,
+        IReadOnlyList<ConfigReleaseEntry> entries)
+    {
+        return new ConfigRelease
+        {
+            Project = release.Project,
+            Environment = release.Environment,
+            Version = release.Version,
+            Major = release.Major,
+            Minor = release.Minor,
+            Patch = release.Patch,
+            Entries = entries,
+            EntryCount = release.EntryCount,
+            CreatedAt = release.CreatedAt,
+            Actor = release.Actor
         };
     }
 

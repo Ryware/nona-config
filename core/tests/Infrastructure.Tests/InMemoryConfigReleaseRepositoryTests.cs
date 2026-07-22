@@ -18,10 +18,20 @@ public class InMemoryConfigReleaseRepositoryTests
         await Assert.That(await repository.AddAsync(second)).IsTrue();
         await Assert.That(await repository.AddAsync(second)).IsFalse();
 
+        var exactMetadata = await repository.GetMetadataAsync("test-project", "production", "1.1.0");
+        var latestMetadata = await repository.GetLatestPatchMetadataAsync("test-project", "production", 1, 1);
         var exact = await repository.GetAsync("test-project", "production", "1.1.0");
         var latest = await repository.GetLatestPatchAsync("test-project", "production", 1, 1);
         var releases = await repository.ListAsync("test-project", "production");
 
+        await Assert.That(exactMetadata).IsNotNull();
+        await Assert.That(exactMetadata!.Version).IsEqualTo("1.1.0");
+        await Assert.That(exactMetadata.EntryCount).IsEqualTo(1);
+        await Assert.That(exactMetadata.Entries).IsEmpty();
+        await Assert.That(latestMetadata).IsNotNull();
+        await Assert.That(latestMetadata!.Version).IsEqualTo("1.1.2");
+        await Assert.That(latestMetadata.EntryCount).IsEqualTo(1);
+        await Assert.That(latestMetadata.Entries).IsEmpty();
         await Assert.That(exact).IsNotNull();
         await Assert.That(exact!.Entries[0].Value).IsEqualTo("false");
         await Assert.That(latest).IsNotNull();
