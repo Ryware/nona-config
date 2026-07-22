@@ -2,6 +2,7 @@ using Nona.Application.Admin.Common;
 using Nona.Application.Admin.ConfigReleases.Commands;
 using Nona.Application.Admin.ConfigReleases.DTOs;
 using Nona.Application.Common;
+using Nona.Domain;
 using Nona.Domain.Enums;
 
 namespace Nona.Application.Admin.ConfigReleases.Validators;
@@ -67,11 +68,11 @@ internal static class PublishConfigReleaseEntryPayloadValidation
             }
 
             var isValid = true;
-            if (!ValidationHelpers.IsValidKey(entry.Key) || entry.Key.Any(char.IsWhiteSpace))
+            if (!ValidationHelpers.IsValidKey(entry.Key))
             {
                 var error = string.IsNullOrWhiteSpace(entry.Key)
                     ? "Release entries must have a key."
-                    : "Release entry keys cannot contain whitespace.";
+                    : ConfigEntryKey.ValidationError;
                 failures.Add(new($"{propertyName}.Key", error));
                 isValid = false;
             }

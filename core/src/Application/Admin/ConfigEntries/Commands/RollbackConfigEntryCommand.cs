@@ -3,6 +3,7 @@ using Nona.Application.Admin.ConfigEntries.DTOs;
 using Nona.Application.Admin.Projects;
 using Nona.Application.Common;
 using Nona.Application.Common.Interfaces;
+using Nona.Domain;
 using Nona.Domain.Entities;
 using Nona.Domain.Interfaces;
 
@@ -26,6 +27,9 @@ public class RollbackConfigEntryCommandHandler(
 {
     public async ValueTask<RollbackConfigEntryResult> Handle(RollbackConfigEntryCommand request, CancellationToken cancellationToken)
     {
+        if (!ConfigEntryKey.IsValid(request.Key))
+            return new RollbackConfigEntryResult(false, null, ConfigEntryKey.ValidationError);
+
         if (request.Version <= 0)
             return new RollbackConfigEntryResult(false, null, "Version must be greater than zero");
 

@@ -1,3 +1,4 @@
+using Nona.Domain;
 using Nona.Domain.Entities;
 using Nona.Domain.Enums;
 using Nona.Domain.Interfaces;
@@ -568,9 +569,13 @@ public sealed class LibsqlConfigReleaseRepository : IConfigReleaseRepository
     private static void EnsureUniqueEntryKeys(ConfigRelease release)
     {
         var keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        if (release.Entries.Any(entry => !keys.Add(entry.Key)))
+        foreach (var entry in release.Entries)
         {
-            throw new ArgumentException("Release entries must have unique case-insensitive keys.", nameof(release));
+            ConfigEntryKey.ThrowIfInvalid(entry.Key, nameof(release));
+            if (!keys.Add(entry.Key))
+            {
+                throw new ArgumentException("Release entries must have unique case-insensitive keys.", nameof(release));
+            }
         }
     }
 }

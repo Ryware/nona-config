@@ -9,6 +9,28 @@ namespace Nona.Infrastructure.Tests;
 public class LibsqlConfigEntryRepositoryTests
 {
     [Test]
+    public async Task AddVersionAsync_RejectsInvalidKeyBeforeDatabaseCall()
+    {
+        var client = new EmptyBatchLibsqlClient();
+        var repository = new LibsqlConfigEntryRepository(client);
+        Exception? exception = null;
+        try
+        {
+            await repository.AddVersionAsync(
+                CreateEntry("Ångström", "true", DateTime.UtcNow),
+                "alice");
+        }
+        catch (Exception ex)
+        {
+            exception = ex;
+        }
+
+        await Assert.That(exception).IsTypeOf<ArgumentException>();
+        await Assert.That(client.BatchStatementCount).IsEqualTo(0);
+        await Assert.That(client.ExecuteAsyncCalls).IsEqualTo(0);
+    }
+
+    [Test]
     public async Task AddVersionAsync_Sqld_AppendsHistoryAndServesLatestActiveValue()
     {
         await using var server = await LocalSqldTestServer.StartAsync();

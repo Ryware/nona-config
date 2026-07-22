@@ -1,5 +1,6 @@
 using Nona.Application.Admin.ConfigEntries.Commands;
 using Nona.Application.Tests.Common;
+using Nona.Domain;
 
 namespace Nona.Application.Tests.ConfigEntries;
 
@@ -9,6 +10,25 @@ public class UpsertConfigEntryCommandTests
     private const string EnvironmentName = "development";
     private const string ConfigKey = "test-key";
     private const string ConfigValue = "test-value";
+
+    [Test]
+    public async Task RejectsInvalidKeyBeforeAccessingRepositories()
+    {
+        var fixture = new TestFixture();
+        var handler = new UpsertConfigEntryCommandHandler(
+            fixture.ProjectRepository,
+            fixture.EnvironmentRepository,
+            fixture.ConfigEntryRepository,
+            fixture.ProjectAccessService,
+            fixture.DateTime);
+
+        var result = await handler.Handle(
+            new UpsertConfigEntryCommand(ProjectName, EnvironmentName, "feature/value", ConfigValue, null, null),
+            CancellationToken.None);
+
+        await Assert.That(result.Success).IsFalse();
+        await Assert.That(result.Error).IsEqualTo(ConfigEntryKey.ValidationError);
+    }
 
     [Test]
     public async Task SystemAdmin_CanUpsertConfigEntry()

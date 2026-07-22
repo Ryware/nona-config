@@ -4,6 +4,7 @@ using Nona.Application.Admin.ConfigReleases.Validators;
 using Nona.Application.Admin.Projects;
 using Nona.Application.Common;
 using Nona.Application.Common.Interfaces;
+using Nona.Domain;
 using Nona.Domain.Entities;
 using Nona.Domain.Interfaces;
 
@@ -81,6 +82,9 @@ public class PublishConfigReleaseCommandHandler(
         {
             // Create a version: snapshot the current working configuration.
             var entries = await configEntryRepository.ListAsync(projectName, request.EnvironmentName, cancellationToken);
+            if (entries.Any(entry => !ConfigEntryKey.IsValid(entry.Key)))
+                return new PublishConfigReleaseResult(false, null, ConfigEntryKey.ValidationError);
+
             snapshotEntries = entries.Select(entry => new ConfigReleaseEntry
             {
                 Project = projectName,

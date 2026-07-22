@@ -1,3 +1,4 @@
+using Nona.Domain;
 using Nona.Domain.Entities;
 using Nona.Domain.Enums;
 using Nona.Domain.Interfaces;
@@ -129,9 +130,13 @@ public class InMemoryConfigReleaseRepository : IConfigReleaseRepository
     public Task<bool> AddAsync(ConfigRelease release, CancellationToken ct = default)
     {
         var uniqueKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        if (release.Entries.Any(entry => !uniqueKeys.Add(entry.Key)))
+        foreach (var entry in release.Entries)
         {
-            throw new ArgumentException("Release entries must have unique case-insensitive keys.", nameof(release));
+            ConfigEntryKey.ThrowIfInvalid(entry.Key, nameof(release));
+            if (!uniqueKeys.Add(entry.Key))
+            {
+                throw new ArgumentException("Release entries must have unique case-insensitive keys.", nameof(release));
+            }
         }
 
         var releaseWithCount = new ConfigRelease

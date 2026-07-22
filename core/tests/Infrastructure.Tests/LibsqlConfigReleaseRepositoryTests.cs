@@ -10,6 +10,27 @@ namespace Nona.Infrastructure.Tests;
 public class LibsqlConfigReleaseRepositoryTests
 {
     [Test]
+    public async Task AddAsync_RejectsInvalidEntryKeyBeforeDatabaseCall()
+    {
+        await using var server = await LocalSqldTestServer.StartAsync();
+        using var innerClient = server.CreateClient();
+        var client = new CountingLibsqlDatabaseClient(innerClient);
+        var repository = new LibsqlConfigReleaseRepository(client);
+        Exception? exception = null;
+        try
+        {
+            await repository.AddAsync(CreateRelease("1.0.0", "true", patch: 0, key: "不存在"));
+        }
+        catch (Exception ex)
+        {
+            exception = ex;
+        }
+
+        await Assert.That(exception).IsTypeOf<ArgumentException>();
+        await Assert.That(client.RoundTrips).IsEqualTo(0);
+    }
+
+    [Test]
     public async Task AddAsync_Sqld_StoresReleaseEntriesAndResolvesHighestPatch()
     {
         await using var server = await LocalSqldTestServer.StartAsync();
@@ -123,8 +144,6 @@ public class LibsqlConfigReleaseRepositoryTests
         var repository = new LibsqlConfigReleaseRepository(client);
         await repository.AddAsync(CreateRelease("1.1.0", "false", patch: 0));
         await repository.AddAsync(CreateRelease("1.1.2", "true", patch: 2));
-        await repository.AddAsync(CreateRelease("2.0.0", "unicode", patch: 0, key: "Ångström"));
-        await repository.AddAsync(CreateOverfoldRelease("3.0.0"));
 
         var countingClient = new CountingLibsqlDatabaseClient(client);
         var countingRepository = new LibsqlConfigReleaseRepository(countingClient);
@@ -187,63 +206,6 @@ public class LibsqlConfigReleaseRepositoryTests
         await Assert.That(missingRelease.ReleaseFound).IsFalse();
         await Assert.That(missingRelease.Entry).IsNull();
 
-        countingClient.Reset();
-        var unicodeCaseVariant = await countingRepository.GetEntryAsync(
-            "test-project",
-            "production",
-            "2.0.0",
-            "ångström",
-            KeyScope.Frontend);
-
-        await Assert.That(countingClient.RoundTrips).IsEqualTo(1);
-        await Assert.That(unicodeCaseVariant.ReleaseFound).IsTrue();
-        await Assert.That(unicodeCaseVariant.Entry).IsNotNull();
-        await Assert.That(unicodeCaseVariant.Entry!.Key).IsEqualTo("Ångström");
-        await Assert.That(unicodeCaseVariant.Entry.Value).IsEqualTo("unicode");
-
-        countingClient.Reset();
-        var unicodeLatestPatch = await countingRepository.GetLatestPatchEntryAsync(
-            "test-project",
-            "production",
-            2,
-            0,
-            "ångström",
-            KeyScope.Frontend);
-
-        await Assert.That(countingClient.RoundTrips).IsEqualTo(1);
-        await Assert.That(unicodeLatestPatch.ReleaseFound).IsTrue();
-        await Assert.That(unicodeLatestPatch.Entry!.ReleaseVersion).IsEqualTo("2.0.0");
-        await Assert.That(unicodeLatestPatch.Entry.Key).IsEqualTo("Ångström");
-
-        countingClient.Reset();
-        var missingUnicode = await countingRepository.GetEntryAsync(
-            "test-project",
-            "production",
-            "2.0.0",
-            "不存在",
-            KeyScope.Frontend);
-
-        await Assert.That(countingClient.RoundTrips).IsEqualTo(1);
-        await Assert.That(missingUnicode.ReleaseFound).IsTrue();
-        await Assert.That(missingUnicode.Entry).IsNull();
-
-        countingClient.Reset();
-        var asciiS = await countingRepository.GetEntryAsync(
-            "test-project",
-            "production",
-            "3.0.0",
-            "S",
-            KeyScope.Frontend);
-        var longS = await countingRepository.GetEntryAsync(
-            "test-project",
-            "production",
-            "3.0.0",
-            "ſ",
-            KeyScope.Frontend);
-
-        await Assert.That(countingClient.RoundTrips).IsEqualTo(2);
-        await Assert.That(asciiS.Entry!.Value).IsEqualTo("ascii-s");
-        await Assert.That(longS.Entry!.Value).IsEqualTo("long-s");
     }
 
     [Test]
@@ -468,37 +430,6 @@ public class LibsqlConfigReleaseRepositoryTests
             EntryCount = 1,
             CreatedAt = new DateTime(2026, 7, 1, 12, 0, 0, DateTimeKind.Utc),
             Actor = "alice"
-        };
-    }
-
-    private static ConfigRelease CreateOverfoldRelease(string version)
-    {
-        var release = CreateRelease(version, "ascii-s", patch: 0, key: "S");
-        return new ConfigRelease
-        {
-            Project = release.Project,
-            Environment = release.Environment,
-            Version = release.Version,
-            Major = release.Major,
-            Minor = release.Minor,
-            Patch = release.Patch,
-            Entries =
-            [
-                release.Entries[0],
-                new ConfigReleaseEntry
-                {
-                    Project = release.Project,
-                    Environment = release.Environment,
-                    ReleaseVersion = release.Version,
-                    Key = "ſ",
-                    Value = "long-s",
-                    ContentType = "text",
-                    Scope = KeyScope.Frontend
-                }
-            ],
-            EntryCount = 2,
-            CreatedAt = release.CreatedAt,
-            Actor = release.Actor
         };
     }
 

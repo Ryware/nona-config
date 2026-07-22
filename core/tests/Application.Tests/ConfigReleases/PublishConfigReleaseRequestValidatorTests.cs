@@ -30,7 +30,19 @@ public class PublishConfigReleaseRequestValidatorTests
     [Test]
     public async Task RejectsInvalidKeys()
     {
-        foreach (var key in new[] { "", "   ", "feature flag", "feature\tflag", "feature.flag\n" })
+        foreach (var key in new[]
+                 {
+                     "",
+                     "   ",
+                     "feature flag",
+                     "feature\tflag",
+                     "feature.flag\n",
+                     "feature/value",
+                     "feature@flag",
+                     "Ångström",
+                     "不存在",
+                     "___"
+                 })
         {
             var result = await ValidateAsync([Entry(key)]);
 
@@ -111,6 +123,19 @@ public class PublishConfigReleaseRequestValidatorTests
             Entry("inferred.text", "hello", " "),
             Entry("inferred.number", "42", null!),
             Entry("inferred.boolean", "false", "")
+        ]);
+
+        await Assert.That(result.IsValid).IsTrue();
+    }
+
+    [Test]
+    public async Task AllowsSupportedKeySeparators()
+    {
+        var result = await ValidateAsync(
+        [
+            Entry("feature.enabled"),
+            Entry("feature_flag"),
+            Entry("feature-flag")
         ]);
 
         await Assert.That(result.IsValid).IsTrue();

@@ -1,3 +1,4 @@
+using Nona.Domain;
 using Nona.Domain.Entities;
 using Nona.Domain.Interfaces;
 using System.Collections.Concurrent;
@@ -20,6 +21,8 @@ public class InMemoryConfigEntryRepository : IConfigEntryRepository
 
     public Task<ConfigEntry?> AddVersionAsync(ConfigEntry entry, string actor, CancellationToken ct = default)
     {
+        ConfigEntryKey.ThrowIfInvalid(entry.Key, nameof(entry));
+
         lock (_versionGate)
         {
             return Task.FromResult<ConfigEntry?>(AddVersionCore(entry, actor));

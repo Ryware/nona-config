@@ -37,6 +37,7 @@ using Nona.Application.Shared.ParameterShareLinks;
 using Nona.Application.Shared.ParameterShareLinks.Commands;
 using Nona.Application.Shared.ParameterShareLinks.DTOs;
 using Nona.Application.Shared.ParameterShareLinks.Queries;
+using Nona.Domain;
 using Nona.WebApi.Authentication;
 
 namespace Nona.WebApi.Endpoints;
@@ -709,7 +710,7 @@ public static class NonaEndpointRouteBuilderExtensions
 
         if (!ValidationHelpers.IsValidKey(key))
         {
-            return BadRequest("Key must be non-empty and contain no spaces");
+            return BadRequest(ConfigEntryKey.ValidationError);
         }
 
         var result = await mediator.Send(
@@ -738,7 +739,7 @@ public static class NonaEndpointRouteBuilderExtensions
     {
         if (!ValidationHelpers.IsValidKey(key))
         {
-            return BadRequest("Key must be non-empty and contain no spaces");
+            return BadRequest(ConfigEntryKey.ValidationError);
         }
 
         var result = await mediator.Send(

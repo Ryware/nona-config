@@ -7,6 +7,32 @@ namespace Nona.Infrastructure.Tests;
 public class InMemoryConfigEntryRepositoryTests
 {
     [Test]
+    public async Task AddVersionAsync_RejectsInvalidKey()
+    {
+        var repository = new InMemoryConfigEntryRepository();
+        Exception? exception = null;
+        try
+        {
+            await repository.AddVersionAsync(new ConfigEntry
+            {
+                Project = "test-project",
+                Environment = "production",
+                Key = "feature/value",
+                Value = "true",
+                ContentType = "boolean",
+                Scope = KeyScope.All
+            }, "alice");
+        }
+        catch (Exception ex)
+        {
+            exception = ex;
+        }
+
+        await Assert.That(exception).IsTypeOf<ArgumentException>();
+        await Assert.That(await repository.CountAsync()).IsEqualTo(0);
+    }
+
+    [Test]
     public async Task AddVersionAsync_AppendsHistoryAndRollbackProducesNewActiveVersion()
     {
         var repository = new InMemoryConfigEntryRepository();
