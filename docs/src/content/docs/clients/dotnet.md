@@ -133,8 +133,21 @@ Use an exact version such as `1.1.0` for a fixed snapshot. Use a line such as `1
 You can override the configured version for one request:
 
 ```csharp
-var value = await client.GetConfigValueAsync("Features:Checkout", "1.1.0");
+var value = await client.GetConfigValueForReleaseAsync("Features:Checkout", "1.1.0");
 ```
+
+The named per-request selector takes precedence over `NonaClientOptions.ReleaseVersion`.
+
+## Available methods
+
+- `GetConfigValueAsync(string key, CancellationToken cancellationToken = default)`
+- `GetConfigValueForReleaseAsync(string key, string releaseVersion, CancellationToken cancellationToken = default)`
+- `TryGetConfigValueAsync(string key, CancellationToken cancellationToken = default)`
+- `TryGetConfigValueForReleaseAsync(string key, string releaseVersion, CancellationToken cancellationToken = default)`
+- `GetStringValueAsync(string key, CancellationToken cancellationToken = default)`
+- `GetStringValueForReleaseAsync(string key, string releaseVersion, CancellationToken cancellationToken = default)`
+- `GetJsonValueAsync<T>(string key, JsonTypeInfo<T> jsonTypeInfo, CancellationToken cancellationToken = default)`
+- `GetJsonValueForReleaseAsync<T>(string key, JsonTypeInfo<T> jsonTypeInfo, string releaseVersion, CancellationToken cancellationToken = default)`
 
 ## Read JSON
 

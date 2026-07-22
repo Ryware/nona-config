@@ -8,7 +8,7 @@ internal sealed class HistoryEntriesQueryHandler(Func<HttpClient>? httpClientFac
 {
     public async Task<int> HandleAsync(HistoryEntriesQuery query, CancellationToken ct)
     {
-        var api = NonaClientFactory.Create(query.Connection, httpClientFactory);
+        using var api = NonaClientFactory.Create(query.Connection, httpClientFactory);
         var versions = await api.Admin.Projects[query.Project]
             .Environments[query.Environment].ConfigEntries[query.Key]
             .History.GetAsync(cancellationToken: ct);

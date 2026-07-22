@@ -5,9 +5,30 @@ namespace Nona.Domain.Interfaces;
 
 public interface IConfigReleaseRepository
 {
+    Task<ConfigRelease?> GetMetadataAsync(string projectName, string environmentName, string version, CancellationToken ct = default);
+
+    Task<ConfigRelease?> GetLatestPatchMetadataAsync(string projectName, string environmentName, int major, int minor, CancellationToken ct = default);
+
     Task<ConfigRelease?> GetAsync(string projectName, string environmentName, string version, CancellationToken ct = default);
 
     Task<ConfigRelease?> GetLatestPatchAsync(string projectName, string environmentName, int major, int minor, CancellationToken ct = default);
+
+    Task<ConfigReleaseEntryLookupResult> GetEntryAsync(
+        string projectName,
+        string environmentName,
+        string version,
+        string key,
+        KeyScope requiredScope,
+        CancellationToken ct = default);
+
+    Task<ConfigReleaseEntryLookupResult> GetLatestPatchEntryAsync(
+        string projectName,
+        string environmentName,
+        int major,
+        int minor,
+        string key,
+        KeyScope requiredScope,
+        CancellationToken ct = default);
 
     Task<IReadOnlyList<ConfigRelease>> ListAsync(string projectName, string environmentName, CancellationToken ct = default);
 

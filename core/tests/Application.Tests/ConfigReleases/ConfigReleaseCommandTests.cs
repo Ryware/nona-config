@@ -232,6 +232,134 @@ public class ConfigReleaseCommandTests
             Arg.Any<CancellationToken>());
     }
 
+    [Test]
+    public async Task PublishConfigRelease_RejectsInvalidPayloadsBeforePersistence()
+    {
+        IReadOnlyList<ConfigReleaseEntryDto>[] invalidPayloads =
+        [
+            [null!],
+            [new ConfigReleaseEntryDto("", "value", "text", "all")],
+            [new ConfigReleaseEntryDto("invalid key", "value", "text", "all")],
+            [new ConfigReleaseEntryDto("null.value", null!, "text", "all")],
+            [
+                new ConfigReleaseEntryDto("feature.flag", "true", "boolean", "all"),
+                new ConfigReleaseEntryDto("FEATURE.FLAG", "false", "boolean", "all")
+            ],
+            [new ConfigReleaseEntryDto("invalid.scope", "value", "text", "internal")],
+            [new ConfigReleaseEntryDto("invalid.type", "value", "xml", "all")],
+            [new ConfigReleaseEntryDto("invalid.json", "{invalid", "json", "all")],
+            [new ConfigReleaseEntryDto("invalid.number", "abc", "number", "all")],
+            [new ConfigReleaseEntryDto("invalid.boolean", "yes", "boolean", "all")]
+        ];
+
+        foreach (var entries in invalidPayloads)
+        {
+            var fixture = new TestFixture();
+            fixture.SetupAsSystemAdmin();
+            fixture.SetupProjectExists(ProjectName);
+            fixture.SetupEnvironmentExists(ProjectName, EnvironmentName);
+
+            var handler = CreatePublishHandler(fixture);
+            var result = await handler.Handle(
+                new PublishConfigReleaseCommand(
+                    ProjectName,
+                    EnvironmentName,
+                    "1.0.1",
+                    MakeActive: false,
+                    Entries: entries),
+                CancellationToken.None);
+
+            await Assert.That(result.Success).IsFalse();
+            await fixture.ConfigReleaseRepository.DidNotReceive().AddAsync(
+                Arg.Any<ConfigRelease>(),
+                Arg.Any<CancellationToken>());
+        }
+    }
+
+    [Test]
+    public async Task PublishConfigRelease_NormalizesDeclaredAliasesAndInferredTypes()
+    {
+        var fixture = new TestFixture();
+        fixture.SetupAsSystemAdmin();
+        fixture.SetupProjectExists(ProjectName);
+        fixture.SetupEnvironmentExists(ProjectName, EnvironmentName);
+        fixture.ConfigReleaseRepository.AddAsync(Arg.Any<ConfigRelease>(), Arg.Any<CancellationToken>())
+            .Returns(true);
+
+        var handler = CreatePublishHandler(fixture);
+        var result = await handler.Handle(
+            new PublishConfigReleaseCommand(
+                ProjectName,
+                EnvironmentName,
+                "1.0.1",
+                MakeActive: false,
+                Entries:
+                [
+                    new ConfigReleaseEntryDto("declared.json", "{}", "application/json", "all"),
+                    new ConfigReleaseEntryDto("declared.text", "hello", "text/plain", "all"),
+                    new ConfigReleaseEntryDto("declared.number", "42", "integer", "server"),
+                    new ConfigReleaseEntryDto("declared.boolean", "true", "bool", "client"),
+                    new ConfigReleaseEntryDto("inferred.json", "[]", "", "all"),
+                    new ConfigReleaseEntryDto("inferred.text", "hello", " ", "all"),
+                    new ConfigReleaseEntryDto("inferred.number", "42", null!, "all"),
+                    new ConfigReleaseEntryDto("inferred.boolean", "false", "", "all")
+                ]),
+            CancellationToken.None);
+
+        await Assert.That(result.Success).IsTrue();
+        await Assert.That(result.Release!.EntryCount).IsEqualTo(8);
+        await Assert.That(result.Release.Entries.Single(entry => entry.Key == "declared.json").ContentType).IsEqualTo("json");
+        await Assert.That(result.Release.Entries.Single(entry => entry.Key == "declared.text").ContentType).IsEqualTo("text");
+        await Assert.That(result.Release.Entries.Single(entry => entry.Key == "declared.number").ContentType).IsEqualTo("number");
+        await Assert.That(result.Release.Entries.Single(entry => entry.Key == "declared.boolean").ContentType).IsEqualTo("boolean");
+        await Assert.That(result.Release.Entries.Single(entry => entry.Key == "inferred.json").ContentType).IsEqualTo("json");
+        await Assert.That(result.Release.Entries.Single(entry => entry.Key == "inferred.text").ContentType).IsEqualTo("text");
+        await Assert.That(result.Release.Entries.Single(entry => entry.Key == "inferred.number").ContentType).IsEqualTo("number");
+        await Assert.That(result.Release.Entries.Single(entry => entry.Key == "inferred.boolean").ContentType).IsEqualTo("boolean");
+
+        await fixture.ConfigReleaseRepository.Received(1).AddAsync(
+            Arg.Is<ConfigRelease>(release =>
+                release.EntryCount == 8
+                && release.Entries.Count == 8
+                && release.Entries.All(entry =>
+                    entry.ContentType == "json"
+                    || entry.ContentType == "text"
+                    || entry.ContentType == "number"
+                    || entry.ContentType == "boolean")),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Test]
+    public async Task PublishConfigRelease_WithEmptyEntries_PersistsExplicitEmptySnapshot()
+    {
+        var fixture = new TestFixture();
+        fixture.SetupAsSystemAdmin();
+        fixture.SetupProjectExists(ProjectName);
+        fixture.SetupEnvironmentExists(ProjectName, EnvironmentName);
+        fixture.ConfigReleaseRepository.AddAsync(Arg.Any<ConfigRelease>(), Arg.Any<CancellationToken>())
+            .Returns(true);
+
+        var handler = CreatePublishHandler(fixture);
+        var result = await handler.Handle(
+            new PublishConfigReleaseCommand(
+                ProjectName,
+                EnvironmentName,
+                "1.0.1",
+                MakeActive: false,
+                Entries: []),
+            CancellationToken.None);
+
+        await Assert.That(result.Success).IsTrue();
+        await Assert.That(result.Release!.EntryCount).IsEqualTo(0);
+        await fixture.ConfigReleaseRepository.Received(1).AddAsync(
+            Arg.Is<ConfigRelease>(release => release.EntryCount == 0 && release.Entries.Count == 0),
+            Arg.Any<CancellationToken>());
+        await fixture.ConfigEntryRepository.DidNotReceive().ListAsync(
+            Arg.Any<string>(),
+            Arg.Any<string>(),
+            Arg.Any<CancellationToken>());
+    }
+
     private static PublishConfigReleaseCommandHandler CreatePublishHandler(TestFixture fixture)
     {
         return new PublishConfigReleaseCommandHandler(

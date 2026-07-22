@@ -1,3 +1,4 @@
+using Nona.Domain;
 using Nona.Domain.Entities;
 using Nona.Domain.Enums;
 using Nona.Domain.Interfaces;
@@ -15,71 +16,84 @@ public sealed class LibsqlConfigReleaseRepository : IConfigReleaseRepository
         _client = client;
     }
 
-    public async Task<ConfigRelease?> GetAsync(string projectName, string environmentName, string version, CancellationToken ct = default)
+    public async Task<ConfigRelease?> GetMetadataAsync(
+        string projectName,
+        string environmentName,
+        string version,
+        CancellationToken ct = default)
     {
         var result = await _client.ExecuteAsync(
             """
+            WITH TargetRelease AS (
+                SELECT Project, Environment, Version, Major, Minor, Patch, CreatedAt, Actor
+                FROM ConfigReleases
+                WHERE Project = @ProjectName COLLATE NOCASE
+                  AND Environment = @EnvironmentName COLLATE NOCASE
+                  AND Version = @Version COLLATE NOCASE
+                LIMIT 1
+            )
             SELECT
-                Project,
-                Environment,
-                Version,
-                Major,
-                Minor,
-                Patch,
-                CreatedAt,
-                Actor,
+                release.Project,
+                release.Environment,
+                release.Version,
+                release.Major,
+                release.Minor,
+                release.Patch,
+                release.CreatedAt,
+                release.Actor,
                 (
                     SELECT COUNT(1)
                     FROM ConfigReleaseEntries entries
-                    WHERE entries.Project = ConfigReleases.Project COLLATE NOCASE
-                      AND entries.Environment = ConfigReleases.Environment COLLATE NOCASE
-                      AND entries.ReleaseVersion = ConfigReleases.Version COLLATE NOCASE
+                    WHERE entries.Project = release.Project COLLATE NOCASE
+                      AND entries.Environment = release.Environment COLLATE NOCASE
+                      AND entries.ReleaseVersion = release.Version COLLATE NOCASE
                 ) AS EntryCount
-            FROM ConfigReleases
-            WHERE Project = @ProjectName COLLATE NOCASE
-              AND Environment = @EnvironmentName COLLATE NOCASE
-              AND Version = @Version COLLATE NOCASE
-            LIMIT 1
+            FROM TargetRelease release
             """,
             CreateVersionParameters(projectName, environmentName, version),
             ct);
 
-        if (result.Rows.Count == 0)
-        {
-            return null;
-        }
-
-        var entries = await ListEntriesAsync(projectName, environmentName, version, ct);
-        return MapRelease(result.Rows[0], entries);
+        return result.Rows.Count == 0
+            ? null
+            : MapRelease(result.Rows[0], []);
     }
 
-    public async Task<ConfigRelease?> GetLatestPatchAsync(string projectName, string environmentName, int major, int minor, CancellationToken ct = default)
+    public async Task<ConfigRelease?> GetLatestPatchMetadataAsync(
+        string projectName,
+        string environmentName,
+        int major,
+        int minor,
+        CancellationToken ct = default)
     {
         var result = await _client.ExecuteAsync(
             """
+            WITH TargetRelease AS (
+                SELECT Project, Environment, Version, Major, Minor, Patch, CreatedAt, Actor
+                FROM ConfigReleases
+                WHERE Project = @ProjectName COLLATE NOCASE
+                  AND Environment = @EnvironmentName COLLATE NOCASE
+                  AND Major = @Major
+                  AND Minor = @Minor
+                ORDER BY Patch DESC
+                LIMIT 1
+            )
             SELECT
-                Project,
-                Environment,
-                Version,
-                Major,
-                Minor,
-                Patch,
-                CreatedAt,
-                Actor,
+                release.Project,
+                release.Environment,
+                release.Version,
+                release.Major,
+                release.Minor,
+                release.Patch,
+                release.CreatedAt,
+                release.Actor,
                 (
                     SELECT COUNT(1)
                     FROM ConfigReleaseEntries entries
-                    WHERE entries.Project = ConfigReleases.Project COLLATE NOCASE
-                      AND entries.Environment = ConfigReleases.Environment COLLATE NOCASE
-                      AND entries.ReleaseVersion = ConfigReleases.Version COLLATE NOCASE
+                    WHERE entries.Project = release.Project COLLATE NOCASE
+                      AND entries.Environment = release.Environment COLLATE NOCASE
+                      AND entries.ReleaseVersion = release.Version COLLATE NOCASE
                 ) AS EntryCount
-            FROM ConfigReleases
-            WHERE Project = @ProjectName COLLATE NOCASE
-              AND Environment = @EnvironmentName COLLATE NOCASE
-              AND Major = @Major
-              AND Minor = @Minor
-            ORDER BY Patch DESC
-            LIMIT 1
+            FROM TargetRelease release
             """,
             LibsqlParameters.Create(
                 ("ProjectName", projectName),
@@ -88,14 +102,144 @@ public sealed class LibsqlConfigReleaseRepository : IConfigReleaseRepository
                 ("Minor", minor)),
             ct);
 
-        if (result.Rows.Count == 0)
-        {
-            return null;
-        }
+        return result.Rows.Count == 0
+            ? null
+            : MapRelease(result.Rows[0], []);
+    }
 
-        var release = MapRelease(result.Rows[0], []);
+    public async Task<ConfigRelease?> GetAsync(
+        string projectName,
+        string environmentName,
+        string version,
+        CancellationToken ct = default)
+    {
+        var release = await GetMetadataAsync(projectName, environmentName, version, ct);
+        if (release is null)
+            return null;
+
         var entries = await ListEntriesAsync(projectName, environmentName, release.Version, ct);
-        return MapRelease(result.Rows[0], entries);
+        return WithEntries(release, entries);
+    }
+
+    public async Task<ConfigRelease?> GetLatestPatchAsync(
+        string projectName,
+        string environmentName,
+        int major,
+        int minor,
+        CancellationToken ct = default)
+    {
+        var release = await GetLatestPatchMetadataAsync(projectName, environmentName, major, minor, ct);
+        if (release is null)
+            return null;
+
+        var entries = await ListEntriesAsync(projectName, environmentName, release.Version, ct);
+        return WithEntries(release, entries);
+    }
+
+    public Task<ConfigReleaseEntryLookupResult> GetEntryAsync(
+        string projectName,
+        string environmentName,
+        string version,
+        string key,
+        KeyScope requiredScope,
+        CancellationToken ct = default)
+    {
+        return ExecuteEntryLookupAsync(
+            """
+            SELECT
+                releases.Project,
+                releases.Environment,
+                releases.Version AS ReleaseVersion,
+                EXISTS (
+                    SELECT 1
+                    FROM ConfigReleaseEntries pending
+                    WHERE pending.Project = releases.Project COLLATE NOCASE
+                      AND pending.Environment = releases.Environment COLLATE NOCASE
+                      AND pending.ReleaseVersion = releases.Version COLLATE NOCASE
+                      AND pending.NormalizedKey IS NULL
+                ) AS PendingKeyBackfill,
+                entries.Key,
+                entries.Value,
+                entries.ContentType,
+                entries.Scope
+            FROM ConfigReleases releases
+            LEFT JOIN ConfigReleaseEntries entries
+              ON entries.Project = releases.Project COLLATE NOCASE
+             AND entries.Environment = releases.Environment COLLATE NOCASE
+             AND entries.ReleaseVersion = releases.Version COLLATE NOCASE
+             AND entries.NormalizedKey = @NormalizedKey
+             AND (entries.Scope & @RequiredScope) != 0
+            WHERE releases.Project = @ProjectName COLLATE NOCASE
+              AND releases.Environment = @EnvironmentName COLLATE NOCASE
+              AND releases.Version = @Version COLLATE NOCASE
+            ORDER BY entries.Key
+            """,
+            LibsqlParameters.Create(
+                ("ProjectName", projectName),
+                ("EnvironmentName", environmentName),
+                ("Version", version),
+                ("NormalizedKey", NormalizeKey(key)),
+                ("RequiredScope", (int)requiredScope)),
+            key,
+            requiredScope,
+            ct);
+    }
+
+    public Task<ConfigReleaseEntryLookupResult> GetLatestPatchEntryAsync(
+        string projectName,
+        string environmentName,
+        int major,
+        int minor,
+        string key,
+        KeyScope requiredScope,
+        CancellationToken ct = default)
+    {
+        return ExecuteEntryLookupAsync(
+            """
+            SELECT
+                releases.Project,
+                releases.Environment,
+                releases.Version AS ReleaseVersion,
+                EXISTS (
+                    SELECT 1
+                    FROM ConfigReleaseEntries pending
+                    WHERE pending.Project = releases.Project COLLATE NOCASE
+                      AND pending.Environment = releases.Environment COLLATE NOCASE
+                      AND pending.ReleaseVersion = releases.Version COLLATE NOCASE
+                      AND pending.NormalizedKey IS NULL
+                ) AS PendingKeyBackfill,
+                entries.Key,
+                entries.Value,
+                entries.ContentType,
+                entries.Scope
+            FROM (
+                SELECT Project, Environment, Version
+                FROM ConfigReleases
+                WHERE Project = @ProjectName COLLATE NOCASE
+                  AND Environment = @EnvironmentName COLLATE NOCASE
+                  AND Major = @Major
+                  AND Minor = @Minor
+                ORDER BY Patch DESC
+                LIMIT 1
+            ) releases
+            LEFT JOIN ConfigReleaseEntries entries
+              ON entries.Project = releases.Project COLLATE NOCASE
+             AND entries.Environment = releases.Environment COLLATE NOCASE
+             AND entries.ReleaseVersion = releases.Version COLLATE NOCASE
+             AND entries.NormalizedKey = @NormalizedKey
+             AND (entries.Scope & @RequiredScope) != 0
+            ORDER BY entries.Key
+            """,
+            LibsqlParameters.Create(
+                ("ProjectName", projectName),
+                ("EnvironmentName", environmentName),
+                ("Major", major),
+                ("Minor", minor),
+                ("NormalizedKey", NormalizeKey(key)),
+                ("RequiredScope", (int)requiredScope)),
+            key,
+            requiredScope,
+            ct);
     }
 
     public async Task<IReadOnlyList<ConfigRelease>> ListAsync(string projectName, string environmentName, CancellationToken ct = default)
@@ -176,6 +320,8 @@ public sealed class LibsqlConfigReleaseRepository : IConfigReleaseRepository
 
     public async Task<bool> AddAsync(ConfigRelease release, CancellationToken ct = default)
     {
+        EnsureUniqueEntryKeys(release);
+
         var statements = new List<LibsqlStatement>
         {
             new(
@@ -190,8 +336,12 @@ public sealed class LibsqlConfigReleaseRepository : IConfigReleaseRepository
         {
             statements.Add(new LibsqlStatement(
                 """
-                INSERT OR IGNORE INTO ConfigReleaseEntries (Project, Environment, ReleaseVersion, Key, Value, ContentType, Scope)
-                VALUES (@Project, @Environment, @ReleaseVersion, @Key, @Value, @ContentType, @Scope)
+                INSERT OR IGNORE INTO ConfigReleaseEntries (
+                    Project, Environment, ReleaseVersion, Key, NormalizedKey, Value, ContentType, Scope
+                )
+                VALUES (
+                    @Project, @Environment, @ReleaseVersion, @Key, @NormalizedKey, @Value, @ContentType, @Scope
+                )
                 """,
                 ToEntryParameters(entry)));
         }
@@ -294,6 +444,36 @@ public sealed class LibsqlConfigReleaseRepository : IConfigReleaseRepository
         return result.Rows.Select(MapEntry).ToList();
     }
 
+    private async Task<ConfigReleaseEntryLookupResult> ExecuteEntryLookupAsync(
+        string sql,
+        IReadOnlyDictionary<string, object?> parameters,
+        string key,
+        KeyScope requiredScope,
+        CancellationToken ct)
+    {
+        var result = await _client.ExecuteAsync(sql, parameters, ct);
+        if (result.Rows.Count == 0)
+        {
+            return new ConfigReleaseEntryLookupResult(false, null);
+        }
+
+        if (result.Rows[0].GetInt32("PendingKeyBackfill") != 0)
+        {
+            throw new InvalidOperationException("Release entry keys require database initialization.");
+        }
+
+        var row = result.Rows.FirstOrDefault(candidate =>
+            candidate.GetValue("Key") is not null
+            && candidate.GetString("Key").Equals(key, StringComparison.OrdinalIgnoreCase));
+        var entry = row is null ? null : MapEntry(row);
+        if (entry is not null && (entry.Scope & requiredScope) == 0)
+        {
+            entry = null;
+        }
+
+        return new ConfigReleaseEntryLookupResult(true, entry);
+    }
+
     private static ConfigRelease MapRelease(LibsqlRow row, IReadOnlyList<ConfigReleaseEntry> entries)
     {
         return new ConfigRelease
@@ -308,6 +488,25 @@ public sealed class LibsqlConfigReleaseRepository : IConfigReleaseRepository
             EntryCount = row.GetInt32("EntryCount"),
             CreatedAt = ParseTimestamp(row.GetString("CreatedAt")),
             Actor = row.GetString("Actor")
+        };
+    }
+
+    private static ConfigRelease WithEntries(
+        ConfigRelease release,
+        IReadOnlyList<ConfigReleaseEntry> entries)
+    {
+        return new ConfigRelease
+        {
+            Project = release.Project,
+            Environment = release.Environment,
+            Version = release.Version,
+            Major = release.Major,
+            Minor = release.Minor,
+            Patch = release.Patch,
+            Entries = entries,
+            EntryCount = release.EntryCount,
+            CreatedAt = release.CreatedAt,
+            Actor = release.Actor
         };
     }
 
@@ -356,6 +555,7 @@ public sealed class LibsqlConfigReleaseRepository : IConfigReleaseRepository
             ("Environment", entry.Environment),
             ("ReleaseVersion", entry.ReleaseVersion),
             ("Key", entry.Key),
+            ("NormalizedKey", NormalizeKey(entry.Key)),
             ("Value", entry.Value),
             ("ContentType", entry.ContentType),
             ("Scope", (int)entry.Scope));
@@ -363,4 +563,19 @@ public sealed class LibsqlConfigReleaseRepository : IConfigReleaseRepository
 
     private static DateTime ParseTimestamp(string value)
         => DateTime.Parse(value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+
+    internal static string NormalizeKey(string key) => key.ToUpperInvariant();
+
+    private static void EnsureUniqueEntryKeys(ConfigRelease release)
+    {
+        var keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var entry in release.Entries)
+        {
+            ConfigEntryKey.ThrowIfInvalid(entry.Key, nameof(release));
+            if (!keys.Add(entry.Key))
+            {
+                throw new ArgumentException("Release entries must have unique case-insensitive keys.", nameof(release));
+            }
+        }
+    }
 }

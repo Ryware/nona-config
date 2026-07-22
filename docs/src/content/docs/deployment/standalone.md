@@ -96,7 +96,7 @@ Standalone starts with SQLite automatically because no replication arguments are
 
 You can override the automatic choice with `Storage__Type`, but `Storage__Type=Sqlite` is rejected if primary/replica arguments are also configured.
 
-When upgrading an older standalone installation, Nona detects the former sqld database at `/var/lib/nona/primary.db/dbs/default/data` if `nona.db` does not exist. It creates and integrity-checks a SQLite backup before atomically installing `nona.db`; the old `primary.db` directory is retained for rollback.
+**Warning:** Nona does not automatically convert an existing sqld database to SQLite. Preserve and back up the `/var/lib/nona` volume, and perform provider conversion as a separate, deliberate storage migration. See the [upgrade guide](/docs/operations/upgrades/) before changing storage providers.
 
 ## JWT settings
 

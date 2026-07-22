@@ -61,7 +61,7 @@ public sealed class NonaClientTests
     }
 
     [Fact]
-    public async Task GetConfigValueAsync_RequestReleaseVersionOverridesConfiguredReleaseVersion()
+    public async Task GetConfigValueForReleaseAsync_RequestReleaseVersionOverridesConfiguredReleaseVersion()
     {
         var handler = new StubHttpMessageHandler(_ => RawEntryValueResponse("enabled", "text"));
 
@@ -77,7 +77,7 @@ public sealed class NonaClientTests
             ReleaseVersion = "1.1.x"
         });
 
-        await client.GetConfigValueAsync("Features:Checkout", "1.1.0");
+        await client.GetConfigValueForReleaseAsync("Features:Checkout", "1.1.0");
 
         var request = Assert.Single(handler.Requests);
         Assert.Equal("https://nona.test/api/production/Features%3ACheckout?version=1.1.0", request.Uri.AbsoluteUri);
@@ -288,7 +288,7 @@ public sealed class NonaClientTests
     }
 
     [Fact]
-    public async Task GetConfigValueAsync_DoesNotDeduplicateDifferentReleaseVersions()
+    public async Task GetConfigValueForReleaseAsync_DoesNotDeduplicateDifferentReleaseVersions()
     {
         var releaseResponses = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var handler = new StubHttpMessageHandler(async request =>
@@ -311,8 +311,8 @@ public sealed class NonaClientTests
 
         var requests = new[]
         {
-            client.GetConfigValueAsync("flag", "1.1.0"),
-            client.GetConfigValueAsync("flag", "1.1.1")
+            client.GetConfigValueForReleaseAsync("flag", "1.1.0"),
+            client.GetConfigValueForReleaseAsync("flag", "1.1.1")
         };
 
         await WaitForAsync(() => handler.Requests.Count == 2);

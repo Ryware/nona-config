@@ -28,15 +28,15 @@ internal static class StorageBenchmarkApp
                 "sqlite",
                 environment.SqliteDatabasePath);
 
-            await using var libsqlLocal = new LibsqlBenchmarkDatabase(
-                "libsql-local",
-                SqlStatementFactory.CreateLocalClient(environment.LibsqlLocalDatabasePath));
+            await using var sqliteClient = new DatabaseClientBenchmarkDatabase(
+                "sqlite-client",
+                SqlStatementFactory.CreateLocalClient(environment.SqliteClientDatabasePath));
 
-            LibsqlBenchmarkDatabase? libsqlReplica = null;
-            LibsqlBenchmarkDatabase? libsqlPrimary = null;
+            DatabaseClientBenchmarkDatabase? libsqlReplica = null;
+            DatabaseClientBenchmarkDatabase? libsqlPrimary = null;
             if (!string.IsNullOrWhiteSpace(environment.LibsqlUrl))
             {
-                libsqlReplica = new LibsqlBenchmarkDatabase(
+                libsqlReplica = new DatabaseClientBenchmarkDatabase(
                     "libsql-replica",
                     SqlStatementFactory.CreateReplicaClient(
                         environment.LibsqlUrl,
@@ -45,7 +45,7 @@ internal static class StorageBenchmarkApp
 
                 if (options.IncludePrimaryDiagnostic)
                 {
-                    libsqlPrimary = new LibsqlBenchmarkDatabase(
+                    libsqlPrimary = new DatabaseClientBenchmarkDatabase(
                         "libsql-primary",
                         SqlStatementFactory.CreateDirectClient(environment.LibsqlUrl, environment.LibsqlAuthToken));
                 }
@@ -54,7 +54,7 @@ internal static class StorageBenchmarkApp
             try
             {
                 await sqlite.InitializeAsync(cancellationSource.Token);
-                await libsqlLocal.InitializeAsync(cancellationSource.Token);
+                await sqliteClient.InitializeAsync(cancellationSource.Token);
                 if (libsqlReplica is not null)
                 {
                     await libsqlReplica.InitializeAsync(cancellationSource.Token);
@@ -69,7 +69,7 @@ internal static class StorageBenchmarkApp
                 var latencySamples = new List<LatencySample>();
                 var errorSamples = new List<ErrorSample>();
 
-                foreach (var provider in EnumerateProviders(sqlite, libsqlLocal, libsqlReplica, libsqlPrimary))
+                foreach (var provider in EnumerateProviders(sqlite, sqliteClient, libsqlReplica, libsqlPrimary))
                 {
                     foreach (var scenario in scenarios)
                     {
@@ -139,14 +139,14 @@ internal static class StorageBenchmarkApp
 
         var seedDatabasePath = Path.Combine(benchmarkDataDirectory, "seed-base.db");
         var sqliteDatabasePath = Path.Combine(benchmarkDataDirectory, "sqlite.db");
-        var libsqlLocalDatabasePath = Path.Combine(benchmarkDataDirectory, "libsql-local.db");
+        var sqliteClientDatabasePath = Path.Combine(benchmarkDataDirectory, "sqlite-client.db");
         var libsqlReplicaLocalPath = Path.Combine(benchmarkDataDirectory, "libsql-replica-local.db");
         var migrationsDirectory = Path.Combine(repoRoot, "core", "src", "Infrastructure", "Migrations");
 
-        Console.WriteLine("Creating seeded local libsql database.");
+        Console.WriteLine("Creating seeded local SQLite database.");
         await DatabaseSeeder.CreateSeedDatabaseAsync(seedDatabasePath, migrationsDirectory, cancellationToken);
         DatabaseSeeder.CopySeedDatabase(seedDatabasePath, sqliteDatabasePath);
-        DatabaseSeeder.CopySeedDatabase(seedDatabasePath, libsqlLocalDatabasePath);
+        DatabaseSeeder.CopySeedDatabase(seedDatabasePath, sqliteClientDatabasePath);
 
         if (File.Exists(libsqlReplicaLocalPath))
         {
@@ -165,7 +165,7 @@ internal static class StorageBenchmarkApp
             outputDirectory,
             seedDatabasePath,
             sqliteDatabasePath,
-            libsqlLocalDatabasePath,
+            sqliteClientDatabasePath,
             libsqlReplicaLocalPath,
             migrationsDirectory,
             options.LibsqlUrl,
@@ -335,7 +335,7 @@ internal static class StorageBenchmarkApp
 
         return scenario switch
         {
-            { Workload: WorkloadKind.PointLookup, ItemCount: 1 } => p95.Value <= 80,
+            { Workload: WorkloadKind.PointLookup or WorkloadKind.ReleaseEntryPointLookup, ItemCount: 1 } => p95.Value <= 80,
             { Workload: WorkloadKind.RangeQuery, ItemCount: 100 } => p95.Value <= 120,
             { Workload: WorkloadKind.RangeQuery, ItemCount: 1000 } => p95.Value <= 750,
             _ => true
@@ -346,7 +346,7 @@ internal static class StorageBenchmarkApp
     {
         return scenario switch
         {
-            { Workload: WorkloadKind.PointLookup, ItemCount: 1 } => "p95 <= 80 ms",
+            { Workload: WorkloadKind.PointLookup or WorkloadKind.ReleaseEntryPointLookup, ItemCount: 1 } => "p95 <= 80 ms",
             { Workload: WorkloadKind.RangeQuery, ItemCount: 100 } => "p95 <= 120 ms",
             { Workload: WorkloadKind.RangeQuery, ItemCount: 1000 } => "p95 <= 750 ms",
             _ => null
@@ -398,24 +398,29 @@ internal static class StorageBenchmarkApp
             new("medium-point-1-c50", DatasetSize.Medium, WorkloadKind.PointLookup, 1, 50, Required: true, RunPrimaryDiagnostic: true),
             new("medium-point-10-c10", DatasetSize.Medium, WorkloadKind.PointLookup, 10, 10, Required: true, RunPrimaryDiagnostic: true),
             new("medium-point-100-c10", DatasetSize.Medium, WorkloadKind.PointLookup, 100, 10, Required: true, RunPrimaryDiagnostic: true),
+            new("medium-release-hydration-point-1-c1", DatasetSize.Medium, WorkloadKind.ReleaseHydrationPointLookup, 1, 1, Required: false),
+            new("medium-release-point-1-c1", DatasetSize.Medium, WorkloadKind.ReleaseEntryPointLookup, 1, 1, Required: true, RunPrimaryDiagnostic: true),
+            new("medium-release-point-1-c50", DatasetSize.Medium, WorkloadKind.ReleaseEntryPointLookup, 1, 50, Required: true, RunPrimaryDiagnostic: true),
             new("medium-range-100-c10", DatasetSize.Medium, WorkloadKind.RangeQuery, 100, 10, Required: false, RunPrimaryDiagnostic: true),
             new("medium-range-1000-c10", DatasetSize.Medium, WorkloadKind.RangeQuery, 1000, 10, Required: true, RunPrimaryDiagnostic: true),
             new("medium-range-10000-c5", DatasetSize.Medium, WorkloadKind.RangeQuery, 10000, 5, Required: true),
             new("large-point-1-c1", DatasetSize.Large, WorkloadKind.PointLookup, 1, 1, Required: false, RunPrimaryDiagnostic: true),
             new("large-point-1-c50", DatasetSize.Large, WorkloadKind.PointLookup, 1, 50, Required: false),
             new("large-point-100-c10", DatasetSize.Large, WorkloadKind.PointLookup, 100, 10, Required: false),
+            new("large-release-point-1-c1", DatasetSize.Large, WorkloadKind.ReleaseEntryPointLookup, 1, 1, Required: false, RunPrimaryDiagnostic: true),
+            new("large-release-point-1-c50", DatasetSize.Large, WorkloadKind.ReleaseEntryPointLookup, 1, 50, Required: false),
             new("large-range-10000-c5", DatasetSize.Large, WorkloadKind.RangeQuery, 10000, 5, Required: false)
         ];
     }
 
     private static IEnumerable<IBenchmarkDatabase> EnumerateProviders(
         IBenchmarkDatabase sqlite,
-        IBenchmarkDatabase libsqlLocal,
+        IBenchmarkDatabase sqliteClient,
         IBenchmarkDatabase? libsqlReplica,
         IBenchmarkDatabase? libsqlPrimary)
     {
         yield return sqlite;
-        yield return libsqlLocal;
+        yield return sqliteClient;
         if (libsqlReplica is not null)
         {
             yield return libsqlReplica;

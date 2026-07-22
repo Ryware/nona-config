@@ -12,7 +12,7 @@ internal sealed class CreateEnvironmentCommandHandler(Func<HttpClient>? httpClie
 {
     public async Task<int> HandleAsync(CreateEnvironmentCommand command, CancellationToken ct)
     {
-        var api = NonaClientFactory.Create(command.Connection, httpClientFactory);
+        using var api = NonaClientFactory.Create(command.Connection, httpClientFactory);
         EnvironmentDto? environment;
 
         try

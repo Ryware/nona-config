@@ -13,7 +13,7 @@ internal sealed class RollbackEntryCommandHandler(Func<HttpClient>? httpClientFa
 {
     public async Task<int> HandleAsync(RollbackEntryCommand command, CancellationToken ct)
     {
-        var api = NonaClientFactory.Create(command.Connection, httpClientFactory);
+        using var api = NonaClientFactory.Create(command.Connection, httpClientFactory);
         var entry = await api.Admin.Projects[command.Project]
             .Environments[command.Environment].ConfigEntries[command.Key]
             .Rollback.PostAsync(new RollbackConfigEntryRequest

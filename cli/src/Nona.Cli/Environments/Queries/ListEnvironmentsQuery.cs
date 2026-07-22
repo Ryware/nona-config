@@ -10,7 +10,7 @@ internal sealed class ListEnvironmentsQueryHandler(Func<HttpClient>? httpClientF
 {
     public async Task<int> HandleAsync(ListEnvironmentsQuery query, CancellationToken ct)
     {
-        var api = NonaClientFactory.Create(query.Connection, httpClientFactory);
+        using var api = NonaClientFactory.Create(query.Connection, httpClientFactory);
         var environments = await api.Admin.Projects[query.Project].Environments
             .GetAsync(cancellationToken: ct);
 

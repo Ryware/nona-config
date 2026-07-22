@@ -1,3 +1,4 @@
+using Nona.Domain;
 using Nona.Domain.Entities;
 using Nona.Domain.Enums;
 using Nona.Domain.Interfaces;
@@ -34,6 +35,8 @@ public sealed class LibsqlConfigEntryRepository : IConfigEntryRepository
 
     public async Task<ConfigEntry?> AddVersionAsync(ConfigEntry entry, string actor, CancellationToken ct = default)
     {
+        ConfigEntryKey.ThrowIfInvalid(entry.Key, nameof(entry));
+
         var normalizedActor = string.IsNullOrWhiteSpace(actor) ? "System" : actor;
         var versionParameters = ToVersionParameters(entry, normalizedActor);
         var entryParameters = ToEntryParameters(entry);

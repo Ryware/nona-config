@@ -27,6 +27,7 @@ public sealed class NonaApiErrorResponseHandler : DelegatingHandler
             Status: statusCode,
             Detail: message,
             Instance: error.Instance,
+            Errors: error.Errors,
             ErrorCode: error.ErrorCode));
 
         response.Content?.Dispose();
@@ -69,7 +70,8 @@ public sealed class NonaApiErrorResponseHandler : DelegatingHandler
                 ErrorCode: GetString(root, "errorCode"),
                 Title: title,
                 Type: GetString(root, "type"),
-                Instance: GetString(root, "instance"));
+                Instance: GetString(root, "instance"),
+                Errors: GetErrors(root));
         }
         catch (JsonException)
         {
@@ -100,6 +102,33 @@ public sealed class NonaApiErrorResponseHandler : DelegatingHandler
         }
 
         return null;
+    }
+
+    private static IReadOnlyDictionary<string, string[]>? GetErrors(JsonElement root)
+    {
+        var errorsProperty = root.EnumerateObject().FirstOrDefault(property =>
+            property.Name.Equals("errors", StringComparison.OrdinalIgnoreCase));
+        if (errorsProperty.Value.ValueKind != JsonValueKind.Object)
+            return null;
+
+        var errors = new Dictionary<string, string[]>(StringComparer.Ordinal);
+        foreach (var field in errorsProperty.Value.EnumerateObject())
+        {
+            var messages = field.Value.ValueKind switch
+            {
+                JsonValueKind.Array => field.Value
+                    .EnumerateArray()
+                    .Where(item => item.ValueKind == JsonValueKind.String)
+                    .Select(item => item.GetString()!)
+                    .ToArray(),
+                JsonValueKind.String => [field.Value.GetString()!],
+                _ => []
+            };
+
+            errors[field.Name] = messages;
+        }
+
+        return errors;
     }
 
     private static string FallbackMessage(HttpStatusCode statusCode, string? reasonPhrase)
@@ -137,7 +166,8 @@ public sealed class NonaApiErrorResponseHandler : DelegatingHandler
         string? ErrorCode,
         string? Title,
         string? Type,
-        string? Instance);
+        string? Instance,
+        IReadOnlyDictionary<string, string[]>? Errors);
 
     private sealed record ProblemEnvelope(
         [property: System.Text.Json.Serialization.JsonPropertyName("type")] string Type,
@@ -147,6 +177,9 @@ public sealed class NonaApiErrorResponseHandler : DelegatingHandler
         [property: System.Text.Json.Serialization.JsonPropertyName("instance")]
         [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         string? Instance,
+        [property: System.Text.Json.Serialization.JsonPropertyName("errors")]
+        [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        IReadOnlyDictionary<string, string[]>? Errors,
         [property: System.Text.Json.Serialization.JsonPropertyName("errorCode")]
         [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         string? ErrorCode);

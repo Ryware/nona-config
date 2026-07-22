@@ -6,7 +6,10 @@ import { MetaProvider } from '@solidjs/meta';
 import { http, HttpResponse } from 'msw';
 import { writeClipboard } from '@solid-primitives/clipboard';
 import { server } from '../mocks/server';
-import { clearActiveEnvironmentName } from '../../entities/project/model/active-environment';
+import {
+  clearActiveEnvironmentName,
+  setActiveEnvironmentName,
+} from '../../entities/project/model/active-environment';
 import { clearActiveProjectSlug } from '../../entities/project/model/active-project';
 import { ToastProvider } from '../../shared/ui/toast';
 import ProjectPage, {
@@ -391,6 +394,101 @@ describe('ProjectPage', () => {
     expect(publishRequests[0].entries?.some(entry => entry.key === 'feature.x')).toBe(true);
     // Publish-from-payload: the removed draft endpoint is never hit.
     expect(draftCalls).toEqual([]);
+  });
+
+  it('replaces the amend buffer before publishing after an environment switch', async () => {
+    let releaseStagingSource: (() => void) | undefined;
+    const publishRequests: Array<{ url: string; body: string }> = [];
+
+    server.use(
+      http.get(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/releases/:version',
+        async ({ params }) => {
+          const environmentName = String(params.envName);
+          if (environmentName === 'staging') {
+            await new Promise<void>(resolve => {
+              releaseStagingSource = resolve;
+            });
+          }
+
+          const entry =
+            environmentName === 'production'
+              ? {
+                  key: 'PRODUCTION_SECRET',
+                  value: 'production-secret-value',
+                  contentType: 'text',
+                  scope: 'server',
+                }
+              : {
+                  key: 'STAGING_ONLY_KEY',
+                  value: 'staging-value',
+                  contentType: 'text',
+                  scope: 'server',
+                };
+
+          return HttpResponse.json({
+            project: params.projectId,
+            environment: environmentName,
+            version: params.version,
+            entryCount: 1,
+            isActive: false,
+            createdAt: '2024-01-01T00:00:00Z',
+            actor: 'alice',
+            entries: [entry],
+          });
+        },
+      ),
+      http.post(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/releases',
+        async ({ request }) => {
+          publishRequests.push({
+            url: request.url,
+            body: await request.text(),
+          });
+          return HttpResponse.json({}, { status: 201 });
+        },
+      ),
+    );
+
+    renderProjectPage('/projects/my-app?release=1.1.1&amend=1.1.0');
+
+    expect(await screen.findByTestId('amend-row-PRODUCTION_SECRET')).toBeInTheDocument();
+
+    fireEvent.input(screen.getByTestId('amend-new-key'), {
+      target: { value: 'PRODUCTION_SECRET' },
+    });
+    fireEvent.input(screen.getByTestId('amend-new-value'), {
+      target: { value: 'production-draft-value' },
+    });
+    fireEvent.click(screen.getByTestId('amend-add-button'));
+    expect(screen.getByText('That key already exists.')).toBeInTheDocument();
+
+    setActiveEnvironmentName('my-app', 'staging');
+
+    await waitFor(() => {
+      expect(releaseStagingSource).toBeTypeOf('function');
+    });
+    expect(screen.queryByTestId('amend-row-PRODUCTION_SECRET')).not.toBeInTheDocument();
+    expect(screen.getByTestId('release-amend-confirm-button')).toBeDisabled();
+
+    releaseStagingSource!();
+
+    expect(await screen.findByTestId('amend-row-STAGING_ONLY_KEY')).toBeInTheDocument();
+    expect(screen.queryByTestId('amend-row-PRODUCTION_SECRET')).not.toBeInTheDocument();
+    expect(screen.getByTestId('amend-new-key')).toHaveValue('');
+    expect(screen.getByTestId('amend-new-value')).toHaveValue('');
+    expect(screen.queryByText('That key already exists.')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('release-amend-confirm-button'));
+
+    await waitFor(() => {
+      expect(publishRequests).toHaveLength(1);
+    });
+    expect(publishRequests[0].url).toContain('/environments/staging/releases');
+    expect(publishRequests[0].url).not.toContain('/environments/production/');
+    expect(publishRequests[0].body).toContain('STAGING_ONLY_KEY');
+    expect(publishRequests[0].body).not.toContain('production-secret-value');
+    expect(publishRequests[0].body).not.toContain('production-draft-value');
   });
 
   it('activates a configuration release', async () => {

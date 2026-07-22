@@ -4,6 +4,7 @@ using Nona.Application.Admin.ConfigEntries.DTOs;
 using Nona.Application.Admin.Projects;
 using Nona.Application.Common;
 using Nona.Application.Common.Interfaces;
+using Nona.Domain;
 using Nona.Domain.Entities;
 using Nona.Domain.Enums;
 using Nona.Domain.Interfaces;
@@ -27,6 +28,9 @@ public class UpsertConfigEntryCommandHandler(
 {
     public async ValueTask<UpsertConfigEntryResult> Handle(UpsertConfigEntryCommand request, CancellationToken cancellationToken)
     {
+        if (!ConfigEntryKey.IsValid(request.Key))
+            return new UpsertConfigEntryResult(false, null, ConfigEntryKey.ValidationError);
+
         var project = await ProjectResolution.ResolveProjectAsync(projectRepository, request.ProjectId, cancellationToken);
         if (project is null)
             return new UpsertConfigEntryResult(false, null, "Project not found");

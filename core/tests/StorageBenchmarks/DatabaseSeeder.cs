@@ -1,3 +1,4 @@
+using Microsoft.Data.Sqlite;
 using Nona.Libsql;
 
 namespace Nona.StorageBenchmarks;
@@ -7,6 +8,7 @@ internal static class DatabaseSeeder
     public const string ProjectName = "bench-project";
     public const string ProjectSlug = "bench-project";
     public const string ApiKey = "BENCH-SCOPED-KEY";
+    public const string ReleaseVersion = "1.0.0";
 
     public static readonly IReadOnlyDictionary<DatasetSize, int> DatasetRows = new Dictionary<DatasetSize, int>
     {
@@ -42,8 +44,13 @@ internal static class DatabaseSeeder
             File.Delete(databasePath);
         }
 
-        using var client = SqlStatementFactory.CreateLocalClient(databasePath);
-        await SeedLibsqlDatabaseAsync(client, migrationsDirectory, cancellationToken);
+        using (var client = SqlStatementFactory.CreateLocalClient(databasePath))
+        {
+            await SeedLibsqlDatabaseAsync(client, migrationsDirectory, cancellationToken);
+            await client.ExecuteAsync("PRAGMA wal_checkpoint(TRUNCATE)", ct: cancellationToken);
+        }
+
+        SqliteConnection.ClearAllPools();
     }
 
     public static void CopySeedDatabase(string sourcePath, string destinationPath)
@@ -74,7 +81,7 @@ internal static class DatabaseSeeder
 
         foreach (var pair in DatasetRows)
         {
-            Console.WriteLine($"Seeding libsql {pair.Key} dataset with {pair.Value:N0} rows.");
+            Console.WriteLine($"Seeding {pair.Key} dataset with {pair.Value:N0} rows.");
             await SeedConfigEntriesAsync(client, pair.Key, pair.Value, cancellationToken);
         }
     }
@@ -93,13 +100,11 @@ internal static class DatabaseSeeder
             INSERT INTO Projects (Name, UrlSlug, CreatedAt, UpdatedAt)
             VALUES (@Name, @Slug, @CreatedAt, @UpdatedAt)
             """,
-            new
-            {
-                Name = ProjectName,
-                Slug = ProjectSlug,
-                CreatedAt = now,
-                UpdatedAt = now
-            },
+            LibsqlParameters.Create(
+                ("Name", ProjectName),
+                ("Slug", ProjectSlug),
+                ("CreatedAt", now),
+                ("UpdatedAt", now)),
             cancellationToken);
 
         await client.ExecuteAsync(
@@ -107,31 +112,40 @@ internal static class DatabaseSeeder
             INSERT INTO ApiKeys (Name, Key, Project, Environment, Scope, CreatedAt, UpdatedAt)
             VALUES (@Name, @Key, @Project, NULL, @Scope, @CreatedAt, @UpdatedAt)
             """,
-            new
-            {
-                Name = "Benchmark",
-                Key = ApiKey,
-                Project = ProjectName,
-                Scope = 3,
-                CreatedAt = now,
-                UpdatedAt = now
-            },
+            LibsqlParameters.Create(
+                ("Name", "Benchmark"),
+                ("Key", ApiKey),
+                ("Project", ProjectName),
+                ("Scope", 3),
+                ("CreatedAt", now),
+                ("UpdatedAt", now)),
             cancellationToken);
 
         foreach (var dataset in DatasetRows.Keys)
         {
             await client.ExecuteAsync(
                 """
-                INSERT INTO Environments (Name, Project, CreatedAt, UpdatedAt)
-                VALUES (@Name, @Project, @CreatedAt, @UpdatedAt)
+                INSERT INTO Environments (Name, Project, ActiveReleaseVersion, CreatedAt, UpdatedAt)
+                VALUES (@Name, @Project, @ReleaseVersion, @CreatedAt, @UpdatedAt)
                 """,
-                new
-                {
-                    Name = GetEnvironmentName(dataset),
-                    Project = ProjectName,
-                    CreatedAt = now,
-                    UpdatedAt = now
-                },
+                LibsqlParameters.Create(
+                    ("Name", GetEnvironmentName(dataset)),
+                    ("Project", ProjectName),
+                    ("ReleaseVersion", ReleaseVersion),
+                    ("CreatedAt", now),
+                    ("UpdatedAt", now)),
+                cancellationToken);
+
+            await client.ExecuteAsync(
+                """
+                INSERT INTO ConfigReleases (Project, Environment, Version, Major, Minor, Patch, CreatedAt, Actor)
+                VALUES (@Project, @Environment, @Version, 1, 0, 0, @CreatedAt, 'Benchmark')
+                """,
+                LibsqlParameters.Create(
+                    ("Project", ProjectName),
+                    ("Environment", GetEnvironmentName(dataset)),
+                    ("Version", ReleaseVersion),
+                    ("CreatedAt", now)),
                 cancellationToken);
         }
     }
@@ -155,17 +169,34 @@ internal static class DatabaseSeeder
                 INSERT INTO ConfigEntries (Project, Environment, Key, Value, ContentType, Scope, CreatedAt, UpdatedAt)
                 VALUES (@Project, @Environment, @Key, @Value, @ContentType, @Scope, @CreatedAt, @UpdatedAt)
                 """,
-                new
-                {
-                    Project = ProjectName,
-                    Environment = environment,
-                    Key = BuildKey(index),
-                    Value = BuildValue(dataset, index),
-                    ContentType = "text",
-                    Scope = 3,
-                    CreatedAt = now,
-                    UpdatedAt = now
-                }));
+                LibsqlParameters.Create(
+                    ("Project", ProjectName),
+                    ("Environment", environment),
+                    ("Key", BuildKey(index)),
+                    ("Value", BuildValue(environment, index)),
+                    ("ContentType", "text"),
+                    ("Scope", 3),
+                    ("CreatedAt", now),
+                    ("UpdatedAt", now))));
+
+            batch.Add(new LibsqlStatement(
+                """
+                INSERT INTO ConfigReleaseEntries (
+                    Project, Environment, ReleaseVersion, Key, NormalizedKey, Value, ContentType, Scope
+                )
+                VALUES (
+                    @Project, @Environment, @ReleaseVersion, @Key, @NormalizedKey, @Value, @ContentType, @Scope
+                )
+                """,
+                LibsqlParameters.Create(
+                    ("Project", ProjectName),
+                    ("Environment", environment),
+                    ("ReleaseVersion", ReleaseVersion),
+                    ("Key", BuildKey(index)),
+                    ("NormalizedKey", BuildKey(index).ToUpperInvariant()),
+                    ("Value", BuildValue(environment, index)),
+                    ("ContentType", "text"),
+                    ("Scope", 3))));
 
             if (batch.Count == batchSize || index == rowCount)
             {
@@ -186,21 +217,27 @@ internal static class DatabaseSeeder
         [
             new LibsqlStatement(
                 "DELETE FROM ApiKeys WHERE Project = @Project",
-                new { Project = ProjectName }),
+                LibsqlParameters.Create(("Project", ProjectName))),
+            new LibsqlStatement(
+                "DELETE FROM ConfigReleaseEntries WHERE Project = @Project",
+                LibsqlParameters.Create(("Project", ProjectName))),
+            new LibsqlStatement(
+                "DELETE FROM ConfigReleases WHERE Project = @Project",
+                LibsqlParameters.Create(("Project", ProjectName))),
             new LibsqlStatement(
                 "DELETE FROM ConfigEntries WHERE Project = @Project",
-                new { Project = ProjectName }),
+                LibsqlParameters.Create(("Project", ProjectName))),
             new LibsqlStatement(
                 "DELETE FROM Environments WHERE Project = @Project",
-                new { Project = ProjectName }),
+                LibsqlParameters.Create(("Project", ProjectName))),
             new LibsqlStatement(
                 "DELETE FROM Projects WHERE Name = @Name OR UrlSlug = @Slug",
-                new { Name = ProjectName, Slug = ProjectSlug })
+                LibsqlParameters.Create(("Name", ProjectName), ("Slug", ProjectSlug)))
         ], cancellationToken);
     }
 
-    private static string BuildValue(DatasetSize dataset, int index)
+    public static string BuildValue(string environment, int index)
     {
-        return $"{dataset.ToString().ToLowerInvariant()}-value-{index:D7}-abcdefghijklmnopqrstuvwxyz0123456789";
+        return $"{environment}-value-{index:D7}-abcdefghijklmnopqrstuvwxyz0123456789";
     }
 }
