@@ -95,6 +95,9 @@ public static class NonaEndpointRouteBuilderExtensions
             .Produces<EnvironmentDto>(StatusCodes.Status201Created);
         environments.MapGet("/", ListEnvironmentsAsync)
             .Produces<IReadOnlyList<EnvironmentDto>>();
+        environments.MapPut("/{environmentId}", RenameEnvironmentAsync)
+            .Accepts<RenameEnvironmentRequest>("application/json")
+            .Produces<EnvironmentDto>();
         environments.MapDelete("/{environmentId}", DeleteEnvironmentAsync);
 
         var configReleases = projects.MapGroup("/{projectId}/environments/{environmentName}/releases");
@@ -444,6 +447,36 @@ public static class NonaEndpointRouteBuilderExtensions
         return result.Success
             ? Results.NoContent()
             : NotFound(result.Error ?? "Environment not found");
+    }
+
+    private static async Task<IResult> RenameEnvironmentAsync(
+        string projectId,
+        string environmentId,
+        RenameEnvironmentRequest request,
+        IValidator<RenameEnvironmentRequest> validator,
+        IMediator mediator,
+        CancellationToken cancellationToken)
+    {
+        if (await ValidateRequestAsync(request, validator, cancellationToken) is { } validationResult)
+        {
+            return validationResult;
+        }
+
+        var result = await mediator.Send(
+            new RenameEnvironmentCommand(projectId, environmentId, request.Name),
+            cancellationToken);
+        if (result.Success)
+        {
+            return Results.Ok(result.Environment);
+        }
+
+        return result.Error switch
+        {
+            "Access denied" => Forbidden(result.Error),
+            "Project not found" or "Environment not found" => NotFound(result.Error),
+            "Environment already exists" => Conflict(result.Error),
+            _ => BadRequest(result.Error ?? "Environment could not be renamed")
+        };
     }
 
     private static async Task<IResult> ListConfigReleasesAsync(

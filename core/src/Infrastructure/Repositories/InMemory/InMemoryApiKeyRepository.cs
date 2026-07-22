@@ -52,4 +52,16 @@ public sealed class InMemoryApiKeyRepository(IProjectRepository projectRepositor
         _apiKeys.TryRemove(id, out _);
         return Task.CompletedTask;
     }
+
+    internal void RenameEnvironment(string projectName, string currentName, string newName)
+    {
+        foreach (var apiKey in _apiKeys.Values)
+        {
+            if (string.Equals(apiKey.Project, projectName, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(apiKey.Environment, currentName, StringComparison.OrdinalIgnoreCase))
+            {
+                apiKey.Environment = newName;
+            }
+        }
+    }
 }

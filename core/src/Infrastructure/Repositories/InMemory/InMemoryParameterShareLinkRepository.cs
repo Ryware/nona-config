@@ -61,4 +61,16 @@ public sealed class InMemoryParameterShareLinkRepository : IParameterShareLinkRe
 
         return Task.CompletedTask;
     }
+
+    internal void RenameEnvironment(string projectName, string currentName, string newName)
+    {
+        foreach (var shareLink in _shareLinks.Values)
+        {
+            if (string.Equals(shareLink.Project, projectName, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(shareLink.Environment, currentName, StringComparison.OrdinalIgnoreCase))
+            {
+                shareLink.Environment = newName;
+            }
+        }
+    }
 }

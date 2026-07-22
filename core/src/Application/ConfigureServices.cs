@@ -38,6 +38,7 @@ public static class ConfigureServices
         services.AddScoped<IValidator<SetActiveConfigReleaseRequest>, SetActiveConfigReleaseRequestValidator>();
         services.AddScoped<IValidator<UpsertConfigEntryRequest>, UpsertConfigEntryRequestValidator>();
         services.AddScoped<IValidator<CreateEnvironmentRequest>, CreateEnvironmentRequestValidator>();
+        services.AddScoped<IValidator<RenameEnvironmentRequest>, RenameEnvironmentRequestValidator>();
         services.AddScoped<IValidator<CreateProjectRequest>, CreateProjectRequestValidator>();
         services.AddScoped<IValidator<CreateUserRequest>, CreateUserRequestValidator>();
         services.AddScoped<IValidator<UpdateUserRequest>, UpdateUserRequestValidator>();

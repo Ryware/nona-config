@@ -43,6 +43,7 @@ namespace Nona.WebApi.Serialization;
 [JsonSerializable(typeof(ProjectDto))]
 [JsonSerializable(typeof(IReadOnlyList<ProjectDto>))]
 [JsonSerializable(typeof(CreateEnvironmentRequest))]
+[JsonSerializable(typeof(RenameEnvironmentRequest))]
 [JsonSerializable(typeof(EnvironmentDto))]
 [JsonSerializable(typeof(IReadOnlyList<EnvironmentDto>))]
 [JsonSerializable(typeof(PublishConfigReleaseRequest))]

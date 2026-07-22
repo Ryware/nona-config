@@ -117,6 +117,33 @@ public class InMemoryConfigEntryRepository : IConfigEntryRepository
         return Task.FromResult(_entries.Count);
     }
 
+    internal void RenameEnvironment(string projectName, string currentName, string newName)
+    {
+        lock (_versionGate)
+        {
+            var matchingEntries = _entries.Values
+                .Where(entry =>
+                    entry.Project.Equals(projectName, StringComparison.OrdinalIgnoreCase)
+                    && entry.Environment.Equals(currentName, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            foreach (var entry in matchingEntries)
+            {
+                var currentKey = GetKey(projectName, currentName, entry.Key);
+                var newKey = GetKey(projectName, newName, entry.Key);
+                _entries.TryRemove(currentKey, out _);
+                _entries[newKey] = CloneEntry(entry, projectName, newName);
+
+                if (_versions.TryRemove(currentKey, out var versions))
+                {
+                    _versions[newKey] = versions
+                        .Select(version => CloneVersion(version, projectName, newName))
+                        .ToList();
+                }
+            }
+        }
+    }
+
     private ConfigEntry AddVersionCore(ConfigEntry entry, string actor)
     {
         var storageKey = GetKey(entry.Project, entry.Environment, entry.Key);
@@ -156,5 +183,40 @@ public class InMemoryConfigEntryRepository : IConfigEntryRepository
 
         _entries[storageKey] = current;
         return current;
+    }
+
+    private static ConfigEntry CloneEntry(ConfigEntry entry, string projectName, string environmentName)
+    {
+        return new ConfigEntry
+        {
+            Project = projectName,
+            Environment = environmentName,
+            Key = entry.Key,
+            Value = entry.Value,
+            ContentType = entry.ContentType,
+            Scope = entry.Scope,
+            ActiveVersion = entry.ActiveVersion,
+            CreatedAt = entry.CreatedAt,
+            UpdatedAt = entry.UpdatedAt
+        };
+    }
+
+    private static ConfigEntryVersion CloneVersion(
+        ConfigEntryVersion version,
+        string projectName,
+        string environmentName)
+    {
+        return new ConfigEntryVersion
+        {
+            Project = projectName,
+            Environment = environmentName,
+            Key = version.Key,
+            Version = version.Version,
+            Value = version.Value,
+            ContentType = version.ContentType,
+            Scope = version.Scope,
+            CreatedAt = version.CreatedAt,
+            Actor = version.Actor
+        };
     }
 }
