@@ -89,9 +89,10 @@ public sealed class EntriesHandlerTests
         }
 
         await Assert.That(error).IsNotNull();
-        await Assert.That(error!.ResponseStatusCode).IsEqualTo((int)statusCode);
-        await Assert.That(error.Detail).IsEqualTo(serverMessage);
-        await Assert.That(error.ErrorCode).IsEqualTo("TEST_ERROR");
+        var capturedError = error!;
+        await Assert.That(capturedError.ResponseStatusCode).IsEqualTo((int)statusCode);
+        await Assert.That(capturedError.Detail).IsEqualTo(serverMessage);
+        await Assert.That(capturedError.ErrorCode).IsEqualTo("TEST_ERROR");
     }
 
     [Test]
