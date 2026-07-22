@@ -21,12 +21,14 @@ const SCOPE_OPTIONS = [
 ];
 
 interface ReleaseAmendPanelProps {
+  projectId: string;
+  environmentName: string;
   sourceVersion: string;
   targetVersion: string;
   sourceEntries: ConfigReleaseEntry[];
   isLoading: boolean;
   isPublishing: boolean;
-  onPublish: (entries: ConfigReleaseEntry[]) => void;
+  onPublish: (environmentName: string, entries: ConfigReleaseEntry[]) => void;
   onCancel: () => void;
 }
 
@@ -37,19 +39,40 @@ interface ReleaseAmendPanelProps {
  */
 export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
   const [rows, setRows] = createStore<ConfigReleaseEntry[]>([]);
-  const [ready, setReady] = createSignal(false);
+  const [seededIdentity, setSeededIdentity] = createSignal<string | null>(null);
+  const [bufferEnvironmentName, setBufferEnvironmentName] = createSignal("");
   const [newKey, setNewKey] = createSignal("");
   const [newValue, setNewValue] = createSignal("");
   const [newType, setNewType] = createSignal("text");
   const [newScope, setNewScope] = createSignal("all");
   const [error, setError] = createSignal("");
 
-  // Seed the local buffer once the source release has loaded.
+  const currentIdentity = () =>
+    JSON.stringify([props.projectId, props.environmentName, props.sourceVersion]);
+
+  const resetAddRowState = () => {
+    setNewKey("");
+    setNewValue("");
+    setNewType("text");
+    setNewScope("all");
+    setError("");
+  };
+
+  const isBufferReady = () => !props.isLoading && seededIdentity() === currentIdentity();
+
   createEffect(() => {
-    if (!props.isLoading && !ready()) {
-      setRows(props.sourceEntries.map(entry => ({ ...entry })));
-      setReady(true);
-    }
+    const identity = currentIdentity();
+    if (seededIdentity() === identity) return;
+
+    setRows([]);
+    setBufferEnvironmentName("");
+    resetAddRowState();
+
+    if (props.isLoading) return;
+
+    setRows(props.sourceEntries.map(entry => ({ ...entry })));
+    setBufferEnvironmentName(props.environmentName);
+    setSeededIdentity(identity);
   });
 
   const updateRow = (index: number, patch: Partial<ConfigReleaseEntry>) =>
@@ -99,8 +122,13 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
           <Button
             data-testid="release-amend-confirm-button"
             type="button"
-            disabled={props.isPublishing || props.isLoading}
-            onClick={() => props.onPublish([...rows])}
+            disabled={props.isPublishing || !isBufferReady()}
+            onClick={() => {
+              const environmentName = bufferEnvironmentName();
+              if (!environmentName || !isBufferReady()) return;
+
+              props.onPublish(environmentName, rows.map(entry => ({ ...entry })));
+            }}
           >
             <MIcon name="check" class="text-[16px]" />
             {props.isPublishing ? "Creating…" : "Create release"}
@@ -119,7 +147,7 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
       </div>
 
       <Show
-        when={!props.isLoading}
+        when={isBufferReady()}
         fallback={<div class="skeleton h-40 w-full rounded-xl" />}
       >
         <div class="bg-surface-container border-outline-variant/15 space-y-3 rounded-xl border p-4">

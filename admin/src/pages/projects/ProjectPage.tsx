@@ -430,11 +430,16 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
   }));
 
   const publishReleaseMutation = useMutation(() => ({
-    mutationFn: (req: PublishConfigReleaseRequest) =>
-      configReleaseService.publish(projectId(), activeEnvName(), req),
-    onSuccess: () => {
+    mutationFn: ({
+      environmentName,
+      request
+    }: {
+      environmentName: string;
+      request: PublishConfigReleaseRequest;
+    }) => configReleaseService.publish(projectId(), environmentName, request),
+    onSuccess: (_, { environmentName }) => {
       queryClient.invalidateQueries({
-        queryKey: projectKeys.configReleases(params.slug, activeEnvName())
+        queryKey: projectKeys.configReleases(params.slug, environmentName)
       });
       queryClient.invalidateQueries({ queryKey: projectKeys.environments(params.slug) });
       addToast(MSG.RELEASE_PUBLISHED, "success");
@@ -897,16 +902,21 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
               </Show>
               <Show when={isAmendMode()}>
                 <ReleaseAmendPanel
+                  projectId={projectId()}
+                  environmentName={activeEnvName()}
                   sourceVersion={amendSourceVersion()!}
                   targetVersion={releaseDraftVersion() ?? ""}
                   sourceEntries={amendSourceQuery.data?.entries ?? []}
                   isLoading={amendSourceQuery.isLoading}
                   isPublishing={publishReleaseMutation.isPending}
-                  onPublish={entries =>
+                  onPublish={(environmentName, entries) =>
                     publishReleaseMutation.mutate({
-                      version: releaseDraftVersion() ?? "",
-                      makeActive: false,
-                      entries
+                      environmentName,
+                      request: {
+                        version: releaseDraftVersion() ?? "",
+                        makeActive: false,
+                        entries
+                      }
                     })
                   }
                   onCancel={() => navigate(`/projects/${params.slug}/releases`)}
@@ -934,8 +944,11 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
                       disabled={publishReleaseMutation.isPending || !activeEnvName()}
                       onClick={() =>
                         publishReleaseMutation.mutate({
-                          version: releaseDraftVersion()!,
-                          makeActive: false
+                          environmentName: activeEnvName(),
+                          request: {
+                            version: releaseDraftVersion()!,
+                            makeActive: false
+                          }
                         })
                       }
                       class="bg-primary text-on-primary inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border-0 px-4 text-[12px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] disabled:opacity-50"
