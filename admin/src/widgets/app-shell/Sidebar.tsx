@@ -1,8 +1,11 @@
 import { A, useLocation } from "@solidjs/router";
+import { useQuery } from "@tanstack/solid-query";
 import { For, Show } from "solid-js";
 import { authService } from "../../entities/auth/api/auth.service";
 import { authStore } from "../../entities/auth/model/store";
+import { projectService } from "../../entities/project/api/project.service";
 import { getActiveProjectHref } from "../../entities/project/model/active-project";
+import { projectKeys } from "../../entities/project/queries/keys";
 
 function getUser(): { email: string; role: string } {
   const session = authStore.getSession();
@@ -25,6 +28,13 @@ export const Sidebar = (props: {
   const location = useLocation();
   const user = getUser();
   const initials = user.email ? user.email.slice(0, 2).toUpperCase() : "NA";
+
+  const projectsQuery = useQuery(() => ({
+    queryKey: projectKeys.list(),
+    queryFn: () => projectService.getAll()
+  }));
+  // Once loaded, an empty instance collapses the nav to a single Create Project CTA.
+  const noProjects = () => projectsQuery.isSuccess && (projectsQuery.data?.length ?? 0) === 0;
 
   const selectedProjectHref = () => getActiveProjectHref();
   const projectPageHref = (
@@ -150,65 +160,86 @@ export const Sidebar = (props: {
         <div class="mx-3 h-px bg-outline-variant/20" />
 
         <div class={`pt-3 space-y-0.5 ${props.collapsed ? "px-2" : "px-2"}`}>
-          <For each={projectNavItems}>
-            {item => (
-              <A
-                href={item.href()}
-                onClick={() => props.onClose()}
-                title={props.collapsed ? item.label : undefined}
-                aria-label={item.label}
-                class={navItem(item.isActive(), props.collapsed)}
-              >
-                <span
-                  class="material-symbols-outlined text-[20px] shrink-0"
-                  style={
-                    item.isActive()
-                      ? "font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24"
-                      : ""
-                  }
-                >
-                  {item.icon}
-                </span>
-                <Show when={!props.collapsed}>{item.label}</Show>
-              </A>
-            )}
-          </For>
+          <Show
+            when={noProjects()}
+            fallback={
+              <For each={projectNavItems}>
+                {item => (
+                  <A
+                    href={item.href()}
+                    onClick={() => props.onClose()}
+                    title={props.collapsed ? item.label : undefined}
+                    aria-label={item.label}
+                    class={navItem(item.isActive(), props.collapsed)}
+                  >
+                    <span
+                      class="material-symbols-outlined text-[20px] shrink-0"
+                      style={
+                        item.isActive()
+                          ? "font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24"
+                          : ""
+                      }
+                    >
+                      {item.icon}
+                    </span>
+                    <Show when={!props.collapsed}>{item.label}</Show>
+                  </A>
+                )}
+              </For>
+            }
+          >
+            <A
+              href="/projects?new=1"
+              onClick={() => props.onClose()}
+              title={props.collapsed ? "Create Project" : undefined}
+              aria-label="Create Project"
+              data-testid="sidebar-create-project"
+              class={`bg-primary text-on-primary flex items-center justify-center gap-2 rounded-lg text-[13px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] ${
+                props.collapsed ? "px-2.5 py-2.5" : "px-3 py-2.5"
+              }`}
+            >
+              <span class="material-symbols-outlined text-[18px] shrink-0">add</span>
+              <Show when={!props.collapsed}>Create Project</Show>
+            </A>
+          </Show>
         </div>
 
         <div class="flex-1" />
 
         <div class={`mt-auto pb-4 space-y-2 ${props.collapsed ? "px-2" : "px-3"}`}>
-          <Show when={!props.collapsed}>
-            <p class="px-1 pb-1 text-[10px] font-semibold text-outline/50 tracking-[0.08em] uppercase">
-              Admin
-            </p>
-          </Show>
+          <Show when={!noProjects()}>
+            <Show when={!props.collapsed}>
+              <p class="px-1 pb-1 text-[10px] font-semibold text-outline/50 tracking-[0.08em] uppercase">
+                Admin
+              </p>
+            </Show>
 
-          <div class="space-y-0.5">
-            <For each={footerNavItems}>
-              {item => (
-                <A
-                  href={item.href()}
-                  onClick={() => props.onClose()}
-                  title={props.collapsed ? item.label : undefined}
-                  aria-label={item.label}
-                  class={navItem(item.isActive(), props.collapsed)}
-                >
-                  <span
-                    class="material-symbols-outlined text-[20px] shrink-0"
-                    style={
-                      item.isActive()
-                        ? "font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24"
-                        : ""
-                    }
+            <div class="space-y-0.5">
+              <For each={footerNavItems}>
+                {item => (
+                  <A
+                    href={item.href()}
+                    onClick={() => props.onClose()}
+                    title={props.collapsed ? item.label : undefined}
+                    aria-label={item.label}
+                    class={navItem(item.isActive(), props.collapsed)}
                   >
-                    {item.icon}
-                  </span>
-                  <Show when={!props.collapsed}>{item.label}</Show>
-                </A>
-              )}
-            </For>
-          </div>
+                    <span
+                      class="material-symbols-outlined text-[20px] shrink-0"
+                      style={
+                        item.isActive()
+                          ? "font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24"
+                          : ""
+                      }
+                    >
+                      {item.icon}
+                    </span>
+                    <Show when={!props.collapsed}>{item.label}</Show>
+                  </A>
+                )}
+              </For>
+            </div>
+          </Show>
 
           <button
             onClick={() => props.onToggleCollapse()}
