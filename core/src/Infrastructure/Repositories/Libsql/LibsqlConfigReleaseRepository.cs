@@ -135,6 +135,92 @@ public sealed class LibsqlConfigReleaseRepository : IConfigReleaseRepository
         return WithEntries(release, entries);
     }
 
+    public Task<ConfigReleaseEntryLookupResult> GetEntryAsync(
+        string projectName,
+        string environmentName,
+        string version,
+        string key,
+        KeyScope requiredScope,
+        CancellationToken ct = default)
+    {
+        return ExecuteEntryLookupAsync(
+            """
+            SELECT
+                releases.Project,
+                releases.Environment,
+                releases.Version AS ReleaseVersion,
+                entries.Key,
+                entries.Value,
+                entries.ContentType,
+                entries.Scope
+            FROM ConfigReleases releases
+            LEFT JOIN ConfigReleaseEntries entries
+              ON entries.Project = releases.Project COLLATE NOCASE
+             AND entries.Environment = releases.Environment COLLATE NOCASE
+             AND entries.ReleaseVersion = releases.Version COLLATE NOCASE
+             AND entries.Key = @Key COLLATE NOCASE
+             AND (entries.Scope & @RequiredScope) != 0
+            WHERE releases.Project = @ProjectName COLLATE NOCASE
+              AND releases.Environment = @EnvironmentName COLLATE NOCASE
+              AND releases.Version = @Version COLLATE NOCASE
+            LIMIT 1
+            """,
+            LibsqlParameters.Create(
+                ("ProjectName", projectName),
+                ("EnvironmentName", environmentName),
+                ("Version", version),
+                ("Key", key),
+                ("RequiredScope", (int)requiredScope)),
+            ct);
+    }
+
+    public Task<ConfigReleaseEntryLookupResult> GetLatestPatchEntryAsync(
+        string projectName,
+        string environmentName,
+        int major,
+        int minor,
+        string key,
+        KeyScope requiredScope,
+        CancellationToken ct = default)
+    {
+        return ExecuteEntryLookupAsync(
+            """
+            SELECT
+                releases.Project,
+                releases.Environment,
+                releases.Version AS ReleaseVersion,
+                entries.Key,
+                entries.Value,
+                entries.ContentType,
+                entries.Scope
+            FROM (
+                SELECT Project, Environment, Version
+                FROM ConfigReleases
+                WHERE Project = @ProjectName COLLATE NOCASE
+                  AND Environment = @EnvironmentName COLLATE NOCASE
+                  AND Major = @Major
+                  AND Minor = @Minor
+                ORDER BY Patch DESC
+                LIMIT 1
+            ) releases
+            LEFT JOIN ConfigReleaseEntries entries
+              ON entries.Project = releases.Project COLLATE NOCASE
+             AND entries.Environment = releases.Environment COLLATE NOCASE
+             AND entries.ReleaseVersion = releases.Version COLLATE NOCASE
+             AND entries.Key = @Key COLLATE NOCASE
+             AND (entries.Scope & @RequiredScope) != 0
+            LIMIT 1
+            """,
+            LibsqlParameters.Create(
+                ("ProjectName", projectName),
+                ("EnvironmentName", environmentName),
+                ("Major", major),
+                ("Minor", minor),
+                ("Key", key),
+                ("RequiredScope", (int)requiredScope)),
+            ct);
+    }
+
     public async Task<IReadOnlyList<ConfigRelease>> ListAsync(string projectName, string environmentName, CancellationToken ct = default)
     {
         var result = await _client.ExecuteAsync(
@@ -329,6 +415,22 @@ public sealed class LibsqlConfigReleaseRepository : IConfigReleaseRepository
             ct);
 
         return result.Rows.Select(MapEntry).ToList();
+    }
+
+    private async Task<ConfigReleaseEntryLookupResult> ExecuteEntryLookupAsync(
+        string sql,
+        IReadOnlyDictionary<string, object?> parameters,
+        CancellationToken ct)
+    {
+        var result = await _client.ExecuteAsync(sql, parameters, ct);
+        if (result.Rows.Count == 0)
+        {
+            return new ConfigReleaseEntryLookupResult(false, null);
+        }
+
+        var row = result.Rows[0];
+        var entry = row.GetValue("Key") is null ? null : MapEntry(row);
+        return new ConfigReleaseEntryLookupResult(true, entry);
     }
 
     private static ConfigRelease MapRelease(LibsqlRow row, IReadOnlyList<ConfigReleaseEntry> entries)

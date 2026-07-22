@@ -97,6 +97,50 @@ public class InMemoryConfigReleaseRepositoryTests
         await Assert.That(entries[0].Key).IsEqualTo("feature.enabled");
     }
 
+    [Test]
+    public async Task GetEntryAsync_ResolvesExactAndLatestEntriesByKeyAndScope()
+    {
+        var repository = new InMemoryConfigReleaseRepository();
+        await repository.AddAsync(CreateRelease("1.1.0", "false", patch: 0));
+        await repository.AddAsync(CreateRelease("1.1.2", "true", patch: 2));
+
+        var exact = await repository.GetEntryAsync(
+            "TEST-PROJECT",
+            "PRODUCTION",
+            "1.1.0",
+            "FEATURE.ENABLED",
+            KeyScope.Frontend);
+        var latest = await repository.GetLatestPatchEntryAsync(
+            "test-project",
+            "production",
+            1,
+            1,
+            "feature.enabled",
+            KeyScope.Frontend);
+        var scopeDenied = await repository.GetEntryAsync(
+            "test-project",
+            "production",
+            "1.1.0",
+            "feature.enabled",
+            KeyScope.Backend);
+        var missingRelease = await repository.GetEntryAsync(
+            "test-project",
+            "production",
+            "9.9.9",
+            "feature.enabled",
+            KeyScope.Frontend);
+
+        await Assert.That(exact.ReleaseFound).IsTrue();
+        await Assert.That(exact.Entry!.Value).IsEqualTo("false");
+        await Assert.That(latest.ReleaseFound).IsTrue();
+        await Assert.That(latest.Entry!.ReleaseVersion).IsEqualTo("1.1.2");
+        await Assert.That(latest.Entry.Value).IsEqualTo("true");
+        await Assert.That(scopeDenied.ReleaseFound).IsTrue();
+        await Assert.That(scopeDenied.Entry).IsNull();
+        await Assert.That(missingRelease.ReleaseFound).IsFalse();
+        await Assert.That(missingRelease.Entry).IsNull();
+    }
+
     private static ConfigRelease CreateRelease(string version, string value, int patch)
     {
         return new ConfigRelease

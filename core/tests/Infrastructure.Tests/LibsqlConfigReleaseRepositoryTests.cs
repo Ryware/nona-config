@@ -112,6 +112,73 @@ public class LibsqlConfigReleaseRepositoryTests
     }
 
     [Test]
+    public async Task GetEntryAsync_Sqld_ResolvesVersionAndScopeInSingleRoundTrip()
+    {
+        await using var server = await LocalSqldTestServer.StartAsync();
+        using var client = server.CreateClient();
+        var migrations = new LibsqlMigrationRunner(client, ResolveMigrationsFolder());
+        await migrations.RunMigrationsAsync();
+
+        var repository = new LibsqlConfigReleaseRepository(client);
+        await repository.AddAsync(CreateRelease("1.1.0", "false", patch: 0));
+        await repository.AddAsync(CreateRelease("1.1.2", "true", patch: 2));
+
+        var countingClient = new CountingLibsqlDatabaseClient(client);
+        var countingRepository = new LibsqlConfigReleaseRepository(countingClient);
+
+        var exact = await countingRepository.GetEntryAsync(
+            "TEST-PROJECT",
+            "PRODUCTION",
+            "1.1.0",
+            "FEATURE.ENABLED",
+            KeyScope.Frontend);
+
+        await Assert.That(countingClient.RoundTrips).IsEqualTo(1);
+        await Assert.That(exact.ReleaseFound).IsTrue();
+        await Assert.That(exact.Entry).IsNotNull();
+        await Assert.That(exact.Entry!.Value).IsEqualTo("false");
+
+        countingClient.Reset();
+        var latest = await countingRepository.GetLatestPatchEntryAsync(
+            "test-project",
+            "production",
+            1,
+            1,
+            "feature.enabled",
+            KeyScope.Frontend);
+
+        await Assert.That(countingClient.RoundTrips).IsEqualTo(1);
+        await Assert.That(latest.ReleaseFound).IsTrue();
+        await Assert.That(latest.Entry).IsNotNull();
+        await Assert.That(latest.Entry!.ReleaseVersion).IsEqualTo("1.1.2");
+        await Assert.That(latest.Entry.Value).IsEqualTo("true");
+
+        countingClient.Reset();
+        var scopeDenied = await countingRepository.GetEntryAsync(
+            "test-project",
+            "production",
+            "1.1.0",
+            "feature.enabled",
+            KeyScope.Backend);
+
+        await Assert.That(countingClient.RoundTrips).IsEqualTo(1);
+        await Assert.That(scopeDenied.ReleaseFound).IsTrue();
+        await Assert.That(scopeDenied.Entry).IsNull();
+
+        countingClient.Reset();
+        var missingRelease = await countingRepository.GetEntryAsync(
+            "test-project",
+            "production",
+            "9.9.9",
+            "feature.enabled",
+            KeyScope.Frontend);
+
+        await Assert.That(countingClient.RoundTrips).IsEqualTo(1);
+        await Assert.That(missingRelease.ReleaseFound).IsFalse();
+        await Assert.That(missingRelease.Entry).IsNull();
+    }
+
+    [Test]
     public async Task DeleteAsync_Sqld_RemovesReleaseAndSnapshotEntries()
     {
         await using var server = await LocalSqldTestServer.StartAsync();
@@ -255,5 +322,32 @@ public class LibsqlConfigReleaseRepositoryTests
             "src",
             "Infrastructure",
             "Migrations"));
+    }
+
+    private sealed class CountingLibsqlDatabaseClient(ILibsqlDatabaseClient inner) : ILibsqlDatabaseClient
+    {
+        public int RoundTrips { get; private set; }
+
+        public async Task<LibsqlQueryResult> ExecuteAsync(
+            string sql,
+            object? parameters = null,
+            CancellationToken ct = default)
+        {
+            RoundTrips++;
+            return await inner.ExecuteAsync(sql, parameters, ct);
+        }
+
+        public async Task<IReadOnlyList<LibsqlQueryResult>> ExecuteBatchAsync(
+            IEnumerable<LibsqlStatement> statements,
+            CancellationToken ct = default)
+        {
+            RoundTrips++;
+            return await inner.ExecuteBatchAsync(statements, ct);
+        }
+
+        public void Reset()
+        {
+            RoundTrips = 0;
+        }
     }
 }

@@ -10,7 +10,9 @@ internal enum DatasetSize
 internal enum WorkloadKind
 {
     PointLookup,
-    RangeQuery
+    RangeQuery,
+    ReleaseEntryPointLookup,
+    ReleaseHydrationPointLookup
 }
 
 internal sealed record BenchmarkOptions(

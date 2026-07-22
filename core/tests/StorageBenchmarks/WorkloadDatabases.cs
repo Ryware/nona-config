@@ -40,6 +40,8 @@ internal sealed class LibsqlBenchmarkDatabase : IBenchmarkDatabase
         {
             WorkloadKind.PointLookup => await ExecutePointLookupAsync(environment, scenario.ItemCount, datasetRows, random, cancellationToken),
             WorkloadKind.RangeQuery => await ExecuteRangeQueryAsync(environment, scenario.ItemCount, datasetRows, random, cancellationToken),
+            WorkloadKind.ReleaseEntryPointLookup => await ExecuteReleaseEntryPointLookupAsync(environment, datasetRows, random, cancellationToken),
+            WorkloadKind.ReleaseHydrationPointLookup => await ExecuteReleaseHydrationPointLookupAsync(environment, datasetRows, random, cancellationToken),
             _ => throw new ArgumentOutOfRangeException(nameof(scenario.Workload), scenario.Workload, null)
         };
 
@@ -130,6 +132,41 @@ internal sealed class LibsqlBenchmarkDatabase : IBenchmarkDatabase
         var result = await _client.ExecuteAsync(sql, parameters, cancellationToken);
         return result.Rows.Count;
     }
+
+    private async Task<int> ExecuteReleaseEntryPointLookupAsync(
+        string environment,
+        int datasetRows,
+        Random random,
+        CancellationToken cancellationToken)
+    {
+        var keyIndex = random.Next(1, datasetRows + 1);
+        var (sql, parameters) = SqlStatementFactory.BuildReleaseEntryPointLookup(environment, keyIndex);
+        var result = await _client.ExecuteAsync(sql, parameters, cancellationToken);
+        return result.Rows.Count;
+    }
+
+    private async Task<int> ExecuteReleaseHydrationPointLookupAsync(
+        string environment,
+        int datasetRows,
+        Random random,
+        CancellationToken cancellationToken)
+    {
+        var key = DatabaseSeeder.BuildKey(random.Next(1, datasetRows + 1));
+        var (releaseSql, releaseParameters) = SqlStatementFactory.BuildReleaseMetadataLookup(environment);
+        var release = await _client.ExecuteAsync(releaseSql, releaseParameters, cancellationToken);
+        if (release.Rows.Count == 0)
+        {
+            return 0;
+        }
+
+        var (entriesSql, entriesParameters) = SqlStatementFactory.BuildReleaseEntriesLookup(environment);
+        var entries = await _client.ExecuteAsync(entriesSql, entriesParameters, cancellationToken);
+        return entries.Rows.Any(row =>
+            row.GetString("Key").Equals(key, StringComparison.OrdinalIgnoreCase)
+            && (row.GetInt32("Scope") & 3) != 0)
+            ? 1
+            : 0;
+    }
 }
 
 internal sealed class SqliteBenchmarkDatabase : IBenchmarkDatabase
@@ -169,6 +206,8 @@ internal sealed class SqliteBenchmarkDatabase : IBenchmarkDatabase
         {
             WorkloadKind.PointLookup => await ExecutePointLookupAsync(environment, scenario.ItemCount, datasetRows, random, cancellationToken),
             WorkloadKind.RangeQuery => await ExecuteRangeQueryAsync(environment, scenario.ItemCount, datasetRows, random, cancellationToken),
+            WorkloadKind.ReleaseEntryPointLookup => await ExecuteReleaseEntryPointLookupAsync(environment, datasetRows, random, cancellationToken),
+            WorkloadKind.ReleaseHydrationPointLookup => await ExecuteReleaseHydrationPointLookupAsync(environment, datasetRows, random, cancellationToken),
             _ => throw new ArgumentOutOfRangeException(nameof(scenario.Workload), scenario.Workload, null)
         };
 
@@ -262,6 +301,55 @@ internal sealed class SqliteBenchmarkDatabase : IBenchmarkDatabase
         var offset = maxOffset == 0 ? 0 : random.Next(0, maxOffset + 1);
         var (sql, parameters) = SqlStatementFactory.BuildRangeQuery(environment, limit, offset);
         return await ExecuteReaderCountAsync(sql, parameters, cancellationToken);
+    }
+
+    private async Task<int> ExecuteReleaseEntryPointLookupAsync(
+        string environment,
+        int datasetRows,
+        Random random,
+        CancellationToken cancellationToken)
+    {
+        var keyIndex = random.Next(1, datasetRows + 1);
+        var (sql, parameters) = SqlStatementFactory.BuildReleaseEntryPointLookup(environment, keyIndex);
+        return await ExecuteReaderCountAsync(sql, parameters, cancellationToken);
+    }
+
+    private async Task<int> ExecuteReleaseHydrationPointLookupAsync(
+        string environment,
+        int datasetRows,
+        Random random,
+        CancellationToken cancellationToken)
+    {
+        var key = DatabaseSeeder.BuildKey(random.Next(1, datasetRows + 1));
+        var (releaseSql, releaseParameters) = SqlStatementFactory.BuildReleaseMetadataLookup(environment);
+        if (await ExecuteReaderCountAsync(releaseSql, releaseParameters, cancellationToken) == 0)
+        {
+            return 0;
+        }
+
+        var (entriesSql, entriesParameters) = SqlStatementFactory.BuildReleaseEntriesLookup(environment);
+        await _gate.WaitAsync(cancellationToken);
+        try
+        {
+            var connection = await EnsureConnectionOpenAsync(cancellationToken);
+            using var command = CreateCommand(connection, entriesSql, entriesParameters);
+            using var reader = await command.ExecuteReaderAsync(cancellationToken);
+            var found = false;
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                if (reader.GetString(reader.GetOrdinal("Key")).Equals(key, StringComparison.OrdinalIgnoreCase)
+                    && (reader.GetInt32(reader.GetOrdinal("Scope")) & 3) != 0)
+                {
+                    found = true;
+                }
+            }
+
+            return found ? 1 : 0;
+        }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     private async Task<object?> ExecuteScalarAsync(
@@ -406,6 +494,97 @@ internal static class SqlStatementFactory
             });
     }
 
+    public static (string Sql, IReadOnlyDictionary<string, object?> Parameters) BuildReleaseEntryPointLookup(
+        string environment,
+        int keyIndex)
+    {
+        return (
+            """
+            SELECT
+                releases.Project,
+                releases.Environment,
+                releases.Version AS ReleaseVersion,
+                entries.Key,
+                entries.Value,
+                entries.ContentType,
+                entries.Scope
+            FROM ConfigReleases releases
+            LEFT JOIN ConfigReleaseEntries entries
+              ON entries.Project = releases.Project COLLATE NOCASE
+             AND entries.Environment = releases.Environment COLLATE NOCASE
+             AND entries.ReleaseVersion = releases.Version COLLATE NOCASE
+             AND entries.Key = @Key COLLATE NOCASE
+             AND (entries.Scope & @RequiredScope) != 0
+            WHERE releases.Project = @Project COLLATE NOCASE
+              AND releases.Environment = @Environment COLLATE NOCASE
+              AND releases.Version = @Version COLLATE NOCASE
+            LIMIT 1
+            """,
+            new Dictionary<string, object?>
+            {
+                ["Project"] = DatabaseSeeder.ProjectName,
+                ["Environment"] = environment,
+                ["Version"] = DatabaseSeeder.ReleaseVersion,
+                ["Key"] = DatabaseSeeder.BuildKey(keyIndex),
+                ["RequiredScope"] = 3
+            });
+    }
+
+    public static (string Sql, IReadOnlyDictionary<string, object?> Parameters) BuildReleaseMetadataLookup(
+        string environment)
+    {
+        return (
+            """
+            SELECT
+                Project,
+                Environment,
+                Version,
+                Major,
+                Minor,
+                Patch,
+                CreatedAt,
+                Actor,
+                (
+                    SELECT COUNT(1)
+                    FROM ConfigReleaseEntries entries
+                    WHERE entries.Project = ConfigReleases.Project COLLATE NOCASE
+                      AND entries.Environment = ConfigReleases.Environment COLLATE NOCASE
+                      AND entries.ReleaseVersion = ConfigReleases.Version COLLATE NOCASE
+                ) AS EntryCount
+            FROM ConfigReleases
+            WHERE Project = @Project COLLATE NOCASE
+              AND Environment = @Environment COLLATE NOCASE
+              AND Version = @Version COLLATE NOCASE
+            LIMIT 1
+            """,
+            CreateReleaseParameters(environment));
+    }
+
+    public static (string Sql, IReadOnlyDictionary<string, object?> Parameters) BuildReleaseEntriesLookup(
+        string environment)
+    {
+        return (
+            """
+            SELECT Project, Environment, ReleaseVersion, Key, Value, ContentType, Scope
+            FROM ConfigReleaseEntries
+            WHERE Project = @Project COLLATE NOCASE
+              AND Environment = @Environment COLLATE NOCASE
+              AND ReleaseVersion = @Version COLLATE NOCASE
+            ORDER BY Key
+            """,
+            CreateReleaseParameters(environment));
+    }
+
+    private static IReadOnlyDictionary<string, object?> CreateReleaseParameters(string environment)
+    {
+        return new Dictionary<string, object?>
+        {
+            ["Project"] = DatabaseSeeder.ProjectName,
+            ["Environment"] = environment,
+            ["Version"] = DatabaseSeeder.ReleaseVersion
+        };
+    }
+
     public static NelknetLibsqlDatabaseClient CreateDirectClient(
         string dataSource,
         string authToken)
@@ -418,13 +597,9 @@ internal static class SqlStatementFactory
         }));
     }
 
-    public static NelknetLibsqlDatabaseClient CreateLocalClient(string databasePath)
+    public static SqliteDatabaseClient CreateLocalClient(string databasePath)
     {
-        return new NelknetLibsqlDatabaseClient(Options.Create(new LibsqlOptions
-        {
-            DataSource = databasePath,
-            TimeoutSeconds = 60
-        }));
+        return new SqliteDatabaseClient(databasePath, commandTimeoutSeconds: 60);
     }
 
     public static NelknetLibsqlDatabaseClient CreateReplicaClient(

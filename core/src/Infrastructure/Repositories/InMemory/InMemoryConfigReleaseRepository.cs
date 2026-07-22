@@ -7,7 +7,7 @@ namespace Nona.Infrastructure.Repositories.InMemory;
 
 public class InMemoryConfigReleaseRepository : IConfigReleaseRepository
 {
-    private readonly ConcurrentDictionary<string, ConfigRelease> _releases = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, StoredRelease> _releases = new(StringComparer.OrdinalIgnoreCase);
 
     private static string GetKey(string projectName, string environmentName, string version)
         => $"{projectName}:{environmentName}:{version}";
@@ -18,8 +18,8 @@ public class InMemoryConfigReleaseRepository : IConfigReleaseRepository
         string version,
         CancellationToken ct = default)
     {
-        _releases.TryGetValue(GetKey(projectName, environmentName, version), out var release);
-        return Task.FromResult(release is null ? null : ToMetadata(release));
+        _releases.TryGetValue(GetKey(projectName, environmentName, version), out var storedRelease);
+        return Task.FromResult(storedRelease is null ? null : ToMetadata(storedRelease.Release));
     }
 
     public Task<ConfigRelease?> GetLatestPatchMetadataAsync(
@@ -29,36 +29,69 @@ public class InMemoryConfigReleaseRepository : IConfigReleaseRepository
         int minor,
         CancellationToken ct = default)
     {
-        var release = FindLatestPatch(projectName, environmentName, major, minor);
-        return Task.FromResult(release is null ? null : ToMetadata(release));
+        var storedRelease = FindLatestPatch(projectName, environmentName, major, minor);
+        return Task.FromResult(storedRelease is null ? null : ToMetadata(storedRelease.Release));
     }
 
     public Task<ConfigRelease?> GetAsync(string projectName, string environmentName, string version, CancellationToken ct = default)
     {
-        _releases.TryGetValue(GetKey(projectName, environmentName, version), out var release);
-        return Task.FromResult(release);
+        _releases.TryGetValue(GetKey(projectName, environmentName, version), out var storedRelease);
+        return Task.FromResult(storedRelease?.Release);
     }
 
     public Task<ConfigRelease?> GetLatestPatchAsync(string projectName, string environmentName, int major, int minor, CancellationToken ct = default)
     {
-        return Task.FromResult(FindLatestPatch(projectName, environmentName, major, minor));
+        return Task.FromResult(FindLatestPatch(projectName, environmentName, major, minor)?.Release);
     }
 
-    private ConfigRelease? FindLatestPatch(string projectName, string environmentName, int major, int minor)
+    private StoredRelease? FindLatestPatch(string projectName, string environmentName, int major, int minor)
     {
         return _releases.Values
             .Where(candidate =>
-                candidate.Project.Equals(projectName, StringComparison.OrdinalIgnoreCase)
-                && candidate.Environment.Equals(environmentName, StringComparison.OrdinalIgnoreCase)
-                && candidate.Major == major
-                && candidate.Minor == minor)
-            .OrderByDescending(candidate => candidate.Patch)
+                candidate.Release.Project.Equals(projectName, StringComparison.OrdinalIgnoreCase)
+                && candidate.Release.Environment.Equals(environmentName, StringComparison.OrdinalIgnoreCase)
+                && candidate.Release.Major == major
+                && candidate.Release.Minor == minor)
+            .OrderByDescending(candidate => candidate.Release.Patch)
             .FirstOrDefault();
+    }
+
+    public Task<ConfigReleaseEntryLookupResult> GetEntryAsync(
+        string projectName,
+        string environmentName,
+        string version,
+        string key,
+        KeyScope requiredScope,
+        CancellationToken ct = default)
+    {
+        if (!_releases.TryGetValue(GetKey(projectName, environmentName, version), out var storedRelease))
+        {
+            return Task.FromResult(new ConfigReleaseEntryLookupResult(false, null));
+        }
+
+        return Task.FromResult(CreateEntryLookup(storedRelease, key, requiredScope));
+    }
+
+    public Task<ConfigReleaseEntryLookupResult> GetLatestPatchEntryAsync(
+        string projectName,
+        string environmentName,
+        int major,
+        int minor,
+        string key,
+        KeyScope requiredScope,
+        CancellationToken ct = default)
+    {
+        var storedRelease = FindLatestPatch(projectName, environmentName, major, minor);
+
+        return Task.FromResult(storedRelease is null
+            ? new ConfigReleaseEntryLookupResult(false, null)
+            : CreateEntryLookup(storedRelease, key, requiredScope));
     }
 
     public Task<IReadOnlyList<ConfigRelease>> ListAsync(string projectName, string environmentName, CancellationToken ct = default)
     {
         var releases = _releases.Values
+            .Select(storedRelease => storedRelease.Release)
             .Where(candidate =>
                 candidate.Project.Equals(projectName, StringComparison.OrdinalIgnoreCase)
                 && candidate.Environment.Equals(environmentName, StringComparison.OrdinalIgnoreCase))
@@ -77,12 +110,12 @@ public class InMemoryConfigReleaseRepository : IConfigReleaseRepository
         KeyScope requiredScope,
         CancellationToken ct = default)
     {
-        if (!_releases.TryGetValue(GetKey(projectName, environmentName, version), out var release))
+        if (!_releases.TryGetValue(GetKey(projectName, environmentName, version), out var storedRelease))
         {
             return Task.FromResult<IReadOnlyList<ConfigReleaseEntry>>([]);
         }
 
-        var entries = release.Entries
+        var entries = storedRelease.Release.Entries
             .Where(entry => (entry.Scope & requiredScope) != 0)
             .ToList();
         return Task.FromResult<IReadOnlyList<ConfigReleaseEntry>>(entries);
@@ -109,9 +142,15 @@ public class InMemoryConfigReleaseRepository : IConfigReleaseRepository
             Actor = release.Actor
         };
 
+        var entriesByKey = new Dictionary<string, ConfigReleaseEntry>(StringComparer.OrdinalIgnoreCase);
+        foreach (var entry in releaseWithCount.Entries)
+        {
+            entriesByKey.TryAdd(entry.Key, entry);
+        }
+
         return Task.FromResult(_releases.TryAdd(
             GetKey(release.Project, release.Environment, release.Version),
-            releaseWithCount));
+            new StoredRelease(releaseWithCount, entriesByKey)));
     }
 
     public Task<bool> DeleteAsync(string projectName, string environmentName, string version, CancellationToken ct = default)
@@ -121,8 +160,9 @@ public class InMemoryConfigReleaseRepository : IConfigReleaseRepository
 
     public Task DeleteByEnvironmentAsync(string projectName, string environmentName, CancellationToken ct = default)
     {
-        foreach (var release in _releases.Values)
+        foreach (var storedRelease in _releases.Values)
         {
+            var release = storedRelease.Release;
             if (release.Project.Equals(projectName, StringComparison.OrdinalIgnoreCase)
                 && release.Environment.Equals(environmentName, StringComparison.OrdinalIgnoreCase))
             {
@@ -135,8 +175,9 @@ public class InMemoryConfigReleaseRepository : IConfigReleaseRepository
 
     public Task DeleteByProjectAsync(string projectName, CancellationToken ct = default)
     {
-        foreach (var release in _releases.Values)
+        foreach (var storedRelease in _releases.Values)
         {
+            var release = storedRelease.Release;
             if (release.Project.Equals(projectName, StringComparison.OrdinalIgnoreCase))
             {
                 _releases.TryRemove(GetKey(release.Project, release.Environment, release.Version), out _);
@@ -161,4 +202,22 @@ public class InMemoryConfigReleaseRepository : IConfigReleaseRepository
             Actor = release.Actor
         };
     }
+
+    private static ConfigReleaseEntryLookupResult CreateEntryLookup(
+        StoredRelease storedRelease,
+        string key,
+        KeyScope requiredScope)
+    {
+        storedRelease.EntriesByKey.TryGetValue(key, out var entry);
+        if (entry is not null && (entry.Scope & requiredScope) == 0)
+        {
+            entry = null;
+        }
+
+        return new ConfigReleaseEntryLookupResult(true, entry);
+    }
+
+    private sealed record StoredRelease(
+        ConfigRelease Release,
+        IReadOnlyDictionary<string, ConfigReleaseEntry> EntriesByKey);
 }

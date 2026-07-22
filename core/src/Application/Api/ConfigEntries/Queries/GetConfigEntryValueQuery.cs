@@ -3,6 +3,7 @@ using Nona.Application.Admin.ConfigReleases;
 using Nona.Application.Common;
 using Nona.Application.Common.Interfaces;
 using Nona.Domain.Entities;
+using Nona.Domain.Enums;
 using Nona.Domain.Interfaces;
 
 namespace Nona.Application.Api.ConfigEntries.Queries;
@@ -40,16 +41,19 @@ public class GetConfigEntryValueQueryHandler(
         if (environment is null)
             return new GetConfigEntryValueResult(false, null, null, "Environment not found");
 
-        var release = await ResolveReleaseAsync(project.Name, request.EnvironmentId, environment.ActiveReleaseVersion, request.Version, cancellationToken);
-        if (release.Error is not null)
-            return new GetConfigEntryValueResult(false, null, null, release.Error);
+        var lookup = await ResolveEntryAsync(
+            project.Name,
+            request.EnvironmentId,
+            environment.ActiveReleaseVersion,
+            request.Version,
+            request.Key,
+            apiKeyScope,
+            cancellationToken);
+        if (lookup.Error is not null)
+            return new GetConfigEntryValueResult(false, null, null, lookup.Error);
 
-        var configEntry = release.Release!.Entries.FirstOrDefault(entry =>
-            entry.Key.Equals(request.Key, StringComparison.OrdinalIgnoreCase));
+        var configEntry = lookup.Result!.Entry;
         if (configEntry is null)
-            return new GetConfigEntryValueResult(false, null, null, "Config entry not found");
-
-        if ((apiKeyScope & configEntry.Scope) == 0)
             return new GetConfigEntryValueResult(false, null, null, "Config entry not found");
 
         var contentType = ConfigEntryContentTypes.Normalize(configEntry.ContentType)
@@ -58,11 +62,13 @@ public class GetConfigEntryValueQueryHandler(
         return new GetConfigEntryValueResult(true, configEntry.Value, contentType, null);
     }
 
-    private async Task<(ConfigRelease? Release, string? Error)> ResolveReleaseAsync(
+    private async Task<(ConfigReleaseEntryLookupResult? Result, string? Error)> ResolveEntryAsync(
         string projectName,
         string environmentName,
         string? activeReleaseVersion,
         string? requestedVersion,
+        string key,
+        KeyScope requiredScope,
         CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(requestedVersion))
@@ -72,15 +78,17 @@ public class GetConfigEntryValueQueryHandler(
                 return (null, "Active release not configured");
             }
 
-            var activeRelease = await configReleaseRepository.GetAsync(
+            var activeReleaseEntry = await configReleaseRepository.GetEntryAsync(
                 projectName,
                 environmentName,
                 activeReleaseVersion,
+                key,
+                requiredScope,
                 cancellationToken);
 
-            return activeRelease is null
+            return !activeReleaseEntry.ReleaseFound
                 ? (null, "Release not found")
-                : (activeRelease, null);
+                : (activeReleaseEntry, null);
         }
 
         if (!ConfigReleaseVersions.TryParseSelector(requestedVersion, out var version))
@@ -88,12 +96,25 @@ public class GetConfigEntryValueQueryHandler(
             return (null, "Version must use major.minor.patch or major.minor.x format.");
         }
 
-        var release = version.Kind == ConfigReleaseVersionKind.Line
-            ? await configReleaseRepository.GetLatestPatchAsync(projectName, environmentName, version.Major, version.Minor, cancellationToken)
-            : await configReleaseRepository.GetAsync(projectName, environmentName, version.Normalized, cancellationToken);
+        var releaseEntry = version.Kind == ConfigReleaseVersionKind.Line
+            ? await configReleaseRepository.GetLatestPatchEntryAsync(
+                projectName,
+                environmentName,
+                version.Major,
+                version.Minor,
+                key,
+                requiredScope,
+                cancellationToken)
+            : await configReleaseRepository.GetEntryAsync(
+                projectName,
+                environmentName,
+                version.Normalized,
+                key,
+                requiredScope,
+                cancellationToken);
 
-        return release is null
+        return !releaseEntry.ReleaseFound
             ? (null, "Release not found")
-            : (release, null);
+            : (releaseEntry, null);
     }
 }

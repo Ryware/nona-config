@@ -13,6 +13,23 @@ public interface IConfigReleaseRepository
 
     Task<ConfigRelease?> GetLatestPatchAsync(string projectName, string environmentName, int major, int minor, CancellationToken ct = default);
 
+    Task<ConfigReleaseEntryLookupResult> GetEntryAsync(
+        string projectName,
+        string environmentName,
+        string version,
+        string key,
+        KeyScope requiredScope,
+        CancellationToken ct = default);
+
+    Task<ConfigReleaseEntryLookupResult> GetLatestPatchEntryAsync(
+        string projectName,
+        string environmentName,
+        int major,
+        int minor,
+        string key,
+        KeyScope requiredScope,
+        CancellationToken ct = default);
+
     Task<IReadOnlyList<ConfigRelease>> ListAsync(string projectName, string environmentName, CancellationToken ct = default);
 
     Task<IReadOnlyList<ConfigReleaseEntry>> ListEntriesAsync(
