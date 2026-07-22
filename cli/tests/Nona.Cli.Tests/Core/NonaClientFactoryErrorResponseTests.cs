@@ -1,6 +1,8 @@
 using System.Net;
 using System.Text;
 using Microsoft.Kiota.Abstractions;
+using Microsoft.Kiota.Abstractions.Serialization;
+using Nona.Cli.Generated.Models;
 using Nona.Migrator.Core.Services;
 
 namespace Nona.Cli.Tests.Core;
@@ -45,6 +47,65 @@ public sealed class NonaClientFactoryErrorResponseTests
         var error = CliExceptionHandler.Describe(exception!);
         await Assert.That(error.ExitCode).IsEqualTo(expectedExitCode);
         await Assert.That(error.Message).IsEqualTo(expectedMessage);
+    }
+
+    [Test]
+    public async Task Client_PreservesValidationErrorsDuringNormalization()
+    {
+        const string body = """
+            {
+              "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+              "title": "One or more validation errors occurred.",
+              "status": 400,
+              "detail": "One or more validation errors occurred.",
+              "instance": "/auth/register",
+              "errors": {
+                "Email": ["Email must be valid."],
+                "Password": ["Password is too short.", "Password must contain a number."]
+              }
+            }
+            """;
+        using var transport = new StubHandler(_ => CreateResponse(
+            400,
+            "application/problem+json",
+            body,
+            "Bad Request"));
+        using var normalizer = new NonaApiErrorResponseHandler { InnerHandler = transport };
+        using var httpClient = new HttpClient(normalizer);
+        var client = NonaClientFactory.Create(
+            new NonaCliConnectionOptions("https://nona.example", "token"),
+            () => httpClient);
+
+        ApiValidationProblemDetails? exception = null;
+        try
+        {
+            await client.Auth.Register.PostAsync(new RegisterCommand
+            {
+                Email = "invalid",
+                Password = "short"
+            });
+        }
+        catch (ApiValidationProblemDetails caught)
+        {
+            exception = caught;
+        }
+
+        await Assert.That(exception).IsNotNull();
+        await Assert.That(exception!.Errors).IsNotNull();
+        var emailErrors = ((UntypedArray)exception.Errors!.AdditionalData["Email"])
+            .GetValue()
+            .OfType<UntypedString>()
+            .Select(value => value.GetValue()!);
+        var passwordErrors = ((UntypedArray)exception.Errors.AdditionalData["Password"])
+            .GetValue()
+            .OfType<UntypedString>()
+            .Select(value => value.GetValue()!);
+
+        await Assert.That(emailErrors).IsEquivalentTo(["Email must be valid."]);
+        await Assert.That(passwordErrors).IsEquivalentTo([
+            "Password is too short.",
+            "Password must contain a number."
+        ]);
     }
 
     private static HttpResponseMessage CreateResponse(
