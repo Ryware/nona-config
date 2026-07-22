@@ -106,6 +106,13 @@ public sealed class NonaClientFactoryErrorResponseTests
             "Password is too short.",
             "Password must contain a number."
         ]);
+
+        var error = CliExceptionHandler.Describe(exception);
+        await Assert.That(error.Message).IsEqualTo(
+            "Error: One or more validation errors occurred. " +
+            "Email: Email must be valid.; " +
+            "Password: Password is too short.; " +
+            "Password: Password must contain a number. (400)");
     }
 
     private static HttpResponseMessage CreateResponse(
