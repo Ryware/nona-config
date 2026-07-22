@@ -89,20 +89,22 @@ In admin:
 
 1. open `Releases`
 2. click **Amend** on the source release
-3. Nona loads that release into the working configuration
+3. Nona loads a separate, client-side editable copy of that release's parameters
 4. Nona automatically targets the next free patch in that line
-5. review the parameters
-6. click **Create release**
+5. review or adjust the parameters in that local amend buffer
+6. click **Create release** to send the buffer as the next patch payload
 
 Amend does not ask you to type the patch version manually.
 
 ## Important amend behavior
 
-Amending replaces the editable working configuration with the source release's parameters.
+Amend keeps the environment's working configuration separate from the release being patched:
 
-That is useful when you want to patch an older line, but it also means the current working configuration is overwritten.
-
-If you need to preserve unrelated unpublished work, finish or capture that work first.
+- the working configuration is not read, replaced, or mutated
+- edits exist only in the local amend buffer
+- **Create release** sends that buffer as the next patch payload
+- the new patch is not automatically activated
+- **Cancel** discards the local buffer and leaves the working configuration unchanged
 
 ## Delete a release
 
@@ -166,7 +168,7 @@ Activation is a separate explicit action.
 
 ### What does Amend do?
 
-Amend loads an existing release into the working configuration and targets the next free patch in that same line.
+Amend targets the next free patch in the same release line and opens a separate, client-side editable copy of the source release. The working configuration remains unchanged.
 
 ### Can I patch an older release line without typing the next patch version?
 
