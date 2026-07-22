@@ -103,6 +103,8 @@ public class InMemoryConfigReleaseRepositoryTests
         var repository = new InMemoryConfigReleaseRepository();
         await repository.AddAsync(CreateRelease("1.1.0", "false", patch: 0));
         await repository.AddAsync(CreateRelease("1.1.2", "true", patch: 2));
+        await repository.AddAsync(CreateRelease("2.0.0", "unicode", patch: 0, key: "Ångström"));
+        await repository.AddAsync(CreateOverfoldRelease("3.0.0"));
 
         var exact = await repository.GetEntryAsync(
             "TEST-PROJECT",
@@ -129,6 +131,31 @@ public class InMemoryConfigReleaseRepositoryTests
             "9.9.9",
             "feature.enabled",
             KeyScope.Frontend);
+        var unicodeCaseVariant = await repository.GetEntryAsync(
+            "test-project",
+            "production",
+            "2.0.0",
+            "ångström",
+            KeyScope.Frontend);
+        var unicodeLatestPatch = await repository.GetLatestPatchEntryAsync(
+            "test-project",
+            "production",
+            2,
+            0,
+            "ångström",
+            KeyScope.Frontend);
+        var asciiS = await repository.GetEntryAsync(
+            "test-project",
+            "production",
+            "3.0.0",
+            "S",
+            KeyScope.Frontend);
+        var longS = await repository.GetEntryAsync(
+            "test-project",
+            "production",
+            "3.0.0",
+            "ſ",
+            KeyScope.Frontend);
 
         await Assert.That(exact.ReleaseFound).IsTrue();
         await Assert.That(exact.Entry!.Value).IsEqualTo("false");
@@ -139,17 +166,30 @@ public class InMemoryConfigReleaseRepositoryTests
         await Assert.That(scopeDenied.Entry).IsNull();
         await Assert.That(missingRelease.ReleaseFound).IsFalse();
         await Assert.That(missingRelease.Entry).IsNull();
+        await Assert.That(unicodeCaseVariant.ReleaseFound).IsTrue();
+        await Assert.That(unicodeCaseVariant.Entry!.Key).IsEqualTo("Ångström");
+        await Assert.That(unicodeCaseVariant.Entry.Value).IsEqualTo("unicode");
+        await Assert.That(unicodeLatestPatch.ReleaseFound).IsTrue();
+        await Assert.That(unicodeLatestPatch.Entry!.ReleaseVersion).IsEqualTo("2.0.0");
+        await Assert.That(unicodeLatestPatch.Entry.Key).IsEqualTo("Ångström");
+        await Assert.That(asciiS.Entry!.Value).IsEqualTo("ascii-s");
+        await Assert.That(longS.Entry!.Value).IsEqualTo("long-s");
     }
 
-    private static ConfigRelease CreateRelease(string version, string value, int patch)
+    private static ConfigRelease CreateRelease(
+        string version,
+        string value,
+        int patch,
+        string key = "feature.enabled")
     {
+        var versionParts = version.Split('.');
         return new ConfigRelease
         {
             Project = "test-project",
             Environment = "production",
             Version = version,
-            Major = 1,
-            Minor = 1,
+            Major = int.Parse(versionParts[0]),
+            Minor = int.Parse(versionParts[1]),
             Patch = patch,
             Entries =
             [
@@ -158,7 +198,7 @@ public class InMemoryConfigReleaseRepositoryTests
                     Project = "test-project",
                     Environment = "production",
                     ReleaseVersion = version,
-                    Key = "feature.enabled",
+                    Key = key,
                     Value = value,
                     ContentType = "boolean",
                     Scope = KeyScope.Frontend
@@ -167,6 +207,37 @@ public class InMemoryConfigReleaseRepositoryTests
             EntryCount = 1,
             CreatedAt = new DateTime(2026, 7, 1, 12, 0, 0, DateTimeKind.Utc),
             Actor = "alice"
+        };
+    }
+
+    private static ConfigRelease CreateOverfoldRelease(string version)
+    {
+        var release = CreateRelease(version, "ascii-s", patch: 0, key: "S");
+        return new ConfigRelease
+        {
+            Project = release.Project,
+            Environment = release.Environment,
+            Version = release.Version,
+            Major = release.Major,
+            Minor = release.Minor,
+            Patch = release.Patch,
+            Entries =
+            [
+                release.Entries[0],
+                new ConfigReleaseEntry
+                {
+                    Project = release.Project,
+                    Environment = release.Environment,
+                    ReleaseVersion = release.Version,
+                    Key = "ſ",
+                    Value = "long-s",
+                    ContentType = "text",
+                    Scope = KeyScope.Frontend
+                }
+            ],
+            EntryCount = 2,
+            CreatedAt = release.CreatedAt,
+            Actor = release.Actor
         };
     }
 }

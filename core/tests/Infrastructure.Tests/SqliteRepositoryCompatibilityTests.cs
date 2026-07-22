@@ -41,7 +41,7 @@ public class SqliteRepositoryCompatibilityTests
             await Assert.That(loaded).IsNotNull();
             await Assert.That(loaded!.UrlSlug).IsEqualTo("sqlite-project");
             await Assert.That(await repository.CountAsync()).IsEqualTo(1);
-            await Assert.That(migrationCount.Rows[0].GetInt32("Count")).IsEqualTo(16);
+            await Assert.That(migrationCount.Rows[0].GetInt32("Count")).IsEqualTo(17);
         }
         finally
         {

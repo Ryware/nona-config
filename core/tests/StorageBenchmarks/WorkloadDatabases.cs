@@ -1,5 +1,8 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Options;
+using Nona.Domain.Entities;
+using Nona.Domain.Enums;
+using Nona.Infrastructure.Repositories.Libsql;
 using Nona.Libsql;
 
 namespace Nona.StorageBenchmarks;
@@ -11,14 +14,16 @@ internal interface IBenchmarkDatabase : IAsyncDisposable
     Task ExecuteAsync(BenchmarkScenario scenario, Random random, CancellationToken cancellationToken);
 }
 
-internal sealed class LibsqlBenchmarkDatabase : IBenchmarkDatabase
+internal sealed class DatabaseClientBenchmarkDatabase : IBenchmarkDatabase
 {
     private readonly ILibsqlDatabaseClient _client;
+    private readonly LibsqlConfigReleaseRepository _releaseRepository;
 
-    public LibsqlBenchmarkDatabase(string providerName, ILibsqlDatabaseClient client)
+    public DatabaseClientBenchmarkDatabase(string providerName, ILibsqlDatabaseClient client)
     {
         ProviderName = providerName;
         _client = client;
+        _releaseRepository = new LibsqlConfigReleaseRepository(client);
     }
 
     public string ProviderName { get; }
@@ -140,9 +145,15 @@ internal sealed class LibsqlBenchmarkDatabase : IBenchmarkDatabase
         CancellationToken cancellationToken)
     {
         var keyIndex = random.Next(1, datasetRows + 1);
-        var (sql, parameters) = SqlStatementFactory.BuildReleaseEntryPointLookup(environment, keyIndex);
-        var result = await _client.ExecuteAsync(sql, parameters, cancellationToken);
-        return result.Rows.Count;
+        var key = DatabaseSeeder.BuildKey(keyIndex);
+        var entry = await _releaseRepository.GetEntryAsync(
+            DatabaseSeeder.ProjectName,
+            environment,
+            DatabaseSeeder.ReleaseVersion,
+            key,
+            KeyScope.All,
+            cancellationToken);
+        return IsExpectedEntry(entry.Entry, scenarioDataset: environment, keyIndex) ? 1 : 0;
     }
 
     private async Task<int> ExecuteReleaseHydrationPointLookupAsync(
@@ -151,21 +162,33 @@ internal sealed class LibsqlBenchmarkDatabase : IBenchmarkDatabase
         Random random,
         CancellationToken cancellationToken)
     {
-        var key = DatabaseSeeder.BuildKey(random.Next(1, datasetRows + 1));
-        var (releaseSql, releaseParameters) = SqlStatementFactory.BuildReleaseMetadataLookup(environment);
-        var release = await _client.ExecuteAsync(releaseSql, releaseParameters, cancellationToken);
-        if (release.Rows.Count == 0)
+        var keyIndex = random.Next(1, datasetRows + 1);
+        var key = DatabaseSeeder.BuildKey(keyIndex);
+        var release = await _releaseRepository.GetAsync(
+            DatabaseSeeder.ProjectName,
+            environment,
+            DatabaseSeeder.ReleaseVersion,
+            cancellationToken);
+        if (release is null)
         {
             return 0;
         }
 
-        var (entriesSql, entriesParameters) = SqlStatementFactory.BuildReleaseEntriesLookup(environment);
-        var entries = await _client.ExecuteAsync(entriesSql, entriesParameters, cancellationToken);
-        return entries.Rows.Any(row =>
-            row.GetString("Key").Equals(key, StringComparison.OrdinalIgnoreCase)
-            && (row.GetInt32("Scope") & 3) != 0)
-            ? 1
-            : 0;
+        var entry = release.Entries.FirstOrDefault(candidate =>
+            candidate.Key.Equals(key, StringComparison.OrdinalIgnoreCase)
+            && (candidate.Scope & KeyScope.All) != 0);
+        return IsExpectedEntry(entry, scenarioDataset: environment, keyIndex) ? 1 : 0;
+    }
+
+    private static bool IsExpectedEntry(
+        ConfigReleaseEntry? entry,
+        string scenarioDataset,
+        int keyIndex)
+    {
+        return entry is not null
+            && entry.Key == DatabaseSeeder.BuildKey(keyIndex)
+            && entry.Value == DatabaseSeeder.BuildValue(scenarioDataset, keyIndex)
+            && (entry.Scope & KeyScope.All) != 0;
     }
 }
 
@@ -311,7 +334,31 @@ internal sealed class SqliteBenchmarkDatabase : IBenchmarkDatabase
     {
         var keyIndex = random.Next(1, datasetRows + 1);
         var (sql, parameters) = SqlStatementFactory.BuildReleaseEntryPointLookup(environment, keyIndex);
-        return await ExecuteReaderCountAsync(sql, parameters, cancellationToken);
+        await _gate.WaitAsync(cancellationToken);
+        try
+        {
+            var connection = await EnsureConnectionOpenAsync(cancellationToken);
+            using var command = CreateCommand(connection, sql, parameters);
+            using var reader = await command.ExecuteReaderAsync(cancellationToken);
+            if (!await reader.ReadAsync(cancellationToken))
+            {
+                return 0;
+            }
+
+            var keyOrdinal = reader.GetOrdinal("Key");
+            var valueOrdinal = reader.GetOrdinal("Value");
+            var scopeOrdinal = reader.GetOrdinal("Scope");
+            return !reader.IsDBNull(keyOrdinal)
+                && reader.GetString(keyOrdinal) == DatabaseSeeder.BuildKey(keyIndex)
+                && reader.GetString(valueOrdinal) == DatabaseSeeder.BuildValue(environment, keyIndex)
+                && (reader.GetInt32(scopeOrdinal) & (int)KeyScope.All) != 0
+                ? 1
+                : 0;
+        }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     private async Task<int> ExecuteReleaseHydrationPointLookupAsync(
@@ -320,7 +367,8 @@ internal sealed class SqliteBenchmarkDatabase : IBenchmarkDatabase
         Random random,
         CancellationToken cancellationToken)
     {
-        var key = DatabaseSeeder.BuildKey(random.Next(1, datasetRows + 1));
+        var keyIndex = random.Next(1, datasetRows + 1);
+        var key = DatabaseSeeder.BuildKey(keyIndex);
         var (releaseSql, releaseParameters) = SqlStatementFactory.BuildReleaseMetadataLookup(environment);
         if (await ExecuteReaderCountAsync(releaseSql, releaseParameters, cancellationToken) == 0)
         {
@@ -334,11 +382,15 @@ internal sealed class SqliteBenchmarkDatabase : IBenchmarkDatabase
             var connection = await EnsureConnectionOpenAsync(cancellationToken);
             using var command = CreateCommand(connection, entriesSql, entriesParameters);
             using var reader = await command.ExecuteReaderAsync(cancellationToken);
+            var keyOrdinal = reader.GetOrdinal("Key");
+            var valueOrdinal = reader.GetOrdinal("Value");
+            var scopeOrdinal = reader.GetOrdinal("Scope");
             var found = false;
             while (await reader.ReadAsync(cancellationToken))
             {
-                if (reader.GetString(reader.GetOrdinal("Key")).Equals(key, StringComparison.OrdinalIgnoreCase)
-                    && (reader.GetInt32(reader.GetOrdinal("Scope")) & 3) != 0)
+                if (reader.GetString(keyOrdinal).Equals(key, StringComparison.OrdinalIgnoreCase)
+                    && reader.GetString(valueOrdinal) == DatabaseSeeder.BuildValue(environment, keyIndex)
+                    && (reader.GetInt32(scopeOrdinal) & (int)KeyScope.All) != 0)
                 {
                     found = true;
                 }
@@ -513,7 +565,7 @@ internal static class SqlStatementFactory
               ON entries.Project = releases.Project COLLATE NOCASE
              AND entries.Environment = releases.Environment COLLATE NOCASE
              AND entries.ReleaseVersion = releases.Version COLLATE NOCASE
-             AND entries.Key = @Key COLLATE NOCASE
+             AND entries.NormalizedKey = @NormalizedKey
              AND (entries.Scope & @RequiredScope) != 0
             WHERE releases.Project = @Project COLLATE NOCASE
               AND releases.Environment = @Environment COLLATE NOCASE
@@ -525,7 +577,7 @@ internal static class SqlStatementFactory
                 ["Project"] = DatabaseSeeder.ProjectName,
                 ["Environment"] = environment,
                 ["Version"] = DatabaseSeeder.ReleaseVersion,
-                ["Key"] = DatabaseSeeder.BuildKey(keyIndex),
+                ["NormalizedKey"] = DatabaseSeeder.BuildKey(keyIndex).ToUpperInvariant(),
                 ["RequiredScope"] = 3
             });
     }

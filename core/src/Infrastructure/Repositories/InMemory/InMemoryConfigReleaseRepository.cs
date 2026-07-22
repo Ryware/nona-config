@@ -128,6 +128,12 @@ public class InMemoryConfigReleaseRepository : IConfigReleaseRepository
 
     public Task<bool> AddAsync(ConfigRelease release, CancellationToken ct = default)
     {
+        var uniqueKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (release.Entries.Any(entry => !uniqueKeys.Add(entry.Key)))
+        {
+            throw new ArgumentException("Release entries must have unique case-insensitive keys.", nameof(release));
+        }
+
         var releaseWithCount = new ConfigRelease
         {
             Project = release.Project,

@@ -120,7 +120,7 @@ internal static class ReportWriter
 
     private static string BuildMarkdownReport(BenchmarkRunSummary summary)
     {
-        var libsqlLocal = summary.Results.Where(result => result.Provider == "libsql-local")
+        var sqliteClient = summary.Results.Where(result => result.Provider == "sqlite-client")
             .ToDictionary(result => result.Scenario, StringComparer.OrdinalIgnoreCase);
         var libsqlReplica = summary.Results.Where(result => result.Provider == "libsql-replica")
             .ToDictionary(result => result.Scenario, StringComparer.OrdinalIgnoreCase);
@@ -128,7 +128,7 @@ internal static class ReportWriter
             .ToDictionary(result => result.Scenario, StringComparer.OrdinalIgnoreCase);
 
         var severeLocalFailures = summary.Results
-            .Where(result => result.Required && result.Provider == "libsql-local")
+            .Where(result => result.Required && result.Provider == "sqlite-client")
             .Where(result => result.Timeouts > 0 || result.ErrorRatePercent >= 2 || !result.MeetsP95Target)
             .ToList();
 
@@ -144,7 +144,7 @@ internal static class ReportWriter
         sb.AppendLine();
         sb.AppendLine("## Scope");
         sb.AppendLine();
-        sb.AppendLine("- Measured `libsql-local` for single-node mode with repeatable read workloads that mirror app read flow: project lookup, environment check, then point/range query.");
+        sb.AppendLine("- Measured `sqlite-client` for single-node mode with repeatable read workloads that mirror app read flow: project lookup, environment check, then point, range, or release-entry query.");
         if (libsqlReplica.Count > 0)
         {
             sb.AppendLine("- Also compared remote `libsql-primary` and embedded `libsql-replica` when external libsql primary was provided.");
@@ -172,11 +172,11 @@ internal static class ReportWriter
 
         if (severeLocalFailures.Count == 0)
         {
-            sb.AppendLine("- `libsql-local` stayed within configured error and p95 targets for all required scenarios.");
+            sb.AppendLine("- `sqlite-client` stayed within configured error and p95 targets for all required scenarios.");
         }
         else
         {
-            sb.AppendLine("- `libsql-local` missed required single-node targets.");
+            sb.AppendLine("- `sqlite-client` missed required single-node targets.");
         }
 
         if (libsqlReplica.Count > 0)
@@ -194,7 +194,7 @@ internal static class ReportWriter
         if (libsqlPrimary.Count > 0)
         {
             var primaryVsLocalRatio = libsqlPrimary.Values
-                .Join(libsqlLocal.Values, left => left.Scenario, right => right.Scenario, (left, right) => new { left, right })
+                .Join(sqliteClient.Values, left => left.Scenario, right => right.Scenario, (left, right) => new { left, right })
                 .Where(pair => pair.left.P95LatencyMs.HasValue && pair.right.P95LatencyMs.HasValue)
                 .Select(pair => pair.left.P95LatencyMs!.Value / Math.Max(pair.right.P95LatencyMs!.Value, 0.001))
                 .DefaultIfEmpty(1d)
@@ -202,7 +202,7 @@ internal static class ReportWriter
 
             if (primaryVsLocalRatio < 3)
             {
-                sb.AppendLine("- `libsql-primary` stayed close to `libsql-local` in diagnostic runs. Main regression source is replica behavior, not SQL execution itself.");
+                sb.AppendLine("- `libsql-primary` stayed close to `sqlite-client` in diagnostic runs. Main regression source is replica behavior, not SQL execution itself.");
             }
             else
             {
@@ -210,7 +210,7 @@ internal static class ReportWriter
             }
         }
 
-        sb.AppendLine("- `libsql-local` here is Nelknet local-file mode.");
+        sb.AppendLine("- `sqlite-client` uses Nona's `SqliteDatabaseClient` over a local SQLite file.");
         if (libsqlReplica.Count > 0)
         {
             sb.AppendLine("- `libsql-replica` here is Nelknet embedded replica mode: reads from local replica file, syncs from remote primary on configured interval.");
@@ -219,12 +219,12 @@ internal static class ReportWriter
         sb.AppendLine();
         sb.AppendLine("## Required Matrix: Single Node");
         sb.AppendLine();
-        sb.AppendLine("| Scenario | libSQL local p95 ms | libSQL local rps | libSQL local error % | Verdict |");
+        sb.AppendLine("| Scenario | SQLite client p95 ms | SQLite client rps | SQLite client error % | Verdict |");
         sb.AppendLine("|---|---:|---:|---:|---|");
 
         foreach (var scenario in summary.Scenarios.Where(scenario => scenario.Required))
         {
-            libsqlLocal.TryGetValue(scenario.Name, out var localResult);
+            sqliteClient.TryGetValue(scenario.Name, out var localResult);
 
             var verdict = localResult is null
                 ? "missing"
@@ -239,13 +239,13 @@ internal static class ReportWriter
         sb.AppendLine();
         sb.AppendLine("## Target Check: Single Node");
         sb.AppendLine();
-        sb.AppendLine("| Target | libSQL local |");
+        sb.AppendLine("| Target | SQLite client |");
         sb.AppendLine("|---|---|");
-        sb.AppendLine($"| Single key lookup p95 <= 80 ms | {DescribeTarget(libsqlLocal, "medium-point-1-c1")} |");
-        sb.AppendLine($"| 100-row query p95 <= 120 ms | {DescribeTarget(libsqlLocal, "medium-range-100-c10")} |");
-        sb.AppendLine($"| 1,000-row query p95 <= 750 ms | {DescribeTarget(libsqlLocal, "medium-range-1000-c10")} |");
-        sb.AppendLine($"| Error rate under load < 2% | {DescribeErrorTarget(libsqlLocal.Values)} |");
-        sb.AppendLine($"| No severe degradation at 50+ users | {DescribeConcurrencyTarget(libsqlLocal, "medium-point-1-c50")} |");
+        sb.AppendLine($"| Single key lookup p95 <= 80 ms | {DescribeTarget(sqliteClient, "medium-point-1-c1")} |");
+        sb.AppendLine($"| 100-row query p95 <= 120 ms | {DescribeTarget(sqliteClient, "medium-range-100-c10")} |");
+        sb.AppendLine($"| 1,000-row query p95 <= 750 ms | {DescribeTarget(sqliteClient, "medium-range-1000-c10")} |");
+        sb.AppendLine($"| Error rate under load < 2% | {DescribeErrorTarget(sqliteClient.Values)} |");
+        sb.AppendLine($"| No severe degradation at 50+ users | {DescribeConcurrencyTarget(sqliteClient, "medium-point-1-c50")} |");
 
         if (libsqlReplica.Count > 0)
         {
@@ -264,7 +264,7 @@ internal static class ReportWriter
         sb.AppendLine();
         sb.AppendLine("## Bottlenecks");
         sb.AppendLine();
-        sb.AppendLine("- `libsql-local` still includes driver overhead on top of local-file SQLite storage.");
+        sb.AppendLine("- `sqlite-client` includes Nona's database-client and row-mapping overhead on top of local SQLite storage.");
         if (libsqlReplica.Count > 0)
         {
             sb.AppendLine("- Replica freshness depends on embedded replica sync cadence. Cross-node reads can stay stale until next successful pull.");
@@ -278,11 +278,11 @@ internal static class ReportWriter
 
         if (severeLocalFailures.Count == 0)
         {
-            sb.AppendLine("- Single-node mode can use `libsql-local` as baseline storage path.");
+            sb.AppendLine("- Single-node mode can use `sqlite-client` as baseline storage path.");
         }
         else
         {
-            sb.AppendLine("- Do not treat `libsql-local` as single-node baseline until targets pass.");
+            sb.AppendLine("- Do not treat `sqlite-client` as single-node baseline until targets pass.");
         }
 
         if (libsqlReplica.Count > 0)

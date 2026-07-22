@@ -149,6 +149,14 @@ public sealed class LibsqlConfigReleaseRepository : IConfigReleaseRepository
                 releases.Project,
                 releases.Environment,
                 releases.Version AS ReleaseVersion,
+                EXISTS (
+                    SELECT 1
+                    FROM ConfigReleaseEntries pending
+                    WHERE pending.Project = releases.Project COLLATE NOCASE
+                      AND pending.Environment = releases.Environment COLLATE NOCASE
+                      AND pending.ReleaseVersion = releases.Version COLLATE NOCASE
+                      AND pending.NormalizedKey IS NULL
+                ) AS PendingKeyBackfill,
                 entries.Key,
                 entries.Value,
                 entries.ContentType,
@@ -158,19 +166,21 @@ public sealed class LibsqlConfigReleaseRepository : IConfigReleaseRepository
               ON entries.Project = releases.Project COLLATE NOCASE
              AND entries.Environment = releases.Environment COLLATE NOCASE
              AND entries.ReleaseVersion = releases.Version COLLATE NOCASE
-             AND entries.Key = @Key COLLATE NOCASE
+             AND entries.NormalizedKey = @NormalizedKey
              AND (entries.Scope & @RequiredScope) != 0
             WHERE releases.Project = @ProjectName COLLATE NOCASE
               AND releases.Environment = @EnvironmentName COLLATE NOCASE
               AND releases.Version = @Version COLLATE NOCASE
-            LIMIT 1
+            ORDER BY entries.Key
             """,
             LibsqlParameters.Create(
                 ("ProjectName", projectName),
                 ("EnvironmentName", environmentName),
                 ("Version", version),
-                ("Key", key),
+                ("NormalizedKey", NormalizeKey(key)),
                 ("RequiredScope", (int)requiredScope)),
+            key,
+            requiredScope,
             ct);
     }
 
@@ -189,6 +199,14 @@ public sealed class LibsqlConfigReleaseRepository : IConfigReleaseRepository
                 releases.Project,
                 releases.Environment,
                 releases.Version AS ReleaseVersion,
+                EXISTS (
+                    SELECT 1
+                    FROM ConfigReleaseEntries pending
+                    WHERE pending.Project = releases.Project COLLATE NOCASE
+                      AND pending.Environment = releases.Environment COLLATE NOCASE
+                      AND pending.ReleaseVersion = releases.Version COLLATE NOCASE
+                      AND pending.NormalizedKey IS NULL
+                ) AS PendingKeyBackfill,
                 entries.Key,
                 entries.Value,
                 entries.ContentType,
@@ -207,17 +225,19 @@ public sealed class LibsqlConfigReleaseRepository : IConfigReleaseRepository
               ON entries.Project = releases.Project COLLATE NOCASE
              AND entries.Environment = releases.Environment COLLATE NOCASE
              AND entries.ReleaseVersion = releases.Version COLLATE NOCASE
-             AND entries.Key = @Key COLLATE NOCASE
+             AND entries.NormalizedKey = @NormalizedKey
              AND (entries.Scope & @RequiredScope) != 0
-            LIMIT 1
+            ORDER BY entries.Key
             """,
             LibsqlParameters.Create(
                 ("ProjectName", projectName),
                 ("EnvironmentName", environmentName),
                 ("Major", major),
                 ("Minor", minor),
-                ("Key", key),
+                ("NormalizedKey", NormalizeKey(key)),
                 ("RequiredScope", (int)requiredScope)),
+            key,
+            requiredScope,
             ct);
     }
 
@@ -299,6 +319,8 @@ public sealed class LibsqlConfigReleaseRepository : IConfigReleaseRepository
 
     public async Task<bool> AddAsync(ConfigRelease release, CancellationToken ct = default)
     {
+        EnsureUniqueEntryKeys(release);
+
         var statements = new List<LibsqlStatement>
         {
             new(
@@ -313,8 +335,12 @@ public sealed class LibsqlConfigReleaseRepository : IConfigReleaseRepository
         {
             statements.Add(new LibsqlStatement(
                 """
-                INSERT OR IGNORE INTO ConfigReleaseEntries (Project, Environment, ReleaseVersion, Key, Value, ContentType, Scope)
-                VALUES (@Project, @Environment, @ReleaseVersion, @Key, @Value, @ContentType, @Scope)
+                INSERT OR IGNORE INTO ConfigReleaseEntries (
+                    Project, Environment, ReleaseVersion, Key, NormalizedKey, Value, ContentType, Scope
+                )
+                VALUES (
+                    @Project, @Environment, @ReleaseVersion, @Key, @NormalizedKey, @Value, @ContentType, @Scope
+                )
                 """,
                 ToEntryParameters(entry)));
         }
@@ -420,6 +446,8 @@ public sealed class LibsqlConfigReleaseRepository : IConfigReleaseRepository
     private async Task<ConfigReleaseEntryLookupResult> ExecuteEntryLookupAsync(
         string sql,
         IReadOnlyDictionary<string, object?> parameters,
+        string key,
+        KeyScope requiredScope,
         CancellationToken ct)
     {
         var result = await _client.ExecuteAsync(sql, parameters, ct);
@@ -428,8 +456,20 @@ public sealed class LibsqlConfigReleaseRepository : IConfigReleaseRepository
             return new ConfigReleaseEntryLookupResult(false, null);
         }
 
-        var row = result.Rows[0];
-        var entry = row.GetValue("Key") is null ? null : MapEntry(row);
+        if (result.Rows[0].GetInt32("PendingKeyBackfill") != 0)
+        {
+            throw new InvalidOperationException("Release entry keys require database initialization.");
+        }
+
+        var row = result.Rows.FirstOrDefault(candidate =>
+            candidate.GetValue("Key") is not null
+            && candidate.GetString("Key").Equals(key, StringComparison.OrdinalIgnoreCase));
+        var entry = row is null ? null : MapEntry(row);
+        if (entry is not null && (entry.Scope & requiredScope) == 0)
+        {
+            entry = null;
+        }
+
         return new ConfigReleaseEntryLookupResult(true, entry);
     }
 
@@ -514,6 +554,7 @@ public sealed class LibsqlConfigReleaseRepository : IConfigReleaseRepository
             ("Environment", entry.Environment),
             ("ReleaseVersion", entry.ReleaseVersion),
             ("Key", entry.Key),
+            ("NormalizedKey", NormalizeKey(entry.Key)),
             ("Value", entry.Value),
             ("ContentType", entry.ContentType),
             ("Scope", (int)entry.Scope));
@@ -521,4 +562,15 @@ public sealed class LibsqlConfigReleaseRepository : IConfigReleaseRepository
 
     private static DateTime ParseTimestamp(string value)
         => DateTime.Parse(value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+
+    internal static string NormalizeKey(string key) => key.ToUpperInvariant();
+
+    private static void EnsureUniqueEntryKeys(ConfigRelease release)
+    {
+        var keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (release.Entries.Any(entry => !keys.Add(entry.Key)))
+        {
+            throw new ArgumentException("Release entries must have unique case-insensitive keys.", nameof(release));
+        }
+    }
 }

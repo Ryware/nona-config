@@ -1,3 +1,4 @@
+using Microsoft.Data.Sqlite;
 using Nona.Libsql;
 
 namespace Nona.StorageBenchmarks;
@@ -43,8 +44,13 @@ internal static class DatabaseSeeder
             File.Delete(databasePath);
         }
 
-        using var client = SqlStatementFactory.CreateLocalClient(databasePath);
-        await SeedLibsqlDatabaseAsync(client, migrationsDirectory, cancellationToken);
+        using (var client = SqlStatementFactory.CreateLocalClient(databasePath))
+        {
+            await SeedLibsqlDatabaseAsync(client, migrationsDirectory, cancellationToken);
+            await client.ExecuteAsync("PRAGMA wal_checkpoint(TRUNCATE)", ct: cancellationToken);
+        }
+
+        SqliteConnection.ClearAllPools();
     }
 
     public static void CopySeedDatabase(string sourcePath, string destinationPath)
@@ -75,7 +81,7 @@ internal static class DatabaseSeeder
 
         foreach (var pair in DatasetRows)
         {
-            Console.WriteLine($"Seeding libsql {pair.Key} dataset with {pair.Value:N0} rows.");
+            Console.WriteLine($"Seeding {pair.Key} dataset with {pair.Value:N0} rows.");
             await SeedConfigEntriesAsync(client, pair.Key, pair.Value, cancellationToken);
         }
     }
@@ -167,7 +173,7 @@ internal static class DatabaseSeeder
                     ("Project", ProjectName),
                     ("Environment", environment),
                     ("Key", BuildKey(index)),
-                    ("Value", BuildValue(dataset, index)),
+                    ("Value", BuildValue(environment, index)),
                     ("ContentType", "text"),
                     ("Scope", 3),
                     ("CreatedAt", now),
@@ -175,15 +181,20 @@ internal static class DatabaseSeeder
 
             batch.Add(new LibsqlStatement(
                 """
-                INSERT INTO ConfigReleaseEntries (Project, Environment, ReleaseVersion, Key, Value, ContentType, Scope)
-                VALUES (@Project, @Environment, @ReleaseVersion, @Key, @Value, @ContentType, @Scope)
+                INSERT INTO ConfigReleaseEntries (
+                    Project, Environment, ReleaseVersion, Key, NormalizedKey, Value, ContentType, Scope
+                )
+                VALUES (
+                    @Project, @Environment, @ReleaseVersion, @Key, @NormalizedKey, @Value, @ContentType, @Scope
+                )
                 """,
                 LibsqlParameters.Create(
                     ("Project", ProjectName),
                     ("Environment", environment),
                     ("ReleaseVersion", ReleaseVersion),
                     ("Key", BuildKey(index)),
-                    ("Value", BuildValue(dataset, index)),
+                    ("NormalizedKey", BuildKey(index).ToUpperInvariant()),
+                    ("Value", BuildValue(environment, index)),
                     ("ContentType", "text"),
                     ("Scope", 3))));
 
@@ -225,8 +236,8 @@ internal static class DatabaseSeeder
         ], cancellationToken);
     }
 
-    private static string BuildValue(DatasetSize dataset, int index)
+    public static string BuildValue(string environment, int index)
     {
-        return $"{dataset.ToString().ToLowerInvariant()}-value-{index:D7}-abcdefghijklmnopqrstuvwxyz0123456789";
+        return $"{environment}-value-{index:D7}-abcdefghijklmnopqrstuvwxyz0123456789";
     }
 }

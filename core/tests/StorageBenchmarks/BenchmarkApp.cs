@@ -28,15 +28,15 @@ internal static class StorageBenchmarkApp
                 "sqlite",
                 environment.SqliteDatabasePath);
 
-            await using var libsqlLocal = new LibsqlBenchmarkDatabase(
-                "libsql-local",
-                SqlStatementFactory.CreateLocalClient(environment.LibsqlLocalDatabasePath));
+            await using var sqliteClient = new DatabaseClientBenchmarkDatabase(
+                "sqlite-client",
+                SqlStatementFactory.CreateLocalClient(environment.SqliteClientDatabasePath));
 
-            LibsqlBenchmarkDatabase? libsqlReplica = null;
-            LibsqlBenchmarkDatabase? libsqlPrimary = null;
+            DatabaseClientBenchmarkDatabase? libsqlReplica = null;
+            DatabaseClientBenchmarkDatabase? libsqlPrimary = null;
             if (!string.IsNullOrWhiteSpace(environment.LibsqlUrl))
             {
-                libsqlReplica = new LibsqlBenchmarkDatabase(
+                libsqlReplica = new DatabaseClientBenchmarkDatabase(
                     "libsql-replica",
                     SqlStatementFactory.CreateReplicaClient(
                         environment.LibsqlUrl,
@@ -45,7 +45,7 @@ internal static class StorageBenchmarkApp
 
                 if (options.IncludePrimaryDiagnostic)
                 {
-                    libsqlPrimary = new LibsqlBenchmarkDatabase(
+                    libsqlPrimary = new DatabaseClientBenchmarkDatabase(
                         "libsql-primary",
                         SqlStatementFactory.CreateDirectClient(environment.LibsqlUrl, environment.LibsqlAuthToken));
                 }
@@ -54,7 +54,7 @@ internal static class StorageBenchmarkApp
             try
             {
                 await sqlite.InitializeAsync(cancellationSource.Token);
-                await libsqlLocal.InitializeAsync(cancellationSource.Token);
+                await sqliteClient.InitializeAsync(cancellationSource.Token);
                 if (libsqlReplica is not null)
                 {
                     await libsqlReplica.InitializeAsync(cancellationSource.Token);
@@ -69,7 +69,7 @@ internal static class StorageBenchmarkApp
                 var latencySamples = new List<LatencySample>();
                 var errorSamples = new List<ErrorSample>();
 
-                foreach (var provider in EnumerateProviders(sqlite, libsqlLocal, libsqlReplica, libsqlPrimary))
+                foreach (var provider in EnumerateProviders(sqlite, sqliteClient, libsqlReplica, libsqlPrimary))
                 {
                     foreach (var scenario in scenarios)
                     {
@@ -139,14 +139,14 @@ internal static class StorageBenchmarkApp
 
         var seedDatabasePath = Path.Combine(benchmarkDataDirectory, "seed-base.db");
         var sqliteDatabasePath = Path.Combine(benchmarkDataDirectory, "sqlite.db");
-        var libsqlLocalDatabasePath = Path.Combine(benchmarkDataDirectory, "libsql-local.db");
+        var sqliteClientDatabasePath = Path.Combine(benchmarkDataDirectory, "sqlite-client.db");
         var libsqlReplicaLocalPath = Path.Combine(benchmarkDataDirectory, "libsql-replica-local.db");
         var migrationsDirectory = Path.Combine(repoRoot, "core", "src", "Infrastructure", "Migrations");
 
-        Console.WriteLine("Creating seeded local libsql database.");
+        Console.WriteLine("Creating seeded local SQLite database.");
         await DatabaseSeeder.CreateSeedDatabaseAsync(seedDatabasePath, migrationsDirectory, cancellationToken);
         DatabaseSeeder.CopySeedDatabase(seedDatabasePath, sqliteDatabasePath);
-        DatabaseSeeder.CopySeedDatabase(seedDatabasePath, libsqlLocalDatabasePath);
+        DatabaseSeeder.CopySeedDatabase(seedDatabasePath, sqliteClientDatabasePath);
 
         if (File.Exists(libsqlReplicaLocalPath))
         {
@@ -165,7 +165,7 @@ internal static class StorageBenchmarkApp
             outputDirectory,
             seedDatabasePath,
             sqliteDatabasePath,
-            libsqlLocalDatabasePath,
+            sqliteClientDatabasePath,
             libsqlReplicaLocalPath,
             migrationsDirectory,
             options.LibsqlUrl,
@@ -415,12 +415,12 @@ internal static class StorageBenchmarkApp
 
     private static IEnumerable<IBenchmarkDatabase> EnumerateProviders(
         IBenchmarkDatabase sqlite,
-        IBenchmarkDatabase libsqlLocal,
+        IBenchmarkDatabase sqliteClient,
         IBenchmarkDatabase? libsqlReplica,
         IBenchmarkDatabase? libsqlPrimary)
     {
         yield return sqlite;
-        yield return libsqlLocal;
+        yield return sqliteClient;
         if (libsqlReplica is not null)
         {
             yield return libsqlReplica;
