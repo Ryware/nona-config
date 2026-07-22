@@ -15,7 +15,7 @@ internal sealed class CreateEntryShareLinkCommandHandler(Func<HttpClient>? httpC
 {
     public async Task<int> HandleAsync(CreateEntryShareLinkCommand command, CancellationToken ct)
     {
-        var api = NonaClientFactory.Create(command.Connection, httpClientFactory);
+        using var api = NonaClientFactory.Create(command.Connection, httpClientFactory);
         var shareLink = await api.Admin.Projects[command.Project]
             .Environments[command.Environment].ConfigEntries[command.Key]
             .ShareLinks.PostAsync(new CreateParameterShareLinkRequest

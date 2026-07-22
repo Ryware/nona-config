@@ -1,24 +1,40 @@
 using Microsoft.Kiota.Abstractions.Authentication;
-using Microsoft.Kiota.Http.HttpClientLibrary;
-using Nona.Cli.Generated;
 using Nona.Migrator.Core.Services;
 
 namespace Nona.Cli;
 
 internal static class NonaClientFactory
 {
-    internal static NonaApiClient Create(NonaCliConnectionOptions connection, Func<HttpClient>? httpClientFactory = null)
+    internal static OwnedNonaApiClient Create(
+        NonaCliConnectionOptions connection,
+        Func<HttpClient>? httpClientFactory = null)
     {
         var authProvider = new BaseBearerTokenAuthenticationProvider(
             new StaticTokenProvider(connection.BearerToken!));
 
-        var adapter = httpClientFactory is null
-            ? new HttpClientRequestAdapter(authProvider, httpClient: NonaApiHttpClientFactory.Create())
-            : new HttpClientRequestAdapter(authProvider, httpClient: httpClientFactory());
+        var httpClient = httpClientFactory is null
+            ? NonaApiHttpClientFactory.Create()
+            : httpClientFactory();
+        OwnedNonaApiClient? client = null;
+        var ownershipTransferred = false;
 
-        adapter.BaseUrl = connection.BaseUrl.TrimEnd('/');
-
-        return new NonaApiClient(adapter);
+        try
+        {
+            client = new OwnedNonaApiClient(authProvider, httpClient);
+            ownershipTransferred = true;
+            client.BaseUrl = connection.BaseUrl.TrimEnd('/');
+            return client;
+        }
+        catch
+        {
+            client?.Dispose();
+            throw;
+        }
+        finally
+        {
+            if (!ownershipTransferred)
+                httpClient.Dispose();
+        }
     }
 
     private sealed class StaticTokenProvider(string token) : IAccessTokenProvider

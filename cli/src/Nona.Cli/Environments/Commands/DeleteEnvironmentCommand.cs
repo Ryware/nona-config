@@ -9,7 +9,7 @@ internal sealed class DeleteEnvironmentCommandHandler(Func<HttpClient>? httpClie
 {
     public async Task<int> HandleAsync(DeleteEnvironmentCommand command, CancellationToken ct)
     {
-        var api = NonaClientFactory.Create(command.Connection, httpClientFactory);
+        using var api = NonaClientFactory.Create(command.Connection, httpClientFactory);
         await api.Admin.Projects[command.Project].Environments[command.Name]
             .DeleteAsync(cancellationToken: ct);
 

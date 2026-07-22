@@ -22,14 +22,14 @@ public sealed class NonaClientFactoryErrorResponseTests
         int expectedExitCode,
         string expectedMessage)
     {
-        using var transport = new StubHandler(_ => CreateResponse(
+        var transport = new StubHandler(_ => CreateResponse(
             statusCode,
             mediaType,
             body,
             reasonPhrase));
-        using var normalizer = new NonaApiErrorResponseHandler { InnerHandler = transport };
-        using var httpClient = new HttpClient(normalizer);
-        var client = NonaClientFactory.Create(
+        var normalizer = new NonaApiErrorResponseHandler { InnerHandler = transport };
+        var httpClient = new HttpClient(normalizer);
+        using var client = NonaClientFactory.Create(
             new NonaCliConnectionOptions("https://nona.example", "token"),
             () => httpClient);
 
@@ -65,14 +65,14 @@ public sealed class NonaClientFactoryErrorResponseTests
               }
             }
             """;
-        using var transport = new StubHandler(_ => CreateResponse(
+        var transport = new StubHandler(_ => CreateResponse(
             400,
             "application/problem+json",
             body,
             "Bad Request"));
-        using var normalizer = new NonaApiErrorResponseHandler { InnerHandler = transport };
-        using var httpClient = new HttpClient(normalizer);
-        var client = NonaClientFactory.Create(
+        var normalizer = new NonaApiErrorResponseHandler { InnerHandler = transport };
+        var httpClient = new HttpClient(normalizer);
+        using var client = NonaClientFactory.Create(
             new NonaCliConnectionOptions("https://nona.example", "token"),
             () => httpClient);
 
@@ -115,6 +115,32 @@ public sealed class NonaClientFactoryErrorResponseTests
             "Password: Password must contain a number. (400)");
     }
 
+    [Test]
+    public async Task Client_DisposesInjectedTransportOnceAfterRequestFailure()
+    {
+        var transport = new TrackingHandler();
+        var client = NonaClientFactory.Create(
+            new NonaCliConnectionOptions("https://nona.example", "token"),
+            () => new HttpClient(transport));
+        ApiException? exception = null;
+
+        using (client)
+        {
+            try
+            {
+                await client.Admin.Projects.GetAsync();
+            }
+            catch (ApiException caught)
+            {
+                exception = caught;
+            }
+        }
+
+        client.Dispose();
+        await Assert.That(exception).IsNotNull();
+        await Assert.That(transport.DisposeCount).IsEqualTo(1);
+    }
+
     private static HttpResponseMessage CreateResponse(
         int statusCode,
         string? mediaType,
@@ -143,5 +169,29 @@ public sealed class NonaClientFactoryErrorResponseTests
             HttpRequestMessage request,
             CancellationToken cancellationToken)
             => Task.FromResult(responseFactory(request));
+    }
+
+    private sealed class TrackingHandler : HttpMessageHandler
+    {
+        private int _disposeCount;
+
+        internal int DisposeCount => Volatile.Read(ref _disposeCount);
+
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+            => Task.FromResult(CreateResponse(
+                500,
+                "application/problem+json",
+                "{\"title\":\"Server error\",\"status\":500}",
+                "Internal Server Error"));
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+                Interlocked.Increment(ref _disposeCount);
+
+            base.Dispose(disposing);
+        }
     }
 }

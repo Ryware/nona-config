@@ -12,7 +12,7 @@ internal sealed class ListEntryShareLinksQueryHandler(Func<HttpClient>? httpClie
 {
     public async Task<int> HandleAsync(ListEntryShareLinksQuery query, CancellationToken ct)
     {
-        var api = NonaClientFactory.Create(query.Connection, httpClientFactory);
+        using var api = NonaClientFactory.Create(query.Connection, httpClientFactory);
         var shareLinks = await api.Admin.Projects[query.Project]
             .Environments[query.Environment].ConfigEntries[query.Key]
             .ShareLinks.GetAsync(cancellationToken: ct);

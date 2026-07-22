@@ -11,7 +11,7 @@ internal sealed class RevokeEntryShareLinkCommandHandler(Func<HttpClient>? httpC
 {
     public async Task<int> HandleAsync(RevokeEntryShareLinkCommand command, CancellationToken ct)
     {
-        var api = NonaClientFactory.Create(command.Connection, httpClientFactory);
+        using var api = NonaClientFactory.Create(command.Connection, httpClientFactory);
         await api.Admin.Projects[command.Project]
             .Environments[command.Environment].ConfigEntries[command.Key]
             .ShareLinks[command.ShareLinkId]
