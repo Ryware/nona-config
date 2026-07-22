@@ -9,9 +9,7 @@ internal sealed class ApiExceptionHandler(ILogger<ApiExceptionHandler> logger) :
         Exception exception,
         CancellationToken cancellationToken)
     {
-        logger.LogError(exception, "Unhandled exception while processing {Method} {Path}",
-            httpContext.Request.Method,
-            httpContext.Request.Path);
+        logger.LogError(exception, "Unhandled exception while processing an HTTP request.");
 
         await ApiProblemResults.InternalServerError().ExecuteAsync(httpContext);
         return true;
