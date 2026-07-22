@@ -4,10 +4,21 @@ using System.Collections.Concurrent;
 
 namespace Nona.Infrastructure.Repositories.InMemory;
 
-public sealed class InMemoryApiKeyRepository(IProjectRepository projectRepository) : IApiKeyRepository
+public sealed class InMemoryApiKeyRepository : IApiKeyRepository
 {
     private readonly ConcurrentDictionary<long, ApiKey> _apiKeys = new();
+    private readonly Func<IProjectRepository> _getProjectRepository;
     private long _nextId = 1;
+
+    public InMemoryApiKeyRepository(IProjectRepository projectRepository)
+        : this(() => projectRepository)
+    {
+    }
+
+    public InMemoryApiKeyRepository(Func<IProjectRepository> getProjectRepository)
+    {
+        _getProjectRepository = getProjectRepository;
+    }
 
     public Task<ApiKey?> GetByIdAsync(long id, CancellationToken ct = default)
     {
@@ -21,7 +32,7 @@ public sealed class InMemoryApiKeyRepository(IProjectRepository projectRepositor
         if (apiKey is null)
             return null;
 
-        var project = await projectRepository.GetByNameAsync(apiKey.Project, ct);
+        var project = await _getProjectRepository().GetByNameAsync(apiKey.Project, ct);
         if (project is null)
             return null;
 
@@ -61,6 +72,17 @@ public sealed class InMemoryApiKeyRepository(IProjectRepository projectRepositor
                 && string.Equals(apiKey.Environment, currentName, StringComparison.OrdinalIgnoreCase))
             {
                 apiKey.Environment = newName;
+            }
+        }
+    }
+
+    internal void RenameProject(string currentName, string newName)
+    {
+        foreach (var apiKey in _apiKeys.Values)
+        {
+            if (string.Equals(apiKey.Project, currentName, StringComparison.OrdinalIgnoreCase))
+            {
+                apiKey.Project = newName;
             }
         }
     }

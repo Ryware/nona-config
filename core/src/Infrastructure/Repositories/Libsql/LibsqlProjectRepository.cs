@@ -85,6 +85,37 @@ public sealed class LibsqlProjectRepository : IProjectRepository
             ct);
     }
 
+    public async Task RenameAsync(
+        string currentName,
+        string newName,
+        DateTime updatedAt,
+        CancellationToken ct = default)
+    {
+        var parameters = LibsqlParameters.Create(
+            ("CurrentName", currentName),
+            ("NewName", newName),
+            ("UpdatedAt", updatedAt.ToString("O")));
+
+        await _client.ExecuteBatchAsync(
+        [
+            new LibsqlStatement(
+                """
+                UPDATE Projects
+                SET Name = @NewName, UpdatedAt = @UpdatedAt
+                WHERE Name = @CurrentName COLLATE NOCASE
+                """,
+                parameters),
+            RenameProjectIn("Environments", "Project", parameters),
+            RenameProjectIn("ConfigEntries", "Project", parameters),
+            RenameProjectIn("ConfigEntryVersions", "Project", parameters),
+            RenameProjectIn("ParameterShareLinks", "Project", parameters),
+            RenameProjectIn("ConfigReleases", "Project", parameters),
+            RenameProjectIn("ConfigReleaseEntries", "Project", parameters),
+            RenameProjectIn("ApiKeys", "Project", parameters),
+            RenameProjectIn("ProjectMembers", "ProjectName", parameters)
+        ], ct);
+    }
+
     public async Task DeleteAsync(string name, CancellationToken ct = default)
     {
         await _client.ExecuteAsync(
@@ -121,5 +152,19 @@ public sealed class LibsqlProjectRepository : IProjectRepository
             ("UrlSlug", project.UrlSlug),
             ("CreatedAt", project.CreatedAt.ToString("O")),
             ("UpdatedAt", project.UpdatedAt.ToString("O")));
+    }
+
+    private static LibsqlStatement RenameProjectIn(
+        string table,
+        string column,
+        IReadOnlyDictionary<string, object?> parameters)
+    {
+        return new LibsqlStatement(
+            $"""
+            UPDATE {table}
+            SET {column} = @NewName
+            WHERE {column} = @CurrentName COLLATE NOCASE
+            """,
+            parameters);
     }
 }

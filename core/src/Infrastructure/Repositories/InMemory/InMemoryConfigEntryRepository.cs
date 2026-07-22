@@ -144,6 +144,31 @@ public class InMemoryConfigEntryRepository : IConfigEntryRepository
         }
     }
 
+    internal void RenameProject(string currentName, string newName)
+    {
+        lock (_versionGate)
+        {
+            var matchingEntries = _entries.Values
+                .Where(entry => entry.Project.Equals(currentName, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            foreach (var entry in matchingEntries)
+            {
+                var currentKey = GetKey(currentName, entry.Environment, entry.Key);
+                var newKey = GetKey(newName, entry.Environment, entry.Key);
+                _entries.TryRemove(currentKey, out _);
+                _entries[newKey] = CloneEntry(entry, newName, entry.Environment);
+
+                if (_versions.TryRemove(currentKey, out var versions))
+                {
+                    _versions[newKey] = versions
+                        .Select(version => CloneVersion(version, newName, version.Environment))
+                        .ToList();
+                }
+            }
+        }
+    }
+
     private ConfigEntry AddVersionCore(ConfigEntry entry, string actor)
     {
         var storageKey = GetKey(entry.Project, entry.Environment, entry.Key);

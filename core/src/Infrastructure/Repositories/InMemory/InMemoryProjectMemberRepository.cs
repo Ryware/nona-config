@@ -80,4 +80,23 @@ public class InMemoryProjectMemberRepository : IProjectMemberRepository
         }
         return Task.CompletedTask;
     }
+
+    internal void RenameProject(string currentName, string newName)
+    {
+        var matchingMembers = _members.Values
+            .Where(member => member.ProjectId.Equals(currentName, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        foreach (var member in matchingMembers)
+        {
+            _members.TryRemove(GetKey(member.Username, currentName), out _);
+            _members[GetKey(member.Username, newName)] = new ProjectMember
+            {
+                Username = member.Username,
+                ProjectId = newName,
+                Role = member.Role,
+                CreatedAt = member.CreatedAt
+            };
+        }
+    }
 }

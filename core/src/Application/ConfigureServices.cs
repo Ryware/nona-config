@@ -40,6 +40,7 @@ public static class ConfigureServices
         services.AddScoped<IValidator<CreateEnvironmentRequest>, CreateEnvironmentRequestValidator>();
         services.AddScoped<IValidator<RenameEnvironmentRequest>, RenameEnvironmentRequestValidator>();
         services.AddScoped<IValidator<CreateProjectRequest>, CreateProjectRequestValidator>();
+        services.AddScoped<IValidator<RenameProjectRequest>, RenameProjectRequestValidator>();
         services.AddScoped<IValidator<CreateUserRequest>, CreateUserRequestValidator>();
         services.AddScoped<IValidator<UpdateUserRequest>, UpdateUserRequestValidator>();
         services.AddScoped<IValidator<ProjectAccessRequest>, ProjectAccessRequestValidator>();

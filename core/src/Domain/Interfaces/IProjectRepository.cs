@@ -13,6 +13,8 @@ public interface IProjectRepository
 
     Task UpdateAsync(Project project, CancellationToken ct = default);
 
+    Task RenameAsync(string currentName, string newName, DateTime updatedAt, CancellationToken ct = default);
+
     Task DeleteAsync(string name, CancellationToken ct = default);
 
     Task<int> CountAsync(CancellationToken ct = default);

@@ -105,6 +105,27 @@ public class InMemoryEnvironmentRepository : IEnvironmentRepository
         };
     }
 
+    internal void RenameProject(string currentName, string newName)
+    {
+        var matchingEnvironments = _environments.Values
+            .Where(environment => environment.Project.Equals(currentName, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        foreach (var environment in matchingEnvironments)
+        {
+            _environments.TryRemove(GetKey(currentName, environment.Name), out _);
+            _environments[GetKey(newName, environment.Name)] = new ProjectEnvironment
+            {
+                Name = environment.Name,
+                Project = newName,
+                ConfigEntries = environment.ConfigEntries.ToList(),
+                ActiveReleaseVersion = environment.ActiveReleaseVersion,
+                CreatedAt = environment.CreatedAt,
+                UpdatedAt = environment.UpdatedAt
+            };
+        }
+    }
+
     private static ProjectEnvironment Clone(ProjectEnvironment environment)
     {
         return new ProjectEnvironment

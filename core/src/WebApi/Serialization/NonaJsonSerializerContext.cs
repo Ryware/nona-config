@@ -40,6 +40,7 @@ namespace Nona.WebApi.Serialization;
 [JsonSerializable(typeof(CompleteInvitationPasswordRequest))]
 [JsonSerializable(typeof(InvitationDetailsResponse))]
 [JsonSerializable(typeof(CreateProjectRequest))]
+[JsonSerializable(typeof(RenameProjectRequest))]
 [JsonSerializable(typeof(ProjectDto))]
 [JsonSerializable(typeof(IReadOnlyList<ProjectDto>))]
 [JsonSerializable(typeof(CreateEnvironmentRequest))]

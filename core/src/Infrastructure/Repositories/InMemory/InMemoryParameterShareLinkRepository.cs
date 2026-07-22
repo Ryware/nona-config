@@ -73,4 +73,15 @@ public sealed class InMemoryParameterShareLinkRepository : IParameterShareLinkRe
             }
         }
     }
+
+    internal void RenameProject(string currentName, string newName)
+    {
+        foreach (var shareLink in _shareLinks.Values)
+        {
+            if (string.Equals(shareLink.Project, currentName, StringComparison.OrdinalIgnoreCase))
+            {
+                shareLink.Project = newName;
+            }
+        }
+    }
 }

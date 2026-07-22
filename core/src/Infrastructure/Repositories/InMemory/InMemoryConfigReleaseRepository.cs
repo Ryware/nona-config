@@ -215,6 +215,22 @@ public class InMemoryConfigReleaseRepository : IConfigReleaseRepository
         }
     }
 
+    internal void RenameProject(string currentName, string newName)
+    {
+        var matchingReleases = _releases.Values
+            .Where(storedRelease =>
+                storedRelease.Release.Project.Equals(currentName, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        foreach (var storedRelease in matchingReleases)
+        {
+            var release = storedRelease.Release;
+            _releases.TryRemove(GetKey(currentName, release.Environment, release.Version), out _);
+            var renamed = CloneStoredRelease(storedRelease, newName, release.Environment);
+            _releases[GetKey(newName, release.Environment, release.Version)] = renamed;
+        }
+    }
+
     private static StoredRelease CloneStoredRelease(
         StoredRelease storedRelease,
         string projectName,

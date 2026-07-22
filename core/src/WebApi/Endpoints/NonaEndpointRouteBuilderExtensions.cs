@@ -88,6 +88,9 @@ public static class NonaEndpointRouteBuilderExtensions
             .Produces<ProjectDto>(StatusCodes.Status201Created);
         projects.MapGet("/", ListProjectsAsync)
             .Produces<IReadOnlyList<ProjectDto>>();
+        projects.MapPut("/{projectId}", RenameProjectAsync)
+            .Accepts<RenameProjectRequest>("application/json")
+            .Produces<ProjectDto>();
         projects.MapDelete("/{projectId}", DeleteProjectAsync);
 
         var environments = projects.MapGroup("/{projectId}/environments");
@@ -398,6 +401,35 @@ public static class NonaEndpointRouteBuilderExtensions
         return result.Success
             ? Results.NoContent()
             : NotFound(result.Error ?? "Project not found");
+    }
+
+    private static async Task<IResult> RenameProjectAsync(
+        string projectId,
+        RenameProjectRequest request,
+        IValidator<RenameProjectRequest> validator,
+        IMediator mediator,
+        CancellationToken cancellationToken)
+    {
+        if (await ValidateRequestAsync(request, validator, cancellationToken) is { } validationResult)
+        {
+            return validationResult;
+        }
+
+        var result = await mediator.Send(
+            new RenameProjectCommand(projectId, request.Name),
+            cancellationToken);
+        if (result.Success)
+        {
+            return Results.Ok(result.Project);
+        }
+
+        return result.Error switch
+        {
+            "Access denied. Only admin users can rename projects." => Forbidden(result.Error),
+            "Project not found" => NotFound(result.Error),
+            "Project already exists" => Conflict(result.Error),
+            _ => BadRequest(result.Error ?? "Project could not be renamed")
+        };
     }
 
     private static async Task<IResult> CreateEnvironmentAsync(
