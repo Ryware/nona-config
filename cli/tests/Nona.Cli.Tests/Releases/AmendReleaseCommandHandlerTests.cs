@@ -21,7 +21,7 @@ public sealed class AmendReleaseCommandHandlerTests
               "project": "my-project",
               "environment": "production",
               "version": "1.1.0",
-              "entryCount": 5,
+              "entryCount": 6,
               "isActive": false,
               "createdAt": "2024-01-01T00:00:00Z",
               "actor": "alice",
@@ -30,6 +30,7 @@ public sealed class AmendReleaseCommandHandlerTests
                 {"key": "DUPLICATE", "value": "first", "contentType": "text", "scope": "client"},
                 {"key": "duplicate", "value": "second", "contentType": "text", "scope": "server"},
                 {"key": "legacy.scope", "value": "kept", "contentType": "text", "scope": "public"},
+                {"key": "legacy.type", "value": "kept", "contentType": "xml", "scope": "all"},
                 {"key": "legacy.value", "value": "not-a-number", "contentType": "number", "scope": "all"}
               ]
             }
@@ -46,7 +47,7 @@ public sealed class AmendReleaseCommandHandlerTests
                 "Entries[2].Key": ["Release entry keys must be unique (case-insensitive)."],
                 "Entries[3].Scope": ["Invalid scope. Must be 'client', 'server', or 'all'."],
                 "Entries[4].ContentType": ["Content type must be one of: text, number, boolean, json."],
-                "Entries[4].Value": ["Value must be a valid number."]
+                "Entries[5].Value": ["Value must be a valid number."]
               }
             }
             """;
@@ -98,7 +99,7 @@ public sealed class AmendReleaseCommandHandlerTests
         await Assert.That(error).Contains(
             "Entries[4].ContentType: Content type must be one of: text, number, boolean, json.");
         await Assert.That(error).Contains(
-            "Entries[4].Value: Value must be a valid number.");
+            "Entries[5].Value: Value must be a valid number.");
 
         using var source = JsonDocument.Parse(sourceJson);
         using var posted = JsonDocument.Parse(postedBody!);
