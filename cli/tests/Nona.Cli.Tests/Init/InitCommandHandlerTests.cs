@@ -35,6 +35,12 @@ public sealed class InitCommandHandlerTests
         await Assert.That(output).Contains("VITE_NONA_BASE_URL=http://nona.test");
         await Assert.That(output).Contains("VITE_NONA_API_KEY=****158D");
         await Assert.That(output).Contains("--print-key");
+
+        var seedRequest = server.Requests.Single(request => request.Method == "PUT");
+        using var seedBody = JsonDocument.Parse(seedRequest.Body);
+        await Assert.That(seedBody.RootElement.GetProperty("value").GetString()).IsEqualTo("true");
+        await Assert.That(seedBody.RootElement.GetProperty("scope").GetString()).IsEqualTo("client");
+
         await Assert.That(server.Requests.Select(r => $"{r.Method} {r.Path}")).IsEquivalentTo([
             "GET /auth/first-time",
             "POST /auth/register",

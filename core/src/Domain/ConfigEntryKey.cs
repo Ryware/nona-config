@@ -3,7 +3,7 @@ namespace Nona.Domain;
 public static class ConfigEntryKey
 {
     public const string ValidationError =
-        "Key must contain an ASCII letter or digit and may only contain ASCII letters, digits, dots, underscores, and dashes.";
+        "Key must contain an ASCII letter or digit and may only contain ASCII letters, digits, colons, dots, underscores, and dashes.";
 
     public static bool IsValid(string? key)
     {
@@ -23,7 +23,7 @@ public static class ConfigEntryKey
                 continue;
             }
 
-            if (character is not ('.' or '_' or '-'))
+            if (character is not (':' or '.' or '_' or '-'))
             {
                 return false;
             }

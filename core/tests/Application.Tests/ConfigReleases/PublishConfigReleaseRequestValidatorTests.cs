@@ -39,6 +39,8 @@ public class PublishConfigReleaseRequestValidatorTests
                      "feature.flag\n",
                      "feature/value",
                      "feature@flag",
+                     "feature?flag",
+                     "feature#flag",
                      "Ångström",
                      "不存在",
                      "___"
@@ -65,8 +67,8 @@ public class PublishConfigReleaseRequestValidatorTests
     {
         var result = await ValidateAsync(
         [
-            Entry("feature.flag"),
-            Entry("FEATURE.FLAG")
+            Entry("Features:Checkout"),
+            Entry("FEATURES:CHECKOUT")
         ]);
 
         await Assert.That(result.IsValid).IsFalse();
@@ -135,7 +137,8 @@ public class PublishConfigReleaseRequestValidatorTests
         [
             Entry("feature.enabled"),
             Entry("feature_flag"),
-            Entry("feature-flag")
+            Entry("feature-flag"),
+            Entry("Features:Checkout")
         ]);
 
         await Assert.That(result.IsValid).IsTrue();

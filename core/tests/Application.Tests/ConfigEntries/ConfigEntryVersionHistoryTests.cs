@@ -12,7 +12,7 @@ public class ConfigEntryVersionHistoryTests
 {
     private const string ProjectName = "test-project";
     private const string EnvironmentName = "development";
-    private const string ConfigKey = "feature.enabled";
+    private const string ConfigKey = "Features:Checkout";
 
     [Test]
     public async Task UpsertConfigEntry_CreatesVersionWithActorAndReturnsActiveVersion()

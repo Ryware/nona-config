@@ -14,6 +14,9 @@ public class ConfigEntryKeyTests
                      "feature.enabled",
                      "feature_flag",
                      "feature-flag",
+                     "feature:value",
+                     "Features:Checkout",
+                     "Features:Example",
                      "feature.v2_flag-enabled"
                  })
         {
@@ -30,12 +33,14 @@ public class ConfigEntryKeyTests
                      "",
                      " ",
                      ".",
+                     ":",
                      "___",
                      "---",
                      "feature flag",
                      "feature/value",
-                     "feature:value",
                      "feature@value",
+                     "feature?value",
+                     "feature#value",
                      "Ångström",
                      "不存在",
                      "feature\tvalue",

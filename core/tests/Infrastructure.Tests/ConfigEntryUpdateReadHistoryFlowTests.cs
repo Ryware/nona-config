@@ -16,7 +16,7 @@ public class ConfigEntryUpdateReadHistoryFlowTests
     {
         const string projectName = "test-project";
         const string environmentName = "production";
-        const string configKey = "feature.enabled";
+        const string configKey = "Features:Checkout";
         const string apiKeyValue = "api-key-123";
 
         var projectRepository = new InMemoryProjectRepository();
@@ -113,7 +113,7 @@ public class ConfigEntryUpdateReadHistoryFlowTests
     {
         const string projectName = "test-project";
         const string environmentName = "production";
-        const string configKey = "feature.enabled";
+        const string configKey = "Features:Checkout";
         const string apiKeyValue = "api-key-123";
 
         var projectRepository = new InMemoryProjectRepository();

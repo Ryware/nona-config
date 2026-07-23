@@ -8,7 +8,7 @@ public class UpsertConfigEntryCommandTests
 {
     private const string ProjectName = "test-project";
     private const string EnvironmentName = "development";
-    private const string ConfigKey = "test-key";
+    private const string ConfigKey = "Features:Checkout";
     private const string ConfigValue = "test-value";
 
     [Test]
