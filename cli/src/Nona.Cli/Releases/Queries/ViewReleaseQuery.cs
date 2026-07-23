@@ -4,7 +4,8 @@ internal sealed record ViewReleaseQuery(
     NonaCliConnectionOptions Connection,
     string Project,
     string Environment,
-    string Version);
+    string Version,
+    bool Json = false);
 
 internal sealed class ViewReleaseQueryHandler(Func<HttpClient>? httpClientFactory = null)
 {
@@ -16,7 +17,11 @@ internal sealed class ViewReleaseQueryHandler(Func<HttpClient>? httpClientFactor
             .Releases[query.Version]
             .GetAsync(cancellationToken: cancellationToken);
 
-        ReleaseRenderer.WriteDetails(release!);
-        return 0;
+        if (query.Json)
+            ReleaseRenderer.WriteJsonDetails(release!);
+        else
+            ReleaseRenderer.WriteDetails(release!);
+
+        return CliExitCodes.Success;
     }
 }

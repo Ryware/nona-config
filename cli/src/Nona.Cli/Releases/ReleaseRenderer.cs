@@ -1,9 +1,15 @@
+using System.Text.Json;
 using Nona.Cli.Generated.Models;
 
 namespace Nona.Cli.Releases;
 
 internal static class ReleaseRenderer
 {
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+
     public static void WriteSummary(ConfigReleaseDto release)
     {
         var active = release.IsActive == true ? " (active)" : string.Empty;
@@ -34,5 +40,44 @@ internal static class ReleaseRenderer
             Console.WriteLine($"    {entry.Key} = {entry.Value}");
             Console.WriteLine($"      Type: {entry.ContentType}; Scope: {entry.Scope}");
         }
+    }
+
+    public static void WriteJsonSummaries(IEnumerable<ConfigReleaseDto> releases)
+    {
+        var output = releases.Select(release => new
+        {
+            release.Project,
+            release.Environment,
+            release.Version,
+            EntryCount = CliUntypedNode.ToInt32(release.EntryCount),
+            release.IsActive,
+            release.CreatedAt,
+            release.Actor
+        });
+
+        Console.WriteLine(JsonSerializer.Serialize(output, JsonOptions));
+    }
+
+    public static void WriteJsonDetails(ConfigReleaseDetailsDto release)
+    {
+        var output = new
+        {
+            release.Project,
+            release.Environment,
+            release.Version,
+            EntryCount = CliUntypedNode.ToInt32(release.EntryCount),
+            release.IsActive,
+            release.CreatedAt,
+            release.Actor,
+            Entries = release.Entries?.Select(entry => new
+            {
+                entry.Key,
+                entry.Value,
+                entry.ContentType,
+                entry.Scope
+            })
+        };
+
+        Console.WriteLine(JsonSerializer.Serialize(output, JsonOptions));
     }
 }
