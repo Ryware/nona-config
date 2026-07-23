@@ -152,10 +152,20 @@ async function mockApi(page: Page) {
     }
 
     if (
-      route.request().method() === 'POST' &&
-      path === '/admin/projects/my-app/environments/production/releases/1.1.0/draft'
+      route.request().method() === 'GET' &&
+      path === '/admin/projects/my-app/environments/production/releases/1.1.0'
     ) {
-      await route.fulfill({ json: configEntries });
+      await route.fulfill({
+        json: {
+          ...releases[1],
+          entries: configEntries.map(({ key, value, contentType, scope }) => ({
+            key,
+            value,
+            contentType,
+            scope,
+          })),
+        },
+      });
       return;
     }
 
@@ -182,18 +192,15 @@ test.beforeEach(async ({ page }) => {
 test('project release page matches approved screenshot', async ({ page }, testInfo) => {
   const browserErrors = collectBrowserErrors(page);
 
-  await page.goto('/projects/my-app');
-  await expect(page.getByTestId('project-detail-heading')).toHaveText('my-app');
-  await expect(page.getByRole('heading', { name: 'Releases' })).toBeVisible();
-  await expect(page.getByText('1.0.0').first()).toBeVisible();
-  await expect(page.getByText('1.1.0')).toBeVisible();
+  await page.goto('/projects/my-app/releases');
+  const releasePanel = page.getByTestId('project-releases-section');
+  await expect(releasePanel).toBeVisible();
+  await expect(page.getByTestId('project-releases-heading')).toContainText('Releases');
+  await expect(page.getByTestId('release-view-1.0.0')).toBeVisible();
+  await expect(page.getByTestId('release-view-1.1.0')).toBeVisible();
   await expectNoHorizontalOverflow(page);
 
   if (testInfo.project.name.includes('desktop')) {
-    const releasePanel = page.locator('section').filter({
-      has: page.getByRole('heading', { name: 'Releases' }),
-    });
-
     await expect(page).toHaveScreenshot('project-release-page-desktop.png', { fullPage: true });
     await expect(releasePanel).toHaveScreenshot('release-panel-desktop.png');
   } else {
@@ -203,15 +210,21 @@ test('project release page matches approved screenshot', async ({ page }, testIn
   expect(browserErrors).toEqual([]);
 });
 
-test('release draft confirmation matches approved screenshot', async ({ page }) => {
+test('release amend panel matches approved screenshot', async ({ page }) => {
   const browserErrors = collectBrowserErrors(page);
 
-  await page.goto('/projects/my-app');
-  await expect(page.getByRole('heading', { name: 'Releases' })).toBeVisible();
-  await page.getByTestId('release-draft-1.1.0').click();
-  await expect(page.getByRole('dialog')).toBeVisible();
-  await expect(page.getByRole('dialog')).toContainText('Load Release into Workspace');
-  await expect(page.getByRole('dialog')).toHaveScreenshot('release-draft-dialog.png');
+  await page.goto('/projects/my-app/releases');
+  await expect(page.getByTestId('project-releases-section')).toBeVisible();
+  await page.getByTestId('release-amend-1.1.0').click();
+
+  const amendPanel = page.getByTestId('release-amend-panel');
+  await expect(amendPanel).toBeVisible();
+  await expect(page).toHaveURL('/projects/my-app?release=1.1.1&amend=1.1.0');
+  for (const entry of configEntries) {
+    await expect(page.getByTestId(`amend-row-${entry.key}`)).toBeVisible();
+    await expect(page.getByTestId(`amend-value-${entry.key}`)).toHaveValue(entry.value);
+  }
+  await expect(amendPanel).toHaveScreenshot('release-amend-panel.png');
   await expectNoHorizontalOverflow(page);
   expect(browserErrors).toEqual([]);
 });
@@ -219,12 +232,14 @@ test('release draft confirmation matches approved screenshot', async ({ page }) 
 test('release delete confirmation matches approved screenshot', async ({ page }) => {
   const browserErrors = collectBrowserErrors(page);
 
-  await page.goto('/projects/my-app');
-  await expect(page.getByRole('heading', { name: 'Releases' })).toBeVisible();
+  await page.goto('/projects/my-app/releases');
+  await expect(page.getByTestId('project-releases-section')).toBeVisible();
   await page.getByTestId('release-delete-1.1.0').click();
-  await expect(page.getByRole('dialog')).toBeVisible();
-  await expect(page.getByRole('dialog')).toContainText('Delete Release');
-  await expect(page.getByRole('dialog')).toHaveScreenshot('release-delete-dialog.png');
+
+  const deleteDialog = page.getByTestId('release-delete-dialog');
+  await expect(deleteDialog).toBeVisible();
+  await expect(deleteDialog).toContainText('Delete Release?');
+  await expect(deleteDialog).toHaveScreenshot('release-delete-dialog.png');
   await expectNoHorizontalOverflow(page);
   expect(browserErrors).toEqual([]);
 });
