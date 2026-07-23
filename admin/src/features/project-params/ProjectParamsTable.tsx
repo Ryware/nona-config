@@ -13,6 +13,7 @@ export interface ProjectParamsTableProps {
   editingEntry: ConfigEntry | null;
   onSelectEntry: (entry: ConfigEntry) => void;
   onShareEntry: (entry: ConfigEntry) => void;
+  showShareActions?: boolean;
   onDeleteEntry: (key: string) => void;
   canManage: boolean;
   copiedKey: string | null;
@@ -156,16 +157,18 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
 
                   <Show when={props.canManage}>
                     <div class="border-outline-variant/10 flex justify-end gap-1 border-t px-4 py-2">
-                      <button
-                        data-testid={`parameter-share-${entry.key}`}
-                        type="button"
-                        onClick={() => props.onShareEntry(entry)}
-                        class="text-outline hover:text-primary hover:bg-primary/10 cursor-pointer rounded-lg border-0 bg-transparent p-1.5"
-                        title={`Share parameter ${entry.key}`}
-                        aria-label={`Share parameter ${entry.key}`}
-                      >
-                        <MIcon name="ios_share" class="text-[18px]" />
-                      </button>
+                      <Show when={props.showShareActions !== false}>
+                        <button
+                          data-testid={`parameter-share-${entry.key}`}
+                          type="button"
+                          onClick={() => props.onShareEntry(entry)}
+                          class="text-outline hover:text-primary hover:bg-primary/10 cursor-pointer rounded-lg border-0 bg-transparent p-1.5"
+                          title={`Share parameter ${entry.key}`}
+                          aria-label={`Share parameter ${entry.key}`}
+                        >
+                          <MIcon name="ios_share" class="text-[18px]" />
+                        </button>
+                      </Show>
                       <button
                         data-testid={`parameter-delete-${entry.key}`}
                         type="button"
@@ -340,15 +343,17 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
                         <td class="px-6 py-4 text-right" onClick={e => e.stopPropagation()}>
                           <Show when={props.canManage}>
                             <div class="flex justify-end gap-1">
-                              <button
-                                data-testid={`parameter-share-${entry.key}`}
-                                onClick={() => props.onShareEntry(entry)}
-                                class="text-outline hover:text-primary hover:bg-primary/10 cursor-pointer rounded-lg border-0 bg-transparent p-1.5 opacity-40 transition-opacity group-hover:opacity-100 focus:opacity-100"
-                                title={`Share parameter ${entry.key}`}
-                                aria-label={`Share parameter ${entry.key}`}
-                              >
-                                <MIcon name="ios_share" class="text-[18px]" />
-                              </button>
+                              <Show when={props.showShareActions !== false}>
+                                <button
+                                  data-testid={`parameter-share-${entry.key}`}
+                                  onClick={() => props.onShareEntry(entry)}
+                                  class="text-outline hover:text-primary hover:bg-primary/10 cursor-pointer rounded-lg border-0 bg-transparent p-1.5 opacity-40 transition-opacity group-hover:opacity-100 focus:opacity-100"
+                                  title={`Share parameter ${entry.key}`}
+                                  aria-label={`Share parameter ${entry.key}`}
+                                >
+                                  <MIcon name="ios_share" class="text-[18px]" />
+                                </button>
+                              </Show>
                               <button
                                 data-testid={`parameter-delete-${entry.key}`}
                                 onClick={() => props.onDeleteEntry(entry.key)}

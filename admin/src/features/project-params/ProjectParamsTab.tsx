@@ -35,6 +35,7 @@ interface ProjectParamsTabProps {
   showConfigForm: boolean;
   bulkImportPanel?: JSX.Element;
   canManage: boolean;
+  showBulkImportButton?: boolean;
   isReadOnly?: boolean;
   viewingReleaseVersion?: string;
   createForm: ProjectParamsCreateFormProps;
@@ -91,17 +92,19 @@ export function ProjectParamsTab(props: ProjectParamsTabProps) {
 
           <Show when={!props.isReadOnly && props.canManage && props.activeEnvName}>
             <div class="flex flex-wrap justify-end gap-2">
-              <button
-                data-testid="project-bulk-import-button"
-                type="button"
-                onClick={() => props.onToggleBulkImport()}
-                aria-label="Bulk Import"
-                title="Bulk Import"
-                class="bg-surface-container-high text-on-surface-variant hover:bg-surface-bright hover:text-on-surface inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg border-0 px-0 text-[13px] font-semibold transition-all active:scale-[0.98] md:w-auto md:gap-1.5 md:px-4"
-              >
-                <MIcon name="publish" class="text-[17px]" />
-                <span class="hidden md:inline">Bulk Import</span>
-              </button>
+              <Show when={props.showBulkImportButton !== false}>
+                <button
+                  data-testid="project-bulk-import-button"
+                  type="button"
+                  onClick={() => props.onToggleBulkImport()}
+                  aria-label="Bulk Import"
+                  title="Bulk Import"
+                  class="bg-surface-container-high text-on-surface-variant hover:bg-surface-bright hover:text-on-surface inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg border-0 px-0 text-[13px] font-semibold transition-all active:scale-[0.98] md:w-auto md:gap-1.5 md:px-4"
+                >
+                  <MIcon name="publish" class="text-[17px]" />
+                  <span class="hidden md:inline">Bulk Import</span>
+                </button>
+              </Show>
               <button
                 data-testid="project-add-parameter-button"
                 type="button"

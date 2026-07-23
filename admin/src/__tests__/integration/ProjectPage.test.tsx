@@ -378,12 +378,14 @@ describe('ProjectPage', () => {
 
     renderProjectPage('/projects/my-app/releases');
 
-    // Amend -> auto next patch, jump straight into the buffer editor (no dialog).
+    // Amend -> auto next patch, jump straight into the parameters editor (no dialog).
     fireEvent.click(await screen.findByTestId('release-amend-1.1.0'));
     expect(screen.queryByTestId('release-version-dialog')).not.toBeInTheDocument();
 
-    // The source release's parameters seed the editable buffer.
-    await screen.findByTestId('amend-row-feature.x');
+    // The source release's parameters seed the editable buffer and use the shared drawer controls.
+    fireEvent.click(await screen.findByTestId('parameter-row-feature.x'));
+    expect(await screen.findByTestId('parameter-edit-drawer')).toBeInTheDocument();
+    expect(screen.getByText('True / Active')).toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId('release-amend-confirm-button'));
     await waitFor(() => {
@@ -452,32 +454,32 @@ describe('ProjectPage', () => {
 
     renderProjectPage('/projects/my-app?release=1.1.1&amend=1.1.0');
 
-    expect(await screen.findByTestId('amend-row-PRODUCTION_SECRET')).toBeInTheDocument();
+    expect(await screen.findByTestId('parameter-row-PRODUCTION_SECRET')).toBeInTheDocument();
 
-    fireEvent.input(screen.getByTestId('amend-new-key'), {
+    fireEvent.click(screen.getByTestId('project-add-parameter-button'));
+    fireEvent.input(screen.getByTestId('parameter-key-input'), {
       target: { value: 'PRODUCTION_SECRET' },
     });
-    fireEvent.input(screen.getByTestId('amend-new-value'), {
+    fireEvent.input(screen.getByTestId('parameter-value-input'), {
       target: { value: 'production-draft-value' },
     });
-    fireEvent.click(screen.getByTestId('amend-add-button'));
-    expect(screen.getByText('That key already exists.')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('parameter-create-submit-button'));
+    expect(screen.getByText('Parameter key already exists.')).toBeInTheDocument();
 
     setActiveEnvironmentName('my-app', 'staging');
 
     await waitFor(() => {
       expect(releaseStagingSource).toBeTypeOf('function');
     });
-    expect(screen.queryByTestId('amend-row-PRODUCTION_SECRET')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('parameter-row-PRODUCTION_SECRET')).not.toBeInTheDocument();
     expect(screen.getByTestId('release-amend-confirm-button')).toBeDisabled();
 
     releaseStagingSource!();
 
-    expect(await screen.findByTestId('amend-row-STAGING_ONLY_KEY')).toBeInTheDocument();
-    expect(screen.queryByTestId('amend-row-PRODUCTION_SECRET')).not.toBeInTheDocument();
-    expect(screen.getByTestId('amend-new-key')).toHaveValue('');
-    expect(screen.getByTestId('amend-new-value')).toHaveValue('');
-    expect(screen.queryByText('That key already exists.')).not.toBeInTheDocument();
+    expect(await screen.findByTestId('parameter-row-STAGING_ONLY_KEY')).toBeInTheDocument();
+    expect(screen.queryByTestId('parameter-row-PRODUCTION_SECRET')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('parameter-key-input')).not.toBeInTheDocument();
+    expect(screen.queryByText('Parameter key already exists.')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId('release-amend-confirm-button'));
 

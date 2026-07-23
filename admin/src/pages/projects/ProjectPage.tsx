@@ -18,7 +18,6 @@ import { ProjectEnvironments } from "../../features/project-environments/Project
 import { ParameterShareDialog } from "../../features/project-param-share/ParameterShareDialog";
 import { ProjectParamsTab } from "../../features/project-params/ProjectParamsTab";
 import { ProjectReleases } from "../../features/project-releases/ProjectReleases";
-import { ReleaseAmendPanel } from "../../features/project-releases/ReleaseAmendPanel";
 import { ReleaseVersionDialog } from "../../features/project-releases/ReleaseVersionDialog";
 import { ProjectShareLinks } from "../../features/project-share-links/ProjectShareLinks";
 import { ProjectApiKeys } from "./components/ProjectApiKeys";
@@ -34,6 +33,7 @@ import { MSG } from "../../shared/lib/messages";
 import type {
   ConfigEntry,
   ConfigEntryVersion,
+  ConfigReleaseEntry,
   CreateParameterShareLinkRequest,
   CreateConfigEntryRequest,
   CreateApiKeyRequest,
@@ -109,6 +109,9 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
   const [confirmClearActiveRelease, setConfirmClearActiveRelease] = createSignal(false);
   const [deletingReleaseVersion, setDeletingReleaseVersion] = createSignal<string | null>(null);
   const [createVersionOpen, setCreateVersionOpen] = createSignal(false);
+  const [amendEntries, setAmendEntries] = createSignal<ConfigEntry[]>([]);
+  const [amendDescriptions, setAmendDescriptions] = createSignal<Record<string, string>>({});
+  const [amendSeededIdentity, setAmendSeededIdentity] = createSignal<string | null>(null);
 
   createTimer(
     () => setCopiedKey(null),
@@ -206,7 +209,8 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
       !!activeEnvName() &&
       !!editHistoryQueryKey() &&
       isParametersPage() &&
-      !isViewingReleaseSnapshot(),
+      !isViewingReleaseSnapshot() &&
+      !isAmendMode(),
     staleTime: 60_000
   }));
 
@@ -218,7 +222,8 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
       !!activeEnvName() &&
       !!shareLinksQueryKey() &&
       isParametersPage() &&
-      !isViewingReleaseSnapshot(),
+      !isViewingReleaseSnapshot() &&
+      !isAmendMode(),
     staleTime: 60_000
   }));
 
@@ -234,6 +239,101 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
 
   const normalizeScope = (scope: string): ConfigEntry["scope"] =>
     scope === "client" || scope === "server" || scope === "all" ? scope : "all";
+
+  const mapReleaseEntryToConfigEntry = (entry: ConfigReleaseEntry): ConfigEntry => ({
+    project: projectId(),
+    environment: activeEnvName(),
+    key: entry.key,
+    value: entry.value,
+    contentType: normalizeContentType(entry.contentType),
+    scope: normalizeScope(entry.scope),
+    activeVersion: 1,
+    createdAt: amendSourceQuery.data?.createdAt ?? "",
+    updatedAt: amendSourceQuery.data?.createdAt ?? ""
+  });
+
+  const currentAmendIdentity = () =>
+    JSON.stringify([projectId(), activeEnvName(), amendSourceVersion()]);
+
+  const amendBufferReady = () =>
+    !amendSourceQuery.isLoading && amendSeededIdentity() === currentAmendIdentity();
+
+  const getParamMeta = (projectName: string, environmentName: string, key: string) => {
+    const baseMeta = localParamMetadataService.getMeta(projectName, environmentName, key);
+    if (!isAmendMode()) {
+      return baseMeta;
+    }
+
+    const description = amendDescriptions()[key];
+    return description === undefined ? baseMeta : { ...baseMeta, description };
+  };
+
+  const setAmendDescription = (key: string, description: string) => {
+    const trimmedDescription = description.trim();
+
+    setAmendDescriptions(current => {
+      if (!trimmedDescription) {
+        if (!(key in current)) {
+          return current;
+        }
+
+        const next = { ...current };
+        delete next[key];
+        return next;
+      }
+
+      return {
+        ...current,
+        [key]: trimmedDescription
+      };
+    });
+  };
+
+  const removeAmendEntry = (key: string) => {
+    setAmendEntries(current => current.filter(entry => entry.key !== key));
+    setAmendDescriptions(current => {
+      if (!(key in current)) {
+        return current;
+      }
+
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
+
+    if (editingEntry()?.key === key) {
+      setEditingEntry(null);
+      setEditHistoryQueryKey("");
+    }
+
+    addToast(MSG.PARAM_DELETED, "success");
+  };
+
+  createEffect(() => {
+    if (!isAmendMode()) {
+      setAmendEntries([]);
+      setAmendDescriptions({});
+      setAmendSeededIdentity(null);
+      return;
+    }
+
+    const identity = currentAmendIdentity();
+    if (amendSeededIdentity() === identity) {
+      return;
+    }
+
+    setAmendEntries([]);
+    setAmendDescriptions({});
+    setAmendSeededIdentity(null);
+    setShowConfigForm(false);
+
+    if (amendSourceQuery.isLoading || amendSourceQuery.status !== "success") {
+      return;
+    }
+
+    setAmendEntries(amendSourceQuery.data.entries.map(mapReleaseEntryToConfigEntry));
+    setAmendSeededIdentity(identity);
+  });
 
   const parameterEntries = createMemo<ConfigEntry[]>(() => {
     if (isViewingReleaseSnapshot()) {
@@ -252,11 +352,19 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
       }));
     }
 
+    if (isAmendMode()) {
+      return amendEntries();
+    }
+
     return configQuery.status === "success" ? (configQuery.data ?? []) : [];
   });
 
   const parametersLoading = createMemo(() =>
-    isViewingReleaseSnapshot() ? releaseDetailsQuery.isLoading : configQuery.isLoading
+    isViewingReleaseSnapshot()
+      ? releaseDetailsQuery.isLoading
+      : isAmendMode()
+        ? amendSourceQuery.isLoading
+        : configQuery.isLoading
   );
 
   const apiKeysQuery = useQuery(() => ({
@@ -273,8 +381,7 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
       (e: ConfigEntry) =>
         e.key.toLowerCase().includes(q) ||
         e.value.toLowerCase().includes(q) ||
-        localParamMetadataService
-          .getMeta(projectId(), activeEnvName(), e.key)
+        getParamMeta(projectId(), activeEnvName(), e.key)
           .displayName.toLowerCase()
           .includes(q)
     );
@@ -557,10 +664,10 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
 
     setEditingEntry(entry);
     setEditHistoryQueryKey("");
-    const meta = localParamMetadataService.getMeta(projectId(), activeEnvName(), entry.key);
+    const meta = getParamMeta(projectId(), activeEnvName(), entry.key);
     setEditDescription(meta.description);
 
-    if (isViewingReleaseSnapshot()) {
+    if (isViewingReleaseSnapshot() || isAmendMode()) {
       return;
     }
 
@@ -671,6 +778,57 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
         version: version.version
       });
     }
+  };
+
+  const handleAmendCreate = (data: {
+    key: string;
+    value: string;
+    contentType: CreateConfigEntryRequest["contentType"];
+    scope: CreateConfigEntryRequest["scope"];
+    description: string;
+  }) => {
+    setAmendEntries(current => [
+      ...current,
+      {
+        project: projectId(),
+        environment: activeEnvName(),
+        key: data.key,
+        value: data.value,
+        contentType: data.contentType,
+        scope: data.scope,
+        activeVersion: 1,
+        createdAt: "",
+        updatedAt: ""
+      }
+    ]);
+    setAmendDescription(data.key, data.description);
+    setShowConfigForm(false);
+    addToast(MSG.PARAM_CREATED, "success");
+  };
+
+  const handleAmendUpdate = (data: { value: string; description: string }) => {
+    const currentEntry = editingEntry();
+    if (!currentEntry) {
+      return;
+    }
+
+    const trimmedValue = data.value.trim();
+    const trimmedDescription = data.description.trim();
+
+    setAmendEntries(current =>
+      current.map(entry =>
+        entry.key === currentEntry.key
+          ? {
+              ...entry,
+              value: trimmedValue
+            }
+          : entry
+      )
+    );
+    setAmendDescription(currentEntry.key, trimmedDescription);
+    setEditDescription(trimmedDescription);
+    setEditingEntry(null);
+    addToast(MSG.PARAM_UPDATED, "success");
   };
 
   const createShareLinkMutation = useMutation(() => ({
@@ -901,26 +1059,55 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
                 </div>
               </Show>
               <Show when={isAmendMode()}>
-                <ReleaseAmendPanel
-                  projectId={projectId()}
-                  environmentName={activeEnvName()}
-                  sourceVersion={amendSourceVersion()!}
-                  targetVersion={releaseDraftVersion() ?? ""}
-                  sourceEntries={amendSourceQuery.data?.entries ?? []}
-                  isLoading={amendSourceQuery.isLoading}
-                  isPublishing={publishReleaseMutation.isPending}
-                  onPublish={(environmentName, entries) =>
-                    publishReleaseMutation.mutate({
-                      environmentName,
-                      request: {
-                        version: releaseDraftVersion() ?? "",
-                        makeActive: false,
-                        entries
+                <div
+                  data-testid="release-amend-banner"
+                  class="border-primary/25 bg-primary/5 animate-fade-in flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div class="flex items-center gap-2 text-[13px]">
+                    <span class="material-symbols-outlined text-primary text-[18px]">edit</span>
+                    <span class="text-on-surface-variant">
+                      Amending <span class="text-on-surface font-mono font-bold">{amendSourceVersion()}</span>
+                      {" "}into patch <span class="text-primary font-mono font-bold">{releaseDraftVersion()}</span>
+                      {" "}using the full parameters editor.
+                    </span>
+                  </div>
+                  <div class="flex shrink-0 flex-wrap justify-end gap-2">
+                    <button
+                      data-testid="release-amend-confirm-button"
+                      type="button"
+                      disabled={publishReleaseMutation.isPending || !activeEnvName() || !amendBufferReady()}
+                      onClick={() =>
+                        publishReleaseMutation.mutate({
+                          environmentName: activeEnvName(),
+                          request: {
+                            version: releaseDraftVersion() ?? "",
+                            makeActive: false,
+                            entries: amendEntries().map(entry => ({
+                              key: entry.key,
+                              value: entry.value,
+                              contentType: entry.contentType,
+                              scope: entry.scope
+                            }))
+                          }
+                        })
                       }
-                    })
-                  }
-                  onCancel={() => navigate(`/projects/${params.slug}/releases`)}
-                />
+                      class="bg-primary text-on-primary inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border-0 px-4 text-[12px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] disabled:opacity-50"
+                    >
+                      <span class="material-symbols-outlined text-[16px]">check</span>
+                      {publishReleaseMutation.isPending ? "Creating…" : "Create release"}
+                    </button>
+                    <button
+                      data-testid="release-amend-cancel-button"
+                      type="button"
+                      disabled={publishReleaseMutation.isPending}
+                      onClick={() => navigate(`/projects/${params.slug}/releases`)}
+                      class="border-outline-variant/30 bg-surface-container-low text-on-surface-variant hover:bg-surface-container inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border px-4 text-[12px] font-semibold transition-all disabled:opacity-50"
+                    >
+                      <span class="material-symbols-outlined text-[16px]">close</span>
+                      Cancel
+                    </button>
+                  </div>
+                </div>
               </Show>
               <Show when={canManageProject() && releaseDraftVersion() && !isAmendMode()}>
                 <div
@@ -969,7 +1156,6 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
                   </div>
                 </div>
               </Show>
-              <Show when={!isAmendMode()}>
               <ProjectParamsTab
                 activeEnvName={activeEnvName()}
                 configEntries={parameterEntries()}
@@ -978,6 +1164,7 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
                 paramSearch={paramSearch()}
                 onParamSearch={setParamSearch}
                 onToggleBulkImport={() => {
+                  if (isAmendMode()) return;
                   setShowBulkImport(!showBulkImport());
                   setShowConfigForm(false);
                 }}
@@ -986,8 +1173,9 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
                   setShowBulkImport(false);
                 }}
                 showConfigForm={showConfigForm()}
+                showBulkImportButton={!isAmendMode()}
                 bulkImportPanel={
-                  !isViewingReleaseSnapshot() && canManageProject() && showBulkImport() ? (
+                  !isViewingReleaseSnapshot() && !isAmendMode() && canManageProject() && showBulkImport() ? (
                     <ProjectBulkImport
                       onCancel={() => setShowBulkImport(false)}
                       onImport={handleBulkImport}
@@ -1004,6 +1192,11 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
                   onCancel: () => setShowConfigForm(false),
                   onSubmit: data => {
                     if (!canManageProject()) return;
+                    if (isAmendMode()) {
+                      handleAmendCreate(data);
+                      return;
+                    }
+
                     localParamMetadataService.setMeta(projectId(), activeEnvName(), data.key, {
                       description: data.description
                     });
@@ -1015,7 +1208,7 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
                       scope: data.scope
                     });
                   },
-                  isPending: createConfigMutation.isPending
+                  isPending: isAmendMode() ? false : createConfigMutation.isPending
                 }}
                 table={{
                   isLoading: parametersLoading(),
@@ -1025,11 +1218,12 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
                   editingEntry: editingEntry(),
                   onSelectEntry: handleOpenEditDrawer,
                   onShareEntry: handleOpenShareDialog,
+                  showShareActions: !isAmendMode(),
                   onDeleteEntry: setConfirmDeleteEntry,
                   canManage: canManageProject() && !isViewingReleaseSnapshot(),
                   copiedKey: copiedKey(),
                   onCopyValue: copyValue,
-                  getParamMeta: (proj, env, key) => localParamMetadataService.getMeta(proj, env, key),
+                  getParamMeta,
                   initialDescription: editDescription(),
                   onCloseEntry: () => {
                     setEditingEntry(null);
@@ -1037,6 +1231,11 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
                   },
                   onSaveSettings: data => {
                     if (!canManageProject()) return;
+                    if (isAmendMode()) {
+                      handleAmendUpdate(data);
+                      return;
+                    }
+
                     setEditDescription(data.description);
                     updateConfigMutation.mutate({
                       key: editingEntry()!.key,
@@ -1046,18 +1245,19 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
                       description: data.description
                     });
                   },
-                  isSaving: updateConfigMutation.isPending,
+                  isSaving: isAmendMode() ? false : updateConfigMutation.isPending,
                   historyVersions:
-                    configHistoryQuery.status === "success" ? (configHistoryQuery.data ?? []) : [],
-                  isHistoryLoading: configHistoryQuery.isLoading,
-                  isRollingBack: rollbackConfigMutation.isPending,
+                    !isAmendMode() && configHistoryQuery.status === "success"
+                      ? (configHistoryQuery.data ?? [])
+                      : [],
+                  isHistoryLoading: !isAmendMode() && configHistoryQuery.isLoading,
+                  isRollingBack: !isAmendMode() && rollbackConfigMutation.isPending,
                   onRollbackVersion: handleRollbackVersion,
                   search: paramSearch(),
                   isReadOnly: isViewingReleaseSnapshot(),
                   releaseVersion: viewedReleaseVersion()
                 }}
               />
-              </Show>
 
               <ParameterShareDialog
                 entry={sharingEntry()}
@@ -1087,21 +1287,33 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
       <Show when={isParametersPage()}>
         <ConfirmDialog
           open={confirmDeleteEntry() !== null}
-          title="Delete Parameter?"
+          title={isAmendMode() ? "Remove Parameter?" : "Delete Parameter?"}
           message={
-            <>
-              Permanently delete{" "}
-              <span class="text-primary font-mono font-bold">{confirmDeleteEntry()}</span> from the{" "}
-              <span class="text-on-surface font-medium">{activeEnvName()}</span> environment?
-            </>
+            isAmendMode() ? (
+              <>
+                Remove <span class="text-primary font-mono font-bold">{confirmDeleteEntry()}</span>
+                {" "}from the amend buffer for the <span class="text-on-surface font-medium">{activeEnvName()}</span>
+                {" "}environment? The live parameters will stay unchanged until you create the release.
+              </>
+            ) : (
+              <>
+                Permanently delete{" "}
+                <span class="text-primary font-mono font-bold">{confirmDeleteEntry()}</span> from the{" "}
+                <span class="text-on-surface font-medium">{activeEnvName()}</span> environment?
+              </>
+            )
           }
-          confirmLabel="Delete Parameter"
+          confirmLabel={isAmendMode() ? "Remove Parameter" : "Delete Parameter"}
           variant="danger"
-          isLoading={deleteConfigMutation.isPending}
+          isLoading={isAmendMode() ? false : deleteConfigMutation.isPending}
           onConfirm={() => {
             const key = confirmDeleteEntry();
             if (key) {
-              deleteConfigMutation.mutate(key);
+              if (isAmendMode()) {
+                removeAmendEntry(key);
+              } else {
+                deleteConfigMutation.mutate(key);
+              }
               setConfirmDeleteEntry(null);
             }
           }}
