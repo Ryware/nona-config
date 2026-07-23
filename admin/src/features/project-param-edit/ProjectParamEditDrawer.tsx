@@ -13,7 +13,11 @@ interface ProjectParamEditDrawerProps {
   activeEnvName: string;
   initialDescription: string;
   onClose: () => void;
-  onSaveSettings: (data: { value: string; description: string }) => void;
+  onSaveSettings: (data: {
+    value: string;
+    description: string;
+    scope: ConfigEntry["scope"];
+  }) => void;
   isSaving: boolean;
   canManage: boolean;
   historyVersions: ConfigEntryVersion[];
@@ -73,6 +77,7 @@ export function ProjectParamEditDrawer(props: ProjectParamEditDrawerProps) {
   const [activeDrawerTab, setActiveDrawerTab] = createSignal<"settings" | "history">("settings");
   const [editVal, setEditVal] = createSignal("");
   const [editDescription, setEditDescription] = createSignal("");
+  const [editScope, setEditScope] = createSignal<ConfigEntry["scope"]>("all");
   const prettyValue = createMemo(() => {
     const entry = props.entry;
     if (!entry) return "";
@@ -93,6 +98,7 @@ export function ProjectParamEditDrawer(props: ProjectParamEditDrawerProps) {
     if (entry) {
       setEditVal(entry.value);
       setEditDescription(props.initialDescription);
+      setEditScope(entry.scope);
       setActiveDrawerTab("settings");
     }
   });
@@ -119,7 +125,8 @@ export function ProjectParamEditDrawer(props: ProjectParamEditDrawerProps) {
 
     props.onSaveSettings({
       value: editVal().trim(),
-      description: editDescription().trim()
+      description: editDescription().trim(),
+      scope: editScope()
     });
   };
 
@@ -248,11 +255,27 @@ export function ProjectParamEditDrawer(props: ProjectParamEditDrawerProps) {
                       />
                     </div>
 
-                    <div class="space-y-2">
-                      <Label class="mb-0">Datatype</Label>
-                      <div class="text-primary bg-primary/5 border-primary/15 inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 font-mono text-[11px]">
-                        <MIcon name="data_object" class="text-[14px]" />
-                        {entry.contentType}
+                    <div class="grid gap-4 sm:grid-cols-2">
+                      <div class="space-y-2">
+                        <Label class="mb-0">Datatype</Label>
+                        <div class="text-primary bg-primary/5 border-primary/15 inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 font-mono text-[11px]">
+                          <MIcon name="data_object" class="text-[14px]" />
+                          {entry.contentType}
+                        </div>
+                      </div>
+
+                      <div class="space-y-2">
+                        <Label class="mb-0">Scope</Label>
+                        <Select
+                          value={editScope()}
+                          onChange={val => setEditScope(val as ConfigEntry["scope"])}
+                          disabled={!props.canManage}
+                          options={[
+                            { value: "all", label: "All" },
+                            { value: "client", label: "Client" },
+                            { value: "server", label: "Server" }
+                          ]}
+                        />
                       </div>
                     </div>
 

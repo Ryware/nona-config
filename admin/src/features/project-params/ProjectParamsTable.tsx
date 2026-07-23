@@ -24,7 +24,11 @@ export interface ProjectParamsTableProps {
   ) => { displayName: string; description: string };
   initialDescription: string;
   onCloseEntry: () => void;
-  onSaveSettings: (data: { value: string; description: string }) => void;
+  onSaveSettings: (data: {
+    value: string;
+    description: string;
+    scope: ConfigEntry["scope"];
+  }) => void;
   isSaving: boolean;
   historyVersions: ConfigEntryVersion[];
   isHistoryLoading: boolean;

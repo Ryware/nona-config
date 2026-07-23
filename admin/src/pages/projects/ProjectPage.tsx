@@ -1042,7 +1042,7 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
                       key: editingEntry()!.key,
                       value: data.value,
                       contentType: editingEntry()!.contentType,
-                      scope: editingEntry()!.scope,
+                      scope: data.scope,
                       description: data.description
                     });
                   },
