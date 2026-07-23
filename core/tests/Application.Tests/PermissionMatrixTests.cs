@@ -44,7 +44,11 @@ public class PermissionMatrixTests
         await Assert.That(createResult.Success).IsTrue();
 
         // Read
-        var listHandler = new ListProjectsQueryHandler(fixture.ProjectRepository, fixture.ProjectMemberRepository, fixture.UserAuthorizationService);
+        var listHandler = new ListProjectsQueryHandler(
+            fixture.ProjectRepository,
+            fixture.EnvironmentRepository,
+            fixture.ProjectMemberRepository,
+            fixture.UserAuthorizationService);
         var listResult = await listHandler.Handle(new ListProjectsQuery(), CancellationToken.None);
         await Assert.That(listResult.Count).IsGreaterThan(0);
 

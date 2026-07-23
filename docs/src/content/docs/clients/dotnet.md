@@ -33,8 +33,9 @@ Before wiring the backend:
 2. open the backend service project
 3. select the target environment such as `production`
 4. create the parameter or flag you want to read
-5. create an API key in the `API Keys` section
-6. use `server` scope for backend-only reads whenever possible
+5. publish a release and set it active
+6. create an API key in the `API Keys` section
+7. use `server` scope for backend-only reads whenever possible
 
 For a first backend test, create `Features:UseLegacySearch` as a boolean entry or `App:Settings` as a JSON entry.
 
@@ -55,6 +56,8 @@ nona keys create \
   --scope server \
   --environment production
 ```
+
+Then publish and activate a release for the environment in admin.
 
 ## Read a string
 
@@ -107,7 +110,44 @@ if (value is null)
 }
 ```
 
-This is helpful for optional settings or for staged introduction of new keys across environments.
+This is helpful for optional settings or for gradual rollout of new keys across environments.
+
+## Pin a release version
+
+By default, reads use the active release selected for the environment.
+
+Set `ReleaseVersion` to pin the client to an exact release or release line:
+
+```csharp
+var client = new NonaClient(new NonaClientOptions
+{
+    BaseAddress = new Uri("https://nona.example.com"),
+    EnvironmentId = "production",
+    ApiKey = Environment.GetEnvironmentVariable("NONA_API_KEY"),
+    ReleaseVersion = "1.1.x"
+});
+```
+
+Use an exact version such as `1.1.0` for a fixed snapshot. Use a line such as `1.1.x` to read the highest patch in that line.
+
+You can override the configured version for one request:
+
+```csharp
+var value = await client.GetConfigValueForReleaseAsync("Features:Checkout", "1.1.0");
+```
+
+The named per-request selector takes precedence over `NonaClientOptions.ReleaseVersion`.
+
+## Available methods
+
+- `GetConfigValueAsync(string key, CancellationToken cancellationToken = default)`
+- `GetConfigValueForReleaseAsync(string key, string releaseVersion, CancellationToken cancellationToken = default)`
+- `TryGetConfigValueAsync(string key, CancellationToken cancellationToken = default)`
+- `TryGetConfigValueForReleaseAsync(string key, string releaseVersion, CancellationToken cancellationToken = default)`
+- `GetStringValueAsync(string key, CancellationToken cancellationToken = default)`
+- `GetStringValueForReleaseAsync(string key, string releaseVersion, CancellationToken cancellationToken = default)`
+- `GetJsonValueAsync<T>(string key, JsonTypeInfo<T> jsonTypeInfo, CancellationToken cancellationToken = default)`
+- `GetJsonValueForReleaseAsync<T>(string key, JsonTypeInfo<T> jsonTypeInfo, string releaseVersion, CancellationToken cancellationToken = default)`
 
 ## Read JSON
 
@@ -129,7 +169,13 @@ internal partial class AppJsonContext : JsonSerializerContext
 }
 ```
 
-JSON works well when a backend service consumes a cluster of related settings together. A typical Nona setup is `App:Settings` with content type `json` and scope `server`.
+JSON works well when a backend service consumes a cluster of related settings together.
+
+Example Nona setup:
+
+- key: `App:Settings`
+- content type: `json`
+- scope: `server`
 
 ## Default cache
 
@@ -153,15 +199,34 @@ Use `AllowStaleCache` carefully. It can improve resilience and smooth over trans
 
 ## Basic troubleshooting
 
-If a .NET read fails, confirm `EnvironmentId` matches the Nona environment name, the API key belongs to the same project as the entry, the key scope can read the entry scope, and the same entry works once over [HTTP](/docs/clients/http/).
+If a .NET read fails:
+
+1. confirm the `EnvironmentId` matches the Nona environment name
+2. confirm the environment has an active release, or configure `ReleaseVersion`
+3. confirm the API key belongs to the same project as the entry
+4. confirm the key scope can read the entry scope
+5. try the same entry once with [HTTP](/docs/clients/http/) to separate transport issues from application code
 
 ## Good first backend flow
 
-A practical first integration is to read one operational flag at startup or request time, change it once in admin, confirm the service sees the change, tune `CacheTtl` only after the read path is working, and move to OpenFeature once the service becomes flag-oriented.
+A practical first integration looks like this:
+
+1. read one operational flag at startup or request time
+2. change it once in admin
+3. confirm the service sees the change
+4. tune `CacheTtl` only after the read path is working
+5. move to OpenFeature when the service becomes flag-oriented
 
 ## When to use the .NET client
 
-Use the .NET client when you want a direct Nona integration in C#, built-in cache behavior, typed JSON reads, and a simpler path than building your own HTTP wrapper. Use [HTTP](/docs/clients/http/) instead when you only need a minimal raw request path.
+Use the .NET client when you want:
+
+- a direct Nona integration in C#
+- built-in cache behavior
+- typed JSON reads
+- a simpler path than building your own HTTP wrapper
+
+Use [HTTP](/docs/clients/http/) instead when you only need a minimal raw request path.
 
 ## OpenFeature provider
 
@@ -192,25 +257,3 @@ var enabled = await featureClient.GetBooleanValueAsync("Features:Checkout", fals
 ```
 
 If your team wants a more flag-oriented, vendor-neutral integration surface, continue with [OpenFeature](/docs/clients/openfeature/).
-
-## .NET client FAQ
-
-### When should I use the .NET client instead of raw HTTP?
-
-Use the .NET client when you want a direct C# integration, built-in cache behavior, typed JSON reads, and a simpler path than maintaining your own HTTP wrapper.
-
-### Does the .NET client cache values?
-
-Yes.
-
-The .NET client caches values in memory by default, and you can tune the TTL and memory limit through `NonaClientOptions`.
-
-### Should backend services prefer `server` scope?
-
-Usually yes.
-
-Backend-only values should use `server` scope whenever possible so the read surface stays as narrow as possible.
-
-### When should I use the OpenFeature provider?
-
-Use the OpenFeature provider when the service is becoming more flag-oriented and you want a vendor-neutral evaluation interface on top of the Nona client.

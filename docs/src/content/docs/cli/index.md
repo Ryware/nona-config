@@ -8,7 +8,9 @@ The `nona` CLI manages admin workflows from a terminal. Use it for:
 - login sessions
 - saved defaults
 - projects
+- environments
 - config entries
+- releases
 - API keys
 - users
 - Firebase Remote Config migration
@@ -90,7 +92,51 @@ nona projects create --name mobile-app
 nona projects list
 ```
 
-Use `nona init` for the first project and environment in a fresh setup. For later manual administration, create the project from the CLI, then create additional environments in the admin UI.
+Use `nona init` for the first project and environment in a fresh setup. For later manual administration, create the project and manage its environments explicitly from the CLI.
+
+## Manage environments
+
+```bash
+nona environments list --project mobile-app
+nona environments create --project mobile-app --name development
+nona environments delete --project mobile-app --name development
+```
+
+Creating an environment is idempotent: requesting an existing environment succeeds and reuses it. Config entry commands do not create missing environments implicitly.
+
+## Manage releases
+
+```bash
+nona releases list --project mobile-app --environment production
+nona releases list --project mobile-app --environment production --json
+nona releases view 1.1.0 --project mobile-app --environment production
+nona releases view 1.1.0 --project mobile-app --environment production --json
+nona releases create 1.2 --project mobile-app --environment production
+nona releases amend 1.1.0 --project mobile-app --environment production --set Features:Checkout=false
+nona releases activate 1.2.0 --project mobile-app --environment production
+nona releases clear-active --project mobile-app --environment production
+nona releases delete 1.1.0 --project mobile-app --environment production
+```
+
+`nona releases create` accepts only a new `major.minor` line, stores it as patch `.0`, and snapshots the environment's current working configuration. Pass `--activate` if the newly created release should become active immediately.
+
+`nona releases amend` accepts an exact source version and automatically selects one patch higher than the greatest existing patch in that release line. It edits a client-side copy and publishes the complete entries payload, so the environment's working configuration is never changed.
+
+Choose one amend input method:
+
+```bash
+nona releases amend 1.1.0 --environment production \
+  --set Features:Checkout=false \
+  --delete Deprecated:Flag
+
+nona releases amend 1.1.0 --environment production --from-file ./release-entries.json
+```
+
+`--set` and `--delete` are repeatable. A file must contain a JSON array whose entries have `key`, `value`, `contentType`, and `scope`. Amend always requires one of these explicit input methods, making the command predictable in scripts and automation.
+
+Release-management commands use exact `major.minor.patch` versions. The `major.minor.x` form belongs to client configuration reads, where it selects the highest patch in a line; it is not accepted by `view`, `amend`, `activate`, or `delete`.
+
+An active release cannot be deleted. Activate another release or run `nona releases clear-active` first.
 
 ## Save defaults
 
@@ -201,9 +247,7 @@ Use the CLI for repeatable operations, scripting, migration work, history and ro
 
 ### Do I still need the admin UI if I use the CLI?
 
-Often yes.
-
-Some workflows such as adding extra environments are still documented primarily through the admin UI. `nona init` creates or reuses the first environment for bootstrap automation.
+Often yes. The CLI supports repeatable administration of projects, environments, config entries, API keys, and users. Use the admin UI when a visual workflow is more convenient.
 
 ### What is the best first CLI command to run?
 

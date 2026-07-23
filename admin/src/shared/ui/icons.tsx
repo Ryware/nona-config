@@ -8,6 +8,7 @@ export function MIcon(props: {
 }): JSX.Element {
   return (
     <span
+      aria-hidden="true"
       class={`material-symbols-outlined ${props.class ?? ""}`}
       style={
         props.filled

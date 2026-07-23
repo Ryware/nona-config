@@ -2,6 +2,8 @@ using System.Text.Json.Serialization;
 using Nona.Application.Admin.ApiKeys.Commands;
 using Nona.Application.Admin.ApiKeys.DTOs;
 using Nona.Application.Admin.AuditLogs.DTOs;
+using Nona.Application.Admin.ConfigReleases.Commands;
+using Nona.Application.Admin.ConfigReleases.DTOs;
 using Nona.Application.Admin.ConfigEntries.Commands;
 using Nona.Application.Admin.ConfigEntries.DTOs;
 using Nona.Application.Admin.Dashboard.DTOs;
@@ -15,6 +17,7 @@ using Nona.Application.Admin.Users.Commands;
 using Nona.Application.Admin.Users.DTOs;
 using Nona.Application.Auth.Commands;
 using Nona.Application.Auth.DTOs;
+using Nona.Application.Api.ConfigEntries.Queries;
 using Nona.Application.Shared.ParameterShareLinks.Commands;
 using Nona.Application.Shared.ParameterShareLinks.DTOs;
 using Nona.WebApi.Endpoints;
@@ -25,7 +28,8 @@ namespace Nona.WebApi.Serialization;
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
 [JsonSerializable(typeof(bool))]
-[JsonSerializable(typeof(ErrorResponse))]
+[JsonSerializable(typeof(ApiProblemDetails))]
+[JsonSerializable(typeof(ApiValidationProblemDetails))]
 [JsonSerializable(typeof(LoginRequest))]
 [JsonSerializable(typeof(LoginResponse))]
 [JsonSerializable(typeof(RegisterCommand))]
@@ -41,6 +45,13 @@ namespace Nona.WebApi.Serialization;
 [JsonSerializable(typeof(CreateEnvironmentRequest))]
 [JsonSerializable(typeof(EnvironmentDto))]
 [JsonSerializable(typeof(IReadOnlyList<EnvironmentDto>))]
+[JsonSerializable(typeof(PublishConfigReleaseRequest))]
+[JsonSerializable(typeof(SetActiveConfigReleaseRequest))]
+[JsonSerializable(typeof(ConfigReleaseEntryDto))]
+[JsonSerializable(typeof(IReadOnlyList<ConfigReleaseEntryDto>))]
+[JsonSerializable(typeof(ConfigReleaseDto))]
+[JsonSerializable(typeof(ConfigReleaseDetailsDto))]
+[JsonSerializable(typeof(IReadOnlyList<ConfigReleaseDto>))]
 [JsonSerializable(typeof(CreateApiKeyRequest))]
 [JsonSerializable(typeof(ApiKeyDto))]
 [JsonSerializable(typeof(IReadOnlyList<ApiKeyDto>))]
@@ -68,4 +79,6 @@ namespace Nona.WebApi.Serialization;
 [JsonSerializable(typeof(AuditLogDto))]
 [JsonSerializable(typeof(IReadOnlyList<AuditLogDto>))]
 [JsonSerializable(typeof(DashboardCountDto))]
+[JsonSerializable(typeof(ClientConfigValueDto))]
+[JsonSerializable(typeof(Dictionary<string, ClientConfigValueDto>))]
 internal sealed partial class NonaJsonSerializerContext : JsonSerializerContext;

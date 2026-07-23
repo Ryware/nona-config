@@ -7,36 +7,6 @@ export function getActionKind(action: string): ActionKind {
   return "system";
 }
 
-export const KIND_STYLES: Record<
-  ActionKind,
-  { icon: string; iconColor: string; badge: string; label: string }
-> = {
-  create: {
-    icon: "add_circle",
-    iconColor: "text-success",
-    badge: "bg-success/10 text-success",
-    label: "Created",
-  },
-  update: {
-    icon: "edit",
-    iconColor: "text-primary-container",
-    badge: "bg-primary/8 text-primary-container",
-    label: "Updated",
-  },
-  delete: {
-    icon: "delete",
-    iconColor: "text-error",
-    badge: "bg-error/8 text-error",
-    label: "Deleted",
-  },
-  system: {
-    icon: "settings",
-    iconColor: "text-outline",
-    badge: "bg-surface-container-highest text-outline",
-    label: "System",
-  },
-};
-
 export function truncate(str: string | undefined, max = 28): string {
   if (!str) return "";
   return str.length > max ? str.slice(0, max) + "…" : str;

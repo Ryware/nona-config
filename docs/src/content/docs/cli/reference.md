@@ -16,8 +16,27 @@ npm run generate:cli
 The command help below omits repeated common options from individual option lists.
 
 - `-?, -h, --help` is accepted by every command and subcommand.
+- `--verbose` includes the full exception and stack trace when a command fails. Without it, stack traces are suppressed.
 - Commands that connect to the Nona API may also accept `--api-url, --base-url <base-url>` and `--bearer-token, --token <bearer-token>`.
 - Connection values can come from flags, `NONA_CLI_*` environment variables, saved defaults, or a matching `nona auth login` session.
+
+## HTTP/API error output and exit codes
+
+HTTP/API failures are written to standard error as one human-readable line, including the HTTP status and the server's error code when available:
+
+```text
+Error: value is not a valid number (400, INVALID_VALUE)
+```
+
+| Exit code | HTTP/API failure |
+| --- | --- |
+| `2` | Validation or other client request error (`400`, `422`, or another `4xx`) |
+| `3` | Authentication or authorization error (`401` or `403`) |
+| `4` | Resource not found (`404`) |
+| `5` | Conflict (`409`) |
+| `6` | Server error (`5xx`) |
+
+Other command-specific failures may use different non-zero exit codes.
 
 ## `nona`
 
@@ -32,10 +51,12 @@ nona [command] [options]
 **Commands**
 
 - `users` Invite users to Nona.
+- `releases` Manage immutable configuration releases. Management commands use exact major.minor.patch versions; major.minor.x is only a client-read selector.
 - `projects` List, create, and delete projects.
 - `migrate` Run migration commands.
 - `keys` List, create, and delete project API keys.
 - `init` Bootstrap a Nona instance from first container start to first flag read. Exit codes: 0 success; 1 unexpected/API error; 2 invalid args; 3 auth failed; 4 cannot reach base-url.
+- `environments` List, create, and delete project environments.
 - `entries` Read, write, and share config entries.
 - `config` Show or save default CLI values.
 - `auth` Sign in and manage saved sessions.
@@ -79,6 +100,195 @@ nona users create [options]
 --user-email <user-email> (REQUIRED)    Email address of the new user.
 --role <role>                           User role: viewer or editor.
 --scope <scope>                         User scope: client, server, or all.
+```
+
+## `nona releases`
+
+Manage immutable configuration releases. Management commands use exact major.minor.patch versions; major.minor.x is only a client-read selector.
+
+**Usage**
+
+```text
+nona releases [command] [options]
+```
+
+**Commands**
+
+- `list` List releases in an environment.
+- `view <version>` Show one exact release and its entries.
+- `create <version>` Snapshot the working configuration as a new release. Supply major.minor; the stored release starts at patch .0.
+- `amend <source-version>` Edit a client-side copy of an exact release and publish it as the next patch.
+- `activate <version>` Make an exact release active.
+- `clear-active` Clear the active release for an environment.
+- `delete <version>` Delete a non-active exact release.
+
+## `nona releases list`
+
+List releases in an environment.
+
+**Usage**
+
+```text
+nona releases list [options]
+```
+
+**Options**
+
+```text
+--api-url, --base-url <base-url>          Nona base URL.
+--bearer-token, --token <bearer-token>    Admin bearer token.
+--project, --project-name <project-name>  Nona project name.
+--environment <environment>               Environment containing the release.
+--json                                    Write one JSON array to standard output.
+```
+
+## `nona releases view`
+
+Show one exact release and its entries.
+
+**Usage**
+
+```text
+nona releases view <version> [options]
+```
+
+**Arguments**
+
+```text
+<version>  Exact release version in major.minor.patch format.
+```
+
+**Options**
+
+```text
+--api-url, --base-url <base-url>          Nona base URL.
+--bearer-token, --token <bearer-token>    Admin bearer token.
+--project, --project-name <project-name>  Nona project name.
+--environment <environment>               Environment containing the release.
+--json                                    Write one JSON object to standard output.
+```
+
+## `nona releases create`
+
+Snapshot the working configuration as a new release. Supply major.minor; the stored release starts at patch .0.
+
+**Usage**
+
+```text
+nona releases create <version> [options]
+```
+
+**Arguments**
+
+```text
+<version>  New release line in major.minor format; stored as major.minor.0.
+```
+
+**Options**
+
+```text
+--api-url, --base-url <base-url>          Nona base URL.
+--bearer-token, --token <bearer-token>    Admin bearer token.
+--project, --project-name <project-name>  Nona project name.
+--environment <environment>               Environment containing the release.
+--activate                                Make the new release active immediately.
+```
+
+## `nona releases amend`
+
+Edit a client-side copy of an exact release and publish it as the next patch.
+
+**Usage**
+
+```text
+nona releases amend <source-version> [options]
+```
+
+**Arguments**
+
+```text
+<source-version>  Exact existing release version to amend.
+```
+
+**Options**
+
+```text
+--api-url, --base-url <base-url>          Nona base URL.
+--bearer-token, --token <bearer-token>    Admin bearer token.
+--project, --project-name <project-name>  Nona project name.
+--environment <environment>               Environment containing the release.
+--set <set>                               Set key=value in the copied entries. Repeat for multiple keys.
+--delete <delete>                         Delete a key from the copied entries. Repeat for multiple keys.
+--from-file <from-file>                   Replace the copied entries with a UTF-8 JSON entries array.
+```
+
+## `nona releases activate`
+
+Make an exact release active.
+
+**Usage**
+
+```text
+nona releases activate <version> [options]
+```
+
+**Arguments**
+
+```text
+<version>  Exact release version in major.minor.patch format.
+```
+
+**Options**
+
+```text
+--api-url, --base-url <base-url>          Nona base URL.
+--bearer-token, --token <bearer-token>    Admin bearer token.
+--project, --project-name <project-name>  Nona project name.
+--environment <environment>               Environment containing the release.
+```
+
+## `nona releases clear-active`
+
+Clear the active release for an environment.
+
+**Usage**
+
+```text
+nona releases clear-active [options]
+```
+
+**Options**
+
+```text
+--api-url, --base-url <base-url>          Nona base URL.
+--bearer-token, --token <bearer-token>    Admin bearer token.
+--project, --project-name <project-name>  Nona project name.
+--environment <environment>               Environment containing the release.
+```
+
+## `nona releases delete`
+
+Delete a non-active exact release.
+
+**Usage**
+
+```text
+nona releases delete <version> [options]
+```
+
+**Arguments**
+
+```text
+<version>  Exact release version in major.minor.patch format.
+```
+
+**Options**
+
+```text
+--api-url, --base-url <base-url>          Nona base URL.
+--bearer-token, --token <bearer-token>    Admin bearer token.
+--project, --project-name <project-name>  Nona project name.
+--environment <environment>               Environment containing the release.
 ```
 
 ## `nona projects`
@@ -284,6 +494,78 @@ nona init [options]
 --format <format>                         Output format: dotenv, json, or env-export. Default: dotenv.
 --print-key                               Print the full API key. By default only the last four characters are shown.
 --yes                                     Non-interactive mode; never prompt.
+```
+
+## `nona environments`
+
+List, create, and delete project environments.
+
+**Usage**
+
+```text
+nona environments [command] [options]
+```
+
+**Commands**
+
+- `list` List environments for a project.
+- `create` Create or reuse an environment.
+- `delete` Delete an environment.
+
+## `nona environments list`
+
+List environments for a project.
+
+**Usage**
+
+```text
+nona environments list [options]
+```
+
+**Options**
+
+```text
+--api-url, --base-url <base-url>          Nona base URL.
+--project, --project-name <project-name>  Nona project name.
+--bearer-token, --token <bearer-token>    Admin bearer token.
+```
+
+## `nona environments create`
+
+Create or reuse an environment.
+
+**Usage**
+
+```text
+nona environments create [options]
+```
+
+**Options**
+
+```text
+--api-url, --base-url <base-url>          Nona base URL.
+--project, --project-name <project-name>  Nona project name.
+--bearer-token, --token <bearer-token>    Admin bearer token.
+--name <name> (REQUIRED)                  Environment name. Letters, numbers, and hyphens only.
+```
+
+## `nona environments delete`
+
+Delete an environment.
+
+**Usage**
+
+```text
+nona environments delete [options]
+```
+
+**Options**
+
+```text
+--api-url, --base-url <base-url>          Nona base URL.
+--project, --project-name <project-name>  Nona project name.
+--bearer-token, --token <bearer-token>    Admin bearer token.
+--name <name> (REQUIRED)                  Environment name. Letters, numbers, and hyphens only.
 ```
 
 ## `nona entries`
@@ -542,7 +824,11 @@ Save a default base URL or project.
 
 ```text
 nona config set <setting> <value> [options]
-Arguments:
+```
+
+**Arguments**
+
+```text
 <setting>  Setting name: base-url or project.
 <value>    Value to save as the default.
 ```

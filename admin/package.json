@@ -13,14 +13,18 @@
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
     "verify:openapi": "./scripts/verify-openapi.sh",
-    "analyze": "ANALYZE=true npm run build"
+    "analyze": "ANALYZE=true npm run build",
+    "test:visual": "playwright test",
+    "test:visual:update": "playwright test --update-snapshots"
   },
   "dependencies": {
     "@azure/msal-browser": "^4.26.2",
     "@kobalte/core": "^0.13.11",
     "@solid-primitives/clipboard": "^1.6.4",
+    "@solid-primitives/cookies": "^0.0.3",
     "@solid-primitives/event-listener": "^2.4.5",
     "@solid-primitives/keyboard": "^1.3.5",
+    "@solid-primitives/media": "^2.3.6",
     "@solid-primitives/storage": "^4.3.4",
     "@solid-primitives/timer": "^1.4.4",
     "@solidjs/meta": "^0.29.4",
@@ -36,6 +40,7 @@
     "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@solidjs/testing-library": "^0.8.10",
     "@tailwindcss/postcss": "^4.1.18",
     "@testing-library/jest-dom": "^6.9.1",

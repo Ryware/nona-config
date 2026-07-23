@@ -10,7 +10,9 @@ internal enum DatasetSize
 internal enum WorkloadKind
 {
     PointLookup,
-    RangeQuery
+    RangeQuery,
+    ReleaseEntryPointLookup,
+    ReleaseHydrationPointLookup
 }
 
 internal sealed record BenchmarkOptions(
@@ -36,7 +38,7 @@ internal sealed record BenchmarkEnvironmentContext(
     string OutputDirectory,
     string SeedDatabasePath,
     string SqliteDatabasePath,
-    string LibsqlLocalDatabasePath,
+    string SqliteClientDatabasePath,
     string LibsqlReplicaLocalPath,
     string MigrationsDirectory,
     string? LibsqlUrl,

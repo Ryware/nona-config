@@ -14,6 +14,7 @@ public class DeleteEnvironmentCommandHandler(
     IEnvironmentRepository environmentRepository,
     IConfigEntryRepository configEntryRepository,
     IProjectAccessService projectAccessService,
+    IConfigReleaseRepository? configReleaseRepository = null,
     IAuditLogService? auditLogService = null) : IRequestHandler<DeleteEnvironmentCommand, DeleteEnvironmentResult>
 {
     public async ValueTask<DeleteEnvironmentResult> Handle(DeleteEnvironmentCommand request, CancellationToken cancellationToken)
@@ -30,6 +31,11 @@ public class DeleteEnvironmentCommandHandler(
             return new DeleteEnvironmentResult(false, "Environment not found");
 
         await DeleteEnvironmentConfigEntries(projectName, request.EnvironmentId, cancellationToken);
+
+        if (configReleaseRepository is not null)
+        {
+            await configReleaseRepository.DeleteByEnvironmentAsync(projectName, request.EnvironmentId, cancellationToken);
+        }
 
         await environmentRepository.DeleteAsync(projectName, request.EnvironmentId, cancellationToken);
 

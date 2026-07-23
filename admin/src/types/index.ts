@@ -24,6 +24,11 @@ export type {
   CreateEnvironmentRequest,
   ConfigEntry,
   ConfigEntryVersion,
+  ConfigRelease,
+  ConfigReleaseDetails,
+  ConfigReleaseEntry,
+  PublishConfigReleaseRequest,
+  SetActiveConfigReleaseRequest,
   ParameterShareLink,
   CreatedParameterShareLink,
   CreateParameterShareLinkRequest,
@@ -48,7 +53,12 @@ export type { AuditLog } from "../entities/audit-log/model/types";
 
 // Cross-domain shared types (not entity-specific)
 export interface ApiError {
-  error: string;
+  type?: string;
+  title?: string;
+  status?: number;
+  detail?: string;
+  instance?: string;
+  error?: string;
   message?: string;
   errorCode?: string;
 }

@@ -15,6 +15,7 @@ public sealed partial class NonaClient : IDisposable
     private readonly bool _disposeHttpClient;
     private readonly NonaClientOptions _options;
     private readonly string? _apiKey;
+    private readonly string? _releaseVersion;
     private readonly string _environmentId;
     private readonly string _environmentSegment;
     private readonly object _cacheLock = new object();
@@ -62,6 +63,7 @@ public sealed partial class NonaClient : IDisposable
         _environmentSegment = Segment(_options.EnvironmentId, nameof(NonaClientOptions.EnvironmentId));
         _environmentId = _options.EnvironmentId!;
         _apiKey = _options.ApiKey;
+        _releaseVersion = NormalizeReleaseVersion(_options.ReleaseVersion);
         _disposeHttpClient = disposeHttpClient;
         _cacheTtl = ValidateCacheTtl(options.CacheTtl);
         _cacheMemoryLimitBytes = ConvertMegabytesToBytes(ValidateCacheMemoryLimitMegabytes(options.CacheMemoryLimitMegabytes));
@@ -75,14 +77,33 @@ public sealed partial class NonaClient : IDisposable
 
     public string? ApiKey => _apiKey;
 
+    public string? ReleaseVersion => _releaseVersion;
+
     public string EnvironmentId => _environmentId;
 
     public async Task<NonaConfigValue> GetConfigValueAsync(
         string key,
         CancellationToken cancellationToken = default)
     {
-        var path = $"api/{_environmentSegment}/{Segment(key, nameof(key))}";
-        var cacheKey = CreateCacheKey(key);
+        return await GetConfigValueCoreAsync(key, _releaseVersion, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<NonaConfigValue> GetConfigValueForReleaseAsync(
+        string key,
+        string releaseVersion,
+        CancellationToken cancellationToken = default)
+    {
+        return await GetConfigValueCoreAsync(key, releaseVersion, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<NonaConfigValue> GetConfigValueCoreAsync(
+        string key,
+        string? releaseVersion,
+        CancellationToken cancellationToken)
+    {
+        var normalizedReleaseVersion = NormalizeReleaseVersion(releaseVersion);
+        var path = BuildConfigValuePath(key, normalizedReleaseVersion);
+        var cacheKey = CreateCacheKey(key, normalizedReleaseVersion);
         var cachedValue = TryGetCachedValue(cacheKey, path);
         if (cachedValue is not null)
         {
@@ -96,9 +117,25 @@ public sealed partial class NonaClient : IDisposable
         string key,
         CancellationToken cancellationToken = default)
     {
+        return await TryGetConfigValueCoreAsync(key, _releaseVersion, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<NonaConfigValue?> TryGetConfigValueForReleaseAsync(
+        string key,
+        string releaseVersion,
+        CancellationToken cancellationToken = default)
+    {
+        return await TryGetConfigValueCoreAsync(key, releaseVersion, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<NonaConfigValue?> TryGetConfigValueCoreAsync(
+        string key,
+        string? releaseVersion,
+        CancellationToken cancellationToken)
+    {
         try
         {
-            return await GetConfigValueAsync(key, cancellationToken).ConfigureAwait(false);
+            return await GetConfigValueCoreAsync(key, releaseVersion, cancellationToken).ConfigureAwait(false);
         }
         catch (NonaClientException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
@@ -110,7 +147,23 @@ public sealed partial class NonaClient : IDisposable
         string key,
         CancellationToken cancellationToken = default)
     {
-        var configValue = await GetConfigValueAsync(key, cancellationToken).ConfigureAwait(false);
+        return await GetStringValueCoreAsync(key, _releaseVersion, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<string> GetStringValueForReleaseAsync(
+        string key,
+        string releaseVersion,
+        CancellationToken cancellationToken = default)
+    {
+        return await GetStringValueCoreAsync(key, releaseVersion, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<string> GetStringValueCoreAsync(
+        string key,
+        string? releaseVersion,
+        CancellationToken cancellationToken)
+    {
+        var configValue = await GetConfigValueCoreAsync(key, releaseVersion, cancellationToken).ConfigureAwait(false);
         return configValue.Value;
     }
 
@@ -119,12 +172,30 @@ public sealed partial class NonaClient : IDisposable
         JsonTypeInfo<T> jsonTypeInfo,
         CancellationToken cancellationToken = default)
     {
+        return await GetJsonValueCoreAsync(key, jsonTypeInfo, _releaseVersion, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<T?> GetJsonValueForReleaseAsync<T>(
+        string key,
+        JsonTypeInfo<T> jsonTypeInfo,
+        string releaseVersion,
+        CancellationToken cancellationToken = default)
+    {
+        return await GetJsonValueCoreAsync(key, jsonTypeInfo, releaseVersion, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<T?> GetJsonValueCoreAsync<T>(
+        string key,
+        JsonTypeInfo<T> jsonTypeInfo,
+        string? releaseVersion,
+        CancellationToken cancellationToken)
+    {
         if (jsonTypeInfo is null)
         {
             throw new ArgumentNullException(nameof(jsonTypeInfo));
         }
 
-        var configValue = await GetConfigValueAsync(key, cancellationToken).ConfigureAwait(false);
+        var configValue = await GetConfigValueCoreAsync(key, releaseVersion, cancellationToken).ConfigureAwait(false);
         return JsonSerializer.Deserialize(configValue.Value, jsonTypeInfo);
     }
 

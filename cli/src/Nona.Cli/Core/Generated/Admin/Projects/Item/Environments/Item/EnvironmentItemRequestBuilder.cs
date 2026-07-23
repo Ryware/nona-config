@@ -3,7 +3,10 @@
 using Microsoft.Kiota.Abstractions.Extensions;
 using Microsoft.Kiota.Abstractions.Serialization;
 using Microsoft.Kiota.Abstractions;
+using Nona.Cli.Generated.Admin.Projects.Item.Environments.Item.ActiveRelease;
 using Nona.Cli.Generated.Admin.Projects.Item.Environments.Item.ConfigEntries;
+using Nona.Cli.Generated.Admin.Projects.Item.Environments.Item.Releases;
+using Nona.Cli.Generated.Models;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
@@ -17,10 +20,20 @@ namespace Nona.Cli.Generated.Admin.Projects.Item.Environments.Item
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
     public partial class EnvironmentItemRequestBuilder : BaseRequestBuilder
     {
+        /// <summary>The activeRelease property</summary>
+        public global::Nona.Cli.Generated.Admin.Projects.Item.Environments.Item.ActiveRelease.ActiveReleaseRequestBuilder ActiveRelease
+        {
+            get => new global::Nona.Cli.Generated.Admin.Projects.Item.Environments.Item.ActiveRelease.ActiveReleaseRequestBuilder(PathParameters, RequestAdapter);
+        }
         /// <summary>The configEntries property</summary>
         public global::Nona.Cli.Generated.Admin.Projects.Item.Environments.Item.ConfigEntries.ConfigEntriesRequestBuilder ConfigEntries
         {
             get => new global::Nona.Cli.Generated.Admin.Projects.Item.Environments.Item.ConfigEntries.ConfigEntriesRequestBuilder(PathParameters, RequestAdapter);
+        }
+        /// <summary>The releases property</summary>
+        public global::Nona.Cli.Generated.Admin.Projects.Item.Environments.Item.Releases.ReleasesRequestBuilder Releases
+        {
+            get => new global::Nona.Cli.Generated.Admin.Projects.Item.Environments.Item.Releases.ReleasesRequestBuilder(PathParameters, RequestAdapter);
         }
         /// <summary>
         /// Instantiates a new <see cref="global::Nona.Cli.Generated.Admin.Projects.Item.Environments.Item.EnvironmentItemRequestBuilder"/> and sets the default values.
@@ -41,6 +54,7 @@ namespace Nona.Cli.Generated.Admin.Projects.Item.Environments.Item
         /// <returns>A <see cref="Stream"/></returns>
         /// <param name="cancellationToken">Cancellation token to use when cancelling requests</param>
         /// <param name="requestConfiguration">Configuration for the request such as headers, query parameters, and middleware options.</param>
+        /// <exception cref="global::Nona.Cli.Generated.Models.ApiProblemDetails">When receiving a 4XX or 5XX status code</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public async Task<Stream?> DeleteAsync(Action<RequestConfiguration<DefaultQueryParameters>>? requestConfiguration = default, CancellationToken cancellationToken = default)
@@ -51,7 +65,11 @@ namespace Nona.Cli.Generated.Admin.Projects.Item.Environments.Item
         {
 #endif
             var requestInfo = ToDeleteRequestInformation(requestConfiguration);
-            return await RequestAdapter.SendPrimitiveAsync<Stream>(requestInfo, default, cancellationToken).ConfigureAwait(false);
+            var errorMapping = new Dictionary<string, ParsableFactory<IParsable>>
+            {
+                { "XXX", global::Nona.Cli.Generated.Models.ApiProblemDetails.CreateFromDiscriminatorValue },
+            };
+            return await RequestAdapter.SendPrimitiveAsync<Stream>(requestInfo, errorMapping, cancellationToken).ConfigureAwait(false);
         }
         /// <returns>A <see cref="RequestInformation"/></returns>
         /// <param name="requestConfiguration">Configuration for the request such as headers, query parameters, and middleware options.</param>
@@ -66,6 +84,7 @@ namespace Nona.Cli.Generated.Admin.Projects.Item.Environments.Item
 #endif
             var requestInfo = new RequestInformation(Method.DELETE, UrlTemplate, PathParameters);
             requestInfo.Configure(requestConfiguration);
+            requestInfo.Headers.TryAdd("Accept", "application/problem+json");
             return requestInfo;
         }
         /// <summary>

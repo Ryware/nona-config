@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Nona.Application.Common.Interfaces;
 using Nona.WebApi.Authentication;
+using Nona.WebApi.Endpoints;
 using Nona.WebApi.Services;
 using System.Text;
 
@@ -17,6 +18,8 @@ public static class ConfigureServices
 
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IApiKeyService, ApiKeyService>();
+        services.AddProblemDetails();
+        services.AddExceptionHandler<ApiExceptionHandler>();
 
         services.AddAuthentication(options =>
         {
@@ -38,6 +41,20 @@ public static class ConfigureServices
                 ValidIssuer = jwtIssuer,
                 ValidAudience = jwtAudience,
                 IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+            };
+
+            options.Events = new JwtBearerEvents
+            {
+                OnChallenge = async context =>
+                {
+                    context.HandleResponse();
+                    await ApiProblemResults
+                        .Unauthorized("Authentication is required.")
+                        .ExecuteAsync(context.HttpContext);
+                },
+                OnForbidden = context => ApiProblemResults
+                    .Forbidden("You do not have permission to access this resource.")
+                    .ExecuteAsync(context.HttpContext)
             };
         })
         .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(

@@ -16,7 +16,7 @@ internal sealed class CreateUserCommandHandler(Func<HttpClient>? httpClientFacto
     public async Task<int> HandleAsync(CreateUserCommand command, CancellationToken ct)
     {
 
-        var api = NonaClientFactory.Create(command.Connection, httpClientFactory);
+        using var api = NonaClientFactory.Create(command.Connection, httpClientFactory);
         var result = await api.Admin.Users.PostAsync(new CreateUserRequest
         {
             Name = command.Name,

@@ -37,9 +37,10 @@ namespace Nona.Migrator.Core.Generated.Auth.Register
         /// <param name="body">The request body</param>
         /// <param name="cancellationToken">Cancellation token to use when cancelling requests</param>
         /// <param name="requestConfiguration">Configuration for the request such as headers, query parameters, and middleware options.</param>
-        /// <exception cref="global::Nona.Migrator.Core.Generated.Models.ErrorResponse">When receiving a 400 status code</exception>
-        /// <exception cref="global::Nona.Migrator.Core.Generated.Models.ErrorResponse">When receiving a 403 status code</exception>
-        /// <exception cref="global::Nona.Migrator.Core.Generated.Models.ErrorResponse">When receiving a 409 status code</exception>
+        /// <exception cref="global::Nona.Migrator.Core.Generated.Models.ApiValidationProblemDetails">When receiving a 400 status code</exception>
+        /// <exception cref="global::Nona.Migrator.Core.Generated.Models.ApiProblemDetails">When receiving a 403 status code</exception>
+        /// <exception cref="global::Nona.Migrator.Core.Generated.Models.ApiProblemDetails">When receiving a 409 status code</exception>
+        /// <exception cref="global::Nona.Migrator.Core.Generated.Models.ApiProblemDetails">When receiving a 4XX or 5XX status code</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public async Task<global::Nona.Migrator.Core.Generated.Models.LoginResponse?> PostAsync(global::Nona.Migrator.Core.Generated.Models.RegisterCommand body, Action<RequestConfiguration<DefaultQueryParameters>>? requestConfiguration = default, CancellationToken cancellationToken = default)
@@ -53,9 +54,10 @@ namespace Nona.Migrator.Core.Generated.Auth.Register
             var requestInfo = ToPostRequestInformation(body, requestConfiguration);
             var errorMapping = new Dictionary<string, ParsableFactory<IParsable>>
             {
-                { "400", global::Nona.Migrator.Core.Generated.Models.ErrorResponse.CreateFromDiscriminatorValue },
-                { "403", global::Nona.Migrator.Core.Generated.Models.ErrorResponse.CreateFromDiscriminatorValue },
-                { "409", global::Nona.Migrator.Core.Generated.Models.ErrorResponse.CreateFromDiscriminatorValue },
+                { "400", global::Nona.Migrator.Core.Generated.Models.ApiValidationProblemDetails.CreateFromDiscriminatorValue },
+                { "403", global::Nona.Migrator.Core.Generated.Models.ApiProblemDetails.CreateFromDiscriminatorValue },
+                { "409", global::Nona.Migrator.Core.Generated.Models.ApiProblemDetails.CreateFromDiscriminatorValue },
+                { "XXX", global::Nona.Migrator.Core.Generated.Models.ApiProblemDetails.CreateFromDiscriminatorValue },
             };
             return await RequestAdapter.SendAsync<global::Nona.Migrator.Core.Generated.Models.LoginResponse>(requestInfo, global::Nona.Migrator.Core.Generated.Models.LoginResponse.CreateFromDiscriminatorValue, errorMapping, cancellationToken).ConfigureAwait(false);
         }

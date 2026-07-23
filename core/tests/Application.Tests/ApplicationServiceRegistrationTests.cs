@@ -3,6 +3,7 @@ using Mediator;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Nona.Application.Admin.ApiKeys.Commands;
+using Nona.Application.Admin.ConfigReleases.Commands;
 using Nona.Application.Admin.ConfigEntries.Commands;
 using Nona.Application.Admin.Environments.Commands;
 using Nona.Application.Admin.Projects.Commands;
@@ -26,6 +27,8 @@ public class ApplicationServiceRegistrationTests
         using var provider = services.BuildServiceProvider();
 
         await Assert.That(provider.GetRequiredService<IValidator<CreateApiKeyRequest>>()).IsNotNull();
+        await Assert.That(provider.GetRequiredService<IValidator<PublishConfigReleaseRequest>>()).IsNotNull();
+        await Assert.That(provider.GetRequiredService<IValidator<SetActiveConfigReleaseRequest>>()).IsNotNull();
         await Assert.That(provider.GetRequiredService<IValidator<UpsertConfigEntryRequest>>()).IsNotNull();
         await Assert.That(provider.GetRequiredService<IValidator<CreateEnvironmentRequest>>()).IsNotNull();
         await Assert.That(provider.GetRequiredService<IValidator<CreateProjectRequest>>()).IsNotNull();

@@ -26,6 +26,14 @@ export const projectKeys = {
   configEntries: (slug: string, env: string) =>
     [...projectKeys.detail(slug), "config-entries", env] as const,
 
+  /** Config releases for a specific environment */
+  configReleases: (slug: string, env: string) =>
+    [...projectKeys.detail(slug), "config-releases", env] as const,
+
+  /** Details for a specific config release version */
+  configReleaseDetails: (slug: string, env: string, version: string) =>
+    [...projectKeys.configReleases(slug, env), version] as const,
+
   /** Version history for a specific config entry */
   configEntryHistory: (slug: string, env: string, key: string) =>
     [...projectKeys.configEntries(slug, env), key, "history"] as const,
@@ -33,6 +41,10 @@ export const projectKeys = {
   /** Share links for a specific config entry */
   configEntryShareLinks: (slug: string, env: string, key: string) =>
     [...projectKeys.configEntries(slug, env), key, "share-links"] as const,
+
+  /** Aggregated share links for a specific environment */
+  environmentShareLinks: (slug: string, env: string) =>
+    [...projectKeys.detail(slug), "share-links", env] as const,
 
   /** Managed API keys for a project */
   apiKeys: (slug: string) => [...projectKeys.detail(slug), "api-keys"] as const,

@@ -2,6 +2,7 @@ using System.Net;
 using Nona.Cli.Entries;
 using Nona.Cli.Entries.Commands;
 using Nona.Cli.Entries.Queries;
+using Nona.Cli.Generated.Models;
 using static Nona.Cli.Tests.Fixtures;
 using static Nona.Cli.Tests.TestHelpers;
 
@@ -62,6 +63,36 @@ public sealed class EntriesHandlerTests
             .HandleAsync(new SetEntryCommand(TestConnection, "my-project", "production", "my.key", "my-value", "all", null),
                 CancellationToken.None);
         await Assert.That(result).IsEqualTo(0);
+    }
+
+    [Test]
+    [Arguments(HttpStatusCode.BadRequest, "value is not a valid number")]
+    [Arguments(HttpStatusCode.NotFound, "environment not found")]
+    public async Task SetEntryCommandHandler_PreservesServerErrorBody(
+        HttpStatusCode statusCode,
+        string serverMessage)
+    {
+        var handler = new SetEntryCommandHandler(MockHttp(
+            statusCode,
+            $$"""{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.1","title":"Request failed","status":{{(int)statusCode}},"detail":"{{serverMessage}}","instance":"/admin/test","errorCode":"TEST_ERROR"}"""));
+
+        ApiProblemDetails? error = null;
+        try
+        {
+            await handler.HandleAsync(
+                new SetEntryCommand(TestConnection, "my-project", "production", "my.key", "bad", "client", "number"),
+                CancellationToken.None);
+        }
+        catch (ApiProblemDetails ex)
+        {
+            error = ex;
+        }
+
+        await Assert.That(error).IsNotNull();
+        var capturedError = error!;
+        await Assert.That(capturedError.ResponseStatusCode).IsEqualTo((int)statusCode);
+        await Assert.That(capturedError.Detail).IsEqualTo(serverMessage);
+        await Assert.That(capturedError.ErrorCode).IsEqualTo("TEST_ERROR");
     }
 
     [Test]

@@ -9,7 +9,7 @@ interface UserProjectScopeProps {
 
 export function UserProjectScope(props: UserProjectScopeProps) {
   return (
-    <section class="bg-surface-container-low border-outline-variant/15 space-y-6 rounded-xl border p-8 shadow-sm">
+    <section class="bg-surface-container-low border-outline-variant/15 space-y-5 rounded-xl border p-4 shadow-sm sm:p-8">
       <div class="flex items-center gap-3">
         <div class="bg-primary/10 border-primary/20 text-primary flex h-7 w-7 shrink-0 items-center justify-center rounded-full border font-mono text-xs font-bold shadow-[0_0_12px_rgba(99,102,241,0.15)]">
           03
@@ -17,7 +17,7 @@ export function UserProjectScope(props: UserProjectScopeProps) {
         <h3 class="font-headline text-on-surface text-lg font-bold">Project Scope</h3>
       </div>
       <div class="bg-surface-container-low border-outline-variant/15 overflow-hidden rounded-xl border">
-        <div class="bg-surface-container-low border-outline-variant/15 text-outline grid grid-cols-2 border-b px-6 py-3.5 text-[10px] font-bold tracking-widest uppercase">
+        <div class="bg-surface-container-low border-outline-variant/15 text-outline hidden grid-cols-2 border-b px-6 py-3.5 text-[10px] font-bold tracking-widest uppercase sm:grid">
           <span>Active Projects</span>
           <span class="text-right">Access Level</span>
         </div>
@@ -32,7 +32,7 @@ export function UserProjectScope(props: UserProjectScopeProps) {
               return (
                 <div
                   data-testid={`invite-project-row-${project.urlSlug}`}
-                  class="hover:bg-surface-container-high/40 border-outline-variant/10 grid cursor-pointer grid-cols-2 items-center border-b px-6 py-4 transition-colors last:border-b-0"
+                  class="hover:bg-surface-container-high/40 border-outline-variant/10 grid cursor-pointer gap-3 border-b px-4 py-4 transition-colors last:border-b-0 sm:grid-cols-2 sm:items-center sm:px-6"
                   onClick={() => props.onToggleProject(projectName)}
                 >
                   <div class="flex items-center gap-3">
@@ -49,7 +49,7 @@ export function UserProjectScope(props: UserProjectScopeProps) {
                       {project.urlSlug}
                     </span>
                   </div>
-                  <div class="text-right">
+                  <div class="sm:text-right">
                     <Show
                       when={isGiven()}
                       fallback={

@@ -36,6 +36,7 @@ namespace Nona.Cli.Generated.Admin.AuditLogs
         /// <returns>A List&lt;global::Nona.Cli.Generated.Models.AuditLogDto&gt;</returns>
         /// <param name="cancellationToken">Cancellation token to use when cancelling requests</param>
         /// <param name="requestConfiguration">Configuration for the request such as headers, query parameters, and middleware options.</param>
+        /// <exception cref="global::Nona.Cli.Generated.Models.ApiProblemDetails">When receiving a 4XX or 5XX status code</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
         public async Task<List<global::Nona.Cli.Generated.Models.AuditLogDto>?> GetAsync(Action<RequestConfiguration<DefaultQueryParameters>>? requestConfiguration = default, CancellationToken cancellationToken = default)
@@ -46,7 +47,11 @@ namespace Nona.Cli.Generated.Admin.AuditLogs
         {
 #endif
             var requestInfo = ToGetRequestInformation(requestConfiguration);
-            var collectionResult = await RequestAdapter.SendCollectionAsync<global::Nona.Cli.Generated.Models.AuditLogDto>(requestInfo, global::Nona.Cli.Generated.Models.AuditLogDto.CreateFromDiscriminatorValue, default, cancellationToken).ConfigureAwait(false);
+            var errorMapping = new Dictionary<string, ParsableFactory<IParsable>>
+            {
+                { "XXX", global::Nona.Cli.Generated.Models.ApiProblemDetails.CreateFromDiscriminatorValue },
+            };
+            var collectionResult = await RequestAdapter.SendCollectionAsync<global::Nona.Cli.Generated.Models.AuditLogDto>(requestInfo, global::Nona.Cli.Generated.Models.AuditLogDto.CreateFromDiscriminatorValue, errorMapping, cancellationToken).ConfigureAwait(false);
             return collectionResult?.AsList();
         }
         /// <returns>A <see cref="RequestInformation"/></returns>

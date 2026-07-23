@@ -1,4 +1,5 @@
 import { createSignal, Show, For } from "solid-js";
+import { Button } from "../../shared/ui/button";
 import { MIcon } from "../../shared/ui/icons";
 import type { ConfigEntry } from "../../types";
 
@@ -298,22 +299,22 @@ export function ProjectBulkImport(props: ProjectBulkImportProps) {
           </div>
 
           <div class="flex justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() => { setParsedImports([]); props.onCancel(); }}
-              class="px-4 py-2.5 rounded-lg font-semibold text-on-surface-variant text-[13px] bg-surface-container-high hover:bg-surface-bright transition-all border-0 cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
+            <Button
               type="button"
               disabled={importLoading() || props.isPending}
               onClick={executeImport}
-              class="px-4 py-2.5 rounded-lg font-semibold bg-primary text-on-primary text-[13px] hover:brightness-105 transition-all border-0 cursor-pointer flex items-center gap-2"
             >
               <MIcon name="publish" class="text-[16px]" />
               {importLoading() ? "Importing…" : "Execute Import"}
-            </button>
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => { setParsedImports([]); props.onCancel(); }}
+            >
+              <MIcon name="close" class="text-[16px]" />
+              Cancel
+            </Button>
           </div>
         </div>
       </Show>

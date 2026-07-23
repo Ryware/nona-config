@@ -74,6 +74,33 @@ public class PersistentJwtConfigurationTests
     }
 
     [Test]
+    public async Task Apply_PersistsGeneratedJwtSettingsBesideAutoSelectedSqliteDatabase()
+    {
+        var originalEnvironment = ClearJwtEnvironment();
+        var generatedDirectory = Path.Combine(Path.GetTempPath(), $"nona-jwt-sqlite-{Guid.NewGuid():N}");
+
+        try
+        {
+            var configuration = new ConfigurationManager();
+            configuration.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Storage:Type"] = "Auto",
+                ["Storage:Sqlite:DataSource"] = Path.Combine(generatedDirectory, "nona.db")
+            });
+
+            PersistentJwtConfiguration.Apply(configuration);
+
+            await Assert.That(configuration["Jwt:Key"]).IsNotNull();
+            await Assert.That(File.Exists(Path.Combine(generatedDirectory, "jwt.generated.json"))).IsTrue();
+        }
+        finally
+        {
+            RestoreJwtEnvironment(originalEnvironment);
+            DeleteDirectoryIfExists(generatedDirectory);
+        }
+    }
+
+    [Test]
     public async Task Apply_UsesCompleteJwtEnvironmentOverride_WithoutRequiringGeneratedConfigPath()
     {
         var originalEnvironment = ClearJwtEnvironment();

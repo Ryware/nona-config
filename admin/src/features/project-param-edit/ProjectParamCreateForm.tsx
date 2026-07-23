@@ -1,9 +1,12 @@
-import { createSignal, Show } from "solid-js";
+import { createSignal, onMount, Show } from "solid-js";
+import { Button } from "../../shared/ui/button";
 import { Input } from "../../shared/ui/input";
+import { Label } from "../../shared/ui/label";
 import { Select } from "../../shared/ui/select";
 import { VisualJsonEditor } from "../../shared/ui/visual-json-editor";
 import type { ConfigEntry } from "../../types";
 import { FormField } from "../../widgets/auth-shell/FormField";
+import { MIcon } from "../../shared/ui/icons";
 
 type ConfigEntryContentType = "text" | "number" | "boolean" | "json";
 type ConfigEntryScope = "client" | "server" | "all";
@@ -15,7 +18,6 @@ interface ProjectParamCreateFormProps {
     value: string;
     contentType: ConfigEntryContentType;
     scope: ConfigEntryScope;
-    displayName: string;
     description: string;
   }) => void;
   isPending: boolean;
@@ -54,9 +56,14 @@ export function ProjectParamCreateForm(props: ProjectParamCreateFormProps) {
   const [cfgKey, setCfgKey] = createSignal("");
   const [cfgValue, setCfgValue] = createSignal("");
   const [cfgType, setCfgType] = createSignal<ConfigEntryContentType>("text");
-  const [cfgDisplayName, setCfgDisplayName] = createSignal("");
+  const [cfgScope, setCfgScope] = createSignal<ConfigEntryScope>("all");
   const [cfgDescription, setCfgDescription] = createSignal("");
   const [createError, setCreateError] = createSignal("");
+  let keyInputRef: HTMLInputElement | undefined;
+
+  onMount(() => {
+    keyInputRef?.focus();
+  });
 
   const onKeyDownConfigKey = (e: KeyboardEvent) => {
     if (e.key === " ") {
@@ -83,8 +90,7 @@ export function ProjectParamCreateForm(props: ProjectParamCreateFormProps) {
       key: trimmedKey,
       value: cfgValue().trim(),
       contentType: cfgType(),
-      scope: "all",
-      displayName: cfgDisplayName().trim(),
+      scope: cfgScope(),
       description: cfgDescription().trim()
     });
   };
@@ -110,18 +116,18 @@ export function ProjectParamCreateForm(props: ProjectParamCreateFormProps) {
                 if (createError()) setCreateError("");
               }}
               required
-              autofocus
               leftIcon="code"
               testId="parameter-key-input"
+              inputRef={element => {
+                keyInputRef = element;
+              }}
             />
             <Show when={createError()}>
               <p class="text-error mt-2 text-[11px] font-bold">{createError()}</p>
             </Show>
           </div>
           <div>
-            <label class="text-on-surface-variant mb-1.5 block text-[11px] font-medium tracking-[0.05em]">
-              Datatype
-            </label>
+            <Label>Datatype</Label>
             <Select
               value={cfgType()}
               onChange={(val: string) => {
@@ -131,21 +137,20 @@ export function ProjectParamCreateForm(props: ProjectParamCreateFormProps) {
               options={["text", "number", "boolean", "json"]}
             />
           </div>
-        </div>
-        <div class="space-y-4">
           <div>
-            <FormField
-              id="config-entry-display-name"
-              label="Friendly Display Name"
-              type="text"
-              placeholder="e.g. Mail Server Port"
-              value={cfgDisplayName()}
-              onInput={(e: InputEvent & { currentTarget: HTMLInputElement }) =>
-                setCfgDisplayName(e.currentTarget.value)
-              }
-              testId="parameter-display-name-input"
+            <Label>Scope</Label>
+            <Select
+              value={cfgScope()}
+              onChange={(val: string) => setCfgScope(val as ConfigEntryScope)}
+              options={[
+                { value: "all", label: "All" },
+                { value: "client", label: "Client" },
+                { value: "server", label: "Server" }
+              ]}
             />
           </div>
+        </div>
+        <div class="space-y-4">
           <div>
             <FormField
               id="config-entry-description"
@@ -164,12 +169,7 @@ export function ProjectParamCreateForm(props: ProjectParamCreateFormProps) {
       </div>
 
       <div>
-        <label
-          for="config-entry-value"
-          class="text-on-surface-variant mb-1.5 block text-[11px] font-medium tracking-[0.05em]"
-        >
-          Value
-        </label>
+        <Label for="config-entry-value">Value</Label>
         <Show when={cfgType() === "boolean"}>
           <Select
             id="config-entry-value"
@@ -214,22 +214,23 @@ export function ProjectParamCreateForm(props: ProjectParamCreateFormProps) {
       </div>
 
       <div class="flex justify-end gap-3 pt-2">
-        <button
-          data-testid="parameter-create-cancel-button"
-          type="button"
-          onClick={() => props.onCancel()}
-          class="text-on-surface-variant bg-surface-container-high hover:bg-surface-bright cursor-pointer rounded-lg border-0 px-4 py-2.5 text-[13px] font-semibold transition-all"
-        >
-          Cancel
-        </button>
-        <button
+        <Button
           data-testid="parameter-create-submit-button"
           type="submit"
           disabled={props.isPending || isAddInvalid()}
-          class="bg-primary text-on-primary cursor-pointer rounded-lg border-0 px-4 py-2.5 text-[13px] font-semibold transition-all hover:brightness-105 disabled:opacity-50"
         >
-          {props.isPending ? "Creating…" : "Add Parameter"}
-        </button>
+          <MIcon name="add" class="text-[17px]" />
+           {props.isPending ? "Creating…" : "Create"}
+        </Button>
+        <Button
+          data-testid="parameter-create-cancel-button"
+          type="button"
+          variant="outline"
+          onClick={() => props.onCancel()}
+        >
+          <MIcon name="close" class="text-[16px]" />
+          Cancel
+        </Button>
       </div>
     </form>
   );

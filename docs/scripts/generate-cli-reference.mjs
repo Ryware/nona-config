@@ -27,6 +27,11 @@ const commonOptionDefinitions = [
 		label: '`-?, -h, --help`',
 		pattern: /^\s+-\?,\s+-h,\s+--help\s+Show help and usage information\s*$/,
 	},
+	{
+		key: 'verbose',
+		label: '`--verbose`',
+		pattern: /^\s+--verbose\s+Show full exception details when a command fails\.\s*$/,
+	},
 ];
 
 execFileSync('dotnet', ['build', cliProject, '--nologo', '--verbosity', 'quiet'], {
@@ -166,8 +171,27 @@ function writeReference() {
 		'The command help below omits repeated common options from individual option lists.',
 		'',
 		'- `-?, -h, --help` is accepted by every command and subcommand.',
+		'- `--verbose` includes the full exception and stack trace when a command fails. Without it, stack traces are suppressed.',
 		'- Commands that connect to the Nona API may also accept `--api-url, --base-url <base-url>` and `--bearer-token, --token <bearer-token>`.',
 		'- Connection values can come from flags, `NONA_CLI_*` environment variables, saved defaults, or a matching `nona auth login` session.',
+		'',
+		'## HTTP/API error output and exit codes',
+		'',
+		'HTTP/API failures are written to standard error as one human-readable line, including the HTTP status and the server\'s error code when available:',
+		'',
+		'```text',
+		'Error: value is not a valid number (400, INVALID_VALUE)',
+		'```',
+		'',
+		'| Exit code | HTTP/API failure |',
+		'| --- | --- |',
+		'| `2` | Validation or other client request error (`400`, `422`, or another `4xx`) |',
+		'| `3` | Authentication or authorization error (`401` or `403`) |',
+		'| `4` | Resource not found (`404`) |',
+		'| `5` | Conflict (`409`) |',
+		'| `6` | Server error (`5xx`) |',
+		'',
+		'Other command-specific failures may use different non-zero exit codes.',
 		'',
 	];
 
@@ -181,6 +205,9 @@ function writeReference() {
 		if (sections.usage) {
 			lines.push('**Usage**', '', '```text', sections.usage, '```', '');
 		}
+		if (sections.arguments) {
+			lines.push('**Arguments**', '', '```text', sections.arguments, '```', '');
+		}
 		if (sections.commands.length > 0) {
 			lines.push('**Commands**', '');
 			for (const item of sections.commands) {
@@ -191,7 +218,9 @@ function writeReference() {
 		if (sections.options) {
 			lines.push('**Options**', '', '```text', sections.options, '```', '');
 		}
-		const commandCommonOptions = page.commonOptions.filter((option) => option !== 'help');
+		const commandCommonOptions = page.commonOptions.filter(
+			(option) => option !== 'help' && option !== 'verbose',
+		);
 		if (commandCommonOptions.length > 0) {
 			lines.push(
 				`Also accepts: ${commandCommonOptions.map(formatCommonOption).join(', ')}.`,
@@ -213,6 +242,7 @@ function parseHelpSections(help) {
 	const sections = {
 		description: [],
 		usage: [],
+		arguments: [],
 		options: [],
 		commands: [],
 	};
@@ -227,6 +257,9 @@ function parseHelpSections(help) {
 				continue;
 			case 'Usage:':
 				current = 'usage';
+				continue;
+			case 'Arguments:':
+				current = 'arguments';
 				continue;
 			case 'Options:':
 				current = 'options';
@@ -251,6 +284,7 @@ function parseHelpSections(help) {
 	return {
 		description: collapseDescription(sections.description),
 		usage: collapseBlock(sections.usage),
+		arguments: collapseBlock(sections.arguments),
 		options: collapseBlock(sections.options),
 		commands: parseCommandRows(sections.commands),
 	};

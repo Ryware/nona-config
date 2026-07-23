@@ -11,7 +11,7 @@ internal sealed class ListProjectsQueryHandler(Func<HttpClient>? httpClientFacto
     public async Task<int> HandleAsync(ListProjectsQuery query, CancellationToken ct)
     {
 
-        var api = NonaClientFactory.Create(query.Connection, httpClientFactory);
+        using var api = NonaClientFactory.Create(query.Connection, httpClientFactory);
         var projects = await api.Admin.Projects.GetAsync(cancellationToken: ct);
 
         if (projects is null || projects.Count == 0)
@@ -30,7 +30,9 @@ internal sealed class ListProjectsQueryHandler(Func<HttpClient>? httpClientFacto
     {
         Console.WriteLine($"  {p.Name}");
         Console.WriteLine($"    Slug:       {p.UrlSlug ?? "(none)"}");
-        var envs = p.Environments?.Count == 0 ? "(none)" : string.Join(", ", (p.Environments ?? []).Order());
+        var envs = p.Environments is { Count: > 0 }
+            ? string.Join(", ", p.Environments.Order())
+            : "(none)";
         Console.WriteLine($"    Environments: {envs}");
     }
 }

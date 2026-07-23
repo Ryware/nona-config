@@ -62,7 +62,7 @@ public sealed partial class NelknetLibsqlDatabaseClient : ILibsqlDatabaseClient,
         ArgumentException.ThrowIfNullOrWhiteSpace(sql);
 
         var statement = new LibsqlStatement(sql, parameters);
-        var results = await ExecuteHttpStatementsAsync([statement], useTransaction: false, ct);
+        var results = await ExecuteHttpStatementsAsync([statement], ct);
         return results[0];
     }
 
@@ -78,7 +78,7 @@ public sealed partial class NelknetLibsqlDatabaseClient : ILibsqlDatabaseClient,
             return [];
         }
 
-        return await ExecuteHttpStatementsAsync(batch, useTransaction: true, ct);
+        return await ExecuteHttpBatchAsync(batch, ct);
     }
 
     public void Dispose()
@@ -94,31 +94,37 @@ public sealed partial class NelknetLibsqlDatabaseClient : ILibsqlDatabaseClient,
 
     private async Task<IReadOnlyList<LibsqlQueryResult>> ExecuteHttpStatementsAsync(
         IReadOnlyList<LibsqlStatement> statements,
-        bool useTransaction,
+        CancellationToken ct)
+    {
+        var requests = statements.Select(CreateExecuteRequest).ToList();
+        requests.Add(new HranaStreamRequest { Type = "close" });
+
+        var pipeline = await SendPipelineAsync(requests, ct);
+        return MapHttpResults(pipeline, statements.Count);
+    }
+
+    private async Task<IReadOnlyList<LibsqlQueryResult>> ExecuteHttpBatchAsync(
+        IReadOnlyList<LibsqlStatement> statements,
+        CancellationToken ct)
+    {
+        var requests = new List<HranaStreamRequest>
+        {
+            CreateBatchRequest(statements),
+            new() { Type = "close" }
+        };
+
+        var pipeline = await SendPipelineAsync(requests, ct);
+        return MapHttpBatchResults(pipeline, statements.Count);
+    }
+
+    private async Task<HranaPipelineResponse> SendPipelineAsync(
+        IReadOnlyList<HranaStreamRequest> requests,
         CancellationToken ct)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         var httpClient = _httpClient ?? throw new InvalidOperationException("HTTP client was not initialized.");
 
-        var requests = new List<HranaStreamRequest>(statements.Count + 3);
-        if (useTransaction)
-        {
-            requests.Add(CreateExecuteRequest("BEGIN IMMEDIATE"));
-        }
-
-        foreach (var statement in statements)
-        {
-            requests.Add(CreateExecuteRequest(statement));
-        }
-
-        if (useTransaction)
-        {
-            requests.Add(CreateExecuteRequest("COMMIT"));
-        }
-
-        requests.Add(new HranaStreamRequest { Type = "close" });
-
-        var requestBody = new HranaPipelineRequest(null, requests);
+        var requestBody = new HranaPipelineRequest(requests);
         using var request = new HttpRequestMessage(HttpMethod.Post, "v2/pipeline")
         {
             Content = new StringContent(
@@ -142,20 +148,7 @@ public sealed partial class NelknetLibsqlDatabaseClient : ILibsqlDatabaseClient,
             throw new LibsqlException("libSQL HTTP response was empty.");
         }
 
-        return MapHttpResults(pipeline, statements.Count, useTransaction);
-    }
-
-    private static HranaStreamRequest CreateExecuteRequest(string sql)
-    {
-        return new HranaStreamRequest
-        {
-            Type = "execute",
-            Stmt = new HranaStatement
-            {
-                Sql = sql,
-                WantRows = false
-            }
-        };
+        return pipeline;
     }
 
     private static HranaStreamRequest CreateExecuteRequest(LibsqlStatement statement)
@@ -163,25 +156,68 @@ public sealed partial class NelknetLibsqlDatabaseClient : ILibsqlDatabaseClient,
         return new HranaStreamRequest
         {
             Type = "execute",
-            Stmt = new HranaStatement
+            Stmt = CreateStatement(statement)
+        };
+    }
+
+    private static HranaStreamRequest CreateBatchRequest(IReadOnlyList<LibsqlStatement> statements)
+    {
+        var steps = new List<HranaBatchStep>(statements.Count + 3)
+        {
+            new() { Stmt = CreateStatement("BEGIN IMMEDIATE") }
+        };
+
+        var previousStep = 0;
+        foreach (var statement in statements)
+        {
+            steps.Add(new HranaBatchStep
             {
-                Sql = statement.Sql,
-                NamedArgs = LibsqlCommandHelpers.EnumerateParameters(statement.Parameters)
-                    .Select(pair => new HranaNamedArg(
-                        LibsqlCommandHelpers.NormalizeParameterName(pair.Key)[1..],
-                        HranaValue.FromClrValue(LibsqlCommandHelpers.NormalizeParameterValue(pair.Value))))
-                    .ToList(),
-                WantRows = LibsqlCommandHelpers.ReturnsRows(statement.Sql)
-            }
+                Condition = HranaBatchCondition.Ok(previousStep),
+                Stmt = CreateStatement(statement)
+            });
+            previousStep = steps.Count - 1;
+        }
+
+        steps.Add(new HranaBatchStep
+        {
+            Condition = HranaBatchCondition.Ok(previousStep),
+            Stmt = CreateStatement("COMMIT")
+        });
+        var commitStep = steps.Count - 1;
+        steps.Add(new HranaBatchStep
+        {
+            Condition = HranaBatchCondition.Not(HranaBatchCondition.Ok(commitStep)),
+            Stmt = CreateStatement("ROLLBACK")
+        });
+
+        return new HranaStreamRequest
+        {
+            Type = "batch",
+            Batch = new HranaBatch { Steps = steps }
+        };
+    }
+
+    private static HranaStatement CreateStatement(string sql)
+        => new() { Sql = sql, WantRows = false };
+
+    private static HranaStatement CreateStatement(LibsqlStatement statement)
+    {
+        return new HranaStatement
+        {
+            Sql = statement.Sql,
+            NamedArgs = LibsqlCommandHelpers.EnumerateParameters(statement.Parameters)
+                .Select(pair => new HranaNamedArg(
+                    LibsqlCommandHelpers.NormalizeParameterName(pair.Key)[1..],
+                    HranaValue.FromClrValue(LibsqlCommandHelpers.NormalizeParameterValue(pair.Value))))
+                .ToList(),
+            WantRows = LibsqlCommandHelpers.ReturnsRows(statement.Sql)
         };
     }
 
     private static IReadOnlyList<LibsqlQueryResult> MapHttpResults(
         HranaPipelineResponse pipeline,
-        int statementCount,
-        bool usedTransaction)
+        int statementCount)
     {
-        var offset = usedTransaction ? 1 : 0;
         var results = new List<LibsqlQueryResult>(statementCount);
 
         for (var i = 0; i < pipeline.Results.Count; i++)
@@ -195,9 +231,52 @@ public sealed partial class NelknetLibsqlDatabaseClient : ILibsqlDatabaseClient,
 
         for (var i = 0; i < statementCount; i++)
         {
-            var streamResult = pipeline.Results[i + offset];
+            var streamResult = pipeline.Results[i];
             var statementResult = streamResult.Response?.Result
                 ?? throw new LibsqlException("libSQL HTTP response did not include a statement result.");
+            results.Add(MapStatementResult(statementResult));
+        }
+
+        return results;
+    }
+
+    private static IReadOnlyList<LibsqlQueryResult> MapHttpBatchResults(
+        HranaPipelineResponse pipeline,
+        int statementCount)
+    {
+        foreach (var result in pipeline.Results)
+        {
+            if (string.Equals(result.Type, "error", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new LibsqlException(result.Error?.Message ?? "libSQL HTTP batch failed.");
+            }
+        }
+
+        var streamResult = pipeline.Results.FirstOrDefault()
+            ?? throw new LibsqlException("libSQL HTTP response did not include a batch result.");
+        var batchResult = streamResult.Response?.Result
+            ?? throw new LibsqlException("libSQL HTTP response did not include a batch result.");
+        var stepErrors = batchResult.StepErrors
+            ?? throw new LibsqlException("libSQL HTTP batch response did not include step errors.");
+        var stepResults = batchResult.StepResults
+            ?? throw new LibsqlException("libSQL HTTP batch response did not include step results.");
+        var expectedStepCount = statementCount + 3;
+        if (stepErrors.Count < expectedStepCount || stepResults.Count < expectedStepCount)
+        {
+            throw new LibsqlException("libSQL HTTP batch response was incomplete.");
+        }
+
+        var stepError = stepErrors.FirstOrDefault(error => error is not null);
+        if (stepError is not null)
+        {
+            throw new LibsqlException(stepError.Message);
+        }
+
+        var results = new List<LibsqlQueryResult>(statementCount);
+        for (var i = 0; i < statementCount; i++)
+        {
+            var statementResult = stepResults[i + 1]
+                ?? throw new LibsqlException("libSQL HTTP batch skipped a statement unexpectedly.");
             results.Add(MapStatementResult(statementResult));
         }
 
@@ -249,7 +328,6 @@ public sealed partial class NelknetLibsqlDatabaseClient : ILibsqlDatabaseClient,
     }
 
     private sealed record HranaPipelineRequest(
-        [property: JsonPropertyName("baton")] string? Baton,
         [property: JsonPropertyName("requests")] IReadOnlyList<HranaStreamRequest> Requests);
 
     private sealed class HranaPipelineResponse
@@ -266,6 +344,10 @@ public sealed partial class NelknetLibsqlDatabaseClient : ILibsqlDatabaseClient,
         [JsonPropertyName("stmt")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public HranaStatement? Stmt { get; init; }
+
+        [JsonPropertyName("batch")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public HranaBatch? Batch { get; init; }
     }
 
     private sealed class HranaStreamResult
@@ -305,6 +387,41 @@ public sealed partial class NelknetLibsqlDatabaseClient : ILibsqlDatabaseClient,
         public bool WantRows { get; init; }
     }
 
+    private sealed class HranaBatch
+    {
+        [JsonPropertyName("steps")]
+        public List<HranaBatchStep> Steps { get; init; } = [];
+    }
+
+    private sealed class HranaBatchStep
+    {
+        [JsonPropertyName("condition")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public HranaBatchCondition? Condition { get; init; }
+
+        [JsonPropertyName("stmt")]
+        public HranaStatement Stmt { get; init; } = new();
+    }
+
+    private sealed class HranaBatchCondition
+    {
+        [JsonPropertyName("type")]
+        public string Type { get; init; } = string.Empty;
+
+        [JsonPropertyName("step")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public int? Step { get; init; }
+
+        [JsonPropertyName("cond")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public HranaBatchCondition? Condition { get; init; }
+
+        public static HranaBatchCondition Ok(int step) => new() { Type = "ok", Step = step };
+
+        public static HranaBatchCondition Not(HranaBatchCondition condition)
+            => new() { Type = "not", Condition = condition };
+    }
+
     private sealed record HranaNamedArg(
         [property: JsonPropertyName("name")] string Name,
         [property: JsonPropertyName("value")] HranaValue Value);
@@ -322,6 +439,12 @@ public sealed partial class NelknetLibsqlDatabaseClient : ILibsqlDatabaseClient,
 
         [JsonPropertyName("last_insert_rowid")]
         public string? LastInsertRowId { get; set; }
+
+        [JsonPropertyName("step_results")]
+        public List<HranaStatementResult?>? StepResults { get; set; }
+
+        [JsonPropertyName("step_errors")]
+        public List<HranaError?>? StepErrors { get; set; }
     }
 
     private sealed class HranaColumn

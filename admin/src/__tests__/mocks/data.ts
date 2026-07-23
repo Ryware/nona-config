@@ -2,6 +2,7 @@ import type {
   Project,
   Environment,
   ConfigEntry,
+  ConfigRelease,
   User,
   ApiKey,
   ParameterShareLink,
@@ -55,14 +56,37 @@ export const mockEnvironments: Environment[] = [
   {
     project: 'my-app',
     name: 'production',
+    activeReleaseVersion: '1.0.0',
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
   },
   {
     project: 'my-app',
     name: 'staging',
+    activeReleaseVersion: null,
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
+  },
+];
+
+export const mockConfigReleases: ConfigRelease[] = [
+  {
+    project: 'my-app',
+    environment: 'production',
+    version: '1.0.0',
+    entryCount: 3,
+    isActive: true,
+    createdAt: '2024-01-01T00:00:00Z',
+    actor: 'admin@example.com',
+  },
+  {
+    project: 'my-app',
+    environment: 'production',
+    version: '1.1.0',
+    entryCount: 3,
+    isActive: false,
+    createdAt: '2024-01-02T00:00:00Z',
+    actor: 'admin@example.com',
   },
 ];
 

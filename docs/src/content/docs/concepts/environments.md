@@ -55,6 +55,26 @@ Those environments then appear as selectable tabs on the project page.
 
 Use `init` for bootstrap automation and the admin project screen for day-to-day environment management.
 
+## Releases and active config
+
+Each environment has one editable working configuration and zero or more immutable releases.
+
+Public config reads use releases:
+
+- no `version` query parameter reads the environment's active release
+- `version=1.1.0` reads that exact release
+- `version=1.1.x` reads the highest patch in the `1.1` line
+
+To publish a release, open the environment's `Releases` panel and choose **Create a version**. Enter a major-minor version such as `1.1`; Nona normalizes that to `1.1.0`, opens the parameters editor loaded with the current working configuration, and lets you adjust the parameters before choosing **Create release**.
+
+Publishing does not change what clients receive. It only creates the snapshot. Use **Activate** on a release when you are ready for it to serve clients that omit a `version`.
+
+To patch an older line, choose **Amend** on that release. Nona automatically targets the next patch version, for example `1.1.1`, and loads a **separate, editable copy** of that release's parameters. Adjust them and choose **Create release** to publish the new patch. Amend never touches the environment's working configuration — the copy is published directly from what you edit, so you can amend an old line without disturbing the config you are preparing for the next release.
+
+Non-active releases can be permanently deleted from the release list. Clear or replace the active release before deleting it. Deleting a release does not change the editable working configuration.
+
+For the full release workflow, see [Releases](/docs/concepts/releases/).
+
 ## Common environment models
 
 Most teams start with:
@@ -130,5 +150,6 @@ Firebase conditions can be mapped into Nona environments during migration, but N
 ## Related docs
 
 - [Projects](/docs/concepts/projects/)
+- [Releases](/docs/concepts/releases/)
 - [Create your first project](/docs/get-started/first-project/)
 - [Migrate from Firebase Remote Config](/docs/migration/firebase-remote-config/)

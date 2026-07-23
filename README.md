@@ -1,6 +1,6 @@
-# Nona - Open Source Feature Flags and Remote Config
+# Nona — Open Source Firebase Remote Config Alternative
 
-**Self-hosted feature flags, remote config, and kill switches for web, mobile, and backend apps.**
+**Self-hosted feature flags and remote configuration for web, mobile, and backend apps.**
 
 [![Docker Pulls](https://img.shields.io/docker/pulls/rywaredev/nona?style=flat-square&logo=docker)](https://hub.docker.com/r/rywaredev/nona)
 [![npm](https://img.shields.io/npm/v/nona-client?style=flat-square&logo=npm)](https://www.npmjs.com/package/nona-client)
@@ -9,17 +9,14 @@
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg?style=flat-square)](LICENSE.txt)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/Ryware/nona-config/badge)](https://scorecard.dev/viewer/?uri=github.com/Ryware/nona-config)
 
-Nona is a self-hosted feature flag and remote config platform with a built-in admin UI, plain HTTP access, official JavaScript and .NET clients, OpenFeature support, and a migration path from Firebase Remote Config.
+Nona gives you the same feature flag and remote config capabilities as Firebase Remote Config — without the Google account, without the lock-in, and running entirely on your own infrastructure.
 
 - Toggle **feature flags** from a dashboard without redeploying
 - Update **mobile app config** (iOS, Android, React Native, Flutter) without an app store release
 - Use **kill switches** to disable broken features in seconds
-- Read values over **plain HTTP** with project-scoped API keys
-- Run on your own infrastructure with **one Docker container** and embedded libSQL
+- Fetch everything via **one REST API call** — no SDK required in any language
 
-> Product scope: Nona is remote config plus simple on/off flags. It is not a runtime targeting engine. The read path does not evaluate per-user context, segments, cohorts, or percentage rollouts.
-
-> [Website](https://nonaconfig.com) · [Docs](https://nonaconfig.com/docs) · [Docker Hub](https://hub.docker.com/r/rywaredev/nona) · [npm client](https://www.npmjs.com/package/nona-client) · [npm CLI](https://www.npmjs.com/package/nona-cli) · [NuGet](https://www.nuget.org/packages/Nona.Client)
+> 🌐 [nonaconfig.com](https://nonaconfig.com) &nbsp;·&nbsp; 🐳 [Docker Hub](https://hub.docker.com/r/rywaredev/nona) &nbsp;·&nbsp; 📦 [npm](https://www.npmjs.com/package/nona-client) &nbsp;·&nbsp; 📦 [NuGet](https://www.nuget.org/packages/Nona.Client)
 
 ---
 
@@ -53,14 +50,12 @@ Nona is our attempt to keep this part of the stack small and understandable: one
 | Open source | ✅ Apache 2.0 licence | ❌ Closed source |
 | Self-hostable | ✅ Docker / Kubernetes | ❌ Google-hosted only |
 | No Google account | ✅ | ❌ Required |
-| Feature flags | ✅ First-class boolean flags and kill switches | ⚠️ Part of the broader Remote Config workflow |
 | Works without mobile SDK | ✅ Plain HTTP | ❌ Firebase SDK needed |
 | .NET / NuGet client | ✅ | ❌ |
-| Shared parameters | ✅ Shareable parameter links | ❌ |
 | Migration tool | ✅ Built into CLI | — |
 | Free forever | ✅ Self-host | Free tier with limits |
 
-Nona runs as a single Docker container with an embedded [libSQL](https://github.com/tursodatabase/libsql) database — no external database, no separate control plane, no cloud dependency.
+Nona runs as a single Docker container with SQLite in standalone mode and embedded [libSQL](https://github.com/tursodatabase/libsql) when primary/replica replication is configured — no external database, separate control plane, or cloud dependency.
 
 ---
 
@@ -79,10 +74,10 @@ docker run -d \
 - **API base:** `http://localhost:18080`
 - **Guided setup:** `https://nonaconfig.com/docs/get-started/`
 
-Create a project, add an environment such as `production`, create a key such as `Features:Checkout`, and issue an API key with matching scope. Then read the value:
+Create a project, add an environment, set your first key-value pair, publish a release, and set it active. Then fetch the value:
 
 ```bash
-curl -i "http://localhost:18080/api/production/Features%3ACheckout" \
+curl "http://localhost:18080/api/production/Features%3ACheckout" \
   -H "X-Api-Key: your-api-key"
 ```
 
@@ -124,7 +119,8 @@ import { createNonaClient } from "nona-client";
 const nona = createNonaClient({
   baseUrl: "https://nona.example.com",
   environmentId: "production",
-  apiKey: process.env.NONA_API_KEY
+  apiKey: process.env.NONA_API_KEY,
+  releaseVersion: "1.1.x"
 });
 
 const value = await nona.getConfigValue("Features:Checkout");
@@ -165,11 +161,11 @@ See [client/javascript-openfeature-provider/README.md](client/javascript-openfea
 
 ### Any language (plain HTTP)
 
-No SDK needed. The smallest integration is one GET request per value:
+No SDK needed. A single GET request returns one config value from the environment's active release, or from a pinned release version:
 
 ```bash
 # curl
-curl "https://your-nona-host/api/production/Features%3ACheckout" \
+curl "https://your-nona-host/api/production/Features%3ACheckout?version=1.1.x" \
   -H "X-Api-Key: your-api-key"
 
 # Python
@@ -177,7 +173,7 @@ import httpx
 value = httpx.get(
     "https://your-nona-host/api/production/Features%3ACheckout",
     headers={"X-Api-Key": api_key}
-)
+).text
 
 # Go
 req, _ := http.NewRequest("GET", "https://your-nona-host/api/production/Features%3ACheckout", nil)
@@ -213,7 +209,10 @@ CLI packages:
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/api/{environmentId}/{key}` | Fetch one config value for an environment |
+| `GET` | `/api/{environmentId}/{key}` | Fetch one key from the active release |
+| `GET` | `/api/{environmentId}/{key}?version=1.1.0` | Fetch one key from an exact release |
+| `GET` | `/api/{environmentId}/{key}?version=1.1.x` | Fetch one key from the highest patch in a release line |
+| `GET` | `/api/{environmentId}` | Fetch all client-visible keys with ETag support |
 
 Authentication: `X-Api-Key` request header.
 
@@ -282,7 +281,7 @@ The Nona CLI includes a built-in Firebase Remote Config migration command that i
 
 ```bash
 # Install CLI
-npm install -g nona-cli
+choco install nona-cli
 
 # Run migration
 nona migrate firebase \
@@ -298,7 +297,7 @@ See [`cli/src/Nona.Cli/README.md`](cli/src/Nona.Cli/README.md) for the full CLI 
 
 All measurements from production-equivalent environments.
 
-### Single-node (libSQL local)
+### Single-node (SQLite local)
 
 Dataset: **10,000 rows**, p95 latency:
 
@@ -336,13 +335,13 @@ Replica reads are **10–15× faster** for geographically distant clients.
 │  └──────────┘   └─────────┬───────┘ │
 │                           │         │
 │                  ┌────────▼────────┐│
-│                  │  embedded libSQL││
+│                  │ SQLite / libSQL ││
 │                  │  /var/lib/nona  ││
 │                  └─────────────────┘│
 └─────────────────────────────────────┘
 ```
 
-- **No external database** — libSQL is bundled in the container image
+- **No external database** — standalone uses SQLite; sqld is bundled for primary/replica mode
 - **Single port** — API and Web UI share port 8080
 - **Persistent volume** — mount `/var/lib/nona` to survive container restarts
 - **Optional replica** — add a read replica with the primary/replica compose file

@@ -39,7 +39,7 @@ In admin:
 2. open `Audit Logs` from the sidebar
 3. use `Filter audit trail...` to search by actor, target, or project
 4. use the `Action Type` and `Environment` filters to narrow the list
-5. click a row to open the details drawer
+5. read each row for the actor, action, target, environment, and time
 6. use `Export Logs` to download CSV or JSON
 
 The audit log page is the main operator workflow here. The repo does not currently expose a dedicated top-level CLI command for browsing audit logs.
@@ -81,7 +81,7 @@ When something changes unexpectedly in production:
 1. open `Audit Logs`
 2. filter to the relevant environment
 3. search for the key, project, or teammate involved
-4. open the matching row
+4. locate the matching entry in the list
 5. compare the audit event with the parameter history on the project page
 6. roll back the parameter if needed
 

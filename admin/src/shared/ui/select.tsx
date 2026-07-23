@@ -46,7 +46,12 @@ export function Select(props: SelectProps) {
     normalizedOptions().find((opt) => opt.value === props.value);
 
   const handleValueChange = (newOpt: SelectOption | null) => {
-    if (newOpt) {
+    // Only propagate genuine changes. Kobalte also fires onChange when it
+    // reconciles the controlled `value` against the option list (e.g. once
+    // async-loaded options arrive), which would otherwise emit a spurious
+    // change equal to the value we already hold — causing effects like the
+    // active-project navigation to fire on page load/refresh.
+    if (newOpt && newOpt.value !== props.value) {
       props.onChange(newOpt.value);
     }
   };

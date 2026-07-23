@@ -2,6 +2,7 @@ using Mediator;
 using Nona.Application.Admin.Common;
 using Nona.Application.Admin.ParameterShareLinks.DTOs;
 using Nona.Application.Admin.Projects;
+using Nona.Application.Common;
 using Nona.Application.Common.Interfaces;
 using Nona.Domain.Entities;
 using Nona.Domain.Interfaces;
@@ -66,7 +67,7 @@ public class CreateParameterShareLinkCommandHandler(
             Environment = request.EnvironmentName,
             Key = request.Key,
             CanEdit = request.CanEdit,
-            CreatedBy = ResolveCreator(),
+            CreatedBy = currentUserService.ResolveActor(),
             CreatedAt = now,
             ExpiresAt = expiresAt
         };
@@ -132,10 +133,4 @@ public class CreateParameterShareLinkCommandHandler(
         throw new InvalidOperationException("Unable to generate a unique share token.");
     }
 
-    private string ResolveCreator()
-    {
-        return string.IsNullOrWhiteSpace(currentUserService?.Username)
-            ? "System"
-            : currentUserService.Username!;
-    }
 }

@@ -1,4 +1,6 @@
 using System.CommandLine;
+using System.CommandLine.Builder;
+using System.CommandLine.Parsing;
 
 namespace Nona.Cli;
 
@@ -21,7 +23,18 @@ internal static class Program
             defaultsStore: defaultsStore,
             sessionStore: sessionStore);
 
+        var verboseOption = new Option<bool>(
+            "--verbose",
+            "Show full exception details when a command fails.");
+        var root = CreateRootCommand(ctx, verboseOption);
+
+        return await CreateParser(root, verboseOption).InvokeAsync(args);
+    }
+
+    internal static RootCommand CreateRootCommand(CliContext ctx, Option<bool> verboseOption)
+    {
         var root = new RootCommand("Administer Nona configuration through a command-line interface.");
+        root.AddGlobalOption(verboseOption);
 
         foreach (var type in System.Reflection.Assembly.GetExecutingAssembly().GetTypes()
             .Where(t => t.IsClass && !t.IsAbstract && typeof(ICliCommandGroup).IsAssignableFrom(t)))
@@ -30,19 +43,13 @@ internal static class Program
             root.AddCommand(group.Build());
         }
 
-        try
-        {
-            return await root.InvokeAsync(args);
-        }
-        catch (OperationCanceledException)
-        {
-            Console.Error.WriteLine("Cancelled.");
-            return 2;
-        }
-        catch (Exception ex)
-        {
-            Console.Error.WriteLine(ex.Message);
-            return 1;
-        }
+        return root;
     }
+
+    internal static Parser CreateParser(RootCommand root, Option<bool> verboseOption)
+        => new CommandLineBuilder(root)
+            .UseDefaults()
+            .UseExceptionHandler((exception, context) =>
+                CliExceptionHandler.Handle(exception, context, verboseOption))
+            .Build();
 }

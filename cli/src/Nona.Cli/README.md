@@ -4,7 +4,13 @@
 
 ## Install
 
-Download the archive for your platform from GitHub Releases, extract it, and put the `nona` binary on your `PATH`.
+Install the CLI from npm (Node.js 18 or newer):
+
+```bash
+npm install -g nona-cli
+```
+
+Alternatively, download the archive for your platform from GitHub Releases, extract it, and put the `nona` binary on your `PATH`.
 
 Each release archive also includes an `appsettings.json` sample for the Firebase migration workflow.
 
@@ -41,7 +47,7 @@ dotnet publish cli/src/Nona.Cli/Nona.Cli.csproj -c Release -r win-x64 --self-con
 
 You can swap `win-x64` for another runtime identifier such as `linux-x64`, `linux-arm64`, `osx-x64`, or `osx-arm64`.
 
-The published executable is the `nona` command.
+Direct `dotnet publish` output is named `Nona.Cli` (`Nona.Cli.exe` on Windows). Rename it to `nona` (`nona.exe` on Windows) when placing it on your `PATH`. The packaged release archives already use the `nona` name.
 
 ## Commands
 
@@ -96,6 +102,29 @@ nona entries history --project mobile-app --environment production --key welcome
 nona entries rollback --project mobile-app --environment production --key welcome_text --version 2 --base-url https://nona.example.com --token <token>
 ```
 
+Manage immutable releases:
+
+```bash
+nona releases list --project mobile-app --environment production
+nona releases list --project mobile-app --environment production --json
+nona releases view 1.1.0 --project mobile-app --environment production
+nona releases view 1.1.0 --project mobile-app --environment production --json
+nona releases create 1.2 --project mobile-app --environment production
+nona releases amend 1.1.0 --project mobile-app --environment production --set feature.checkout=false
+nona releases activate 1.2.0 --project mobile-app --environment production
+nona releases clear-active --project mobile-app --environment production
+nona releases delete 1.1.0 --project mobile-app --environment production
+```
+
+`releases create` accepts `major.minor`, stores it as patch `.0`, and snapshots the current working configuration. Add `--activate` to make the new release active immediately.
+
+`releases amend` calculates the next patch in the source release's line, edits a local copy, and publishes the complete edited entries payload without changing the working configuration. Choose one input method:
+
+- repeat `--set key=value` and `--delete key` for direct changes
+- use `--from-file ./entries.json` with a JSON array of `{ "key", "value", "contentType", "scope" }` objects
+
+Amend always requires an explicit input method, which keeps the command suitable for scripts and automation. Release-management commands use exact `major.minor.patch` versions; `major.minor.x` is supported only by client configuration reads.
+
 Run a Firebase Remote Config migration:
 
 ```bash
@@ -117,6 +146,8 @@ You can also use environment variables:
 - `NONA_CLI_BEARER_TOKEN`
 - `NONA_CLI_EMAIL`
 - `NONA_CLI_PASSWORD`
+- `NONA_CLI_CONFIG_PATH`
+- `NONA_CLI_SESSION_PATH`
 - `NONA_INIT_EMAIL`
 - `NONA_INIT_PASSWORD`
 
@@ -128,3 +159,23 @@ Resolution order is:
 2. `NONA_CLI_*` environment variables
 3. Saved CLI defaults from `nona config set`
 4. Saved auth session from `nona auth login` for base URL and bearer token reuse
+
+## HTTP/API error output and exit codes
+
+HTTP/API failures are written to standard error as one human-readable line, including the HTTP status and the server's error code when available:
+
+```text
+Error: value is not a valid number (400, INVALID_VALUE)
+```
+
+Pass the global `--verbose` option to include the full exception and stack trace for debugging. Without `--verbose`, stack traces are suppressed.
+
+| Exit code | HTTP/API failure |
+| --- | --- |
+| `2` | Validation or other client request error (`400`, `422`, or another `4xx`) |
+| `3` | Authentication or authorization error (`401` or `403`) |
+| `4` | Resource not found (`404`) |
+| `5` | Conflict (`409`) |
+| `6` | Server error (`5xx`) |
+
+Other command-specific failures may use different non-zero exit codes.

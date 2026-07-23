@@ -23,6 +23,14 @@ export const MSG = {
   ENV_CREATE_FAILED: "Failed to create environment",
   ENV_DELETE_FAILED: "Failed to delete environment",
 
+  // --- Config Releases ---
+  RELEASE_PUBLISHED: "Release published",
+  RELEASE_PUBLISH_FAILED: "Failed to publish release",
+  RELEASE_ACTIVATED: "Active release updated",
+  RELEASE_ACTIVATE_FAILED: "Failed to update active release",
+  RELEASE_DELETED: "Release deleted",
+  RELEASE_DELETE_FAILED: "Failed to delete release",
+
   // --- Projects ---
   PROJECT_CREATED: "Project created",
   PROJECT_DELETED: "Project deleted",

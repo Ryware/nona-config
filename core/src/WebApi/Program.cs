@@ -34,7 +34,9 @@ public partial class Program
                 .SetIsOriginAllowed(_ => true)
                 .AllowAnyHeader()
                 .AllowAnyMethod()
-                .WithExposedHeaders(NonaResponseHeaders.LogicalContentType)
+                .WithExposedHeaders(
+                    NonaResponseHeaders.LogicalContentType,
+                    NonaResponseHeaders.EntityTag)
                 .AllowCredentials());
         });
 
@@ -61,12 +63,13 @@ public partial class Program
         });
 
         app.UseCors(CorsPolicyName);
+        app.UseExceptionHandler();
 
-        app.UseDefaultFiles();
-        app.UseStaticFiles();
+        app.UseNonaSpaStaticFiles();
         app.UseAuthentication();
         app.UseAuthorization();
         app.MapNonaEndpoints();
+        app.MapNonaBackendFallbacks();
         app.MapFallbackToFile("index.html");
     }
 }

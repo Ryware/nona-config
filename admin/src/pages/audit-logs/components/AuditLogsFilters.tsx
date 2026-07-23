@@ -19,6 +19,7 @@ interface AuditLogsFiltersProps {
   uniqueActions: string[];
   uniqueEnvs: string[];
   clearAllFilters: () => void;
+  hideSearch?: boolean;
 }
 
 export function AuditLogsFilters(props: AuditLogsFiltersProps) {
@@ -102,21 +103,25 @@ export function AuditLogsFilters(props: AuditLogsFiltersProps) {
     <div class="space-y-4">
       {/* Search and drop-down filters */}
       <div class="flex flex-wrap items-center gap-4">
-        <Input
-          data-testid="audit-search-input"
-          type="text"
-          placeholder="Filter audit trail..."
-          value={props.search}
-          onInput={e => props.setSearch(e.currentTarget.value)}
-          class="h-10 w-56"
-          leftIcon="search"
-          wrapperStyle="w-auto"
-        />
-        <span class="text-outline/70 shrink-0 text-[11px] font-medium">Filters:</span>
+        <Show when={!props.hideSearch}>
+          <Input
+            data-testid="audit-search-input"
+            type="text"
+            placeholder="Filter audit trail..."
+            value={props.search}
+            onInput={e => props.setSearch(e.currentTarget.value)}
+            class="h-10 w-56"
+            leftIcon="search"
+            wrapperStyle="w-auto"
+          />
+        </Show>
+        <span class="text-outline/70 hidden shrink-0 text-[11px] font-medium sm:inline">
+          Filters:
+        </span>
 
-        <div class="flex gap-2">
+        <div class="grid w-full min-w-0 grid-cols-2 gap-2 sm:flex sm:w-auto">
           {/* Action Type filter */}
-          <div class="w-44">
+          <div class="min-w-0 sm:w-44">
             <Select
               value={props.filterAction === "all" ? "" : props.filterAction}
               onChange={val => props.setFilterAction(val)}
@@ -127,7 +132,7 @@ export function AuditLogsFilters(props: AuditLogsFiltersProps) {
           </div>
 
           {/* Environment filter */}
-          <div class="w-44">
+          <div class="min-w-0 sm:w-44">
             <Select
               value={props.filterEnv === "all" ? "" : props.filterEnv}
               onChange={val => props.setFilterEnv(val)}
@@ -140,7 +145,7 @@ export function AuditLogsFilters(props: AuditLogsFiltersProps) {
 
         <button
           onClick={() => props.clearAllFilters()}
-          class="text-outline hover:text-error flex cursor-pointer items-center gap-1 border-0 bg-transparent text-[11px] font-medium transition-colors"
+          class="text-outline hover:text-error ml-auto flex cursor-pointer items-center gap-1 border-0 bg-transparent text-[11px] font-medium transition-colors sm:ml-0"
         >
           <MIcon name="close" class="text-[14px]" />
           Clear

@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Nona.Application.Api.ConfigEntries.Queries;
 using Nona.WebApi;
 using Nona.WebApi.Endpoints;
+using System.Text.Json;
 
 namespace Nona.Infrastructure.Tests;
 
@@ -27,6 +28,7 @@ public class ConfigApiEndpointTests
         var result = await NonaEndpointRouteBuilderExtensions.GetConfigValueAsync(
             "production",
             "features",
+            null,
             httpContext,
             mediator,
             CancellationToken.None);
@@ -42,7 +44,107 @@ public class ConfigApiEndpointTests
         await Assert.That(httpContext.Response.Headers[NonaResponseHeaders.LogicalContentType].ToString()).IsEqualTo("json");
     }
 
-    private sealed class StubMediator(GetConfigEntryValueResult result) : IMediator
+    [Test]
+    public async Task GetAllConfigValues_ReturnsMapAndEtag()
+    {
+        var values = new Dictionary<string, ClientConfigValueDto>
+        {
+            ["Features:Checkout"] = new("true", "boolean")
+        };
+        var mediator = new StubMediator(new GetAllConfigValuesResult(
+            true,
+            values,
+            null,
+            "\"release-1\""));
+        var httpContext = CreateHttpContext();
+
+        var result = await NonaEndpointRouteBuilderExtensions.GetAllConfigValuesAsync(
+            "production",
+            null,
+            httpContext,
+            mediator,
+            CancellationToken.None);
+
+        await result.ExecuteAsync(httpContext);
+
+        httpContext.Response.Body.Seek(0, SeekOrigin.Begin);
+        using var reader = new StreamReader(httpContext.Response.Body);
+        var content = await reader.ReadToEndAsync();
+
+        await Assert.That(httpContext.Response.StatusCode).IsEqualTo(StatusCodes.Status200OK);
+        await Assert.That(content).Contains("Features:Checkout");
+        await Assert.That(content).Contains("contentType");
+        await Assert.That(httpContext.Response.Headers.ETag.ToString()).StartsWith("\"");
+        await Assert.That(httpContext.Response.Headers.CacheControl.ToString()).IsEqualTo("private, no-cache");
+    }
+
+    [Test]
+    public async Task GetAllConfigValues_ReturnsNotModifiedForMatchingEtag()
+    {
+        const string etag = "\"release-1\"";
+        var mediator = new StubMediator(new GetAllConfigValuesResult(
+            true,
+            null,
+            null,
+            etag,
+            true));
+        var httpContext = CreateHttpContext();
+        httpContext.Request.Headers.IfNoneMatch = etag;
+        var result = await NonaEndpointRouteBuilderExtensions.GetAllConfigValuesAsync(
+            "production",
+            null,
+            httpContext,
+            mediator,
+            CancellationToken.None);
+        await result.ExecuteAsync(httpContext);
+
+        await Assert.That(httpContext.Response.StatusCode).IsEqualTo(StatusCodes.Status304NotModified);
+        await Assert.That(httpContext.Response.Headers.ETag.ToString()).IsEqualTo(etag);
+        await Assert.That(httpContext.Response.Body.Length).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task GetAllConfigValues_MasksUnreadableScopeAsNotFound()
+    {
+        var mediator = new StubMediator(new GetAllConfigValuesResult(
+            false,
+            null,
+            "Environment not found"));
+        var httpContext = CreateHttpContext();
+
+        var result = await NonaEndpointRouteBuilderExtensions.GetAllConfigValuesAsync(
+            "production",
+            null,
+            httpContext,
+            mediator,
+            CancellationToken.None);
+        await result.ExecuteAsync(httpContext);
+
+        await Assert.That(httpContext.Response.StatusCode).IsEqualTo(StatusCodes.Status404NotFound);
+        await Assert.That(httpContext.Response.ContentType).IsEqualTo("application/problem+json");
+        httpContext.Response.Body.Seek(0, SeekOrigin.Begin);
+        using var body = await JsonDocument.ParseAsync(httpContext.Response.Body);
+        await Assert.That(body.RootElement.GetProperty("title").GetString()).IsEqualTo("Not Found");
+        await Assert.That(body.RootElement.GetProperty("detail").GetString()).IsEqualTo("Environment not found");
+        await Assert.That(body.RootElement.GetProperty("status").GetInt32()).IsEqualTo(404);
+    }
+
+    private static DefaultHttpContext CreateHttpContext()
+    {
+        var context = new DefaultHttpContext
+        {
+            Response =
+            {
+                Body = new MemoryStream()
+            }
+        };
+        context.RequestServices = new ServiceCollection()
+            .AddLogging()
+            .BuildServiceProvider();
+        return context;
+    }
+
+    private sealed class StubMediator(object result) : IMediator
     {
         public ValueTask<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
         {

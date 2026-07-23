@@ -77,6 +77,8 @@ For standalone, the main goal is to replace the running container without losing
 
 For the one-container Docker path, that usually means stopping the old container, starting the new image against the same volume, and validating immediately.
 
+Nona does not automatically convert an existing sqld database to SQLite. If an existing standalone deployment is moving to SQLite, treat that as a separate storage migration: back up the volume, migrate the data deliberately, and validate the new database before retiring the old one.
+
 ### Primary/replica
 
 For primary/replica, validate both services after the upgrade:

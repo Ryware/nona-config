@@ -12,6 +12,7 @@ public class TestFixture
     public IApiKeyRepository ApiKeyRepository { get; } = Substitute.For<IApiKeyRepository>();
     public IEnvironmentRepository EnvironmentRepository { get; } = Substitute.For<IEnvironmentRepository>();
     public IConfigEntryRepository ConfigEntryRepository { get; } = Substitute.For<IConfigEntryRepository>();
+    public IConfigReleaseRepository ConfigReleaseRepository { get; } = Substitute.For<IConfigReleaseRepository>();
     public IProjectMemberRepository ProjectMemberRepository { get; } = Substitute.For<IProjectMemberRepository>();
     public IUserRepository UserRepository { get; } = Substitute.For<IUserRepository>();
     public ICurrentUserService CurrentUserService { get; } = Substitute.For<ICurrentUserService>();
@@ -23,6 +24,8 @@ public class TestFixture
     public TestFixture()
     {
         DateTime.NowUtc.Returns(System.DateTime.UtcNow);
+        EnvironmentRepository.ListByProjectAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new List<ProjectEnvironment>());
         ConfigEntryRepository.AddVersionAsync(Arg.Any<ConfigEntry>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(call =>
             {

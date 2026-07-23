@@ -11,14 +11,22 @@ function parseBreadcrumbs(pathname: string): Crumb[] {
   if (parts.length === 0) return [];
 
   if (parts[0] === "projects") {
-    const base: Crumb = {
-      label: "Projects",
-      path: "/projects",
-    };
     if (parts[1]) {
-      return [base, { label: parts[1] }];
+      if (parts[2] === "environments") {
+        return [{ label: "Environments" }];
+      }
+      if (parts[2] === "shared-links") {
+        return [{ label: "Shared Links" }];
+      }
+      if (parts[2] === "api-keys") {
+        return [{ label: "API Keys" }];
+      }
+      if (parts[2] === "releases") {
+        return [{ label: "Releases" }];
+      }
+      return [{ label: "Parameters" }];
     }
-    return [base];
+    return [{ label: "Projects", path: "/projects" }];
   }
   if (parts[0] === "users" || parts[0] === "user") {
     const base: Crumb = { label: "Team", path: "/users" };

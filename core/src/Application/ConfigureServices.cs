@@ -4,6 +4,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Mediator;
 using Nona.Application.Admin.ApiKeys.Commands;
 using Nona.Application.Admin.ApiKeys.Validators;
+using Nona.Application.Admin.ConfigReleases.Commands;
+using Nona.Application.Admin.ConfigReleases.Validators;
 using Nona.Application.Admin.ConfigEntries.Commands;
 using Nona.Application.Admin.ConfigEntries.Validators;
 using Nona.Application.Admin.Environments.Commands;
@@ -32,6 +34,8 @@ public static class ConfigureServices
         });
 
         services.AddScoped<IValidator<CreateApiKeyRequest>, CreateApiKeyRequestValidator>();
+        services.AddScoped<IValidator<PublishConfigReleaseRequest>, PublishConfigReleaseRequestValidator>();
+        services.AddScoped<IValidator<SetActiveConfigReleaseRequest>, SetActiveConfigReleaseRequestValidator>();
         services.AddScoped<IValidator<UpsertConfigEntryRequest>, UpsertConfigEntryRequestValidator>();
         services.AddScoped<IValidator<CreateEnvironmentRequest>, CreateEnvironmentRequestValidator>();
         services.AddScoped<IValidator<CreateProjectRequest>, CreateProjectRequestValidator>();

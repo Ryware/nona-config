@@ -208,17 +208,33 @@ public static partial class PersistentJwtConfiguration
 
     private static bool ShouldPersistGeneratedSettings(IConfiguration configuration)
     {
-        var storageType = ConfigurationValueReader.GetString(configuration, "Storage:Type", "InMemory");
-
-        return storageType.Equals("Libsql", StringComparison.OrdinalIgnoreCase)
-            && ConfigurationValueReader.GetBoolean(configuration, "Storage:Libsql:ManagedPrimary:Enabled");
+        return TryResolveGeneratedConfigPath(configuration, out _);
     }
 
     private static bool TryResolveGeneratedConfigPath(IConfiguration configuration, out string generatedConfigPath)
     {
         generatedConfigPath = string.Empty;
 
-        var databasePath = configuration["Storage:Libsql:ManagedPrimary:DatabasePath"];
+        var resolution = StorageProviderResolver.Resolve(configuration);
+        string? databasePath;
+
+        if (resolution.Provider == StorageProviderKind.Sqlite)
+        {
+            databasePath = configuration["Storage:Sqlite:DataSource"] ?? "/var/lib/nona/nona.db";
+            if (databasePath.Equals(":memory:", StringComparison.Ordinal))
+            {
+                return false;
+            }
+        }
+        else if (resolution.Provider == StorageProviderKind.Libsql && resolution.UseManagedLibsql)
+        {
+            databasePath = configuration["Storage:Libsql:ManagedPrimary:DatabasePath"];
+        }
+        else
+        {
+            return false;
+        }
+
         if (string.IsNullOrWhiteSpace(databasePath))
         {
             return false;
@@ -233,7 +249,7 @@ public static partial class PersistentJwtConfiguration
         if (!TryResolveGeneratedConfigPath(configuration, out var generatedConfigPath))
         {
             throw new InvalidOperationException(
-                "Storage:Libsql:ManagedPrimary:DatabasePath must be configured to persist generated JWT settings.");
+                "A persistent SQLite or managed libSQL database path must be configured to persist generated JWT settings.");
         }
 
         return generatedConfigPath;

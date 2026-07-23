@@ -1,6 +1,7 @@
 using Nona.Application.Admin.ConfigEntries.Commands;
 using Nona.Application.Admin.ConfigEntries.Queries;
 using Nona.Application.Tests.Common;
+using Nona.Domain;
 using Nona.Domain.Entities;
 using Nona.Domain.Enums;
 using NSubstitute;
@@ -11,7 +12,7 @@ public class ConfigEntryVersionHistoryTests
 {
     private const string ProjectName = "test-project";
     private const string EnvironmentName = "development";
-    private const string ConfigKey = "feature.enabled";
+    private const string ConfigKey = "Features:Checkout";
 
     [Test]
     public async Task UpsertConfigEntry_CreatesVersionWithActorAndReturnsActiveVersion()
@@ -176,6 +177,25 @@ public class ConfigEntryVersionHistoryTests
         await Assert.That(result.Versions![1].Value).IsEqualTo("old-value");
         await Assert.That(result.Versions![1].ContentType).IsEqualTo("json");
         await Assert.That(result.Versions![1].Scope).IsEqualTo("server");
+    }
+
+    [Test]
+    public async Task RollbackConfigEntry_RejectsInvalidKeyBeforeAccessingRepositories()
+    {
+        var fixture = new TestFixture();
+        var handler = new RollbackConfigEntryCommandHandler(
+            fixture.ProjectRepository,
+            fixture.EnvironmentRepository,
+            fixture.ConfigEntryRepository,
+            fixture.ProjectAccessService,
+            fixture.DateTime);
+
+        var result = await handler.Handle(
+            new RollbackConfigEntryCommand(ProjectName, EnvironmentName, "feature/value", 1),
+            CancellationToken.None);
+
+        await Assert.That(result.Success).IsFalse();
+        await Assert.That(result.Error).IsEqualTo(ConfigEntryKey.ValidationError);
     }
 
     [Test]

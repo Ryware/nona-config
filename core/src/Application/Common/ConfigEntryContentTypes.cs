@@ -14,6 +14,31 @@ public static class ConfigEntryContentTypes
     public static string Resolve(string? contentType, string value)
         => Normalize(contentType) ?? Infer(value);
 
+    public static string Resolve(
+        string? requestedContentType,
+        string? existingContentType,
+        string value,
+        out string? error)
+    {
+        error = null;
+
+        var normalizedRequested = Normalize(requestedContentType);
+        if (!string.IsNullOrWhiteSpace(requestedContentType) && normalizedRequested is null)
+        {
+            error = $"Content type must be one of: {string.Join(", ", LogicalTypes)}.";
+            return Text;
+        }
+
+        var contentType = normalizedRequested
+            ?? Normalize(existingContentType)
+            ?? Infer(value);
+
+        if (!IsValidValue(value, contentType, out var validationError))
+            error = validationError;
+
+        return contentType;
+    }
+
     public static string? Normalize(string? contentType)
     {
         if (string.IsNullOrWhiteSpace(contentType))

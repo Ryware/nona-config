@@ -23,6 +23,7 @@ export interface UpdateProjectRequest {
 export interface Environment {
   project: string;
   name: string;
+  activeReleaseVersion?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -107,6 +108,37 @@ export interface UpdateConfigEntryRequest {
 
 export interface RollbackConfigEntryRequest {
   version: number;
+}
+
+export interface ConfigReleaseEntry {
+  key: string;
+  value: string;
+  contentType: 'text' | 'number' | 'boolean' | 'json' | string;
+  scope: 'client' | 'server' | 'all' | string;
+}
+
+export interface ConfigRelease {
+  project: string;
+  environment: string;
+  version: string;
+  entryCount: number;
+  isActive: boolean;
+  createdAt: string;
+  actor: string;
+}
+
+export interface ConfigReleaseDetails extends ConfigRelease {
+  entries: ConfigReleaseEntry[];
+}
+
+export interface PublishConfigReleaseRequest {
+  version: string;
+  makeActive: boolean;
+  entries?: ConfigReleaseEntry[];
+}
+
+export interface SetActiveConfigReleaseRequest {
+  version?: string | null;
 }
 
 export interface ApiKey {

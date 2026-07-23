@@ -11,7 +11,6 @@ interface AuditLogsTableProps {
   page: number;
   totalPages: number;
   pageSize: number;
-  onSelectEntry: (entry: AuditEntry) => void;
   onChangePage: (page: number) => void;
 }
 
@@ -23,9 +22,9 @@ export function AuditLogsTable(props: AuditLogsTableProps) {
           <table class="w-full text-left border-collapse">
             <thead>
               <tr class="border-b border-outline-variant/15 bg-surface-container-lowest/50">
-                <th class="py-3 pl-5 pr-4 text-[11px] font-medium text-outline uppercase tracking-[0.05em]">Activity</th>
-                <th class="py-3 px-4 text-[11px] font-medium text-outline uppercase tracking-[0.05em] text-center w-32">Context</th>
-                <th class="py-3 pl-4 pr-5 text-[11px] font-medium text-outline uppercase tracking-[0.05em] text-right w-44">When</th>
+                <th class="px-6 py-3 text-[11px] font-medium text-outline uppercase tracking-[0.05em]">Activity</th>
+                <th class="px-6 py-3 text-[11px] font-medium text-outline uppercase tracking-[0.05em] text-center w-32">Context</th>
+                <th class="px-6 py-3 text-[11px] font-medium text-outline uppercase tracking-[0.05em] text-right w-44">When</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-outline-variant/10" data-testid="audit-log-list">
@@ -45,9 +44,7 @@ export function AuditLogsTable(props: AuditLogsTableProps) {
 
               <Show when={!props.isLoading}>
                 <For each={props.pageEntries}>
-                  {(entry) => (
-                    <AuditLogRow entry={entry} onSelect={props.onSelectEntry} />
-                  )}
+                  {(entry) => <AuditLogRow entry={entry} />}
                 </For>
               </Show>
             </tbody>

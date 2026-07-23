@@ -4,6 +4,7 @@ import { For, Show } from "solid-js";
 import { authService } from "../../entities/auth/api/auth.service";
 import { authStore } from "../../entities/auth/model/store";
 import { projectService } from "../../entities/project/api/project.service";
+import { getActiveProjectHref } from "../../entities/project/model/active-project";
 import { projectKeys } from "../../entities/project/queries/keys";
 
 function getUser(): { email: string; role: string } {
@@ -12,16 +13,11 @@ function getUser(): { email: string; role: string } {
 }
 
 interface NavItemDef {
-  path: string;
   label: string;
   icon: string;
+  href: () => string;
+  isActive: () => boolean;
 }
-
-const mgmtNavItems: NavItemDef[] = [
-  { path: "/dashboard", label: "Dashboard", icon: "dashboard" },
-  { path: "/users", label: "Team", icon: "group" },
-  { path: "/audit-logs", label: "Audit Logs", icon: "manage_history" },
-];
 
 export const Sidebar = (props: {
   isOpen: boolean;
@@ -35,26 +31,94 @@ export const Sidebar = (props: {
 
   const projectsQuery = useQuery(() => ({
     queryKey: projectKeys.list(),
-    queryFn: () => projectService.getAll(),
+    queryFn: () => projectService.getAll()
   }));
+  // Once loaded, an empty instance collapses the nav to a single Create Project CTA.
+  const noProjects = () => projectsQuery.isSuccess && (projectsQuery.data?.length ?? 0) === 0;
 
-  const isActive = (path: string) =>
-    location.pathname === path || location.pathname.startsWith(path + "/");
+  const selectedProjectHref = () => getActiveProjectHref();
+  const projectPageHref = (
+    section: "environments" | "parameters" | "sharedLinks" | "apiKeys" | "releases"
+  ) => {
+    const projectHref = selectedProjectHref();
+    if (projectHref === "/projects") return projectHref;
+    if (section === "parameters") return projectHref;
+    if (section === "environments") return `${projectHref}/environments`;
+    if (section === "sharedLinks") return `${projectHref}/shared-links`;
+    return `${projectHref}/${section === "apiKeys" ? "api-keys" : "releases"}`;
+  };
+  const isProjectPage = () => location.pathname.startsWith("/projects/") && location.pathname !== "/projects";
+
+  const projectNavItems: NavItemDef[] = [
+    {
+      label: "Parameters",
+      icon: "tune",
+      href: () => projectPageHref("parameters"),
+      isActive: () =>
+        isProjectPage() &&
+        !location.pathname.endsWith("/environments") &&
+        !location.pathname.endsWith("/shared-links") &&
+        !location.pathname.endsWith("/api-keys") &&
+        !location.pathname.endsWith("/releases"),
+    },
+    {
+      label: "API Keys",
+      icon: "key",
+      href: () => projectPageHref("apiKeys"),
+      isActive: () => location.pathname.endsWith("/api-keys"),
+    },
+    {
+      label: "Releases",
+      icon: "deployed_code_history",
+      href: () => projectPageHref("releases"),
+      isActive: () => location.pathname.endsWith("/releases"),
+    },
+    {
+      label: "Shared Links",
+      icon: "link",
+      href: () => projectPageHref("sharedLinks"),
+      isActive: () => location.pathname.endsWith("/shared-links"),
+    },
+    {
+      label: "Environments",
+      icon: "dns",
+      href: () => projectPageHref("environments"),
+      isActive: () => location.pathname.endsWith("/environments"),
+    },
+  ];
+
+  const footerNavItems: NavItemDef[] = [
+    {
+      label: "Projects",
+      icon: "folder_open",
+      href: () => "/projects",
+      isActive: () => location.pathname === "/projects",
+    },
+    {
+      label: "Team",
+      icon: "group",
+      href: () => "/users",
+      isActive: () => location.pathname === "/users" || location.pathname.startsWith("/user"),
+    },
+    {
+      label: "Audit Logs",
+      icon: "manage_history",
+      href: () => "/audit-logs",
+      isActive: () => location.pathname === "/audit-logs",
+    },
+  ];
 
   const navItem = (active: boolean, collapsed: boolean) =>
-    `flex items-center gap-3 rounded-lg text-[13px] font-medium transition-all cursor-pointer ${
-      collapsed ? "px-2.5 py-2.5 justify-center" : "px-3 py-2"
-    } ${
-      active
-        ? "bg-primary/10 text-primary"
-        : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
+    `flex items-center gap-3 rounded-lg text-[13px] font-medium transition-all cursor-pointer ${collapsed ? "px-2.5 py-2.5 justify-center" : "px-3 py-2"
+    } ${active
+      ? "bg-primary/10 text-primary"
+      : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
     }`;
 
   const w = () => (props.collapsed ? "w-16" : "w-64");
 
   return (
     <>
-      {/* Mobile overlay */}
       <Show when={props.isOpen}>
         <div
           class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
@@ -63,21 +127,19 @@ export const Sidebar = (props: {
       </Show>
 
       <aside
-        class={`h-screen ${w()} fixed left-0 top-0 bg-surface-container-lowest border-r border-outline-variant/20 flex flex-col z-50 sidebar-transition lg:translate-x-0 ${
-          props.isOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        class={`h-screen ${w()} fixed left-0 top-0 bg-surface-container-lowest border-r border-outline-variant/20 flex flex-col z-50 sidebar-transition lg:translate-x-0 ${props.isOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
       >
-        {/* Brand */}
         <div class={`pt-5 pb-4 ${props.collapsed ? "px-3" : "px-4"}`}>
           <A
-            href="/projects"
+            href={selectedProjectHref()}
             onClick={() => props.onClose()}
             class="flex items-center gap-3 group"
           >
-            <div class="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center bg-primary/15 border border-primary/20 shadow-[0_0_12px_rgba(99,102,241,0.15)] group-hover:shadow-[0_0_20px_rgba(99,102,241,0.25)] transition-shadow duration-300">
+            <div class="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center bg-primary/15 border border-primary/20 shadow-[0_0_12px_rgba(96,165,250,0.18)] group-hover:shadow-[0_0_20px_rgba(52,211,153,0.24)] transition-shadow duration-300">
               <span
                 class="material-symbols-outlined text-primary text-[18px]"
-                style={{"font-variation-settings":"'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24"}}
+                style={{ "font-variation-settings": "'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}
               >
                 settings_input_component
               </span>
@@ -97,124 +159,93 @@ export const Sidebar = (props: {
 
         <div class="mx-3 h-px bg-outline-variant/20" />
 
-        {/* Projects */}
         <div class={`pt-3 space-y-0.5 ${props.collapsed ? "px-2" : "px-2"}`}>
-          <A
-            href="/projects"
-            onClick={() => props.onClose()}
-            title={props.collapsed ? "Projects" : undefined}
-            aria-label="Projects"
-            class={navItem(isActive("/projects"), props.collapsed)}
-          >
-            <span
-              class="material-symbols-outlined text-[20px] shrink-0"
-              style={
-                isActive("/projects")
-                  ? "font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24"
-                  : ""
-              }
-            >
-              folder
-            </span>
-            <Show when={!props.collapsed}>
-              <span class="flex-1">Projects</span>
-              <Show when={projectsQuery.isSuccess}>
-                <span class="text-[10px] font-mono text-outline/70 bg-surface-container-high/60 px-1.5 py-0.5 rounded-md leading-none">
-                  {projectsQuery.data!.length}
-                </span>
-              </Show>
-            </Show>
-          </A>
-
-          {/* Project sub-list */}
-          <Show when={!props.collapsed}>
-            <Show when={projectsQuery.isLoading}>
-              <div class="pl-9 py-1 space-y-1">
-                <div class="h-5 w-24 rounded-md bg-surface-container-high/40 animate-pulse" />
-                <div class="h-5 w-16 rounded-md bg-surface-container-high/30 animate-pulse" />
-              </div>
-            </Show>
-            <Show
-              when={
-                !projectsQuery.isLoading &&
-                (projectsQuery.data?.length ?? 0) > 0
-              }
-            >
-              <div class="pl-9 space-y-0.5 py-0.5">
-                <For each={projectsQuery.data}>
-                  {(project) => (
-                    <A
-                      href={`/projects/${project.urlSlug}`}
-                      onClick={() => props.onClose()}
-                      class={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[12px] font-medium truncate transition-all ${
-                        isActive(`/projects/${project.urlSlug}`)
-                          ? "text-primary bg-primary/8"
-                          : "text-outline/80 hover:text-on-surface hover:bg-surface-container-low"
-                      }`}
+          <Show
+            when={noProjects()}
+            fallback={
+              <For each={projectNavItems}>
+                {item => (
+                  <A
+                    href={item.href()}
+                    onClick={() => props.onClose()}
+                    title={props.collapsed ? item.label : undefined}
+                    aria-label={item.label}
+                    class={navItem(item.isActive(), props.collapsed)}
+                  >
+                    <span
+                      class="material-symbols-outlined text-[20px] shrink-0"
+                      style={
+                        item.isActive()
+                          ? "font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24"
+                          : ""
+                      }
                     >
-                      <span
-                        class={`w-1 h-1 rounded-full shrink-0 ${
-                          isActive(`/projects/${project.urlSlug}`)
-                            ? "bg-primary"
-                            : "bg-outline/40"
-                        }`}
-                      />
-                      <span class="truncate">{project.name}</span>
-                    </A>
-                  )}
-                </For>
-              </div>
-            </Show>
+                      {item.icon}
+                    </span>
+                    <Show when={!props.collapsed}>{item.label}</Show>
+                  </A>
+                )}
+              </For>
+            }
+          >
+            <A
+              href="/projects?new=1"
+              onClick={() => props.onClose()}
+              title={props.collapsed ? "Create Project" : undefined}
+              aria-label="Create Project"
+              data-testid="sidebar-create-project"
+              class={`bg-primary text-on-primary flex items-center justify-center gap-2 rounded-lg text-[13px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] ${
+                props.collapsed ? "px-2.5 py-2.5" : "px-3 py-2.5"
+              }`}
+            >
+              <span class="material-symbols-outlined text-[18px] shrink-0">add</span>
+              <Show when={!props.collapsed}>Create Project</Show>
+            </A>
           </Show>
         </div>
 
-        <div class="mx-3 h-px bg-outline-variant/20 mt-3" />
+        <div class="flex-1" />
 
-        {/* Management */}
-        <nav
-          class={`pt-3 space-y-0.5 flex-1 ${props.collapsed ? "px-2" : "px-2"}`}
-        >
-          <Show when={!props.collapsed}>
-            <p class="px-3 pb-1 text-[10px] font-semibold text-outline/50 tracking-[0.08em] uppercase">
-              Management
-            </p>
+        <div class={`mt-auto pb-4 space-y-2 ${props.collapsed ? "px-2" : "px-3"}`}>
+          <Show when={!noProjects()}>
+            <Show when={!props.collapsed}>
+              <p class="px-1 pb-1 text-[10px] font-semibold text-outline/50 tracking-[0.08em] uppercase">
+                Admin
+              </p>
+            </Show>
+
+            <div class="space-y-0.5">
+              <For each={footerNavItems}>
+                {item => (
+                  <A
+                    href={item.href()}
+                    onClick={() => props.onClose()}
+                    title={props.collapsed ? item.label : undefined}
+                    aria-label={item.label}
+                    class={navItem(item.isActive(), props.collapsed)}
+                  >
+                    <span
+                      class="material-symbols-outlined text-[20px] shrink-0"
+                      style={
+                        item.isActive()
+                          ? "font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24"
+                          : ""
+                      }
+                    >
+                      {item.icon}
+                    </span>
+                    <Show when={!props.collapsed}>{item.label}</Show>
+                  </A>
+                )}
+              </For>
+            </div>
           </Show>
-          <For each={mgmtNavItems}>
-            {(item) => (
-              <A
-                href={item.path}
-                onClick={() => props.onClose()}
-                title={props.collapsed ? item.label : undefined}
-                aria-label={item.label}
-                class={navItem(isActive(item.path), props.collapsed)}
-              >
-                <span
-                  class="material-symbols-outlined text-[20px] shrink-0"
-                  style={
-                    isActive(item.path)
-                      ? "font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24"
-                      : ""
-                  }
-                >
-                  {item.icon}
-                </span>
-                <Show when={!props.collapsed}>{item.label}</Show>
-              </A>
-            )}
-          </For>
-        </nav>
 
-        {/* Bottom */}
-        <div
-          class={`mt-auto pb-4 space-y-2 ${props.collapsed ? "px-2" : "px-3"}`}
-        >
-          {/* Collapse toggle (desktop only) */}
           <button
             onClick={() => props.onToggleCollapse()}
             title={props.collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            class={`hidden lg:flex w-full items-center gap-3 rounded-lg px-3 py-2 text-[12px] font-medium text-outline/60 hover:text-on-surface hover:bg-surface-container-low transition-all bg-transparent border-0 cursor-pointer ${
-              props.collapsed ? "justify-center" : ""
-            }`}
+            class={`hidden lg:flex w-full items-center gap-3 rounded-lg px-3 py-2 text-[12px] font-medium text-outline/60 hover:text-on-surface hover:bg-surface-container-low transition-all bg-transparent border-0 cursor-pointer ${props.collapsed ? "justify-center" : ""
+              }`}
           >
             <span
               class="material-symbols-outlined text-[18px] transition-transform duration-300"
@@ -227,7 +258,6 @@ export const Sidebar = (props: {
             </Show>
           </button>
 
-          {/* User card — expanded */}
           <Show when={authService.isAuthenticated() && !props.collapsed}>
             <div class="rounded-xl border border-outline-variant/20 bg-surface-container-low flex items-center gap-3 p-3 hover:border-outline-variant/35 transition-all">
               <div class="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center bg-primary/20 border border-primary/20">
@@ -256,7 +286,6 @@ export const Sidebar = (props: {
             </div>
           </Show>
 
-          {/* User card — collapsed */}
           <Show when={authService.isAuthenticated() && props.collapsed}>
             <div class="flex flex-col items-center gap-1.5">
               <div class="w-8 h-8 rounded-lg flex items-center justify-center bg-primary/20 border border-primary/20">

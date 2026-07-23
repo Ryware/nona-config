@@ -3,6 +3,7 @@ import {
   mockProjects,
   mockApiKeys,
   mockEnvironments,
+  mockConfigReleases,
   mockConfigEntries,
   mockShareLinks,
   mockUsers,
@@ -34,7 +35,7 @@ export const handlers = [
     if (body.email === 'admin@example.com' && body.password === 'password') {
       return HttpResponse.json({ token: mockToken, role: 'admin', expiresAt: '2099-01-01T00:00:00Z' });
     }
-    return HttpResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+    return HttpResponse.json({ detail: 'Invalid credentials' }, { status: 401 });
   }),
 
   http.post(`${BASE}/auth/register`, async () => {
@@ -62,7 +63,7 @@ export const handlers = [
       return HttpResponse.json({ token: mockToken, role: 'admin', expiresAt: '2099-01-01T00:00:00Z' });
     }
 
-    return HttpResponse.json({ error: 'Authentication failed' }, { status: 401 });
+    return HttpResponse.json({ detail: 'Authentication failed' }, { status: 401 });
   }),
 
   http.post(`${BASE}/auth/sso/microsoft`, async ({ request }) => {
@@ -71,13 +72,13 @@ export const handlers = [
       return HttpResponse.json({ token: mockToken, role: 'admin', expiresAt: '2099-01-01T00:00:00Z' });
     }
 
-    return HttpResponse.json({ error: 'Authentication failed' }, { status: 401 });
+    return HttpResponse.json({ detail: 'Authentication failed' }, { status: 401 });
   }),
 
   http.get(`${BASE}/auth/invitations/:token`, ({ params }) => {
     if (params.token === 'invalid-token') {
       return HttpResponse.json(
-        { error: 'Invitation is invalid or has already been used.', errorCode: 'invitation_invalid_or_used' },
+        { detail: 'Invitation is invalid or has already been used.', errorCode: 'invitation_invalid_or_used' },
         { status: 404 },
       );
     }
@@ -91,14 +92,14 @@ export const handlers = [
   http.post(`${BASE}/auth/invitations/:token/password`, async ({ params, request }) => {
     if (params.token === 'invalid-token') {
       return HttpResponse.json(
-        { error: 'Invitation is invalid or has already been used.', errorCode: 'invitation_invalid_or_used' },
+        { detail: 'Invitation is invalid or has already been used.', errorCode: 'invitation_invalid_or_used' },
         { status: 404 },
       );
     }
 
     const body = await request.json() as { newPassword?: string };
     if (!body.newPassword) {
-      return HttpResponse.json({ error: 'Password is required' }, { status: 400 });
+      return HttpResponse.json({ detail: 'Password is required' }, { status: 400 });
     }
 
     return HttpResponse.json({ token: mockToken, role: 'viewer', expiresAt: '2099-01-01T00:00:00Z' });
@@ -107,7 +108,7 @@ export const handlers = [
   http.post(`${BASE}/auth/invitations/:token/sso/google`, async ({ params, request }) => {
     if (params.token === 'invalid-token') {
       return HttpResponse.json(
-        { error: 'Invitation is invalid or has already been used.', errorCode: 'invitation_invalid_or_used' },
+        { detail: 'Invitation is invalid or has already been used.', errorCode: 'invitation_invalid_or_used' },
         { status: 404 },
       );
     }
@@ -119,18 +120,18 @@ export const handlers = [
 
     if (body.idToken === 'google-mismatch-token') {
       return HttpResponse.json(
-        { error: 'Authentication failed', errorCode: 'invitation_sso_email_mismatch' },
+        { detail: 'Authentication failed', errorCode: 'invitation_sso_email_mismatch' },
         { status: 401 },
       );
     }
 
-    return HttpResponse.json({ error: 'Authentication failed' }, { status: 401 });
+    return HttpResponse.json({ detail: 'Authentication failed' }, { status: 401 });
   }),
 
   http.post(`${BASE}/auth/invitations/:token/sso/microsoft`, async ({ params, request }) => {
     if (params.token === 'invalid-token') {
       return HttpResponse.json(
-        { error: 'Invitation is invalid or has already been used.', errorCode: 'invitation_invalid_or_used' },
+        { detail: 'Invitation is invalid or has already been used.', errorCode: 'invitation_invalid_or_used' },
         { status: 404 },
       );
     }
@@ -140,7 +141,7 @@ export const handlers = [
       return HttpResponse.json({ token: mockToken, role: 'viewer', expiresAt: '2099-01-01T00:00:00Z' });
     }
 
-    return HttpResponse.json({ error: 'Authentication failed' }, { status: 401 });
+    return HttpResponse.json({ detail: 'Authentication failed' }, { status: 401 });
   }),
 
   // ── Projects ─────────────────────────────────────────────────────────────────
@@ -150,7 +151,7 @@ export const handlers = [
 
   http.get(`${BASE}/admin/projects/:slug`, ({ params }) => {
     const project = mockProjects.find((p) => p.urlSlug === params.slug);
-    if (!project) return HttpResponse.json({ error: 'Not found' }, { status: 404 });
+    if (!project) return HttpResponse.json({ detail: 'Not found' }, { status: 404 });
     return HttpResponse.json(project);
   }),
 
@@ -170,7 +171,7 @@ export const handlers = [
   http.put(`${BASE}/admin/projects/:slug`, async ({ params, request }) => {
     const body = await request.json() as { name: string; description?: string };
     const project = mockProjects.find((p) => p.urlSlug === params.slug);
-    if (!project) return HttpResponse.json({ error: 'Not found' }, { status: 404 });
+    if (!project) return HttpResponse.json({ detail: 'Not found' }, { status: 404 });
     return HttpResponse.json({ ...project, ...body, updatedAt: new Date().toISOString() });
   }),
 
@@ -210,7 +211,7 @@ export const handlers = [
     const env = mockEnvironments.find(
       (e) => e.project === params.projectId && e.name === params.envName,
     );
-    if (!env) return HttpResponse.json({ error: 'Not found' }, { status: 404 });
+    if (!env) return HttpResponse.json({ detail: 'Not found' }, { status: 404 });
     return HttpResponse.json(env);
   }),
 
@@ -219,6 +220,7 @@ export const handlers = [
     return HttpResponse.json({
       project: params.projectId,
       name: body.name,
+      activeReleaseVersion: null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }, { status: 201 });
@@ -226,6 +228,90 @@ export const handlers = [
 
   http.delete(`${BASE}/admin/projects/:projectId/environments/:envName`, () => {
     return new HttpResponse(null, { status: 204 });
+  }),
+
+  // ── Config Releases ─────────────────────────────────────────────────────────
+  http.get(`${BASE}/admin/projects/:projectId/environments/:envName/releases`, ({ params }) => {
+    const releases = mockConfigReleases.filter(
+      (release) => release.project === params.projectId && release.environment === params.envName,
+    );
+    return HttpResponse.json(releases);
+  }),
+
+  http.get(`${BASE}/admin/projects/:projectId/environments/:envName/releases/:version`, ({ params }) => {
+    const release = mockConfigReleases.find(
+      (item) =>
+        item.project === params.projectId &&
+        item.environment === params.envName &&
+        item.version === params.version,
+    );
+
+    if (!release) {
+      return HttpResponse.json({ detail: 'Not found' }, { status: 404 });
+    }
+
+    const entries = mockConfigEntries
+      .filter(
+        (entry) => entry.project === params.projectId && entry.environment === params.envName,
+      )
+      .map((entry) => ({
+        key: entry.key,
+        value: entry.value,
+        contentType: entry.contentType,
+        scope: entry.scope,
+      }));
+
+    return HttpResponse.json({
+      ...release,
+      entries,
+    });
+  }),
+
+  http.post(`${BASE}/admin/projects/:projectId/environments/:envName/releases`, async ({ params, request }) => {
+    const body = await request.json() as { version: string; makeActive?: boolean };
+    return HttpResponse.json({
+      project: params.projectId,
+      environment: params.envName,
+      version: body.version,
+      entryCount: mockConfigEntries.length,
+      isActive: body.makeActive ?? false,
+      createdAt: new Date().toISOString(),
+      actor: 'admin@example.com',
+      entries: mockConfigEntries.map(entry => ({
+        key: entry.key,
+        value: entry.value,
+        contentType: entry.contentType,
+        scope: entry.scope,
+      })),
+    }, { status: 201 });
+  }),
+
+  http.put(`${BASE}/admin/projects/:projectId/environments/:envName/active-release`, async ({ params, request }) => {
+    const body = await request.json() as { version?: string | null };
+    return HttpResponse.json({
+      project: params.projectId,
+      name: params.envName,
+      activeReleaseVersion: body.version ?? null,
+      createdAt: '2024-01-01T00:00:00Z',
+      updatedAt: new Date().toISOString(),
+    });
+  }),
+
+  http.delete(`${BASE}/admin/projects/:projectId/environments/:envName/active-release`, ({ params }) => {
+    return HttpResponse.json({
+      project: params.projectId,
+      name: params.envName,
+      activeReleaseVersion: null,
+      createdAt: '2024-01-01T00:00:00Z',
+      updatedAt: new Date().toISOString(),
+    });
+  }),
+
+  http.post(`${BASE}/admin/projects/:projectId/environments/:envName/releases/:version/draft`, ({ params }) => {
+    const entries = mockConfigEntries.filter(
+      (entry) => entry.project === params.projectId && entry.environment === params.envName,
+    );
+    return HttpResponse.json(entries);
   }),
 
   // ── Config Entries ────────────────────────────────────────────────────────────
@@ -270,7 +356,7 @@ export const handlers = [
     const entry = mockConfigEntries.find(
       (c) => c.project === params.projectId && c.environment === params.envName && c.key === params.key,
     );
-    if (!entry) return HttpResponse.json({ error: 'Not found' }, { status: 404 });
+    if (!entry) return HttpResponse.json({ detail: 'Not found' }, { status: 404 });
     return HttpResponse.json(entry);
   }),
 
@@ -278,7 +364,7 @@ export const handlers = [
     const entry = mockConfigEntries.find(
       (c) => c.project === params.projectId && c.environment === params.envName && c.key === params.key,
     );
-    if (!entry) return HttpResponse.json({ error: 'Not found' }, { status: 404 });
+    if (!entry) return HttpResponse.json({ detail: 'Not found' }, { status: 404 });
     return HttpResponse.json([
       {
         project: entry.project,
@@ -299,7 +385,7 @@ export const handlers = [
     const entry = mockConfigEntries.find(
       (c) => c.project === params.projectId && c.environment === params.envName && c.key === params.key,
     );
-    if (!entry || !body.version) return HttpResponse.json({ error: 'Not found' }, { status: 404 });
+    if (!entry || !body.version) return HttpResponse.json({ detail: 'Not found' }, { status: 404 });
     return HttpResponse.json({
       ...entry,
       activeVersion: entry.activeVersion + 1,
@@ -328,7 +414,7 @@ export const handlers = [
   http.get(`${BASE}/public/share-links/:token`, ({ params }) => {
     if (params.token === 'Revoked123456789') {
       return HttpResponse.json(
-        { error: 'This share link has been revoked.', errorCode: 'share_link_revoked' },
+        { detail: 'This share link has been revoked.', errorCode: 'share_link_revoked' },
         { status: 410 },
       );
     }
@@ -364,14 +450,14 @@ export const handlers = [
 
   http.get(`${BASE}/admin/users/:id`, ({ params }) => {
     const user = mockUsers.find((u) => u.id === params.id);
-    if (!user) return HttpResponse.json({ error: 'Not found' }, { status: 404 });
+    if (!user) return HttpResponse.json({ detail: 'Not found' }, { status: 404 });
     return HttpResponse.json(user);
   }),
 
   http.post(`${BASE}/admin/users`, async ({ request }) => {
     const body = await request.json() as { name?: string; email: string; role?: string };
     if (!body.name) {
-      return HttpResponse.json({ error: 'Name is required' }, { status: 400 });
+      return HttpResponse.json({ detail: 'Name is required' }, { status: 400 });
     }
 
     return HttpResponse.json({
@@ -393,7 +479,7 @@ export const handlers = [
   http.put(`${BASE}/admin/users/:id`, async ({ params, request }) => {
     const body = await request.json() as Record<string, unknown>;
     const user = mockUsers.find((u) => u.id === params.id);
-    if (!user) return HttpResponse.json({ error: 'Not found' }, { status: 404 });
+    if (!user) return HttpResponse.json({ detail: 'Not found' }, { status: 404 });
     return HttpResponse.json({ ...user, ...body, updatedAt: new Date().toISOString() });
   }),
 

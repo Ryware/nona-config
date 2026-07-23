@@ -180,7 +180,7 @@ public class SsoApiTests
             {
                 await Assert.That(mismatchResponse.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
                 using var body = await ParseJsonAsync(mismatchResponse);
-                await Assert.That(body.RootElement.GetProperty("error").GetString()).IsEqualTo("Authentication failed");
+                await Assert.That(body.RootElement.GetProperty("detail").GetString()).IsEqualTo("Authentication failed");
             }
 
             var unknownMicrosoftToken = signingKey.CreateToken(
@@ -201,7 +201,7 @@ public class SsoApiTests
             {
                 await Assert.That(unknownResponse.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
                 using var body = await ParseJsonAsync(unknownResponse);
-                await Assert.That(body.RootElement.GetProperty("error").GetString()).IsEqualTo("Authentication failed");
+                await Assert.That(body.RootElement.GetProperty("detail").GetString()).IsEqualTo("Authentication failed");
                 await Assert.That(body.RootElement.GetProperty("errorCode").GetString()).IsEqualTo("sso_user_not_registered");
             }
 

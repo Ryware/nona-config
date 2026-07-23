@@ -5,6 +5,9 @@ using Nona.Application.Admin.ApiKeys.Commands;
 using Nona.Application.Admin.ApiKeys.DTOs;
 using Nona.Application.Admin.ApiKeys.Queries;
 using Nona.Application.Admin.AuditLogs.DTOs;
+using Nona.Application.Admin.ConfigReleases.Commands;
+using Nona.Application.Admin.ConfigReleases.DTOs;
+using Nona.Application.Admin.ConfigReleases.Queries;
 using Nona.Application.Admin.Common;
 using Nona.Application.Admin.ConfigEntries.Commands;
 using Nona.Application.Admin.ConfigEntries.DTOs;
@@ -34,8 +37,8 @@ using Nona.Application.Shared.ParameterShareLinks;
 using Nona.Application.Shared.ParameterShareLinks.Commands;
 using Nona.Application.Shared.ParameterShareLinks.DTOs;
 using Nona.Application.Shared.ParameterShareLinks.Queries;
+using Nona.Domain;
 using Nona.WebApi.Authentication;
-using Nona.WebApi.Serialization;
 
 namespace Nona.WebApi.Endpoints;
 
@@ -65,9 +68,9 @@ public static class NonaEndpointRouteBuilderExtensions
             .Produces<bool>();
         auth.MapPost("/register", RegisterAsync)
             .Produces<LoginResponse>()
-            .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
-            .Produces<ErrorResponse>(StatusCodes.Status403Forbidden)
-            .Produces<ErrorResponse>(StatusCodes.Status409Conflict);
+            .Produces<ApiValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")
+            .Produces<ApiProblemDetails>(StatusCodes.Status403Forbidden, "application/problem+json")
+            .Produces<ApiProblemDetails>(StatusCodes.Status409Conflict, "application/problem+json");
         auth.MapPost("/forgot-password", RequestPasswordResetAsync)
             .Produces(StatusCodes.Status204NoContent);
         auth.MapGet("/invitations/{token}", GetInvitationAsync)
@@ -93,6 +96,26 @@ public static class NonaEndpointRouteBuilderExtensions
         environments.MapGet("/", ListEnvironmentsAsync)
             .Produces<IReadOnlyList<EnvironmentDto>>();
         environments.MapDelete("/{environmentId}", DeleteEnvironmentAsync);
+
+        var configReleases = projects.MapGroup("/{projectId}/environments/{environmentName}/releases");
+        configReleases.MapGet("/", ListConfigReleasesAsync)
+            .Produces<IReadOnlyList<ConfigReleaseDto>>();
+        configReleases.MapPost("/", PublishConfigReleaseAsync)
+            .Accepts<PublishConfigReleaseRequest>("application/json")
+            .Produces<ConfigReleaseDetailsDto>(StatusCodes.Status201Created);
+        configReleases.MapGet("/{version}", GetConfigReleaseAsync)
+            .Produces<ConfigReleaseDetailsDto>();
+        configReleases.MapDelete("/{version}", DeleteConfigReleaseAsync);
+
+        var activeRelease = projects.MapGroup("/{projectId}/environments/{environmentName}/active-release");
+        activeRelease.MapPut(
+                "/",
+                async (string projectId, string environmentName, SetActiveConfigReleaseRequest request, IValidator<SetActiveConfigReleaseRequest> validator, IMediator mediator, CancellationToken cancellationToken) =>
+                    await SetActiveConfigReleaseAsync(projectId, environmentName, request, validator, mediator, cancellationToken))
+            .Accepts<SetActiveConfigReleaseRequest>("application/json")
+            .Produces<EnvironmentDto>();
+        activeRelease.MapDelete("/", ClearActiveConfigReleaseAsync)
+            .Produces<EnvironmentDto>();
 
         var apiKeys = projects.MapGroup("/{projectId}/api-keys");
         apiKeys.MapGet("/", ListApiKeysAsync)
@@ -162,6 +185,14 @@ public static class NonaEndpointRouteBuilderExtensions
 
     private static void MapConfigApiEndpoints(RouteGroupBuilder api)
     {
+        api.MapGet("/{environmentId}", GetAllConfigValuesAsync)
+            .Produces<Dictionary<string, ClientConfigValueDto>>()
+            .Produces(StatusCodes.Status304NotModified)
+            .Produces<ApiProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")
+            .Produces<ApiProblemDetails>(StatusCodes.Status401Unauthorized, "application/problem+json")
+            .Produces<ApiProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")
+            .RequireAuthorization(ApiKeyAuthenticationHandler.SchemeName);
+
         api.MapGet("/{environmentId}/{key}", GetConfigValueAsync)
             .RequireAuthorization(ApiKeyAuthenticationHandler.SchemeName);
     }
@@ -415,6 +446,151 @@ public static class NonaEndpointRouteBuilderExtensions
             : NotFound(result.Error ?? "Environment not found");
     }
 
+    private static async Task<IResult> ListConfigReleasesAsync(
+        string projectId,
+        string environmentName,
+        IMediator mediator,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new ListConfigReleasesQuery(projectId, environmentName), cancellationToken);
+        if (result.Success)
+        {
+            return Results.Ok(result.Releases);
+        }
+
+        return result.Error switch
+        {
+            "Access denied" => Forbidden(result.Error),
+            "Project not found" or "Environment not found" => NotFound(result.Error),
+            _ => BadRequest(result.Error ?? "Config releases could not be listed")
+        };
+    }
+
+    private static async Task<IResult> PublishConfigReleaseAsync(
+        string projectId,
+        string environmentName,
+        PublishConfigReleaseRequest request,
+        IValidator<PublishConfigReleaseRequest> validator,
+        IMediator mediator,
+        CancellationToken cancellationToken)
+    {
+        if (await ValidateRequestAsync(request, validator, cancellationToken) is { } validationResult)
+        {
+            return validationResult;
+        }
+
+        var result = await mediator.Send(
+            new PublishConfigReleaseCommand(projectId, environmentName, request.Version, request.MakeActive, request.Entries),
+            cancellationToken);
+
+        if (result.Success)
+        {
+            return Results.Created(
+                $"/admin/projects/{projectId}/environments/{environmentName}/releases/{result.Release!.Version}",
+                result.Release);
+        }
+
+        return result.Error switch
+        {
+            "Access denied" => Forbidden(result.Error),
+            "Project not found" or "Environment not found" => NotFound(result.Error),
+            "Release already exists" => Conflict(result.Error),
+            _ => BadRequest(result.Error ?? "Config release could not be published")
+        };
+    }
+
+    private static async Task<IResult> GetConfigReleaseAsync(
+        string projectId,
+        string environmentName,
+        string version,
+        IMediator mediator,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new GetConfigReleaseQuery(projectId, environmentName, version), cancellationToken);
+        if (result.Success)
+        {
+            return Results.Ok(result.Release);
+        }
+
+        return result.Error switch
+        {
+            "Access denied" => Forbidden(result.Error),
+            "Project not found" or "Environment not found" or "Release not found" => NotFound(result.Error),
+            _ => BadRequest(result.Error ?? "Config release not found")
+        };
+    }
+
+    private static async Task<IResult> DeleteConfigReleaseAsync(
+        string projectId,
+        string environmentName,
+        string version,
+        IMediator mediator,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(
+            new DeleteConfigReleaseCommand(projectId, environmentName, version),
+            cancellationToken);
+
+        if (result.Success)
+        {
+            return Results.NoContent();
+        }
+
+        return result.Error switch
+        {
+            "Access denied" => Forbidden(result.Error),
+            "Project not found" or "Environment not found" or "Release not found" => NotFound(result.Error),
+            "Active release cannot be deleted" => Conflict(result.Error),
+            _ => BadRequest(result.Error ?? "Config release could not be deleted")
+        };
+    }
+
+    private static async Task<IResult> SetActiveConfigReleaseAsync(
+        string projectId,
+        string environmentName,
+        SetActiveConfigReleaseRequest request,
+        IValidator<SetActiveConfigReleaseRequest> validator,
+        IMediator mediator,
+        CancellationToken cancellationToken)
+    {
+        if (await ValidateRequestAsync(request, validator, cancellationToken) is { } validationResult)
+        {
+            return validationResult;
+        }
+
+        return await SetActiveConfigReleaseAsync(projectId, environmentName, request.Version, mediator, cancellationToken);
+    }
+
+    private static async Task<IResult> ClearActiveConfigReleaseAsync(
+        string projectId,
+        string environmentName,
+        IMediator mediator,
+        CancellationToken cancellationToken)
+    {
+        return await SetActiveConfigReleaseAsync(projectId, environmentName, null, mediator, cancellationToken);
+    }
+
+    private static async Task<IResult> SetActiveConfigReleaseAsync(
+        string projectId,
+        string environmentName,
+        string? version,
+        IMediator mediator,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new SetActiveConfigReleaseCommand(projectId, environmentName, version), cancellationToken);
+        if (result.Success)
+        {
+            return Results.Ok(result.Environment);
+        }
+
+        return result.Error switch
+        {
+            "Access denied" => Forbidden(result.Error),
+            "Project not found" or "Environment not found" or "Release not found" => NotFound(result.Error),
+            _ => BadRequest(result.Error ?? "Active config release could not be updated")
+        };
+    }
+
     private static async Task<IResult> ListApiKeysAsync(
         string projectId,
         IMediator mediator,
@@ -534,7 +710,7 @@ public static class NonaEndpointRouteBuilderExtensions
 
         if (!ValidationHelpers.IsValidKey(key))
         {
-            return BadRequest("Key must be non-empty and contain no spaces");
+            return BadRequest(ConfigEntryKey.ValidationError);
         }
 
         var result = await mediator.Send(
@@ -563,7 +739,7 @@ public static class NonaEndpointRouteBuilderExtensions
     {
         if (!ValidationHelpers.IsValidKey(key))
         {
-            return BadRequest("Key must be non-empty and contain no spaces");
+            return BadRequest(ConfigEntryKey.ValidationError);
         }
 
         var result = await mediator.Send(
@@ -832,16 +1008,18 @@ public static class NonaEndpointRouteBuilderExtensions
     public static async Task<IResult> GetConfigValueAsync(
         string environmentId,
         string key,
+        string? version,
         HttpContext httpContext,
         IMediator mediator,
         CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(new GetConfigEntryValueQuery(environmentId, key), cancellationToken);
+        var result = await mediator.Send(new GetConfigEntryValueQuery(environmentId, key, version), cancellationToken);
         if (!result.Success)
         {
             return result.Error switch
             {
                 "API key is required" or "Invalid API key" => Unauthorized(result.Error),
+                "Version must use major.minor.patch or major.minor.x format." => BadRequest(result.Error),
                 _ => NotFound(result.Error ?? "Config value not found")
             };
         }
@@ -850,6 +1028,38 @@ public static class NonaEndpointRouteBuilderExtensions
             result.LogicalContentType ?? ConfigEntryContentTypes.Text;
 
         return Results.Content(result.Value!, "application/json");
+    }
+
+    public static async Task<IResult> GetAllConfigValuesAsync(
+        string environmentId,
+        string? version,
+        HttpContext httpContext,
+        IMediator mediator,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(
+            new GetAllConfigValuesQuery(
+                environmentId,
+                version,
+                httpContext.Request.Headers.IfNoneMatch.ToString()),
+            cancellationToken);
+        if (!result.Success)
+        {
+            return result.Error switch
+            {
+                "API key is required" or "Invalid API key" => Unauthorized(result.Error),
+                "Version must use major.minor.patch or major.minor.x format." => BadRequest(result.Error),
+                _ => NotFound(result.Error ?? "Config values not found")
+            };
+        }
+
+        httpContext.Response.Headers.ETag = result.Etag;
+        httpContext.Response.Headers.CacheControl = "private, no-cache";
+
+        if (result.NotModified)
+            return Results.StatusCode(StatusCodes.Status304NotModified);
+
+        return Results.Ok(result.Values);
     }
 
     private static async Task<IResult?> ValidateRequestAsync<TRequest>(
@@ -863,47 +1073,37 @@ public static class NonaEndpointRouteBuilderExtensions
             return null;
         }
 
-        var error = string.Join("; ", result.Errors.Select(failure => failure.ErrorMessage).Distinct());
-        return BadRequest(error);
+        return ApiProblemResults.Validation(result.Errors);
     }
 
     private static IResult BadRequest(string error, string? errorCode = null)
     {
-        return Results.BadRequest(new ErrorResponse(error, errorCode));
+        return ApiProblemResults.BadRequest(error, errorCode);
     }
 
     private static IResult Conflict(string error)
     {
-        return Results.Conflict(new ErrorResponse(error));
+        return ApiProblemResults.Conflict(error);
     }
 
     private static IResult NotFound(string error, string? errorCode = null)
     {
-        return Results.NotFound(new ErrorResponse(error, errorCode));
+        return ApiProblemResults.NotFound(error, errorCode);
     }
 
     private static IResult Unauthorized(string error, string? errorCode = null)
     {
-        return Results.Json(
-            new ErrorResponse(error, errorCode),
-            NonaJsonSerializerContext.Default.ErrorResponse,
-            statusCode: StatusCodes.Status401Unauthorized);
+        return ApiProblemResults.Unauthorized(error, errorCode);
     }
 
     private static IResult Forbidden(string error, string? errorCode = null)
     {
-        return Results.Json(
-            new ErrorResponse(error, errorCode),
-            NonaJsonSerializerContext.Default.ErrorResponse,
-            statusCode: StatusCodes.Status403Forbidden);
+        return ApiProblemResults.Forbidden(error, errorCode);
     }
 
     private static IResult Gone(string error, string? errorCode = null)
     {
-        return Results.Json(
-            new ErrorResponse(error, errorCode),
-            NonaJsonSerializerContext.Default.ErrorResponse,
-            statusCode: StatusCodes.Status410Gone);
+        return ApiProblemResults.Gone(error, errorCode);
     }
 
     private static IResult SharedLinkFailure(string? error, string? errorCode)

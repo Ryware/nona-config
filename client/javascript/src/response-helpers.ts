@@ -1,5 +1,5 @@
 import { NonaClientError } from "./errors.js";
-import type { NonaConfigValue } from "./types.js";
+import type { NonaConfigValue, NonaConfigValues } from "./types.js";
 
 const contentTypeHeaderName = "X-Nona-Content-Type";
 const legacyContentTypeHeaderName = "ContentType";
@@ -77,6 +77,59 @@ export async function readJsonResponse<T>(
   }
 }
 
+export async function readAllConfigValuesResponse(
+  response: Response,
+  method: string,
+  url: string,
+): Promise<NonaConfigValues> {
+  const parsed = await readJsonResponse<unknown>(response, method, url);
+  if (parsed === null || Array.isArray(parsed) || typeof parsed !== "object") {
+    throwInvalidBulkResponse(response, method, url);
+  }
+
+  const values: NonaConfigValues = {};
+  for (const [key, candidate] of Object.entries(parsed)) {
+    if (
+      candidate === null ||
+      Array.isArray(candidate) ||
+      typeof candidate !== "object"
+    ) {
+      throwInvalidBulkResponse(response, method, url);
+    }
+
+    const value = (candidate as { value?: unknown }).value;
+    const contentType = (candidate as { contentType?: unknown }).contentType;
+    if (typeof value !== "string" || typeof contentType !== "string") {
+      throwInvalidBulkResponse(response, method, url);
+    }
+
+    Object.defineProperty(values, key, {
+      configurable: true,
+      enumerable: true,
+      value: {
+        value,
+        contentType: normalizeContentType(contentType),
+      },
+      writable: true,
+    });
+  }
+
+  return values;
+}
+
+function throwInvalidBulkResponse(
+  response: Response,
+  method: string,
+  url: string,
+): never {
+  throw new NonaClientError(
+    "Nona returned an invalid bulk config response.",
+    response.status,
+    method,
+    url,
+  );
+}
+
 function throwResponseError(
   response: Response,
   method: string,
@@ -102,15 +155,25 @@ function readErrorMessage(responseBody: string): string | undefined {
 
   try {
     const parsed = JSON.parse(responseBody) as {
+      detail?: unknown;
       error?: unknown;
       message?: unknown;
+      title?: unknown;
     };
+    if (typeof parsed.detail === "string") {
+      return parsed.detail;
+    }
+
     if (typeof parsed.error === "string") {
       return parsed.error;
     }
 
     if (typeof parsed.message === "string") {
       return parsed.message;
+    }
+
+    if (typeof parsed.title === "string") {
+      return parsed.title;
     }
   } catch {
     return undefined;

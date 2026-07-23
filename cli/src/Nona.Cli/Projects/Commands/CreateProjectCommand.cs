@@ -12,7 +12,7 @@ internal sealed class CreateProjectCommandHandler(Func<HttpClient>? httpClientFa
     public async Task<int> HandleAsync(CreateProjectCommand command, CancellationToken ct)
     {
 
-        var api = NonaClientFactory.Create(command.Connection, httpClientFactory);
+        using var api = NonaClientFactory.Create(command.Connection, httpClientFactory);
         var project = await api.Admin.Projects
             .PostAsync(new CreateProjectRequest { Name = command.Name }, cancellationToken: ct);
 

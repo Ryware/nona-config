@@ -52,7 +52,7 @@ internal sealed class GetEntryQueryHandler(Func<HttpClient>? httpClientFactory =
 
     private async Task<int> GetAdminEntryAsync(GetEntryQuery query, CancellationToken ct)
     {
-        var api = NonaClientFactory.Create(query.Connection, httpClientFactory);
+        using var api = NonaClientFactory.Create(query.Connection, httpClientFactory);
 
         ConfigEntryDto? entry;
         try

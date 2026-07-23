@@ -77,7 +77,7 @@ internal static partial class LibsqlCommandHelpers
 
             var dbParameter = command.CreateParameter();
             dbParameter.ParameterName = parameterName;
-            dbParameter.Value = NormalizeParameterValue(value);
+            dbParameter.Value = NormalizeParameterValue(value) ?? DBNull.Value;
             command.Parameters.Add(dbParameter);
 
             currentIndex = match.Index + match.Length;

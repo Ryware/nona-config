@@ -17,36 +17,36 @@
 :root {
   --native-color-scheme: dark;
 
-  /* Surface hierarchy (premium dark zinc) */
-  --background:                  #09090b;
-  --surface:                     #09090b;
-  --surface-dim:                 #09090b;
-  --surface-container-lowest:    #030303;
-  --surface-container-low:       #121214;
-  --surface-container:           #18181b;
-  --surface-container-high:      #27272a;
-  --surface-container-highest:   #3f3f46;
-  --surface-bright:              #52525b;
-  --surface-variant:             #27272a;
+  /* Surface hierarchy (black base) */
+  --background:                  #000000;
+  --surface:                     #000000;
+  --surface-dim:                 #030303;
+  --surface-container-lowest:    #000000;
+  --surface-container-low:       #0a0a0a;
+  --surface-container:           #111111;
+  --surface-container-high:      #1a1a1a;
+  --surface-container-highest:   #262626;
+  --surface-bright:              #404040;
+  --surface-variant:             #171717;
 
-  /* Primary (electric indigo) */
-  --primary:                     #6366f1;
-  --primary-fixed:               #e0e7ff;
-  --primary-fixed-dim:           #c7d2fe;
-  --primary-container:           #818cf8;
+  /* Primary (brand blue) */
+  --primary:                     #60a5fa;
+  --primary-fixed:               #dbeafe;
+  --primary-fixed-dim:           #93c5fd;
+  --primary-container:           #1d4ed8;
   --on-primary:                  #ffffff;
-  --on-primary-container:        #312e81;
-  --on-primary-fixed:            #1e1b4b;
-  --on-primary-fixed-variant:    #3730a3;
-  --inverse-primary:             #4f46e5;
+  --on-primary-container:        #eff6ff;
+  --on-primary-fixed:            #172554;
+  --on-primary-fixed-variant:    #1d4ed8;
+  --inverse-primary:             #93c5fd;
 
-  /* Secondary (emerald accents) */
-  --secondary:                   #10b981;
-  --secondary-container:         #064e3b;
+  /* Secondary (brand green) */
+  --secondary:                   #34d399;
+  --secondary-container:         #065f46;
   --secondary-fixed:             #d1fae5;
   --secondary-fixed-dim:         #a7f3d0;
-  --on-secondary:                #ffffff;
-  --on-secondary-container:      #a7f3d0;
+  --on-secondary:                #022c22;
+  --on-secondary-container:      #d1fae5;
   --on-secondary-fixed:          #022c22;
   --on-secondary-fixed-variant:  #065f46;
 
@@ -68,7 +68,7 @@
 
   /* Success */
   --success:                     #34d399;
-  --success-container:           #064e3b;
+  --success-container:           #065f46;
   --on-success:                  #022c22;
   --on-success-container:        #a7f3d0;
 
@@ -79,52 +79,52 @@
   --on-error-container:          #fca5a5;
 
   /* Surface text (high contrast zinc) */
-  --on-background:               #f4f4f5;
-  --on-surface:                  #f4f4f5;
-  --on-surface-variant:          #a1a1aa;
+  --on-background:               #ffffff;
+  --on-surface:                  #ffffff;
+  --on-surface-variant:          #a3a3a3;
   --inverse-surface:             #f4f4f5;
   --inverse-on-surface:          #18181b;
 
   /* Outline */
-  --outline:                     #71717a;
-  --outline-variant:             #3f3f46;
+  --outline:                     #737373;
+  --outline-variant:             #262626;
 
   /* Surface tint */
-  --surface-tint:                #6366f1;
+  --surface-tint:                #60a5fa;
 }
 
 :root[data-theme="light"] {
   --native-color-scheme: light;
 
-  /* Surface hierarchy (clear daylight slate) */
-  --background:                  #f7f8fb;
+  /* Surface hierarchy (white base) */
+  --background:                  #ffffff;
   --surface:                     #ffffff;
-  --surface-dim:                 #eef1f6;
+  --surface-dim:                 #f8fafc;
   --surface-container-lowest:    #ffffff;
-  --surface-container-low:       #f2f4f8;
-  --surface-container:           #e8ecf3;
-  --surface-container-high:      #dce2ea;
+  --surface-container-low:       #f8fafc;
+  --surface-container:           #f1f5f9;
+  --surface-container-high:      #e2e8f0;
   --surface-container-highest:   #cbd5e1;
   --surface-bright:              #ffffff;
-  --surface-variant:             #e2e8f0;
+  --surface-variant:             #e5e7eb;
 
-  /* Primary (electric indigo) */
-  --primary:                     #4f46e5;
-  --primary-fixed:               #312e81;
-  --primary-fixed-dim:           #4338ca;
-  --primary-container:           #eef2ff;
+  /* Primary (brand blue) */
+  --primary:                     #60a5fa;
+  --primary-fixed:               #1d4ed8;
+  --primary-fixed-dim:           #2563eb;
+  --primary-container:           #dbeafe;
   --on-primary:                  #ffffff;
-  --on-primary-container:        #312e81;
-  --on-primary-fixed:            #eef2ff;
-  --on-primary-fixed-variant:    #c7d2fe;
-  --inverse-primary:             #818cf8;
+  --on-primary-container:        #1e3a8a;
+  --on-primary-fixed:            #eff6ff;
+  --on-primary-fixed-variant:    #bfdbfe;
+  --inverse-primary:             #2563eb;
 
-  /* Secondary (emerald accents) */
-  --secondary:                   #059669;
+  /* Secondary (brand green) */
+  --secondary:                   #34d399;
   --secondary-container:         #d1fae5;
-  --secondary-fixed:             #064e3b;
+  --secondary-fixed:             #065f46;
   --secondary-fixed-dim:         #047857;
-  --on-secondary:                #ffffff;
+  --on-secondary:                #022c22;
   --on-secondary-container:      #064e3b;
   --on-secondary-fixed:          #d1fae5;
   --on-secondary-fixed-variant:  #a7f3d0;
@@ -146,9 +146,9 @@
   --on-warning-container:        #78350f;
 
   /* Success */
-  --success:                     #059669;
+  --success:                     #34d399;
   --success-container:           #d1fae5;
-  --on-success:                  #ffffff;
+  --on-success:                  #022c22;
   --on-success-container:        #064e3b;
 
   /* Error */
@@ -158,18 +158,18 @@
   --on-error-container:          #7f1d1d;
 
   /* Surface text */
-  --on-background:               #111827;
-  --on-surface:                  #111827;
-  --on-surface-variant:          #475569;
+  --on-background:               #000000;
+  --on-surface:                  #000000;
+  --on-surface-variant:          #4b5563;
   --inverse-surface:             #18181b;
   --inverse-on-surface:          #f8fafc;
 
   /* Outline */
-  --outline:                     #64748b;
+  --outline:                     #6b7280;
   --outline-variant:             #cbd5e1;
 
   /* Surface tint */
-  --surface-tint:                #4f46e5;
+  --surface-tint:                #60a5fa;
 }
 
 @theme inline {

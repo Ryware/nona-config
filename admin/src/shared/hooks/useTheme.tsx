@@ -1,8 +1,7 @@
-import { makePersisted } from "@solid-primitives/storage";
+import { createUserTheme } from "@solid-primitives/cookies";
 import {
   createContext,
   createEffect,
-  createSignal,
   type Accessor,
   type ParentProps,
   useContext,
@@ -11,7 +10,7 @@ import {
 export type Theme = "dark" | "light";
 
 const THEME_STORAGE_KEY = "nona_theme";
-const DEFAULT_THEME: Theme = "dark";
+const DEFAULT_THEME: Theme = "light";
 
 interface ThemeContextValue {
   theme: Accessor<Theme>;
@@ -20,9 +19,6 @@ interface ThemeContextValue {
 }
 
 const ThemeContext = createContext<ThemeContextValue>();
-
-const isTheme = (value: string): value is Theme =>
-  value === "dark" || value === "light";
 
 const applyTheme = (theme: Theme): void => {
   if (typeof document === "undefined") {
@@ -37,11 +33,8 @@ const applyTheme = (theme: Theme): void => {
 };
 
 export function ThemeProvider(props: ParentProps) {
-  // eslint-disable-next-line solid/reactivity -- makePersisted intentionally wraps the signal.
-  const [theme, setTheme] = makePersisted(createSignal<Theme>(DEFAULT_THEME), {
-    deserialize: value => (isTheme(value) ? value : DEFAULT_THEME),
-    name: THEME_STORAGE_KEY,
-    serialize: value => value,
+  const [theme, setTheme] = createUserTheme(THEME_STORAGE_KEY, {
+    defaultValue: DEFAULT_THEME
   });
 
   createEffect(() => {

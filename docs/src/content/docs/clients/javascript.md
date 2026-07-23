@@ -33,8 +33,9 @@ Before writing app code:
 2. open the project the app belongs to
 3. select the target environment such as `production`
 4. create the parameter or flag you want to read
-5. create an API key in the `API Keys` section
-6. choose `client` scope for React Native or other app-side reads
+5. publish a release and set it active
+6. create an API key in the `API Keys` section
+7. choose `client` scope for React Native or other app-side reads
 
 For a first test, create a boolean parameter such as `Features:Checkout`.
 
@@ -56,6 +57,8 @@ nona keys create \
   --environment production
 ```
 
+Then publish and activate a release for the environment in admin.
+
 ## Read a string
 
 ```js
@@ -72,7 +75,7 @@ const checkout = await nona.getStringValue("Features:Checkout");
 const checkoutEnabled = checkout === "true";
 ```
 
-For actual feature flags, it is usually better to keep the entry typed as `boolean`, then inspect the metadata or use OpenFeature.
+For actual feature flags, it is usually better to keep the entry typed as `boolean`, then inspect the metadata or use OpenFeature if you want a flag-oriented interface.
 
 ## Read a boolean flag cleanly
 
@@ -124,6 +127,48 @@ if (value === null) {
 
 This is helpful for optional settings or cases where a key may not exist in every environment yet.
 
+## Fetch once and prime the cache
+
+Fetch every client-visible value at startup with one HTTP request:
+
+```js
+const values = await nona.getAllValues();
+
+const checkout = await nona.tryGetConfigValue("Features:Checkout");
+const banner = await nona.tryGetConfigValue("App:Banner");
+```
+
+`getAllValues()` returns a map of `{ key: { value, contentType } }` and primes the in-memory snapshot, so subsequent reads of those keys are local even when the optional TTL cache is disabled. A six-flag startup therefore makes one request instead of six.
+
+The server response contains only entries visible to clients: `client` and `all` entries are included, while server-only entries are excluded. Use a `client` or `all` API key.
+
+Call `getAllValues()` again to poll for changes. The client automatically sends the previous ETag; when the server returns `304 Not Modified`, the existing snapshot is reused without downloading the JSON again.
+
+## Pin a release version
+
+By default, reads use the active release selected for the environment.
+
+Pin a client to an exact release or release line with `releaseVersion`:
+
+```js
+const nona = createNonaClient({
+  baseUrl: "https://nona.example.com",
+  environmentId: "production",
+  apiKey: process.env.NONA_API_KEY,
+  releaseVersion: "1.1.x"
+});
+```
+
+Use an exact version such as `1.1.0` for a fixed snapshot. Use a line such as `1.1.x` to read the highest patch in that line.
+
+You can override the configured version for one request:
+
+```js
+const value = await nona.getConfigValue("Features:Checkout", {
+  releaseVersion: "1.1.0"
+});
+```
+
 ## Handle HTTP errors
 
 ```js
@@ -150,7 +195,14 @@ try {
 
 ## When to use the JavaScript client
 
-Use the JavaScript client when you want a straightforward Nona-specific API, runtime reads in JavaScript or TypeScript, optional in-memory caching, and a smaller abstraction layer than OpenFeature. Use [HTTP](/docs/clients/http/) instead when the app only needs one very small direct read path.
+Use the JavaScript client when you want:
+
+- a straightforward Nona-specific API
+- runtime reads in JavaScript or TypeScript
+- optional in-memory caching
+- a smaller abstraction layer than OpenFeature
+
+Use [HTTP](/docs/clients/http/) instead when the app only needs one very small direct read path.
 
 ## Optional cache
 
@@ -164,17 +216,37 @@ const nona = createNonaClient({
 });
 ```
 
-Use `invalidateTtlCache(key)` to remove one cached value or `clearTtlCache()` to clear all cached values.
+Use `invalidateTtlCache(key)` to remove one cached value or `clearTtlCache()` to clear all cached values, including a snapshot primed by `getAllValues()`.
 
-The JavaScript client cache is optional and disabled by default. Set a positive `cacheTtlMs` value to enable it. It is useful when the same keys are read repeatedly and the application can tolerate slightly older values for a short TTL. Keep the TTL short for operational flags and kill switches unless you are sure longer cache windows are acceptable.
+The JavaScript client cache is optional and disabled by default. Set a positive `cacheTtlMs` value to enable it.
+The `cacheMemoryLimitMegabytes` budget is shared by TTL entries and bulk snapshots; least-recently-used data is evicted when the total exceeds that limit.
+
+Cache is useful when:
+
+- the same keys are read repeatedly
+- you want to reduce request volume
+- the application can tolerate slightly older values for a short TTL
+
+Keep the TTL short for operational flags and kill switches unless you are sure longer cache windows are acceptable.
 
 ## Basic troubleshooting
 
-If a JavaScript read fails, confirm `environmentId` matches the environment name in Nona, the API key belongs to the same project as the parameter, the parameter scope is readable by that key, and the same key works once over [HTTP](/docs/clients/http/).
+If a JavaScript read fails:
+
+1. confirm `environmentId` matches the environment name in Nona
+2. confirm the environment has an active release, or configure `releaseVersion`
+3. confirm the API key belongs to the same project as the parameter
+4. confirm the parameter scope is readable by that key
+5. try the same key once with [HTTP](/docs/clients/http/) to isolate client-code issues
 
 ## Good first app flow
 
-For a mobile or JavaScript app, start by fetching one kill switch or banner text on startup, confirm the value changes when you edit it in admin, add TTL cache only if repeated reads justify it, and move to OpenFeature once the app becomes flag-heavy.
+For a mobile or JavaScript app, the usual sequence is:
+
+1. call `getAllValues()` once to prime startup flags
+2. confirm the value changes when you edit it in admin
+3. add TTL cache only if repeated reads justify it
+4. move to OpenFeature when the app becomes flag-heavy
 
 ## OpenFeature provider
 
@@ -201,25 +273,3 @@ const enabled = await client.getBooleanValue("Features:Checkout", false);
 ```
 
 If your team thinks in terms of feature flags more than direct config reads, see [OpenFeature](/docs/clients/openfeature/).
-
-## JavaScript client FAQ
-
-### When should I use the JavaScript client instead of raw HTTP?
-
-Use the JavaScript client when you want a direct client API, optional TTL cache behavior, and less manual request handling than raw HTTP.
-
-### Should I read feature flags as strings?
-
-Usually no.
-
-For real flags, it is better to read the config value and inspect `contentType` so the application stays aligned with Nona's logical type model.
-
-### Is caching required?
-
-No.
-
-The JavaScript client cache is optional and disabled by default. Only enable it when repeated reads justify it.
-
-### When should I move to OpenFeature?
-
-Move to OpenFeature when the app becomes more flag-oriented and you want a vendor-neutral interface instead of direct Nona-specific reads.

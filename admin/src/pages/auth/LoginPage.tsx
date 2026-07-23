@@ -1,10 +1,11 @@
-import { A, type RouteSectionProps, useNavigate } from "@solidjs/router";
+import { type RouteSectionProps, useNavigate } from "@solidjs/router";
 import { useMutation, useQuery } from "@tanstack/solid-query";
 import { createEffect, createSignal, Show } from "solid-js";
 import { authService } from "../../entities/auth/api/auth.service";
 import { authStore } from "../../entities/auth/model/store";
 import { ApiRequestError } from "../../shared/api/client";
 import { MSG } from "../../shared/lib/messages";
+import { Button } from "../../shared/ui/button";
 import type { LoginRequest, LoginResponse } from "../../types";
 import { AuthCard } from "../../widgets/auth-shell/AuthCard";
 import { FormField } from "../../widgets/auth-shell/FormField";
@@ -154,26 +155,26 @@ export default function LoginPage(props: LoginPageProps = {}) {
                   leftIcon="alternate_email"
                   testId="forgot-email-input"
                 />
-                <div class="flex items-center gap-3 pt-1">
-                  <button
+                <div class="flex justify-end gap-3 pt-1">
+                  <Button
+                    data-testid="forgot-submit-button"
+                    type="submit"
+                    disabled={forgotMutation.isPending || !forgotEmail()}
+                  >
+                    {forgotMutation.isPending ? "Sending…" : "Send Reset Link"}
+                  </Button>
+                  <Button
                     data-testid="forgot-cancel-button"
                     type="button"
+                    variant="outline"
                     onClick={() => {
                       setShowForgot(false);
                       setError("");
                     }}
-                    class="bg-surface-container-high text-on-surface-variant hover:bg-surface-bright flex-1 cursor-pointer rounded-lg border-0 py-3 text-[13px] font-semibold transition-all"
                   >
+                    <span class="material-symbols-outlined text-[18px]">close</span>
                     Cancel
-                  </button>
-                  <button
-                    data-testid="forgot-submit-button"
-                    type="submit"
-                    disabled={forgotMutation.isPending || !forgotEmail()}
-                    class="bg-primary text-on-primary flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border-0 py-3 text-[13px] font-bold transition-all hover:brightness-105 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {forgotMutation.isPending ? "Sending…" : "Send Reset Link"}
-                  </button>
+                  </Button>
                 </div>
               </form>
             </Show>
@@ -233,28 +234,20 @@ export default function LoginPage(props: LoginPageProps = {}) {
                   Remember me on this device
                 </span>
               </label>
-              <button
+              <Button
                 data-testid="login-submit-button"
                 type="submit"
+                size="lg"
                 disabled={isBusy()}
-                class="bg-primary text-on-primary flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border-0 py-3.5 text-xs font-bold tracking-wider uppercase shadow-md transition-all hover:brightness-105 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+                class="w-full"
               >
                 <span>{loginMutation.isPending ? "Signing in…" : "Login to Console"}</span>
                 <span class="material-symbols-outlined text-[18px]">login</span>
-              </button>
+              </Button>
             </div>
           </form>
 
-          <div class="mt-5 flex items-center justify-between text-[12px]">
-            <span class="text-on-surface-variant">
-              Don't have an account?{" "}
-              <A
-                href="/register"
-                class="text-primary hover:text-primary/80 font-bold transition-colors hover:underline"
-              >
-                Register
-              </A>
-            </span>
+          <div class="mt-5 flex items-center justify-end text-[12px]">
             <button
               data-testid="forgot-open-button"
               type="button"

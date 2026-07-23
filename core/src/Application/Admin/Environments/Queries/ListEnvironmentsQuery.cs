@@ -29,6 +29,7 @@ public class ListEnvironmentsQueryHandler(
         var dtos = environments.Select(e => new EnvironmentDto(
             e.Name,
             e.Project,
+            e.ActiveReleaseVersion,
             e.CreatedAt,
             e.UpdatedAt)).ToList();
 

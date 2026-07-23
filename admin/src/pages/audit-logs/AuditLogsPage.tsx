@@ -5,7 +5,6 @@ import { auditLogService } from "../../entities/audit-log/api/audit-log.service"
 import { QueryErrorBanner } from "../../shared/ui/QueryGuard";
 import type { AuditLog } from "../../types";
 
-import { AuditLogDrawer } from "./components/AuditLogDrawer";
 import { AuditLogsFilters } from "./components/AuditLogsFilters";
 import { AuditLogsHeader } from "./components/AuditLogsHeader";
 import { AuditLogsTable } from "./components/AuditLogsTable";
@@ -78,7 +77,6 @@ export default function AuditLogsPage() {
   const [dateFrom, setDateFrom] = createSignal("");
   const [dateTo, setDateTo] = createSignal("");
   const [page, setPage] = createSignal(0);
-  const [selectedEntry, setSelectedEntry] = createSignal<AuditEntry | null>(null);
 
   const auditQuery = useQuery(() => ({
     queryKey: ["audit-logs"],
@@ -179,17 +177,28 @@ export default function AuditLogsPage() {
   return (
     <>
       <Title>Audit Logs | Nona Config Admin</Title>
-      <div class="animate-page-enter space-y-8">
-        <AuditLogsHeader onExport={exportLogs} />
-
-        <Show when={auditQuery.isError}>
-          <QueryErrorBanner
-            message="Failed to load audit logs."
-            onRetry={() => auditQuery.refetch()}
+      <div class="animate-page-enter space-y-6">
+        <section
+          data-testid="audit-logs-section"
+          class="bg-surface-container-low border-outline-variant/15 space-y-4 rounded-2xl border p-5"
+        >
+          <AuditLogsHeader
+            onExport={exportLogs}
+            search={search()}
+            setSearch={v => {
+              setSearch(v);
+              setPage(0);
+            }}
           />
-        </Show>
 
-        <AuditLogsFilters
+          <Show when={auditQuery.isError}>
+            <QueryErrorBanner
+              message="Failed to load audit logs."
+              onRetry={() => auditQuery.refetch()}
+            />
+          </Show>
+
+          <AuditLogsFilters
           search={search()}
           setSearch={v => {
             setSearch(v);
@@ -218,6 +227,7 @@ export default function AuditLogsPage() {
           uniqueActions={uniqueActions()}
           uniqueEnvs={uniqueEnvs()}
           clearAllFilters={clearFilters}
+          hideSearch
         />
 
         <AuditLogsTable
@@ -227,11 +237,9 @@ export default function AuditLogsPage() {
           page={page()}
           totalPages={totalPages()}
           pageSize={PAGE_SIZE}
-          onSelectEntry={setSelectedEntry}
           onChangePage={changePage}
         />
-
-        <AuditLogDrawer entry={selectedEntry()} onClose={() => setSelectedEntry(null)} />
+        </section>
       </div>
     </>
   );

@@ -28,12 +28,34 @@ Console.WriteLine(value.Value);
 
 API keys are bound to one project, and the client is bound to one environment, so config reads only take a key.
 
+Reads use the environment's active release by default. To pin a client to an exact release or release line:
+
+```csharp
+var client = new NonaClient(new NonaClientOptions
+{
+    BaseAddress = new Uri("https://nona.example.com"),
+    EnvironmentId = "production",
+    ApiKey = "your-api-key",
+    ReleaseVersion = "1.1.x"
+});
+```
+
+To select a different release for one request, use the corresponding named release method:
+
+```csharp
+var value = await client.GetConfigValueForReleaseAsync("Features:Checkout", "1.1.0");
+```
+
 ## Available Methods
 
-- `GetConfigValueAsync(key, cancellationToken)`
-- `TryGetConfigValueAsync(key, cancellationToken)`
-- `GetStringValueAsync(key, cancellationToken)`
-- `GetJsonValueAsync<T>(key, jsonTypeInfo, cancellationToken)`
+- `GetConfigValueAsync(string key, CancellationToken cancellationToken = default)`
+- `GetConfigValueForReleaseAsync(string key, string releaseVersion, CancellationToken cancellationToken = default)`
+- `TryGetConfigValueAsync(string key, CancellationToken cancellationToken = default)`
+- `TryGetConfigValueForReleaseAsync(string key, string releaseVersion, CancellationToken cancellationToken = default)`
+- `GetStringValueAsync(string key, CancellationToken cancellationToken = default)`
+- `GetStringValueForReleaseAsync(string key, string releaseVersion, CancellationToken cancellationToken = default)`
+- `GetJsonValueAsync<T>(string key, JsonTypeInfo<T> jsonTypeInfo, CancellationToken cancellationToken = default)`
+- `GetJsonValueForReleaseAsync<T>(string key, JsonTypeInfo<T> jsonTypeInfo, string releaseVersion, CancellationToken cancellationToken = default)`
 
 ## Options
 
@@ -42,6 +64,7 @@ Use `NonaClientOptions` to configure:
 - `BaseAddress`
 - `EnvironmentId`
 - `ApiKey`
+- `ReleaseVersion`
 - `CacheTtl`
 - `CacheMemoryLimitMegabytes`
 - `AllowStaleCache`

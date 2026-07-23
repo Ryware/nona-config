@@ -105,7 +105,7 @@ describe('LoginPage SSO', () => {
     microsoftPopupMock.mockResolvedValue('bad-token');
     server.use(
       http.post('http://localhost:5027/auth/sso/microsoft', () =>
-        HttpResponse.json({ error: 'Authentication failed' }, { status: 401 }),
+        HttpResponse.json({ detail: 'Authentication failed' }, { status: 401 }),
       ),
     );
 
@@ -122,7 +122,7 @@ describe('LoginPage SSO', () => {
     server.use(
       http.post('http://localhost:5027/auth/sso/google', () =>
         HttpResponse.json(
-          { error: 'Authentication failed', errorCode: 'sso_user_not_registered' },
+          { detail: 'Authentication failed', errorCode: 'sso_user_not_registered' },
           { status: 401 },
         ),
       ),

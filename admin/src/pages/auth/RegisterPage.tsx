@@ -4,6 +4,7 @@ import { createSignal } from "solid-js";
 import { authService } from "../../entities/auth/api/auth.service";
 import { authStore } from "../../entities/auth/model/store";
 import { MSG } from "../../shared/lib/messages";
+import { Button } from "../../shared/ui/button";
 import type { RegisterRequest } from "../../types";
 import { AuthCard } from "../../widgets/auth-shell/AuthCard";
 import { FormField } from "../../widgets/auth-shell/FormField";
@@ -98,15 +99,16 @@ export default function RegisterPage() {
           />
 
           <div class="pt-2">
-            <button
+            <Button
               type="submit"
               data-testid="register-submit-button"
+              size="lg"
               disabled={registerMutation.isPending}
-              class="bg-primary text-on-primary flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border-0 py-3.5 text-[13px] font-semibold transition-all hover:brightness-105 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+              class="w-full"
             >
               <span>{registerMutation.isPending ? "Creating account…" : "Create Account"}</span>
               <span class="material-symbols-outlined text-[18px]">arrow_right_alt</span>
-            </button>
+            </Button>
           </div>
         </form>
 

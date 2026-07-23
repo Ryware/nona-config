@@ -1,18 +1,20 @@
 import { createMemo, createSignal, For, Show } from "solid-js";
-import type { ApiKey, CreateApiKeyRequest, Environment } from "../../../types";
+import type { ApiKey, CreateApiKeyRequest } from "../../../types";
 import { useClipboard } from "../../../shared/hooks/useClipboard";
 import { Button } from "../../../shared/ui/button";
-import { Input } from "../../../shared/ui/input";
+import { Label } from "../../../shared/ui/label";
 import { Select } from "../../../shared/ui/select";
 import { MIcon } from "../../../shared/ui/icons";
+import { FormField } from "../../../widgets/auth-shell/FormField";
 
 interface ProjectApiKeysProps {
   apiKeys: ApiKey[];
-  environments: Environment[];
   isLoading: boolean;
   isCreating: boolean;
   deletingId: string | null;
   canManage: boolean;
+  showCreateForm: boolean;
+  setShowCreateForm: (value: boolean) => void;
   onCreate: (data: CreateApiKeyRequest) => void;
   onDelete: (apiKeyId: string) => void;
   onCopied: (message: string) => void;
@@ -42,14 +44,8 @@ function ScopeBadge(props: { scope: ApiKey["scope"] }) {
 export function ProjectApiKeys(props: ProjectApiKeysProps) {
   const [name, setName] = createSignal("");
   const [scope, setScope] = createSignal<ApiKey["scope"]>("client");
-  const [environment, setEnvironment] = createSignal("");
   const [revealed, setRevealed] = createSignal<Record<string, boolean>>({});
   const { copy } = useClipboard();
-
-  const environmentOptions = createMemo(() => [
-    { value: "", label: "All environments" },
-    ...props.environments.map(env => ({ value: env.name, label: env.name })),
-  ]);
 
   const canCreate = createMemo(() => name().trim().length > 0 && !props.isCreating);
 
@@ -59,11 +55,10 @@ export function ProjectApiKeys(props: ProjectApiKeysProps) {
     props.onCreate({
       name: name().trim(),
       scope: scope(),
-      environment: environment() || null,
+      environment: null,
     });
     setName("");
     setScope("client");
-    setEnvironment("");
   };
 
   const handleCopy = async (value: string) => {
@@ -78,8 +73,9 @@ export function ProjectApiKeys(props: ProjectApiKeysProps) {
 
   return (
     <section
+      id="api-keys"
       data-testid="project-api-keys-section"
-      class="bg-surface-container-low border-outline-variant/15 space-y-4 rounded-2xl border p-5"
+      class="bg-surface-container-low border-outline-variant/15 space-y-4 rounded-2xl border p-5 scroll-mt-20"
     >
       <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
@@ -94,38 +90,70 @@ export function ProjectApiKeys(props: ProjectApiKeysProps) {
             Keys belong to this project and can be limited by access type or environment.
           </p>
         </div>
-      </div>
 
-      <Show when={props.canManage}>
-        <div class="grid gap-2 md:grid-cols-[minmax(180px,1fr)_150px_190px_auto]">
-          <Input
-            data-testid="api-key-name-input"
-            value={name()}
-            onInput={event => setName(event.currentTarget.value)}
-            placeholder="Key name"
-            leftIcon="badge"
-          />
-          <Select
-            value={scope()}
-            onChange={value => setScope(value as ApiKey["scope"])}
-            options={SCOPE_OPTIONS}
-          />
-          <Select
-            value={environment()}
-            onChange={setEnvironment}
-            options={environmentOptions()}
-          />
-          <Button
-            data-testid="api-key-create-button"
+        <Show when={props.canManage}>
+          <button
+            data-testid="project-add-api-key-button"
             type="button"
-            size="sm"
-            class="h-11"
-            disabled={!canCreate()}
-            onClick={handleCreate}
+            onClick={() => props.setShowCreateForm(!props.showCreateForm)}
+            aria-label="Add API Key"
+            title="Add API Key"
+            class="bg-primary text-on-primary inline-flex h-10 w-10 cursor-pointer items-center justify-center gap-1.5 self-end rounded-lg border-0 px-0 text-[13px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] md:h-10 md:w-auto md:px-4 md:self-auto"
           >
             <MIcon name="add" class="text-[16px]" />
-            Create
-          </Button>
+            <span class="hidden md:inline">Add API Key</span>
+          </button>
+        </Show>
+      </div>
+
+      <Show when={props.canManage && props.showCreateForm}>
+        <div class="bg-surface-container-low border-outline-variant/15 animate-fade-in rounded-2xl border p-6 shadow-sm">
+          <h3 class="font-headline text-on-surface mb-6 text-xs font-bold tracking-wider uppercase">
+            New API Key
+          </h3>
+          <div class="grid gap-6 md:grid-cols-2">
+            <FormField
+              id="api-key-name"
+              label="Key Name *"
+              type="text"
+              testId="api-key-name-input"
+              value={name()}
+              onInput={(event: InputEvent & { currentTarget: HTMLInputElement }) =>
+                setName(event.currentTarget.value)
+              }
+              placeholder="Key name"
+              leftIcon="badge"
+              required
+            />
+            <div>
+              <Label>Scope</Label>
+              <Select
+                value={scope()}
+                onChange={value => setScope(value as ApiKey["scope"])}
+                options={SCOPE_OPTIONS}
+              />
+            </div>
+          </div>
+          <div class="mt-6 flex justify-end gap-3">
+            <Button
+              data-testid="api-key-create-button"
+              type="button"
+              disabled={!canCreate()}
+              onClick={handleCreate}
+            >
+              <MIcon name="add" class="text-[16px]" />
+              Create
+            </Button>
+            <Button
+              data-testid="api-key-create-cancel-button"
+              type="button"
+              variant="outline"
+              onClick={() => props.setShowCreateForm(false)}
+            >
+              <MIcon name="close" class="text-[16px]" />
+              Cancel
+            </Button>
+          </div>
         </div>
       </Show>
 

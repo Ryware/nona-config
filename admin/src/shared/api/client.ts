@@ -49,8 +49,11 @@ export class ApiClient {
 
       const error = await response
         .json()
-        .catch(() => ({ error: "An error occurred" }));
-      throw new ApiRequestError(error.error || error.message || "Request failed", error.errorCode);
+        .catch(() => ({ detail: "An error occurred" }));
+      throw new ApiRequestError(
+        error.detail || error.error || error.message || error.title || "Request failed",
+        error.errorCode,
+      );
     }
 
     // Handle 204 No Content
