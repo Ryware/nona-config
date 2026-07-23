@@ -4,7 +4,13 @@
 
 ## Install
 
-Download the archive for your platform from GitHub Releases, extract it, and put the `nona` binary on your `PATH`.
+Install the CLI from npm (Node.js 18 or newer):
+
+```bash
+npm install -g nona-cli
+```
+
+Alternatively, download the archive for your platform from GitHub Releases, extract it, and put the `nona` binary on your `PATH`.
 
 Each release archive also includes an `appsettings.json` sample for the Firebase migration workflow.
 
@@ -41,7 +47,7 @@ dotnet publish cli/src/Nona.Cli/Nona.Cli.csproj -c Release -r win-x64 --self-con
 
 You can swap `win-x64` for another runtime identifier such as `linux-x64`, `linux-arm64`, `osx-x64`, or `osx-arm64`.
 
-The published executable is the `nona` command.
+Direct `dotnet publish` output is named `Nona.Cli` (`Nona.Cli.exe` on Windows). Rename it to `nona` (`nona.exe` on Windows) when placing it on your `PATH`. The packaged release archives already use the `nona` name.
 
 ## Commands
 
@@ -141,6 +147,8 @@ You can also use environment variables:
 - `NONA_CLI_BEARER_TOKEN`
 - `NONA_CLI_EMAIL`
 - `NONA_CLI_PASSWORD`
+- `NONA_CLI_CONFIG_PATH`
+- `NONA_CLI_SESSION_PATH`
 - `NONA_INIT_EMAIL`
 - `NONA_INIT_PASSWORD`
 
