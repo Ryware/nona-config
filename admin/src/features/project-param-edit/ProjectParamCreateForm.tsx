@@ -56,6 +56,7 @@ export function ProjectParamCreateForm(props: ProjectParamCreateFormProps) {
   const [cfgKey, setCfgKey] = createSignal("");
   const [cfgValue, setCfgValue] = createSignal("");
   const [cfgType, setCfgType] = createSignal<ConfigEntryContentType>("text");
+  const [cfgScope, setCfgScope] = createSignal<ConfigEntryScope>("all");
   const [cfgDescription, setCfgDescription] = createSignal("");
   const [createError, setCreateError] = createSignal("");
   let keyInputRef: HTMLInputElement | undefined;
@@ -89,7 +90,7 @@ export function ProjectParamCreateForm(props: ProjectParamCreateFormProps) {
       key: trimmedKey,
       value: cfgValue().trim(),
       contentType: cfgType(),
-      scope: "all",
+      scope: cfgScope(),
       description: cfgDescription().trim()
     });
   };
@@ -134,6 +135,18 @@ export function ProjectParamCreateForm(props: ProjectParamCreateFormProps) {
                 setCfgValue("");
               }}
               options={["text", "number", "boolean", "json"]}
+            />
+          </div>
+          <div>
+            <Label>Scope</Label>
+            <Select
+              value={cfgScope()}
+              onChange={(val: string) => setCfgScope(val as ConfigEntryScope)}
+              options={[
+                { value: "all", label: "All" },
+                { value: "client", label: "Client" },
+                { value: "server", label: "Server" }
+              ]}
             />
           </div>
         </div>

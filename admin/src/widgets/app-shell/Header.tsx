@@ -158,7 +158,7 @@ export function Header(props: HeaderProps) {
               value={getActiveProjectSlug()}
               onChange={handleProjectChange}
               options={projectOptions()}
-              placeholder={projectsQuery.isLoading ? "Loading projects..." : "Select a project"}
+              placeholder={projectsQuery.isLoading ? "Loading projects..." : "---"}
               disabled={projectsQuery.isLoading || (projects().length === 0 && !canCreateProjects)}
               class="h-9 w-full min-w-0 rounded-xl border-outline-variant/20 bg-surface-container-low text-[12px]"
             />
@@ -177,7 +177,7 @@ export function Header(props: HeaderProps) {
                   ? environmentsQuery.isLoading
                     ? "Loading environments..."
                     : "Select an environment"
-                  : "Select a project first"
+                  : "---"
               }
               disabled={!activeProject() || environmentsQuery.isLoading}
               class="h-9 w-full min-w-0 rounded-xl border-outline-variant/20 bg-surface-container-low text-[12px]"
@@ -221,7 +221,7 @@ export function Header(props: HeaderProps) {
               value={getActiveProjectSlug()}
               onChange={handleProjectChange}
               options={projectOptions()}
-              placeholder={projectsQuery.isLoading ? "Loading projects..." : "Select a project"}
+              placeholder={projectsQuery.isLoading ? "Loading projects..." : "---"}
               disabled={projectsQuery.isLoading || (projects().length === 0 && !canCreateProjects)}
               class="h-10 w-full rounded-xl border-outline-variant/20 bg-surface-container-low text-[12px]"
             />
@@ -239,8 +239,8 @@ export function Header(props: HeaderProps) {
                 activeProject()
                   ? environmentsQuery.isLoading
                     ? "Loading environments..."
-                    : "Select an environment"
-                  : "Select a project first"
+                    : "---"
+                  : "---"
               }
               disabled={!activeProject() || environmentsQuery.isLoading}
               class="h-10 w-full rounded-xl border-outline-variant/20 bg-surface-container-low text-[12px]"
