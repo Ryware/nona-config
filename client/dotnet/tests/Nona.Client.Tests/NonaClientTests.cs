@@ -299,18 +299,24 @@ public sealed class NonaClientTests
             CacheTtl = TimeSpan.FromMinutes(1)
         });
 
+        const int callerCount = 10;
+        var readyCallers = 0;
+        var invokedCallers = 0;
         var startRequests = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var requests = Enumerable.Range(0, 10)
+        var requests = Enumerable.Range(0, callerCount)
             .Select(_ => Task.Run(async () =>
             {
+                Interlocked.Increment(ref readyCallers);
                 await startRequests.Task;
-                return await client.GetConfigValueAsync("flag");
+                var request = client.GetConfigValueAsync("flag");
+                Interlocked.Increment(ref invokedCallers);
+                return await request;
             }))
             .ToArray();
 
+        await WaitForAsync(() => Volatile.Read(ref readyCallers) == callerCount);
         startRequests.SetResult(true);
-        await WaitForAsync(() => Volatile.Read(ref requestCount) == 1);
-        await Task.Delay(50);
+        await WaitForAsync(() => Volatile.Read(ref invokedCallers) == callerCount);
 
         Assert.Equal(1, Volatile.Read(ref requestCount));
 
@@ -460,8 +466,8 @@ public sealed class NonaClientTests
         var stale = await client.GetConfigValueAsync("flag");
         Assert.Equal("value-1", stale.Value);
 
-        await WaitForAsync(() => handler.Requests.Count >= 2);
-        Assert.Equal("value-2", (await client.GetConfigValueAsync("flag")).Value);
+        await WaitForAsync(async () =>
+            (await client.GetConfigValueAsync("flag")).Value == "value-2");
     }
 
     [Fact]
@@ -646,6 +652,22 @@ public sealed class NonaClientTests
         }
 
         Assert.True(condition(), "Timed out waiting for condition.");
+    }
+
+    private static async Task WaitForAsync(Func<Task<bool>> condition)
+    {
+        var deadline = DateTimeOffset.UtcNow.AddSeconds(5);
+        while (DateTimeOffset.UtcNow < deadline)
+        {
+            if (await condition())
+            {
+                return;
+            }
+
+            await Task.Delay(10);
+        }
+
+        Assert.True(await condition(), "Timed out waiting for condition.");
     }
 
     private sealed class StubHttpMessageHandler : HttpMessageHandler

@@ -66,10 +66,13 @@ describe('LoginPage', () => {
   });
 
   it('shows "Signing in…" while login is pending', async () => {
-    // Use a slow handler to catch the pending state
+    let resolveLogin!: () => void;
+    const pendingLogin = new Promise<void>((resolve) => {
+      resolveLogin = resolve;
+    });
     server.use(
       http.post('http://localhost:5027/auth/login', async () => {
-        await new Promise((resolve) => setTimeout(resolve, 200));
+        await pendingLogin;
         return HttpResponse.json({ token: mockToken, role: 'admin', expiresAt: '2099-01-01T00:00:00Z' });
       }),
     );
@@ -82,6 +85,11 @@ describe('LoginPage', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/signing in/i)).toBeInTheDocument();
+    });
+
+    resolveLogin();
+    await waitFor(() => {
+      expect(localStorage.getItem('auth_token')).toBe(mockToken);
     });
   });
 
