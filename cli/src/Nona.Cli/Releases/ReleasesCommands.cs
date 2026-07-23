@@ -142,9 +142,6 @@ internal sealed class ReleasesCommands(CliContext ctx) : ICliCommandGroup
         var fromFileOption = new Option<string?>(
             "--from-file",
             "Replace the copied entries with a UTF-8 JSON entries array.");
-        var editorOption = new Option<bool>(
-            "--editor",
-            "Edit the copied entries as JSON using VISUAL or EDITOR.");
 
         var handler = new AmendReleaseCommandHandler();
         var command = new Command(
@@ -155,7 +152,6 @@ internal sealed class ReleasesCommands(CliContext ctx) : ICliCommandGroup
         command.AddOption(setOption);
         command.AddOption(deleteOption);
         command.AddOption(fromFileOption);
-        command.AddOption(editorOption);
         command.Handler = CommandHandler.Create(async (InvocationContext invocationContext) =>
         {
             var resolved = Resolve(invocationContext, common);
@@ -172,8 +168,7 @@ internal sealed class ReleasesCommands(CliContext ctx) : ICliCommandGroup
                     sourceVersion.ToString(),
                     invocationContext.ParseResult.GetValueForOption(setOption) ?? [],
                     invocationContext.ParseResult.GetValueForOption(deleteOption) ?? [],
-                    invocationContext.ParseResult.GetValueForOption(fromFileOption),
-                    invocationContext.ParseResult.GetValueForOption(editorOption)),
+                    invocationContext.ParseResult.GetValueForOption(fromFileOption)),
                 invocationContext.GetCancellationToken());
         });
         return command;

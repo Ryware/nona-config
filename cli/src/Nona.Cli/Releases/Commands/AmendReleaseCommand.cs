@@ -10,36 +10,27 @@ internal sealed record AmendReleaseCommand(
     string SourceVersion,
     IReadOnlyList<string> SetValues,
     IReadOnlyList<string> DeleteKeys,
-    string? FromFile,
-    bool Editor);
+    string? FromFile);
 
 internal sealed class AmendReleaseCommandHandler(
-    Func<HttpClient>? httpClientFactory = null,
-    IReleaseEntryEditor? editor = null,
-    Func<bool>? isInteractive = null)
+    Func<HttpClient>? httpClientFactory = null)
 {
-    private readonly IReleaseEntryEditor _editor = editor ?? new ReleaseEntryEditor();
-    private readonly Func<bool> _isInteractive =
-        isInteractive ?? (() => !Console.IsInputRedirected);
-
     public async Task<int> HandleAsync(AmendReleaseCommand command, CancellationToken ct)
     {
         var hasDirectEdits = command.SetValues.Count > 0 || command.DeleteKeys.Count > 0;
         var editModeCount =
             (hasDirectEdits ? 1 : 0) +
-            (command.FromFile is not null ? 1 : 0) +
-            (command.Editor ? 1 : 0);
+            (command.FromFile is not null ? 1 : 0);
         if (editModeCount > 1)
         {
             return ValidationError(
-                "Choose exactly one amend edit mode: --set/--delete, --from-file, or --editor.");
+                "Choose exactly one amend mode: --set/--delete or --from-file.");
         }
 
-        var useEditor = command.Editor || editModeCount == 0;
-        if (editModeCount == 0 && !_isInteractive())
+        if (editModeCount == 0)
         {
             return ValidationError(
-                "Amend requires --set/--delete, --from-file, or --editor when input is not interactive.");
+                "Amend requires --set/--delete or --from-file.");
         }
 
         if (!ReleaseVersions.TryParseExact(command.SourceVersion, out var sourceVersion))
@@ -70,21 +61,16 @@ internal sealed class AmendReleaseCommandHandler(
         List<ConfigReleaseEntryDto> editedEntries;
         try
         {
-            var copiedEntries = ReleaseEntryEditing.Clone(source.Entries);
             if (hasDirectEdits)
             {
                 editedEntries = ReleaseEntryEditing.ApplyDirectEdits(
-                    copiedEntries,
+                    ReleaseEntryEditing.Clone(source.Entries),
                     command.SetValues,
                     command.DeleteKeys);
             }
             else if (command.FromFile is not null)
             {
                 editedEntries = await ReleaseEntryEditing.ReadFileAsync(command.FromFile, ct);
-            }
-            else if (useEditor)
-            {
-                editedEntries = await _editor.EditAsync(copiedEntries, ct);
             }
             else
             {

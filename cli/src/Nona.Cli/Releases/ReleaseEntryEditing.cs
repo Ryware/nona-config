@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Text.Json;
 using Nona.Cli.Generated.Models;
 
@@ -11,8 +10,7 @@ internal static class ReleaseEntryEditing
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        WriteIndented = true
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
     public static List<ConfigReleaseEntryDto> Clone(
@@ -161,15 +159,6 @@ internal static class ReleaseEntryEditing
         }
     }
 
-    public static string ToJson(IEnumerable<ConfigReleaseEntryDto> entries)
-        => JsonSerializer.Serialize(
-            entries.Select(entry => new ReleaseEntryDocument(
-                entry.Key,
-                entry.Value,
-                entry.ContentType,
-                entry.Scope)),
-            JsonOptions);
-
     private static List<ReleaseSetEdit> ParseSets(IReadOnlyList<string> values)
     {
         var edits = new List<ReleaseSetEdit>(values.Count);
@@ -252,125 +241,4 @@ internal static class ReleaseEntryEditing
         string? Value,
         string? ContentType,
         string? Scope);
-}
-
-internal interface IReleaseEntryEditor
-{
-    Task<List<ConfigReleaseEntryDto>> EditAsync(
-        IReadOnlyList<ConfigReleaseEntryDto> entries,
-        CancellationToken cancellationToken);
-}
-
-internal sealed class ReleaseEntryEditor(
-    Func<string, string?>? environmentVariable = null,
-    Func<string, string, CancellationToken, Task<int>>? launcher = null)
-    : IReleaseEntryEditor
-{
-    private readonly Func<string, string?> _environmentVariable =
-        environmentVariable ?? Environment.GetEnvironmentVariable;
-    private readonly Func<string, string, CancellationToken, Task<int>> _launcher =
-        launcher ?? LaunchAsync;
-
-    public async Task<List<ConfigReleaseEntryDto>> EditAsync(
-        IReadOnlyList<ConfigReleaseEntryDto> entries,
-        CancellationToken cancellationToken)
-    {
-        var editor = FirstNonEmpty(
-            _environmentVariable("VISUAL"),
-            _environmentVariable("EDITOR"));
-        if (editor is null)
-        {
-            throw new ReleaseEditException(
-                "No editor is configured. Set VISUAL or EDITOR, or use --set, --delete, " +
-                "or --from-file.");
-        }
-
-        var path = Path.Combine(
-            Path.GetTempPath(),
-            $"nona-release-{Guid.NewGuid():N}.json");
-        try
-        {
-            await File.WriteAllTextAsync(
-                path,
-                ReleaseEntryEditing.ToJson(entries),
-                cancellationToken);
-
-            var exitCode = await _launcher(editor, path, cancellationToken);
-            if (exitCode != 0)
-            {
-                throw new ReleaseEditException(
-                    $"Editor exited with code {exitCode}; release was not published.");
-            }
-
-            return await ReleaseEntryEditing.ReadFileAsync(path, cancellationToken);
-        }
-        finally
-        {
-            try
-            {
-                File.Delete(path);
-            }
-            catch (IOException)
-            {
-                // The edit result still determines the command outcome.
-            }
-            catch (UnauthorizedAccessException)
-            {
-                // The edit result still determines the command outcome.
-            }
-        }
-    }
-
-    private static string? FirstNonEmpty(params string?[] values)
-        => values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value))?.Trim();
-
-    private static async Task<int> LaunchAsync(
-        string editor,
-        string path,
-        CancellationToken cancellationToken)
-    {
-        var startInfo = new ProcessStartInfo
-        {
-            UseShellExecute = false
-        };
-
-        if (OperatingSystem.IsWindows())
-        {
-            startInfo.FileName = Environment.GetEnvironmentVariable("COMSPEC") ?? "cmd.exe";
-            startInfo.ArgumentList.Add("/D");
-            startInfo.ArgumentList.Add("/S");
-            startInfo.ArgumentList.Add("/C");
-            startInfo.ArgumentList.Add($"{editor} \"{path.Replace("\"", "\"\"")}\"");
-        }
-        else
-        {
-            startInfo.FileName = "/bin/sh";
-            startInfo.ArgumentList.Add("-c");
-            startInfo.ArgumentList.Add($"exec {editor} \"$1\"");
-            startInfo.ArgumentList.Add("nona-release-editor");
-            startInfo.ArgumentList.Add(path);
-        }
-
-        using var process = new Process { StartInfo = startInfo };
-        try
-        {
-            if (!process.Start())
-                throw new ReleaseEditException($"Could not start editor '{editor}'.");
-
-            await process.WaitForExitAsync(cancellationToken);
-            return process.ExitCode;
-        }
-        catch (OperationCanceledException)
-        {
-            if (!process.HasExited)
-                process.Kill(entireProcessTree: true);
-            throw;
-        }
-        catch (Exception exception) when (
-            exception is InvalidOperationException or System.ComponentModel.Win32Exception)
-        {
-            throw new ReleaseEditException(
-                $"Could not start editor '{editor}': {exception.Message}");
-        }
-    }
 }

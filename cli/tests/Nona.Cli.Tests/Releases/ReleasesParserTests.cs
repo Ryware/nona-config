@@ -31,7 +31,6 @@ public sealed class ReleasesParserTests
     [Arguments("list", "--json")]
     [Arguments("view", "1.2.0", "--json")]
     [Arguments("create", "1.2", "--activate")]
-    [Arguments("amend", "1.2.0", "--editor")]
     [Arguments("amend", "1.2.0", "--set", "feature.checkout=false", "--delete", "old.key")]
     [Arguments("amend", "1.2.0", "--from-file", "./entries.json")]
     [Arguments("activate", "1.2.1")]
@@ -53,6 +52,15 @@ public sealed class ReleasesParserTests
     public async Task RemovedVersionOptions_AreRejected(params string[] commandArgs)
     {
         var result = CreateRoot().Parse(["releases", .. commandArgs]);
+
+        await Assert.That(result.Errors).IsNotEmpty();
+    }
+
+    [Test]
+    public async Task Amend_RejectsRemovedEditorOption()
+    {
+        var result = CreateRoot().Parse(
+            ["releases", "amend", "1.2.0", "--editor"]);
 
         await Assert.That(result.Errors).IsNotEmpty();
     }

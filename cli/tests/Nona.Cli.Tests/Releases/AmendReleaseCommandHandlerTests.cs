@@ -72,7 +72,7 @@ public sealed class AmendReleaseCommandHandlerTests
         });
 
         var (exitCode, output, error) = await ReleaseTestSupport.CaptureOutputAsync(() =>
-            new AmendReleaseCommandHandler(factory, isInteractive: () => false).HandleAsync(
+            new AmendReleaseCommandHandler(factory).HandleAsync(
                 Command(
                     "1.2.0",
                     sets: ["FEATURE.CHECKOUT=false", "new.number=42"],
@@ -118,9 +118,7 @@ public sealed class AmendReleaseCommandHandlerTests
             onPost: body => postedBody = body,
             targetVersion: "1.1.3");
 
-        var exitCode = await new AmendReleaseCommandHandler(
-            factory,
-            isInteractive: () => false).HandleAsync(
+        var exitCode = await new AmendReleaseCommandHandler(factory).HandleAsync(
             Command("1.1.0", sets: ["one=2"]),
             CancellationToken.None);
 
@@ -142,9 +140,7 @@ public sealed class AmendReleaseCommandHandlerTests
             onPost: body => postedBody = body,
             targetVersion: "1.0.1");
 
-        var exitCode = await new AmendReleaseCommandHandler(
-            factory,
-            isInteractive: () => false).HandleAsync(
+        var exitCode = await new AmendReleaseCommandHandler(factory).HandleAsync(
             Command("1.0.0", deletes: ["only.key"]),
             CancellationToken.None);
 
@@ -174,9 +170,7 @@ public sealed class AmendReleaseCommandHandlerTests
             onPost: body => postedBody = body,
             targetVersion: "1.0.1");
 
-        var exitCode = await new AmendReleaseCommandHandler(
-            factory,
-            isInteractive: () => false).HandleAsync(
+        var exitCode = await new AmendReleaseCommandHandler(factory).HandleAsync(
             Command("1.0.0", fromFile: file.Path),
             CancellationToken.None);
 
@@ -189,38 +183,7 @@ public sealed class AmendReleaseCommandHandlerTests
     }
 
     [Test]
-    public async Task Amend_EditorReceivesCopyAndPublishesItsResult()
-    {
-        var editor = new StubEditor(entries =>
-        {
-            entries[0].Value = "edited";
-            return entries;
-        });
-        string? postedBody = null;
-        var factory = StandardAmendFactory(
-            listJson: """[{"version":"1.0.0"}]""",
-            sourceVersion: "1.0.0",
-            sourceEntriesJson:
-                """[{"key":"one","value":"source","contentType":"text","scope":"all"}]""",
-            onPost: body => postedBody = body,
-            targetVersion: "1.0.1");
-
-        var exitCode = await new AmendReleaseCommandHandler(
-            factory,
-            editor,
-            isInteractive: () => false).HandleAsync(
-            Command("1.0.0", editor: true),
-            CancellationToken.None);
-
-        using var posted = JsonDocument.Parse(postedBody!);
-        await Assert.That(exitCode).IsEqualTo(CliExitCodes.Success);
-        await Assert.That(editor.CallCount).IsEqualTo(1);
-        await Assert.That(posted.RootElement.GetProperty("entries")[0]
-            .GetProperty("value").GetString()).IsEqualTo("edited");
-    }
-
-    [Test]
-    public async Task Amend_WithoutModeIsValidationErrorWhenNonInteractiveAndMakesNoRequest()
+    public async Task Amend_WithoutModeIsValidationErrorAndMakesNoRequest()
     {
         var requestCount = 0;
         var factory = ReleaseTestSupport.CreateHttpFactory(_ =>
@@ -230,36 +193,14 @@ public sealed class AmendReleaseCommandHandlerTests
         });
 
         var (exitCode, output, error) = await ReleaseTestSupport.CaptureOutputAsync(() =>
-            new AmendReleaseCommandHandler(factory, isInteractive: () => false).HandleAsync(
+            new AmendReleaseCommandHandler(factory).HandleAsync(
                 Command("1.0.0"),
                 CancellationToken.None));
 
         await Assert.That(exitCode).IsEqualTo(CliExitCodes.ValidationError);
         await Assert.That(requestCount).IsEqualTo(0);
         await Assert.That(output).IsEmpty();
-        await Assert.That(error).Contains("--set/--delete, --from-file, or --editor");
-    }
-
-    [Test]
-    public async Task Amend_WithoutModeDefaultsToEditorWhenInteractive()
-    {
-        var editor = new StubEditor(entries => entries);
-        var factory = StandardAmendFactory(
-            listJson: """[{"version":"1.0.0"}]""",
-            sourceVersion: "1.0.0",
-            sourceEntriesJson: "[]",
-            onPost: _ => { },
-            targetVersion: "1.0.1");
-
-        var exitCode = await new AmendReleaseCommandHandler(
-            factory,
-            editor,
-            isInteractive: () => true).HandleAsync(
-            Command("1.0.0"),
-            CancellationToken.None);
-
-        await Assert.That(exitCode).IsEqualTo(CliExitCodes.Success);
-        await Assert.That(editor.CallCount).IsEqualTo(1);
+        await Assert.That(error).Contains("--set/--delete or --from-file");
     }
 
     [Test]
@@ -273,13 +214,13 @@ public sealed class AmendReleaseCommandHandlerTests
         });
 
         var (exitCode, _, error) = await ReleaseTestSupport.CaptureOutputAsync(() =>
-            new AmendReleaseCommandHandler(factory, isInteractive: () => false).HandleAsync(
+            new AmendReleaseCommandHandler(factory).HandleAsync(
                 Command("1.0.0", sets: ["one=two"], fromFile: "entries.json"),
                 CancellationToken.None));
 
         await Assert.That(exitCode).IsEqualTo(CliExitCodes.ValidationError);
         await Assert.That(requestCount).IsEqualTo(0);
-        await Assert.That(error).Contains("Choose exactly one amend edit mode");
+        await Assert.That(error).Contains("Choose exactly one amend mode");
     }
 
     [Test]
@@ -343,7 +284,7 @@ public sealed class AmendReleaseCommandHandlerTests
         });
 
         var (exitCode, output, error) = await ReleaseTestSupport.CaptureOutputAsync(() =>
-            new AmendReleaseCommandHandler(factory, isInteractive: () => false).HandleAsync(
+            new AmendReleaseCommandHandler(factory).HandleAsync(
                 Command("1.1.0", sets: ["legacy.value=not-a-number"]),
                 CancellationToken.None));
 
@@ -408,7 +349,7 @@ public sealed class AmendReleaseCommandHandlerTests
         });
 
         var (exitCode, output, error) = await ReleaseTestSupport.CaptureOutputAsync(() =>
-            new AmendReleaseCommandHandler(factory, isInteractive: () => false).HandleAsync(
+            new AmendReleaseCommandHandler(factory).HandleAsync(
                 Command("1.0.0", sets: ["one=2"]),
                 CancellationToken.None));
 
@@ -430,9 +371,7 @@ public sealed class AmendReleaseCommandHandlerTests
         OperationCanceledException? exception = null;
         try
         {
-            await new AmendReleaseCommandHandler(
-                factory,
-                isInteractive: () => false).HandleAsync(
+            await new AmendReleaseCommandHandler(factory).HandleAsync(
                 Command("1.0.0", sets: ["one=2"]),
                 cancellation.Token);
         }
@@ -448,8 +387,7 @@ public sealed class AmendReleaseCommandHandlerTests
         string sourceVersion,
         IReadOnlyList<string>? sets = null,
         IReadOnlyList<string>? deletes = null,
-        string? fromFile = null,
-        bool editor = false)
+        string? fromFile = null)
         => new(
             ReleaseTestSupport.Connection,
             "my-project",
@@ -457,8 +395,7 @@ public sealed class AmendReleaseCommandHandlerTests
             sourceVersion,
             sets ?? [],
             deletes ?? [],
-            fromFile,
-            editor);
+            fromFile);
 
     private static Func<HttpClient> StandardAmendFactory(
         string listJson,
@@ -512,20 +449,4 @@ public sealed class AmendReleaseCommandHandlerTests
               "entries":{{entriesJson}}
             }
             """;
-
-    private sealed class StubEditor(
-        Func<List<ConfigReleaseEntryDto>, List<ConfigReleaseEntryDto>> edit)
-        : IReleaseEntryEditor
-    {
-        public int CallCount { get; private set; }
-
-        public Task<List<ConfigReleaseEntryDto>> EditAsync(
-            IReadOnlyList<ConfigReleaseEntryDto> entries,
-            CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            CallCount++;
-            return Task.FromResult(edit(entries.ToList()));
-        }
-    }
 }
