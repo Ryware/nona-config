@@ -1,6 +1,7 @@
 using System.Net;
-using System.Text;
 using System.Text.Json;
+using Nona.Cli.Generated.Models;
+using Nona.Cli.Releases;
 using Nona.Cli.Releases.Commands;
 
 #pragma warning disable TUnit0055
@@ -10,86 +11,345 @@ namespace Nona.Cli.Tests.Releases;
 [NotInParallel]
 public sealed class AmendReleaseCommandHandlerTests
 {
-    private static readonly NonaCliConnectionOptions TestConnection =
-        new("http://nona.test", "test-token");
-
     [Test]
-    public async Task HandleAsync_PrintsEveryValidationErrorWithoutRetryingOrChangingEntries()
+    public async Task DirectAmend_CalculatesNextPatchAndPublishesEditedCopy()
     {
-        const string sourceJson = """
-            {
-              "project": "my-project",
-              "environment": "production",
-              "version": "1.1.0",
-              "entryCount": 6,
-              "isActive": false,
-              "createdAt": "2024-01-01T00:00:00Z",
-              "actor": "alice",
-              "entries": [
-                {"key": "legacy key", "value": "kept", "contentType": "text", "scope": "all"},
-                {"key": "DUPLICATE", "value": "first", "contentType": "text", "scope": "client"},
-                {"key": "duplicate", "value": "second", "contentType": "text", "scope": "server"},
-                {"key": "legacy.scope", "value": "kept", "contentType": "text", "scope": "public"},
-                {"key": "legacy.type", "value": "kept", "contentType": "xml", "scope": "all"},
-                {"key": "legacy.value", "value": "not-a-number", "contentType": "number", "scope": "all"}
-              ]
-            }
-            """;
-        const string validationProblemJson = """
-            {
-              "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
-              "title": "One or more validation errors occurred.",
-              "status": 400,
-              "detail": "One or more validation errors occurred.",
-              "instance": "/admin/projects/my-project/environments/production/releases",
-              "errors": {
-                "Entries[0].Key": ["Release entry keys may only contain letters, numbers, colons, underscores, periods, and hyphens."],
-                "Entries[2].Key": ["Release entry keys must be unique (case-insensitive)."],
-                "Entries[3].Scope": ["Invalid scope. Must be 'client', 'server', or 'all'."],
-                "Entries[4].ContentType": ["Content type must be one of: text, number, boolean, json."],
-                "Entries[5].Value": ["Value must be a valid number."]
-              }
-            }
-            """;
-
-        var postCount = 0;
+        var requests = new List<string>();
         string? postedBody = null;
-        var factory = CreateHttpFactory(async request =>
+        var factory = ReleaseTestSupport.CreateHttpFactory(async request =>
         {
+            var path = request.RequestUri!.AbsolutePath;
+            requests.Add($"{request.Method} {path}");
             if (request.Method == HttpMethod.Get &&
-                request.RequestUri?.AbsolutePath ==
-                "/admin/projects/my-project/environments/production/releases/1.1.0")
+                path == "/admin/projects/my-project/environments/production/releases")
             {
-                return JsonResponse(HttpStatusCode.OK, sourceJson);
+                return ReleaseTestSupport.JsonResponse(
+                    HttpStatusCode.OK,
+                    """
+                    [
+                      {"version":"1.2.0"},
+                      {"version":"1.2.1"},
+                      {"version":"1.2.3"},
+                      {"version":"1.1.99"},
+                      {"version":"2.2.50"}
+                    ]
+                    """);
+            }
+
+            if (request.Method == HttpMethod.Get &&
+                path == "/admin/projects/my-project/environments/production/releases/1.2.0")
+            {
+                return ReleaseTestSupport.JsonResponse(
+                    HttpStatusCode.OK,
+                    SourceReleaseJson(
+                        "1.2.0",
+                        """
+                        [
+                          {"key":"feature.checkout","value":"true","contentType":"boolean","scope":"client"},
+                          {"key":"deprecated.key","value":"old","contentType":"text","scope":"all"}
+                        ]
+                        """));
             }
 
             if (request.Method == HttpMethod.Post &&
-                request.RequestUri?.AbsolutePath ==
-                "/admin/projects/my-project/environments/production/releases")
+                path == "/admin/projects/my-project/environments/production/releases")
             {
-                postCount++;
                 postedBody = await request.Content!.ReadAsStringAsync();
-                return ProblemResponse(HttpStatusCode.BadRequest, validationProblemJson);
+                return ReleaseTestSupport.JsonResponse(
+                    HttpStatusCode.Created,
+                    SourceReleaseJson(
+                        "1.2.4",
+                        """
+                        [
+                          {"key":"feature.checkout","value":"false","contentType":"boolean","scope":"client"},
+                          {"key":"new.number","value":"42","contentType":"number","scope":"all"}
+                        ]
+                        """));
             }
 
             throw new InvalidOperationException(
                 $"Unexpected request: {request.Method} {request.RequestUri}");
         });
 
-        var (exitCode, output, error) = await CaptureOutputAsync(() =>
-            new AmendReleaseCommandHandler(factory).HandleAsync(
-                new AmendReleaseCommand(
-                    TestConnection,
-                    "my-project",
-                    "production",
-                    "1.1.0",
-                    "1.1.1"),
+        var (exitCode, output, error) = await ReleaseTestSupport.CaptureOutputAsync(() =>
+            new AmendReleaseCommandHandler(factory, isInteractive: () => false).HandleAsync(
+                Command(
+                    "1.2.0",
+                    sets: ["FEATURE.CHECKOUT=false", "new.number=42"],
+                    deletes: ["deprecated.key"]),
+                CancellationToken.None));
+
+        using var posted = JsonDocument.Parse(postedBody!);
+        var entries = posted.RootElement.GetProperty("entries");
+        await Assert.That(exitCode).IsEqualTo(CliExitCodes.Success);
+        await Assert.That(error).IsEmpty();
+        await Assert.That(output).Contains("Published amended release 1.2.4 from 1.2.0.");
+        await Assert.That(posted.RootElement.GetProperty("version").GetString())
+            .IsEqualTo("1.2.4");
+        await Assert.That(posted.RootElement.GetProperty("makeActive").GetBoolean()).IsFalse();
+        await Assert.That(entries.GetArrayLength()).IsEqualTo(2);
+        await Assert.That(entries[0].GetProperty("value").GetString()).IsEqualTo("false");
+        await Assert.That(entries[0].GetProperty("contentType").GetString())
+            .IsEqualTo("boolean");
+        await Assert.That(entries[0].GetProperty("scope").GetString()).IsEqualTo("client");
+        await Assert.That(entries[1].GetProperty("contentType").GetString())
+            .IsEqualTo("number");
+        await Assert.That(requests[0]).EndsWith("/releases");
+        await Assert.That(requests[1]).EndsWith("/releases/1.2.0");
+        await Assert.That(requests.All(request => !request.Contains("config-entries")))
+            .IsTrue();
+    }
+
+    [Test]
+    public async Task Amend_UsesOnlyTheSourceReleaseLineForNextPatch()
+    {
+        string? postedBody = null;
+        var factory = StandardAmendFactory(
+            listJson: """
+                [
+                  {"version":"1.1.0"},
+                  {"version":"1.1.2"},
+                  {"version":"1.2.50"}
+                ]
+                """,
+            sourceVersion: "1.1.0",
+            sourceEntriesJson:
+                """[{"key":"one","value":"1","contentType":"number","scope":"all"}]""",
+            onPost: body => postedBody = body,
+            targetVersion: "1.1.3");
+
+        var exitCode = await new AmendReleaseCommandHandler(
+            factory,
+            isInteractive: () => false).HandleAsync(
+            Command("1.1.0", sets: ["one=2"]),
+            CancellationToken.None);
+
+        using var posted = JsonDocument.Parse(postedBody!);
+        await Assert.That(exitCode).IsEqualTo(CliExitCodes.Success);
+        await Assert.That(posted.RootElement.GetProperty("version").GetString())
+            .IsEqualTo("1.1.3");
+    }
+
+    [Test]
+    public async Task Amend_CanPublishAnExplicitEmptyEntriesArray()
+    {
+        string? postedBody = null;
+        var factory = StandardAmendFactory(
+            listJson: """[{"version":"1.0.0"}]""",
+            sourceVersion: "1.0.0",
+            sourceEntriesJson:
+                """[{"key":"only.key","value":"value","contentType":"text","scope":"all"}]""",
+            onPost: body => postedBody = body,
+            targetVersion: "1.0.1");
+
+        var exitCode = await new AmendReleaseCommandHandler(
+            factory,
+            isInteractive: () => false).HandleAsync(
+            Command("1.0.0", deletes: ["only.key"]),
+            CancellationToken.None);
+
+        using var posted = JsonDocument.Parse(postedBody!);
+        await Assert.That(exitCode).IsEqualTo(CliExitCodes.Success);
+        await Assert.That(posted.RootElement.GetProperty("entries").ValueKind)
+            .IsEqualTo(JsonValueKind.Array);
+        await Assert.That(posted.RootElement.GetProperty("entries").GetArrayLength())
+            .IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task Amend_FromFilePublishesExactlyTheFileEntries()
+    {
+        using var file = new TestHelpers.TempFile();
+        const string fileEntries = """
+            [
+              {"key":"file.key","value":"a=b","contentType":"text","scope":"server"}
+            ]
+            """;
+        await File.WriteAllTextAsync(file.Path, fileEntries);
+        string? postedBody = null;
+        var factory = StandardAmendFactory(
+            listJson: """[{"version":"1.0.0"}]""",
+            sourceVersion: "1.0.0",
+            sourceEntriesJson: "[]",
+            onPost: body => postedBody = body,
+            targetVersion: "1.0.1");
+
+        var exitCode = await new AmendReleaseCommandHandler(
+            factory,
+            isInteractive: () => false).HandleAsync(
+            Command("1.0.0", fromFile: file.Path),
+            CancellationToken.None);
+
+        using var expected = JsonDocument.Parse(fileEntries);
+        using var posted = JsonDocument.Parse(postedBody!);
+        await Assert.That(exitCode).IsEqualTo(CliExitCodes.Success);
+        await Assert.That(JsonElement.DeepEquals(
+            expected.RootElement,
+            posted.RootElement.GetProperty("entries"))).IsTrue();
+    }
+
+    [Test]
+    public async Task Amend_EditorReceivesCopyAndPublishesItsResult()
+    {
+        var editor = new StubEditor(entries =>
+        {
+            entries[0].Value = "edited";
+            return entries;
+        });
+        string? postedBody = null;
+        var factory = StandardAmendFactory(
+            listJson: """[{"version":"1.0.0"}]""",
+            sourceVersion: "1.0.0",
+            sourceEntriesJson:
+                """[{"key":"one","value":"source","contentType":"text","scope":"all"}]""",
+            onPost: body => postedBody = body,
+            targetVersion: "1.0.1");
+
+        var exitCode = await new AmendReleaseCommandHandler(
+            factory,
+            editor,
+            isInteractive: () => false).HandleAsync(
+            Command("1.0.0", editor: true),
+            CancellationToken.None);
+
+        using var posted = JsonDocument.Parse(postedBody!);
+        await Assert.That(exitCode).IsEqualTo(CliExitCodes.Success);
+        await Assert.That(editor.CallCount).IsEqualTo(1);
+        await Assert.That(posted.RootElement.GetProperty("entries")[0]
+            .GetProperty("value").GetString()).IsEqualTo("edited");
+    }
+
+    [Test]
+    public async Task Amend_WithoutModeIsValidationErrorWhenNonInteractiveAndMakesNoRequest()
+    {
+        var requestCount = 0;
+        var factory = ReleaseTestSupport.CreateHttpFactory(_ =>
+        {
+            requestCount++;
+            throw new InvalidOperationException("No request expected.");
+        });
+
+        var (exitCode, output, error) = await ReleaseTestSupport.CaptureOutputAsync(() =>
+            new AmendReleaseCommandHandler(factory, isInteractive: () => false).HandleAsync(
+                Command("1.0.0"),
+                CancellationToken.None));
+
+        await Assert.That(exitCode).IsEqualTo(CliExitCodes.ValidationError);
+        await Assert.That(requestCount).IsEqualTo(0);
+        await Assert.That(output).IsEmpty();
+        await Assert.That(error).Contains("--set/--delete, --from-file, or --editor");
+    }
+
+    [Test]
+    public async Task Amend_WithoutModeDefaultsToEditorWhenInteractive()
+    {
+        var editor = new StubEditor(entries => entries);
+        var factory = StandardAmendFactory(
+            listJson: """[{"version":"1.0.0"}]""",
+            sourceVersion: "1.0.0",
+            sourceEntriesJson: "[]",
+            onPost: _ => { },
+            targetVersion: "1.0.1");
+
+        var exitCode = await new AmendReleaseCommandHandler(
+            factory,
+            editor,
+            isInteractive: () => true).HandleAsync(
+            Command("1.0.0"),
+            CancellationToken.None);
+
+        await Assert.That(exitCode).IsEqualTo(CliExitCodes.Success);
+        await Assert.That(editor.CallCount).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task Amend_RejectsMultipleEditModesBeforeAnyRequest()
+    {
+        var requestCount = 0;
+        var factory = ReleaseTestSupport.CreateHttpFactory(_ =>
+        {
+            requestCount++;
+            throw new InvalidOperationException("No request expected.");
+        });
+
+        var (exitCode, _, error) = await ReleaseTestSupport.CaptureOutputAsync(() =>
+            new AmendReleaseCommandHandler(factory, isInteractive: () => false).HandleAsync(
+                Command("1.0.0", sets: ["one=two"], fromFile: "entries.json"),
+                CancellationToken.None));
+
+        await Assert.That(exitCode).IsEqualTo(CliExitCodes.ValidationError);
+        await Assert.That(requestCount).IsEqualTo(0);
+        await Assert.That(error).Contains("Choose exactly one amend edit mode");
+    }
+
+    [Test]
+    public async Task HandleAsync_PrintsEveryValidationErrorWithoutRetryingOrChangingEntries()
+    {
+        const string sourceEntriesJson = """
+            [
+              {"key":"legacy key","value":"kept","contentType":"text","scope":"all"},
+              {"key":"DUPLICATE","value":"first","contentType":"text","scope":"client"},
+              {"key":"duplicate","value":"second","contentType":"text","scope":"server"},
+              {"key":"legacy.scope","value":"kept","contentType":"text","scope":"public"},
+              {"key":"legacy.type","value":"kept","contentType":"xml","scope":"all"},
+              {"key":"legacy.value","value":"not-a-number","contentType":"number","scope":"all"}
+            ]
+            """;
+        const string validationProblemJson = """
+            {
+              "title":"One or more validation errors occurred.",
+              "status":400,
+              "detail":"One or more validation errors occurred.",
+              "errors":{
+                "Entries[0].Key":["Release entry keys may only contain letters, numbers, colons, underscores, periods, and hyphens."],
+                "Entries[2].Key":["Release entry keys must be unique (case-insensitive)."],
+                "Entries[3].Scope":["Invalid scope. Must be 'client', 'server', or 'all'."],
+                "Entries[4].ContentType":["Content type must be one of: text, number, boolean, json."],
+                "Entries[5].Value":["Value must be a valid number."]
+              }
+            }
+            """;
+
+        var postCount = 0;
+        string? postedBody = null;
+        var factory = ReleaseTestSupport.CreateHttpFactory(async request =>
+        {
+            var path = request.RequestUri!.AbsolutePath;
+            if (request.Method == HttpMethod.Get && path.EndsWith("/releases"))
+            {
+                return ReleaseTestSupport.JsonResponse(
+                    HttpStatusCode.OK,
+                    """[{"version":"1.1.0"}]""");
+            }
+
+            if (request.Method == HttpMethod.Get && path.EndsWith("/releases/1.1.0"))
+            {
+                return ReleaseTestSupport.JsonResponse(
+                    HttpStatusCode.OK,
+                    SourceReleaseJson("1.1.0", sourceEntriesJson));
+            }
+
+            if (request.Method == HttpMethod.Post && path.EndsWith("/releases"))
+            {
+                postCount++;
+                postedBody = await request.Content!.ReadAsStringAsync();
+                return ReleaseTestSupport.ProblemResponse(
+                    HttpStatusCode.BadRequest,
+                    validationProblemJson);
+            }
+
+            throw new InvalidOperationException(
+                $"Unexpected request: {request.Method} {request.RequestUri}");
+        });
+
+        var (exitCode, output, error) = await ReleaseTestSupport.CaptureOutputAsync(() =>
+            new AmendReleaseCommandHandler(factory, isInteractive: () => false).HandleAsync(
+                Command("1.1.0", sets: ["legacy.value=not-a-number"]),
                 CancellationToken.None));
 
         await Assert.That(exitCode).IsEqualTo(CliExitCodes.ValidationError);
         await Assert.That(postCount).IsEqualTo(1);
         await Assert.That(output).IsEmpty();
-        await Assert.That(output).DoesNotContain("Published");
         await Assert.That(error).Contains(
             "Entries[0].Key: Release entry keys may only contain letters, numbers, colons, underscores, periods, and hyphens.");
         await Assert.That(error).Contains(
@@ -101,60 +361,171 @@ public sealed class AmendReleaseCommandHandlerTests
         await Assert.That(error).Contains(
             "Entries[5].Value: Value must be a valid number.");
 
-        using var source = JsonDocument.Parse(sourceJson);
+        using var sourceEntries = JsonDocument.Parse(sourceEntriesJson);
         using var posted = JsonDocument.Parse(postedBody!);
-        await Assert.That(posted.RootElement.GetProperty("version").GetString()).IsEqualTo("1.1.1");
+        await Assert.That(posted.RootElement.GetProperty("version").GetString())
+            .IsEqualTo("1.1.1");
         await Assert.That(posted.RootElement.GetProperty("makeActive").GetBoolean()).IsFalse();
         await Assert.That(JsonElement.DeepEquals(
             posted.RootElement.GetProperty("entries"),
-            source.RootElement.GetProperty("entries"))).IsTrue();
+            sourceEntries.RootElement)).IsTrue();
     }
 
-    private static Func<HttpClient> CreateHttpFactory(
-        Func<HttpRequestMessage, Task<HttpResponseMessage>> responder)
-        => () => new HttpClient(new StubHttpMessageHandler(responder));
-
-    private static HttpResponseMessage JsonResponse(HttpStatusCode statusCode, string body)
-        => new(statusCode)
-        {
-            Content = new StringContent(body, Encoding.UTF8, "application/json")
-        };
-
-    private static HttpResponseMessage ProblemResponse(HttpStatusCode statusCode, string body)
-        => new(statusCode)
-        {
-            Content = new StringContent(body, Encoding.UTF8, "application/problem+json")
-        };
-
-    private static async Task<(int ExitCode, string Output, string Error)> CaptureOutputAsync(
-        Func<Task<int>> action)
+    [Test]
+    public async Task Amend_ConflictReturnsExitFiveWithoutRetrying()
     {
-        var previousOut = Console.Out;
-        var previousError = Console.Error;
-        using var output = new StringWriter();
-        using var error = new StringWriter();
+        var postCount = 0;
+        var factory = ReleaseTestSupport.CreateHttpFactory(async request =>
+        {
+            var path = request.RequestUri!.AbsolutePath;
+            if (request.Method == HttpMethod.Get && path.EndsWith("/releases"))
+            {
+                return ReleaseTestSupport.JsonResponse(
+                    HttpStatusCode.OK,
+                    """[{"version":"1.0.0"}]""");
+            }
 
+            if (request.Method == HttpMethod.Get && path.EndsWith("/releases/1.0.0"))
+            {
+                return ReleaseTestSupport.JsonResponse(
+                    HttpStatusCode.OK,
+                    SourceReleaseJson(
+                        "1.0.0",
+                        """[{"key":"one","value":"1","contentType":"number","scope":"all"}]"""));
+            }
+
+            if (request.Method == HttpMethod.Post && path.EndsWith("/releases"))
+            {
+                postCount++;
+                _ = await request.Content!.ReadAsStringAsync();
+                return ReleaseTestSupport.ProblemResponse(
+                    HttpStatusCode.Conflict,
+                    """{"title":"Conflict","status":409,"detail":"Release already exists"}""");
+            }
+
+            throw new InvalidOperationException(
+                $"Unexpected request: {request.Method} {request.RequestUri}");
+        });
+
+        var (exitCode, output, error) = await ReleaseTestSupport.CaptureOutputAsync(() =>
+            new AmendReleaseCommandHandler(factory, isInteractive: () => false).HandleAsync(
+                Command("1.0.0", sets: ["one=2"]),
+                CancellationToken.None));
+
+        await Assert.That(exitCode).IsEqualTo(CliExitCodes.Conflict);
+        await Assert.That(postCount).IsEqualTo(1);
+        await Assert.That(output).IsEmpty();
+        await Assert.That(error).Contains("Release already exists");
+    }
+
+    [Test]
+    public async Task Amend_CancellationPropagates()
+    {
+        var factory = ReleaseTestSupport.CreateHttpFactory(
+            (_, cancellationToken) =>
+                Task.FromCanceled<HttpResponseMessage>(cancellationToken));
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        OperationCanceledException? exception = null;
         try
         {
-            Console.SetOut(output);
-            Console.SetError(error);
-            var exitCode = await action();
-            return (exitCode, output.ToString(), error.ToString());
+            await new AmendReleaseCommandHandler(
+                factory,
+                isInteractive: () => false).HandleAsync(
+                Command("1.0.0", sets: ["one=2"]),
+                cancellation.Token);
         }
-        finally
+        catch (OperationCanceledException caught)
         {
-            Console.SetOut(previousOut);
-            Console.SetError(previousError);
+            exception = caught;
         }
+
+        await Assert.That(exception).IsNotNull();
     }
 
-    private sealed class StubHttpMessageHandler(
-        Func<HttpRequestMessage, Task<HttpResponseMessage>> responder)
-        : HttpMessageHandler
+    private static AmendReleaseCommand Command(
+        string sourceVersion,
+        IReadOnlyList<string>? sets = null,
+        IReadOnlyList<string>? deletes = null,
+        string? fromFile = null,
+        bool editor = false)
+        => new(
+            ReleaseTestSupport.Connection,
+            "my-project",
+            "production",
+            sourceVersion,
+            sets ?? [],
+            deletes ?? [],
+            fromFile,
+            editor);
+
+    private static Func<HttpClient> StandardAmendFactory(
+        string listJson,
+        string sourceVersion,
+        string sourceEntriesJson,
+        Action<string> onPost,
+        string targetVersion)
+        => ReleaseTestSupport.CreateHttpFactory(async request =>
+        {
+            var path = request.RequestUri!.AbsolutePath;
+            if (request.Method == HttpMethod.Get && path.EndsWith("/releases"))
+            {
+                return ReleaseTestSupport.JsonResponse(HttpStatusCode.OK, listJson);
+            }
+
+            if (request.Method == HttpMethod.Get &&
+                path.EndsWith($"/releases/{sourceVersion}"))
+            {
+                return ReleaseTestSupport.JsonResponse(
+                    HttpStatusCode.OK,
+                    SourceReleaseJson(sourceVersion, sourceEntriesJson));
+            }
+
+            if (request.Method == HttpMethod.Post && path.EndsWith("/releases"))
+            {
+                var body = await request.Content!.ReadAsStringAsync();
+                onPost(body);
+                using var posted = JsonDocument.Parse(body);
+                return ReleaseTestSupport.JsonResponse(
+                    HttpStatusCode.Created,
+                    SourceReleaseJson(
+                        targetVersion,
+                        posted.RootElement
+                            .GetProperty("entries").GetRawText()));
+            }
+
+            throw new InvalidOperationException(
+                $"Unexpected request: {request.Method} {request.RequestUri}");
+        });
+
+    private static string SourceReleaseJson(string version, string entriesJson)
+        => $$"""
+            {
+              "project":"my-project",
+              "environment":"production",
+              "version":"{{version}}",
+              "entryCount":0,
+              "isActive":false,
+              "createdAt":"2024-01-01T00:00:00Z",
+              "actor":"alice",
+              "entries":{{entriesJson}}
+            }
+            """;
+
+    private sealed class StubEditor(
+        Func<List<ConfigReleaseEntryDto>, List<ConfigReleaseEntryDto>> edit)
+        : IReleaseEntryEditor
     {
-        protected override Task<HttpResponseMessage> SendAsync(
-            HttpRequestMessage request,
+        public int CallCount { get; private set; }
+
+        public Task<List<ConfigReleaseEntryDto>> EditAsync(
+            IReadOnlyList<ConfigReleaseEntryDto> entries,
             CancellationToken cancellationToken)
-            => responder(request);
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            CallCount++;
+            return Task.FromResult(edit(entries.ToList()));
+        }
     }
 }
