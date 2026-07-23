@@ -23,10 +23,17 @@ internal static class Program
             defaultsStore: defaultsStore,
             sessionStore: sessionStore);
 
-        var root = new RootCommand("Administer Nona configuration through a command-line interface.");
         var verboseOption = new Option<bool>(
             "--verbose",
             "Show full exception details when a command fails.");
+        var root = CreateRootCommand(ctx, verboseOption);
+
+        return await CreateParser(root, verboseOption).InvokeAsync(args);
+    }
+
+    internal static RootCommand CreateRootCommand(CliContext ctx, Option<bool> verboseOption)
+    {
+        var root = new RootCommand("Administer Nona configuration through a command-line interface.");
         root.AddGlobalOption(verboseOption);
 
         foreach (var type in System.Reflection.Assembly.GetExecutingAssembly().GetTypes()
@@ -36,7 +43,7 @@ internal static class Program
             root.AddCommand(group.Build());
         }
 
-        return await CreateParser(root, verboseOption).InvokeAsync(args);
+        return root;
     }
 
     internal static Parser CreateParser(RootCommand root, Option<bool> verboseOption)

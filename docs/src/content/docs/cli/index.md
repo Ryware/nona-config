@@ -10,6 +10,7 @@ The `nona` CLI manages admin workflows from a terminal. Use it for:
 - projects
 - environments
 - config entries
+- releases
 - API keys
 - users
 - Firebase Remote Config migration
@@ -102,6 +103,24 @@ nona environments delete --project mobile-app --name development
 ```
 
 Creating an environment is idempotent: requesting an existing environment succeeds and reuses it. Config entry commands do not create missing environments implicitly.
+
+## Manage releases
+
+```bash
+nona releases list --project mobile-app --environment production
+nona releases view --project mobile-app --environment production --version 1.1.0
+nona releases create --project mobile-app --environment production --version 1.2.0
+nona releases amend --project mobile-app --environment production --source-version 1.1.0 --version 1.1.1
+nona releases activate --project mobile-app --environment production --version 1.2.0
+nona releases clear-active --project mobile-app --environment production
+nona releases delete --project mobile-app --environment production --version 1.1.0
+```
+
+`nona releases create` snapshots the environment's current working configuration. Pass `--activate` if the newly created release should become active immediately.
+
+`nona releases amend` copies the source release's entries unchanged into the new patch version. It does not edit the environment's working configuration. Use `--source-version` for the release to copy and `--version` for the new release.
+
+An active release cannot be deleted. Activate another release or run `nona releases clear-active` first.
 
 ## Save defaults
 

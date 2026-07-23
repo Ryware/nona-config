@@ -51,6 +51,7 @@ nona [command] [options]
 **Commands**
 
 - `users` Invite users to Nona.
+- `releases` List, inspect, publish, activate, and delete configuration releases.
 - `projects` List, create, and delete projects.
 - `migrate` Run migration commands.
 - `keys` List, create, and delete project API keys.
@@ -99,6 +100,166 @@ nona users create [options]
 --user-email <user-email> (REQUIRED)    Email address of the new user.
 --role <role>                           User role: viewer or editor.
 --scope <scope>                         User scope: client, server, or all.
+```
+
+## `nona releases`
+
+List, inspect, publish, activate, and delete configuration releases.
+
+**Usage**
+
+```text
+nona releases [command] [options]
+```
+
+**Commands**
+
+- `list` List releases in an environment.
+- `view` Show one release and its entries.
+- `create` Publish the working configuration as a release.
+- `amend` Publish a new release from an unchanged copy of an existing release.
+- `activate` Make a release active.
+- `clear-active` Clear the active release for an environment.
+- `delete` Delete a non-active release.
+
+## `nona releases list`
+
+List releases in an environment.
+
+**Usage**
+
+```text
+nona releases list [options]
+```
+
+**Options**
+
+```text
+--api-url, --base-url <base-url>          Nona base URL.
+--bearer-token, --token <bearer-token>    Admin bearer token.
+--project, --project-name <project-name>  Nona project name.
+--environment <environment>               Environment containing the release.
+```
+
+## `nona releases view`
+
+Show one release and its entries.
+
+**Usage**
+
+```text
+nona releases view [options]
+```
+
+**Options**
+
+```text
+--api-url, --base-url <base-url>          Nona base URL.
+--bearer-token, --token <bearer-token>    Admin bearer token.
+--project, --project-name <project-name>  Nona project name.
+--environment <environment>               Environment containing the release.
+--version <version>                       Release version in major.minor.patch format.
+```
+
+## `nona releases create`
+
+Publish the working configuration as a release.
+
+**Usage**
+
+```text
+nona releases create [options]
+```
+
+**Options**
+
+```text
+--api-url, --base-url <base-url>          Nona base URL.
+--bearer-token, --token <bearer-token>    Admin bearer token.
+--project, --project-name <project-name>  Nona project name.
+--environment <environment>               Environment containing the release.
+--version <version>                       Release version in major.minor.patch format.
+--activate                                Make the new release active immediately.
+```
+
+## `nona releases amend`
+
+Publish a new release from an unchanged copy of an existing release.
+
+**Usage**
+
+```text
+nona releases amend [options]
+```
+
+**Options**
+
+```text
+--api-url, --base-url <base-url>          Nona base URL.
+--bearer-token, --token <bearer-token>    Admin bearer token.
+--project, --project-name <project-name>  Nona project name.
+--environment <environment>               Environment containing the release.
+--source-version <source-version>         Existing release version to copy.
+--version <version>                       New patch release version to publish.
+```
+
+## `nona releases activate`
+
+Make a release active.
+
+**Usage**
+
+```text
+nona releases activate [options]
+```
+
+**Options**
+
+```text
+--api-url, --base-url <base-url>          Nona base URL.
+--bearer-token, --token <bearer-token>    Admin bearer token.
+--project, --project-name <project-name>  Nona project name.
+--environment <environment>               Environment containing the release.
+--version <version>                       Release version in major.minor.patch format.
+```
+
+## `nona releases clear-active`
+
+Clear the active release for an environment.
+
+**Usage**
+
+```text
+nona releases clear-active [options]
+```
+
+**Options**
+
+```text
+--api-url, --base-url <base-url>          Nona base URL.
+--bearer-token, --token <bearer-token>    Admin bearer token.
+--project, --project-name <project-name>  Nona project name.
+--environment <environment>               Environment containing the release.
+```
+
+## `nona releases delete`
+
+Delete a non-active release.
+
+**Usage**
+
+```text
+nona releases delete [options]
+```
+
+**Options**
+
+```text
+--api-url, --base-url <base-url>          Nona base URL.
+--bearer-token, --token <bearer-token>    Admin bearer token.
+--project, --project-name <project-name>  Nona project name.
+--environment <environment>               Environment containing the release.
+--version <version>                       Release version in major.minor.patch format.
 ```
 
 ## `nona projects`

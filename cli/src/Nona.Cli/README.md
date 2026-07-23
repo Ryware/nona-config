@@ -96,6 +96,20 @@ nona entries history --project mobile-app --environment production --key welcome
 nona entries rollback --project mobile-app --environment production --key welcome_text --version 2 --base-url https://nona.example.com --token <token>
 ```
 
+Manage immutable releases:
+
+```bash
+nona releases list --project mobile-app --environment production
+nona releases view --project mobile-app --environment production --version 1.1.0
+nona releases create --project mobile-app --environment production --version 1.2.0
+nona releases amend --project mobile-app --environment production --source-version 1.1.0 --version 1.1.1
+nona releases activate --project mobile-app --environment production --version 1.2.0
+nona releases clear-active --project mobile-app --environment production
+nona releases delete --project mobile-app --environment production --version 1.1.0
+```
+
+`releases create` snapshots the current working configuration. Add `--activate` to make the new release active immediately. `releases amend` copies an existing release's entries unchanged into the new patch version, without changing the working configuration.
+
 Run a Firebase Remote Config migration:
 
 ```bash

@@ -21,6 +21,10 @@ mono_crash.*
 [Dd]ebugPublic/
 [Rr]elease/
 [Rr]eleases/
+!cli/src/Nona.Cli/Releases/
+!cli/src/Nona.Cli/Releases/**
+!cli/tests/Nona.Cli.Tests/Releases/
+!cli/tests/Nona.Cli.Tests/Releases/**
 !cli/src/Nona.Cli/Core/Generated/Admin/Projects/Item/Environments/Item/Releases/
 !cli/src/Nona.Cli/Core/Generated/Admin/Projects/Item/Environments/Item/Releases/**
 !migrator/src/ConfigMigrator.Core/Generated/Admin/Projects/Item/Environments/Item/Releases/
