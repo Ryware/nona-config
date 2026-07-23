@@ -108,17 +108,34 @@ Creating an environment is idempotent: requesting an existing environment succee
 
 ```bash
 nona releases list --project mobile-app --environment production
-nona releases view --project mobile-app --environment production --version 1.1.0
-nona releases create --project mobile-app --environment production --version 1.2.0
-nona releases amend --project mobile-app --environment production --source-version 1.1.0 --version 1.1.1
-nona releases activate --project mobile-app --environment production --version 1.2.0
+nona releases list --project mobile-app --environment production --json
+nona releases view 1.1.0 --project mobile-app --environment production
+nona releases view 1.1.0 --project mobile-app --environment production --json
+nona releases create 1.2 --project mobile-app --environment production
+nona releases amend 1.1.0 --project mobile-app --environment production --set Features:Checkout=false
+nona releases activate 1.2.0 --project mobile-app --environment production
 nona releases clear-active --project mobile-app --environment production
-nona releases delete --project mobile-app --environment production --version 1.1.0
+nona releases delete 1.1.0 --project mobile-app --environment production
 ```
 
-`nona releases create` snapshots the environment's current working configuration. Pass `--activate` if the newly created release should become active immediately.
+`nona releases create` accepts only a new `major.minor` line, stores it as patch `.0`, and snapshots the environment's current working configuration. Pass `--activate` if the newly created release should become active immediately.
 
-`nona releases amend` copies the source release's entries unchanged into the new patch version. It does not edit the environment's working configuration. Use `--source-version` for the release to copy and `--version` for the new release.
+`nona releases amend` accepts an exact source version and automatically selects one patch higher than the greatest existing patch in that release line. It edits a client-side copy and publishes the complete entries payload, so the environment's working configuration is never changed.
+
+Choose one amend edit mode:
+
+```bash
+nona releases amend 1.1.0 --environment production \
+  --set Features:Checkout=false \
+  --delete Deprecated:Flag
+
+nona releases amend 1.1.0 --environment production --from-file ./release-entries.json
+nona releases amend 1.1.0 --environment production --editor
+```
+
+`--set` and `--delete` are repeatable. A file must contain a JSON array whose entries have `key`, `value`, `contentType`, and `scope`. Editor mode uses `VISUAL`, then `EDITOR`; interactive amend defaults to it when no mode is supplied. Non-interactive amend must select a mode.
+
+Release-management commands use exact `major.minor.patch` versions. The `major.minor.x` form belongs to client configuration reads, where it selects the highest patch in a line; it is not accepted by `view`, `amend`, `activate`, or `delete`.
 
 An active release cannot be deleted. Activate another release or run `nona releases clear-active` first.
 

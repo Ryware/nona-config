@@ -51,7 +51,7 @@ nona [command] [options]
 **Commands**
 
 - `users` Invite users to Nona.
-- `releases` List, inspect, publish, activate, and delete configuration releases.
+- `releases` Manage immutable configuration releases. Management commands use exact major.minor.patch versions; major.minor.x is only a client-read selector.
 - `projects` List, create, and delete projects.
 - `migrate` Run migration commands.
 - `keys` List, create, and delete project API keys.
@@ -104,7 +104,7 @@ nona users create [options]
 
 ## `nona releases`
 
-List, inspect, publish, activate, and delete configuration releases.
+Manage immutable configuration releases. Management commands use exact major.minor.patch versions; major.minor.x is only a client-read selector.
 
 **Usage**
 
@@ -115,12 +115,12 @@ nona releases [command] [options]
 **Commands**
 
 - `list` List releases in an environment.
-- `view` Show one release and its entries.
-- `create` Publish the working configuration as a release.
-- `amend` Publish a new release from an unchanged copy of an existing release.
-- `activate` Make a release active.
+- `view <version>` Show one exact release and its entries.
+- `create <version>` Snapshot the working configuration as a new release. Supply major.minor; the stored release starts at patch .0.
+- `amend <source-version>` Edit a client-side copy of an exact release and publish it as the next patch.
+- `activate <version>` Make an exact release active.
 - `clear-active` Clear the active release for an environment.
-- `delete` Delete a non-active release.
+- `delete <version>` Delete a non-active exact release.
 
 ## `nona releases list`
 
@@ -139,16 +139,23 @@ nona releases list [options]
 --bearer-token, --token <bearer-token>    Admin bearer token.
 --project, --project-name <project-name>  Nona project name.
 --environment <environment>               Environment containing the release.
+--json                                    Write one JSON array to standard output.
 ```
 
 ## `nona releases view`
 
-Show one release and its entries.
+Show one exact release and its entries.
 
 **Usage**
 
 ```text
-nona releases view [options]
+nona releases view <version> [options]
+```
+
+**Arguments**
+
+```text
+<version>  Exact release version in major.minor.patch format.
 ```
 
 **Options**
@@ -158,17 +165,23 @@ nona releases view [options]
 --bearer-token, --token <bearer-token>    Admin bearer token.
 --project, --project-name <project-name>  Nona project name.
 --environment <environment>               Environment containing the release.
---version <version>                       Release version in major.minor.patch format.
+--json                                    Write one JSON object to standard output.
 ```
 
 ## `nona releases create`
 
-Publish the working configuration as a release.
+Snapshot the working configuration as a new release. Supply major.minor; the stored release starts at patch .0.
 
 **Usage**
 
 ```text
-nona releases create [options]
+nona releases create <version> [options]
+```
+
+**Arguments**
+
+```text
+<version>  New release line in major.minor format; stored as major.minor.0.
 ```
 
 **Options**
@@ -178,18 +191,23 @@ nona releases create [options]
 --bearer-token, --token <bearer-token>    Admin bearer token.
 --project, --project-name <project-name>  Nona project name.
 --environment <environment>               Environment containing the release.
---version <version>                       Release version in major.minor.patch format.
 --activate                                Make the new release active immediately.
 ```
 
 ## `nona releases amend`
 
-Publish a new release from an unchanged copy of an existing release.
+Edit a client-side copy of an exact release and publish it as the next patch.
 
 **Usage**
 
 ```text
-nona releases amend [options]
+nona releases amend <source-version> [options]
+```
+
+**Arguments**
+
+```text
+<source-version>  Exact existing release version to amend.
 ```
 
 **Options**
@@ -199,18 +217,26 @@ nona releases amend [options]
 --bearer-token, --token <bearer-token>    Admin bearer token.
 --project, --project-name <project-name>  Nona project name.
 --environment <environment>               Environment containing the release.
---source-version <source-version>         Existing release version to copy.
---version <version>                       New patch release version to publish.
+--set <set>                               Set key=value in the copied entries. Repeat for multiple keys.
+--delete <delete>                         Delete a key from the copied entries. Repeat for multiple keys.
+--from-file <from-file>                   Replace the copied entries with a UTF-8 JSON entries array.
+--editor                                  Edit the copied entries as JSON using VISUAL or EDITOR.
 ```
 
 ## `nona releases activate`
 
-Make a release active.
+Make an exact release active.
 
 **Usage**
 
 ```text
-nona releases activate [options]
+nona releases activate <version> [options]
+```
+
+**Arguments**
+
+```text
+<version>  Exact release version in major.minor.patch format.
 ```
 
 **Options**
@@ -220,7 +246,6 @@ nona releases activate [options]
 --bearer-token, --token <bearer-token>    Admin bearer token.
 --project, --project-name <project-name>  Nona project name.
 --environment <environment>               Environment containing the release.
---version <version>                       Release version in major.minor.patch format.
 ```
 
 ## `nona releases clear-active`
@@ -244,12 +269,18 @@ nona releases clear-active [options]
 
 ## `nona releases delete`
 
-Delete a non-active release.
+Delete a non-active exact release.
 
 **Usage**
 
 ```text
-nona releases delete [options]
+nona releases delete <version> [options]
+```
+
+**Arguments**
+
+```text
+<version>  Exact release version in major.minor.patch format.
 ```
 
 **Options**
@@ -259,7 +290,6 @@ nona releases delete [options]
 --bearer-token, --token <bearer-token>    Admin bearer token.
 --project, --project-name <project-name>  Nona project name.
 --environment <environment>               Environment containing the release.
---version <version>                       Release version in major.minor.patch format.
 ```
 
 ## `nona projects`
@@ -795,7 +825,11 @@ Save a default base URL or project.
 
 ```text
 nona config set <setting> <value> [options]
-Arguments:
+```
+
+**Arguments**
+
+```text
 <setting>  Setting name: base-url or project.
 <value>    Value to save as the default.
 ```

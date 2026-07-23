@@ -64,6 +64,14 @@ Nona normalizes the entered version to patch `.0`, so `1.2` becomes `1.2.0`.
 
 Creating the release stores an immutable snapshot of the current working configuration.
 
+The CLI exposes the same create behavior:
+
+```bash
+nona releases create 1.2 --project mobile-app --environment production
+```
+
+The CLI sends `1.2.0` without an entries payload, so the backend performs the working-configuration snapshot.
+
 ## Activate a release
 
 Creating a release does not auto-activate it.
@@ -96,6 +104,17 @@ In admin:
 
 Amend does not ask you to type the patch version manually.
 
+The equivalent CLI flow also calculates the patch and edits a local copy:
+
+```bash
+nona releases amend 1.1.0 \
+  --project mobile-app \
+  --environment production \
+  --set Features:Checkout=false
+```
+
+Use `--from-file` or `--editor` for larger changes. All amend modes publish an explicit entries payload and never use the working-configuration mutation endpoints.
+
 ## Important amend behavior
 
 Amend keeps the environment's working configuration separate from the release being patched:
@@ -125,6 +144,8 @@ If the release is active, activate a different release or clear the active relea
 - use exact versions for strongly pinned consumers
 - use `major.minor.x` line reads when clients should float to the newest patch
 - amend older lines only when you intentionally want to patch that line
+
+The line selector is part of the public client read API. Admin and CLI release-management operations require exact versions such as `1.2.0`.
 
 ## Practical example
 

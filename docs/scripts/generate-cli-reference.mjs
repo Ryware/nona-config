@@ -205,6 +205,9 @@ function writeReference() {
 		if (sections.usage) {
 			lines.push('**Usage**', '', '```text', sections.usage, '```', '');
 		}
+		if (sections.arguments) {
+			lines.push('**Arguments**', '', '```text', sections.arguments, '```', '');
+		}
 		if (sections.commands.length > 0) {
 			lines.push('**Commands**', '');
 			for (const item of sections.commands) {
@@ -239,6 +242,7 @@ function parseHelpSections(help) {
 	const sections = {
 		description: [],
 		usage: [],
+		arguments: [],
 		options: [],
 		commands: [],
 	};
@@ -253,6 +257,9 @@ function parseHelpSections(help) {
 				continue;
 			case 'Usage:':
 				current = 'usage';
+				continue;
+			case 'Arguments:':
+				current = 'arguments';
 				continue;
 			case 'Options:':
 				current = 'options';
@@ -277,6 +284,7 @@ function parseHelpSections(help) {
 	return {
 		description: collapseDescription(sections.description),
 		usage: collapseBlock(sections.usage),
+		arguments: collapseBlock(sections.arguments),
 		options: collapseBlock(sections.options),
 		commands: parseCommandRows(sections.commands),
 	};
