@@ -220,7 +220,6 @@ nona releases amend <source-version> [options]
 --set <set>                               Set key=value in the copied entries. Repeat for multiple keys.
 --delete <delete>                         Delete a key from the copied entries. Repeat for multiple keys.
 --from-file <from-file>                   Replace the copied entries with a UTF-8 JSON entries array.
---editor                                  Edit the copied entries as JSON using VISUAL or EDITOR.
 ```
 
 ## `nona releases activate`

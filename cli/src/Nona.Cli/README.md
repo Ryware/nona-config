@@ -118,13 +118,12 @@ nona releases delete 1.1.0 --project mobile-app --environment production
 
 `releases create` accepts `major.minor`, stores it as patch `.0`, and snapshots the current working configuration. Add `--activate` to make the new release active immediately.
 
-`releases amend` calculates the next patch in the source release's line, edits a local copy, and publishes the complete edited entries payload without changing the working configuration. Choose one edit mode:
+`releases amend` calculates the next patch in the source release's line, edits a local copy, and publishes the complete edited entries payload without changing the working configuration. Choose one input method:
 
 - repeat `--set key=value` and `--delete key` for direct changes
 - use `--from-file ./entries.json` with a JSON array of `{ "key", "value", "contentType", "scope" }` objects
-- use `--editor` to open formatted JSON with `VISUAL`, falling back to `EDITOR`
 
-When run interactively with no edit option, amend defaults to the editor. Non-interactive use must select an edit mode. Release-management commands use exact `major.minor.patch` versions; `major.minor.x` is supported only by client configuration reads.
+Amend always requires an explicit input method, which keeps the command suitable for scripts and automation. Release-management commands use exact `major.minor.patch` versions; `major.minor.x` is supported only by client configuration reads.
 
 Run a Firebase Remote Config migration:
 

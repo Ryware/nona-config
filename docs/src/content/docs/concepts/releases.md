@@ -113,7 +113,7 @@ nona releases amend 1.1.0 \
   --set Features:Checkout=false
 ```
 
-Use `--from-file` or `--editor` for larger changes. All amend modes publish an explicit entries payload and never use the working-configuration mutation endpoints.
+Use `--from-file` for larger changes. Both CLI amend input methods publish an explicit entries payload and never use the working-configuration mutation endpoints.
 
 ## Important amend behavior
 

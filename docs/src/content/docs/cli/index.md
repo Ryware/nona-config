@@ -122,7 +122,7 @@ nona releases delete 1.1.0 --project mobile-app --environment production
 
 `nona releases amend` accepts an exact source version and automatically selects one patch higher than the greatest existing patch in that release line. It edits a client-side copy and publishes the complete entries payload, so the environment's working configuration is never changed.
 
-Choose one amend edit mode:
+Choose one amend input method:
 
 ```bash
 nona releases amend 1.1.0 --environment production \
@@ -130,10 +130,9 @@ nona releases amend 1.1.0 --environment production \
   --delete Deprecated:Flag
 
 nona releases amend 1.1.0 --environment production --from-file ./release-entries.json
-nona releases amend 1.1.0 --environment production --editor
 ```
 
-`--set` and `--delete` are repeatable. A file must contain a JSON array whose entries have `key`, `value`, `contentType`, and `scope`. Editor mode uses `VISUAL`, then `EDITOR`; interactive amend defaults to it when no mode is supplied. Non-interactive amend must select a mode.
+`--set` and `--delete` are repeatable. A file must contain a JSON array whose entries have `key`, `value`, `contentType`, and `scope`. Amend always requires one of these explicit input methods, making the command predictable in scripts and automation.
 
 Release-management commands use exact `major.minor.patch` versions. The `major.minor.x` form belongs to client configuration reads, where it selects the highest patch in a line; it is not accepted by `view`, `amend`, `activate`, or `delete`.
 
