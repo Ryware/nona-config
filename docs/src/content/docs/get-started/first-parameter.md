@@ -1,6 +1,6 @@
 ---
 title: Add your first parameter
-description: Create your first Nona config entry and choose the right content type and scope.
+description: Create your first Nona config entry, choose the right content type and scope, and set a value your app can read at runtime.
 ---
 
 A parameter in Nona is a config entry stored in a project environment.

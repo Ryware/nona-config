@@ -1,6 +1,6 @@
 ---
 title: Environments
-description: Learn how Nona environments separate development, staging, and production config values.
+description: Learn how Nona environments separate development, staging, and production config values so each stage reads its own settings.
 ---
 
 An environment stores a set of config entries for a particular runtime stage.

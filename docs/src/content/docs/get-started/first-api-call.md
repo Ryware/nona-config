@@ -1,6 +1,6 @@
 ---
 title: Fetch your first config value
-description: Make your first Nona read over HTTP with an API key and a single environment/key request.
+description: Make your first Nona read over HTTP with an API key and a single environment and key request, confirming your setup end to end.
 ---
 
 Once you have:

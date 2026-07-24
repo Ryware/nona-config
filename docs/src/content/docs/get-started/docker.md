@@ -1,6 +1,6 @@
 ---
 title: Deploy with Docker
-description: Start Nona with Docker, then continue into project, parameter, and API key setup.
+description: Start Nona with Docker, then continue into creating a project, adding a parameter, and generating an API key for your first read.
 ---
 
 For most teams, Docker is the fastest way to start Nona.

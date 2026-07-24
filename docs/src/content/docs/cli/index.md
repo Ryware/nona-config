@@ -1,6 +1,6 @@
 ---
 title: CLI
-description: Install and use the nona command.
+description: Install the nona CLI and run commands to manage projects, environments, parameters, and Firebase migrations from your terminal.
 ---
 
 The `nona` CLI manages admin workflows from a terminal. Use it for:

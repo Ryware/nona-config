@@ -1,6 +1,6 @@
 ---
 title: .NET client
-description: Read Nona config values from .NET.
+description: Read Nona config values and feature flags from .NET using the Nona.Client NuGet package, with typed access and optional caching.
 ---
 
 Package: `Nona.Client`

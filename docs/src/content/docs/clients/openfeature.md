@@ -1,6 +1,6 @@
 ---
 title: OpenFeature
-description: Use Nona through OpenFeature so your application reads flags and config through a vendor-neutral interface.
+description: Use Nona through OpenFeature so your application reads flags and config through a standard, vendor-neutral interface with no lock-in.
 ---
 
 Nona ships OpenFeature integration for JavaScript and .NET. Use OpenFeature when you want a standard flag/config interface, less vendor-specific application code, and cleaner portability at the application layer. It is especially useful when your team thinks in feature flags first but still wants access to the same underlying Nona values and scopes.

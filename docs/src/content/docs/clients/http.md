@@ -1,6 +1,6 @@
 ---
 title: HTTP
-description: Fetch one or all client-visible Nona config values with an API key.
+description: Fetch one or all client-visible Nona config values over plain HTTP with an API key, from any language or platform, with no SDK.
 ---
 
 Use HTTP when an app needs config values and does not use a client package.

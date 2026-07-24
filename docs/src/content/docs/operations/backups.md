@@ -1,6 +1,6 @@
 ---
 title: Backups
-description: Back up Nona persistent data before risky changes and treat the mounted data volumes as production state.
+description: Back up Nona persistent data before risky changes and treat the mounted data volumes as production state you can restore from.
 ---
 
 Nona stores persistent state under `/var/lib/nona` in the Docker-based deployment paths documented in this repo.

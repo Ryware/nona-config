@@ -1,6 +1,6 @@
 ---
 title: CLI reference
-description: Generated command reference for the nona CLI.
+description: Full generated command reference for the nona CLI, covering every command, flag, and option for managing config and migrations.
 ---
 
 Generated from the `nona` command help output.

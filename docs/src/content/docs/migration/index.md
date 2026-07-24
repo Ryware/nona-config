@@ -1,6 +1,6 @@
 ---
 title: Migration
-description: Plan and validate a move from Firebase Remote Config to Nona using the built-in CLI migration flow.
+description: Plan and validate a move from Firebase Remote Config to Nona using the built-in CLI migration flow, with mapping and dry runs.
 ---
 
 Migration is a first-class Nona workflow.
