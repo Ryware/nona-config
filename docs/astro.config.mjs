@@ -68,6 +68,7 @@ export default defineConfig({
 						{ label: 'Overview', slug: 'concepts' },
 						{ label: 'Projects', slug: 'concepts/projects' },
 						{ label: 'Environments', slug: 'concepts/environments' },
+						{ label: 'Releases', slug: 'concepts/releases' },
 						{ label: 'Parameters and content types', slug: 'concepts/parameters-and-content-types' },
 						{ label: 'Client vs server scope', slug: 'concepts/client-vs-server-scope' },
 						{ label: 'API keys', slug: 'concepts/api-keys' },
