@@ -1,6 +1,6 @@
 ---
 title: JavaScript client
-description: Read Nona config values from JavaScript or TypeScript.
+description: Read Nona config values and feature flags from JavaScript or TypeScript using the nona-client npm package, with optional caching.
 ---
 
 Package: `nona-client`

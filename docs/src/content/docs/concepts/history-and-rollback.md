@@ -1,6 +1,6 @@
 ---
 title: History and rollback
-description: Use Nona config entry history and rollback to inspect changes and recover quickly from bad parameter updates.
+description: Use Nona config entry history and rollback to inspect past changes and recover quickly from a bad parameter update in production.
 ---
 
 Nona tracks config entry history and supports rollback to a previous version.

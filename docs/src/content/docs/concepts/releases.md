@@ -1,6 +1,6 @@
 ---
 title: Releases
-description: Learn how Nona working configuration, immutable releases, active releases, and amend flow fit together.
+description: Learn how Nona working configuration, immutable releases, active releases, and the amend flow fit together to serve config safely.
 ---
 
 Nona separates editing from serving.

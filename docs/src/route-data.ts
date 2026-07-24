@@ -1,7 +1,7 @@
 import { defineRouteMiddleware } from '@astrojs/starlight/route-data';
 
 const SITE_URL = 'https://nonaconfig.com';
-const DOCS_URL = `${SITE_URL}/docs/`;
+const DOCS_URL = `${SITE_URL}/docs`;
 const REPOSITORY_URL = 'https://github.com/Ryware/nona-config';
 const LICENSE_URL = 'https://www.apache.org/licenses/LICENSE-2.0';
 const DEFAULT_DESCRIPTION =
@@ -1574,7 +1574,7 @@ function createBreadcrumbList(pathname: string, title: string): JsonLdNode | nul
 			'@type': 'ListItem',
 			position: 2,
 			name: sectionLabel,
-			item: createAbsoluteUrl(`/docs/${docsSegments[0]}/`),
+			item: createAbsoluteUrl(`/docs/${docsSegments[0]}`),
 		});
 	}
 
@@ -1642,14 +1642,14 @@ function createPageNode(pathname: string, title: string, description: string, la
 function createHomeNode(pathname: string, title: string, description: string, language: string): JsonLdNode[] {
 	const url = createAbsoluteUrl(pathname);
 	const topics = [
-		{ name: 'Get Started', path: '/docs/get-started/' },
-		{ name: 'Feature Flags', path: '/docs/feature-flags/' },
-		{ name: 'Remote Config', path: '/docs/remote-config/' },
-		{ name: 'Core Concepts', path: '/docs/concepts/' },
-		{ name: 'Clients and API', path: '/docs/clients/' },
-		{ name: 'Deployment', path: '/docs/deployment/' },
-		{ name: 'Operations', path: '/docs/operations/' },
-		{ name: 'Migration', path: '/docs/migration/' },
+		{ name: 'Get Started', path: '/docs/get-started' },
+		{ name: 'Feature Flags', path: '/docs/feature-flags' },
+		{ name: 'Remote Config', path: '/docs/remote-config' },
+		{ name: 'Core Concepts', path: '/docs/concepts' },
+		{ name: 'Clients and API', path: '/docs/clients' },
+		{ name: 'Deployment', path: '/docs/deployment' },
+		{ name: 'Operations', path: '/docs/operations' },
+		{ name: 'Migration', path: '/docs/migration' },
 	];
 
 	return [

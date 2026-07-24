@@ -1,6 +1,6 @@
 ---
 title: Standalone production
-description: Run Nona as one standalone Docker container with persistent storage.
+description: Run Nona as one standalone Docker container with persistent storage, the simplest production setup for small and mid-size deployments.
 ---
 
 Use standalone when one Nona instance is enough. For most teams, it is the right production starting point: one self-hosted Nona instance, the simplest deployment model, one Docker-first service with persistent local data, and a straightforward place to start before introducing replication.

@@ -1,6 +1,6 @@
 ---
 title: Get started
-description: Deploy Nona, create a project, add a parameter, create an API key, and fetch your first config value.
+description: Deploy Nona, create a project, add a parameter, create an API key, and fetch your first config value in a short guided walkthrough.
 ---
 
 This path gets you from zero to a working Nona setup quickly.

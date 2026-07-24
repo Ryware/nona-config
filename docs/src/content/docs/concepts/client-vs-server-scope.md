@@ -1,6 +1,6 @@
 ---
 title: Client vs server scope
-description: Understand Nona scopes so you can separate frontend-readable config from backend-only values.
+description: Understand Nona client, server, and shared scopes so you can separate frontend-readable config from backend-only secret values.
 ---
 
 Scope controls which kinds of consumers should be able to read an entry.

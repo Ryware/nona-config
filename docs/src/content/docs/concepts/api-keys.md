@@ -1,6 +1,6 @@
 ---
 title: API keys
-description: Learn how Nona API keys are scoped to projects, environments, and readable config scope.
+description: Learn how Nona API keys are scoped to projects, environments, and readable config scope so apps only access the values they need.
 ---
 
 Nona uses API keys for config reads.

@@ -1,6 +1,6 @@
 ---
 title: Create your first project
-description: Create a Nona project and environment so your app has a place to store remote config values.
+description: Create a Nona project and environment so your app has a place to store and read remote config values and feature flags.
 ---
 
 A Nona project groups related config for one app or service.

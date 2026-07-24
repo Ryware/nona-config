@@ -1,6 +1,6 @@
 ---
 title: What is remote config?
-description: Understand remote config, what it solves, and how Nona delivers it as a self-hosted service.
+description: Understand what remote config is, the problems it solves, and how Nona delivers it as an open source, self-hosted service.
 ---
 
 Remote config is a way to store application settings outside your deployed app so you can change behavior later.

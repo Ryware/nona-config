@@ -1,6 +1,6 @@
 ---
 title: Clients and API
-description: Choose between HTTP, JavaScript, .NET, and OpenFeature when integrating Nona into your application.
+description: Choose between HTTP, JavaScript, .NET, and OpenFeature when integrating Nona, and learn which client fits your application best.
 ---
 
 Nona can be read through several integration paths.

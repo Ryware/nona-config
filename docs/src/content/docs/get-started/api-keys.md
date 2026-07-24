@@ -1,6 +1,6 @@
 ---
 title: Create an API key
-description: Create a scoped Nona API key so your app can read config values safely.
+description: Create a scoped Nona API key so your app can read config values safely, limited to one project, environment, and read scope.
 ---
 
 Nona read access is driven by API keys.
