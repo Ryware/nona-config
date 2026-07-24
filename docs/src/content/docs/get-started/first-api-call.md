@@ -148,6 +148,6 @@ Either keep using direct HTTP for a very small integration, or move to the JavaS
 
 ## What to do next
 
-After the first direct HTTP read, most teams either keep using [HTTP](/docs/clients/http/) for a very small integration, switch to [JavaScript](/docs/clients/javascript/) or [.NET](/docs/clients/dotnet/) for application code, or add a [kill switch](/docs/get-started/kill-switch/) as the first operational flag. For full endpoint behavior, see [HTTP](/docs/clients/http/).
+After the first direct HTTP read, most teams either keep using [HTTP](/docs/clients/http) for a very small integration, switch to [JavaScript](/docs/clients/javascript) or [.NET](/docs/clients/dotnet) for application code, or add a [kill switch](/docs/get-started/kill-switch) as the first operational flag. For full endpoint behavior, see [HTTP](/docs/clients/http).
 
-Next: [Add a kill switch](/docs/get-started/kill-switch/)
+Next: [Add a kill switch](/docs/get-started/kill-switch)

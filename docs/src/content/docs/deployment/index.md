@@ -28,8 +28,8 @@ That means you need to think about:
 
 ## Paths
 
-- [Standalone production](/docs/deployment/standalone/)
-- [Primary/replica production](/docs/deployment/primary-replica/)
+- [Standalone production](/docs/deployment/standalone)
+- [Primary/replica production](/docs/deployment/primary-replica)
 
 For most teams, standalone is the right starting point.
 
@@ -50,14 +50,14 @@ Only move to the replica topology if you already know you need it.
 
 ## How to choose
 
-Choose [Standalone production](/docs/deployment/standalone/) when:
+Choose [Standalone production](/docs/deployment/standalone) when:
 
 - you want the simplest production setup
 - one instance is enough
 - you do not need replica reads
 - minimizing operational complexity matters most
 
-Choose [Primary/replica production](/docs/deployment/primary-replica/) when:
+Choose [Primary/replica production](/docs/deployment/primary-replica) when:
 
 - reads are heavy enough to justify a replica topology
 - eventual consistency is acceptable for read traffic
@@ -65,7 +65,7 @@ Choose [Primary/replica production](/docs/deployment/primary-replica/) when:
 
 ## Recommended starting point
 
-If you are unsure, start with [Standalone production](/docs/deployment/standalone/).
+If you are unsure, start with [Standalone production](/docs/deployment/standalone).
 
 It is simpler to operate and usually the correct first production topology unless you already know that a replica model is necessary.
 
@@ -81,9 +81,9 @@ Once the instance is live:
 
 ## Related operations docs
 
-- [Security and authentication](/docs/operations/security-and-authentication/)
-- [Backups](/docs/operations/backups/)
-- [Upgrades](/docs/operations/upgrades/)
+- [Security and authentication](/docs/operations/security-and-authentication)
+- [Backups](/docs/operations/backups)
+- [Upgrades](/docs/operations/upgrades)
 
 ## FAQ
 

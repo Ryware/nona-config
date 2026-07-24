@@ -154,5 +154,5 @@ Validate the primary admin and write path, the replica read path, the expected p
 
 ## Related docs
 
-- [Deployment overview](/docs/deployment/)
-- [Standalone production](/docs/deployment/standalone/)
+- [Deployment overview](/docs/deployment)
+- [Standalone production](/docs/deployment/standalone)

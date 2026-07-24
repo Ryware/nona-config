@@ -108,9 +108,9 @@ For risky features, also confirm the `false` path works before release day.
 
 ## Related docs
 
-- [Kill switches](/docs/feature-flags/kill-switches/)
-- [JavaScript client](/docs/clients/javascript/)
-- [Client vs server scope](/docs/concepts/client-vs-server-scope/)
+- [Kill switches](/docs/feature-flags/kill-switches)
+- [JavaScript client](/docs/clients/javascript)
+- [Client vs server scope](/docs/concepts/client-vs-server-scope)
 
 ## FAQ
 

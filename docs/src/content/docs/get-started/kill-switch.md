@@ -124,6 +124,6 @@ If disabling the flag still breaks the feature or the application, the kill swit
 
 Related docs:
 
-- [Feature flags vs remote config](/docs/feature-flags/feature-flags-vs-remote-config/)
-- [Kill switches](/docs/feature-flags/kill-switches/)
-- [History and rollback](/docs/concepts/history-and-rollback/)
+- [Feature flags vs remote config](/docs/feature-flags/feature-flags-vs-remote-config)
+- [Kill switches](/docs/feature-flags/kill-switches)
+- [History and rollback](/docs/concepts/history-and-rollback)

@@ -103,7 +103,7 @@ When a runtime value causes trouble:
 3. choose the last known-good version
 4. roll back
 5. confirm the application behavior recovers
-6. review [Audit logs](/docs/concepts/audit-logs/) afterward if needed
+6. review [Audit logs](/docs/concepts/audit-logs) afterward if needed
 
 ## FAQ
 
@@ -131,6 +131,6 @@ That slows incident response and increases the chance of a second mistake.
 
 ## Related docs
 
-- [Kill switches](/docs/feature-flags/kill-switches/)
-- [Audit logs](/docs/concepts/audit-logs/)
-- [CLI](/docs/cli/)
+- [Kill switches](/docs/feature-flags/kill-switches)
+- [Audit logs](/docs/concepts/audit-logs)
+- [CLI](/docs/cli)

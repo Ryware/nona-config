@@ -112,8 +112,8 @@ That increases blast radius and makes accidental exposure harder to contain.
 
 ## Related docs
 
-- [Create an API key](/docs/get-started/api-keys/)
-- [Client vs server scope](/docs/concepts/client-vs-server-scope/)
-- [HTTP](/docs/clients/http/)
+- [Create an API key](/docs/get-started/api-keys)
+- [Client vs server scope](/docs/concepts/client-vs-server-scope)
+- [HTTP](/docs/clients/http)
 
-For a first setup flow, see [Create an API key](/docs/get-started/api-keys/).
+For a first setup flow, see [Create an API key](/docs/get-started/api-keys).

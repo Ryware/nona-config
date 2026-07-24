@@ -89,20 +89,20 @@ That is usually enough to establish a real feature-flag workflow before expandin
 
 ## Start here
 
-- [What are feature flags?](/docs/feature-flags/what-are-feature-flags/)
-- [Feature flags vs remote config](/docs/feature-flags/feature-flags-vs-remote-config/)
-- [Kill switches](/docs/feature-flags/kill-switches/)
-- [Feature flags for mobile apps](/docs/feature-flags/mobile-app-feature-flags/)
-- [Feature flags for backend services](/docs/feature-flags/backend-feature-flags/)
-- [Open source feature flags](/docs/comparisons/open-source-feature-flags/)
-- [Self-hosted feature flags](/docs/comparisons/self-hosted-feature-flags/)
-- [OpenFeature with Nona](/docs/clients/openfeature/)
+- [What are feature flags?](/docs/feature-flags/what-are-feature-flags)
+- [Feature flags vs remote config](/docs/feature-flags/feature-flags-vs-remote-config)
+- [Kill switches](/docs/feature-flags/kill-switches)
+- [Feature flags for mobile apps](/docs/feature-flags/mobile-app-feature-flags)
+- [Feature flags for backend services](/docs/feature-flags/backend-feature-flags)
+- [Open source feature flags](/docs/comparisons/open-source-feature-flags)
+- [Self-hosted feature flags](/docs/comparisons/self-hosted-feature-flags)
+- [OpenFeature with Nona](/docs/clients/openfeature)
 
 ## Related comparisons
 
-- [Open source feature flags](/docs/comparisons/open-source-feature-flags/)
-- [Self-hosted feature flags](/docs/comparisons/self-hosted-feature-flags/)
-- [Open source remote config](/docs/comparisons/open-source-remote-config/)
+- [Open source feature flags](/docs/comparisons/open-source-feature-flags)
+- [Self-hosted feature flags](/docs/comparisons/self-hosted-feature-flags)
+- [Open source remote config](/docs/comparisons/open-source-remote-config)
 
 ## FAQ
 

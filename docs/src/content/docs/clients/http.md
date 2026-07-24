@@ -197,7 +197,7 @@ Even if you plan to use the JavaScript or .NET client later, HTTP is still the b
 
 ## When to use the official client instead
 
-Use [JavaScript](/docs/clients/javascript/) or [.NET](/docs/clients/dotnet/) when you want:
+Use [JavaScript](/docs/clients/javascript) or [.NET](/docs/clients/dotnet) when you want:
 
 - typed helper methods
 - built-in cache behavior

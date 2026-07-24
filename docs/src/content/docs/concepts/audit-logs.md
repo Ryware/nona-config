@@ -109,6 +109,6 @@ Because share-link creation and revocation are sensitive collaboration actions a
 
 ## Related docs
 
-- [History and rollback](/docs/concepts/history-and-rollback/)
-- [Parameter share links](/docs/parameter-share-links/)
-- [Kill switches](/docs/feature-flags/kill-switches/)
+- [History and rollback](/docs/concepts/history-and-rollback)
+- [Parameter share links](/docs/parameter-share-links)
+- [Kill switches](/docs/feature-flags/kill-switches)

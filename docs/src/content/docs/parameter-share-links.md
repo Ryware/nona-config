@@ -158,5 +158,5 @@ Use a share link when the access need is temporary, narrow, and limited to one p
 
 ## Related docs
 
-- [Users and project access](/docs/concepts/users-and-project-access/)
-- [Audit logs](/docs/concepts/audit-logs/)
+- [Users and project access](/docs/concepts/users-and-project-access)
+- [Audit logs](/docs/concepts/audit-logs)

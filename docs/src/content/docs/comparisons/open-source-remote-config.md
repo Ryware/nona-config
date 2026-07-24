@@ -38,7 +38,7 @@ The fastest real test is:
 1. run the Docker image
 2. create one text or number setting
 3. create one API key
-4. read the value over [HTTP](/docs/clients/http/)
+4. read the value over [HTTP](/docs/clients/http)
 
 For example:
 
@@ -103,8 +103,8 @@ Nona is a strong fit when you want open source remote config, self-hosting, plai
 
 ## What to read next
 
-- [Remote config](/docs/remote-config/)
-- [Server-side remote config](/docs/remote-config/server-side-remote-config/)
-- [Open source feature flags](/docs/comparisons/open-source-feature-flags/)
-- [Get started](/docs/get-started/)
-- [Deployment](/docs/deployment/)
+- [Remote config](/docs/remote-config)
+- [Server-side remote config](/docs/remote-config/server-side-remote-config)
+- [Open source feature flags](/docs/comparisons/open-source-feature-flags)
+- [Get started](/docs/get-started)
+- [Deployment](/docs/deployment)
