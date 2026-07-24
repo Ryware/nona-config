@@ -111,7 +111,7 @@ docker logs -f nona
 curl http://localhost:18080/auth/first-time
 ```
 
-If the UI loads and the container stays healthy, you can move on to [Create your first project](/docs/get-started/first-project/).
+If the UI loads and the container stays healthy, you can move on to [Create your first project](/docs/get-started/first-project).
 
 ## What this first Docker setup proves
 
@@ -162,11 +162,11 @@ That proves the instance is not only running, but also usable by an application.
 
 Move to the production deployment guides once you have confirmed the single-container flow works and you are ready to harden the deployment.
 
-Use [Standalone production](/docs/deployment/standalone/) for the next operational step.
+Use [Standalone production](/docs/deployment/standalone) for the next operational step.
 
 For more detailed topology and operations guidance, see:
 
-- [Standalone production](/docs/deployment/standalone/)
-- [Deployment](/docs/deployment/)
+- [Standalone production](/docs/deployment/standalone)
+- [Deployment](/docs/deployment)
 
-After the container is running, continue with [Create your first project](/docs/get-started/first-project/).
+After the container is running, continue with [Create your first project](/docs/get-started/first-project).

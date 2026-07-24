@@ -99,7 +99,7 @@ That makes Nona a good fit for teams that want:
 - open source feature flags and runtime settings in one product
 - a model that is smaller and easier to reason about than a larger hosted platform
 
-If you want to see where that matters, read [Firebase Remote Config alternative](/docs/comparisons/firebase-remote-config-alternative/).
+If you want to see where that matters, read [Firebase Remote Config alternative](/docs/comparisons/firebase-remote-config-alternative).
 
 ## FAQ
 

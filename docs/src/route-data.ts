@@ -2,6 +2,8 @@ import { defineRouteMiddleware } from '@astrojs/starlight/route-data';
 
 const SITE_URL = 'https://nonaconfig.com';
 const DOCS_URL = `${SITE_URL}/docs`;
+const OG_IMAGE = `${SITE_URL}/opengraph-image`;
+const OG_IMAGE_ALT = 'Nona — open source self-hosted remote config and feature flags';
 const REPOSITORY_URL = 'https://github.com/Ryware/nona-config';
 const LICENSE_URL = 'https://www.apache.org/licenses/LICENSE-2.0';
 const DEFAULT_DESCRIPTION =
@@ -1743,6 +1745,14 @@ export const onRequest = defineRouteMiddleware((context) => {
 	if (howToSteps) {
 		graph.push(createHowToNode(pathname, title, description, howToSteps));
 	}
+
+	route.head.push(
+		{ tag: 'meta', attrs: { property: 'og:image', content: OG_IMAGE } },
+		{ tag: 'meta', attrs: { property: 'og:image:width', content: '1200' } },
+		{ tag: 'meta', attrs: { property: 'og:image:height', content: '630' } },
+		{ tag: 'meta', attrs: { property: 'og:image:alt', content: OG_IMAGE_ALT } },
+		{ tag: 'meta', attrs: { name: 'twitter:image', content: OG_IMAGE } },
+	);
 
 	route.head.push({
 		tag: 'script',

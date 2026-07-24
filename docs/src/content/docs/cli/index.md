@@ -181,7 +181,7 @@ nona entries share list --environment production --key Features:Checkout
 nona entries share revoke --environment production --key Features:Checkout --id 11
 ```
 
-See [Parameter share links](/docs/parameter-share-links/) for expiration options, permissions, and public endpoints.
+See [Parameter share links](/docs/parameter-share-links) for expiration options, permissions, and public endpoints.
 
 ## Manage API keys
 
@@ -212,7 +212,7 @@ nona migrate firebase --config ./nona.migration.json
 
 Use `--dry-run` before applying a migration.
 
-See [Firebase migration](/docs/cli/firebase-migration/) for configuration, environment mapping, and conflict behavior.
+See [Firebase migration](/docs/cli/firebase-migration) for configuration, environment mapping, and conflict behavior.
 
 ## Why the CLI matters for migration
 
@@ -234,10 +234,10 @@ The CLI reads these values when flags are omitted:
 
 ## Related docs
 
-- [CLI reference](/docs/cli/reference/)
-- [Migration](/docs/migration/)
-- [Parameter share links](/docs/parameter-share-links/)
-- [History and rollback](/docs/concepts/history-and-rollback/)
+- [CLI reference](/docs/cli/reference)
+- [Migration](/docs/migration)
+- [Parameter share links](/docs/parameter-share-links)
+- [History and rollback](/docs/concepts/history-and-rollback)
 
 ## FAQ
 

@@ -104,9 +104,9 @@ That is often exactly what teams want when they search for open source feature f
 
 If this is the page that matches your search intent, continue with:
 
-1. [Get started](/docs/get-started/)
-2. [Kill switches](/docs/feature-flags/kill-switches/)
-3. [OpenFeature](/docs/clients/openfeature/)
+1. [Get started](/docs/get-started)
+2. [Kill switches](/docs/feature-flags/kill-switches)
+3. [OpenFeature](/docs/clients/openfeature)
 
 ## FAQ
 
@@ -140,8 +140,8 @@ Nona is usually the better fit when you want self-hosting, simpler operations, a
 
 ## Related docs
 
-- [Feature flags](/docs/feature-flags/)
-- [What are feature flags?](/docs/feature-flags/what-are-feature-flags/)
-- [Kill switches](/docs/feature-flags/kill-switches/)
-- [OpenFeature](/docs/clients/openfeature/)
-- [Client vs server scope](/docs/concepts/client-vs-server-scope/)
+- [Feature flags](/docs/feature-flags)
+- [What are feature flags?](/docs/feature-flags/what-are-feature-flags)
+- [Kill switches](/docs/feature-flags/kill-switches)
+- [OpenFeature](/docs/clients/openfeature)
+- [Client vs server scope](/docs/concepts/client-vs-server-scope)

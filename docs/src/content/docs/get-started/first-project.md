@@ -115,4 +115,4 @@ Add your first parameter.
 
 That is the next step that proves the project is not only created, but also ready to hold real config or feature flags.
 
-Next: [Add your first parameter](/docs/get-started/first-parameter/)
+Next: [Add your first parameter](/docs/get-started/first-parameter)

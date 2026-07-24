@@ -115,4 +115,4 @@ Usually no.
 
 A simple boolean or text value is easier to validate first. Add JSON once the basic read path is already working.
 
-Next: [Create an API key](/docs/get-started/api-keys/)
+Next: [Create an API key](/docs/get-started/api-keys)

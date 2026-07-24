@@ -20,30 +20,30 @@ Use Nona when you want to:
 
 Nona is built for teams that want remote config without platform lock-in. The core product traits are self-hosted deployment, open source code, Docker-first operations, plain HTTP plus official clients, projects and environments, client/server/shared scopes, config history and rollback, and Firebase migration tooling.
 
-If you are evaluating alternatives, start with [Firebase Remote Config alternative](/docs/comparisons/firebase-remote-config-alternative/).
+If you are evaluating alternatives, start with [Firebase Remote Config alternative](/docs/comparisons/firebase-remote-config-alternative).
 
 ## Start here
 
-- [Why Nona](/docs/why-nona/)
-- [Get started](/docs/get-started/)
-- [Feature flags](/docs/feature-flags/)
-- [Remote config](/docs/remote-config/)
-- [Firebase Remote Config alternative](/docs/comparisons/firebase-remote-config-alternative/)
-- [Open source feature flags](/docs/comparisons/open-source-feature-flags/)
-- [Open source remote config](/docs/comparisons/open-source-remote-config/)
-- [Deployment](/docs/deployment/)
-- [Migration](/docs/migration/)
+- [Why Nona](/docs/why-nona)
+- [Get started](/docs/get-started)
+- [Feature flags](/docs/feature-flags)
+- [Remote config](/docs/remote-config)
+- [Firebase Remote Config alternative](/docs/comparisons/firebase-remote-config-alternative)
+- [Open source feature flags](/docs/comparisons/open-source-feature-flags)
+- [Open source remote config](/docs/comparisons/open-source-remote-config)
+- [Deployment](/docs/deployment)
+- [Migration](/docs/migration)
 
 ## Quick path
 
 If you want the shortest route to a working setup:
 
-1. [Deploy with Docker](/docs/get-started/docker/)
-2. [Create your first project](/docs/get-started/first-project/)
-3. [Add your first parameter](/docs/get-started/first-parameter/)
-4. [Create an API key](/docs/get-started/api-keys/)
-5. [Fetch your first config value](/docs/get-started/first-api-call/)
-6. Continue with [HTTP client](/docs/clients/http/), [JavaScript client](/docs/clients/javascript/), or [.NET client](/docs/clients/dotnet/)
+1. [Deploy with Docker](/docs/get-started/docker)
+2. [Create your first project](/docs/get-started/first-project)
+3. [Add your first parameter](/docs/get-started/first-parameter)
+4. [Create an API key](/docs/get-started/api-keys)
+5. [Fetch your first config value](/docs/get-started/first-api-call)
+6. Continue with [HTTP client](/docs/clients/http), [JavaScript client](/docs/clients/javascript), or [.NET client](/docs/clients/dotnet)
 
 ## What you can do with Nona
 
@@ -56,7 +56,7 @@ Common remote config and feature flag use cases:
 - keep client-readable config separate from server-only config
 - roll back a bad parameter change quickly
 
-See [Remote config use cases](/docs/remote-config/use-cases/) for more examples.
+See [Remote config use cases](/docs/remote-config/use-cases) for more examples.
 
 ## Feature flags
 
@@ -66,13 +66,13 @@ The tradeoff is intentional: Nona keeps feature flags simple. A flag read is not
 
 Start here:
 
-- [Feature flags overview](/docs/feature-flags/)
-- [What are feature flags?](/docs/feature-flags/what-are-feature-flags/)
-- [Feature flags vs remote config](/docs/feature-flags/feature-flags-vs-remote-config/)
-- [Kill switches](/docs/feature-flags/kill-switches/)
-- [Open source feature flags](/docs/comparisons/open-source-feature-flags/)
-- [Self-hosted feature flags](/docs/comparisons/self-hosted-feature-flags/)
-- [OpenFeature](/docs/clients/openfeature/)
+- [Feature flags overview](/docs/feature-flags)
+- [What are feature flags?](/docs/feature-flags/what-are-feature-flags)
+- [Feature flags vs remote config](/docs/feature-flags/feature-flags-vs-remote-config)
+- [Kill switches](/docs/feature-flags/kill-switches)
+- [Open source feature flags](/docs/comparisons/open-source-feature-flags)
+- [Self-hosted feature flags](/docs/comparisons/self-hosted-feature-flags)
+- [OpenFeature](/docs/clients/openfeature)
 
 ## Remote config
 
@@ -80,54 +80,54 @@ Nona also works as a self-hosted remote config system for teams that want runtim
 
 Start here:
 
-- [Remote config overview](/docs/remote-config/)
-- [What is remote config?](/docs/remote-config/what-is-remote-config/)
-- [Remote config vs environment variables](/docs/remote-config/remote-config-vs-environment-variables/)
-- [Server-side remote config](/docs/remote-config/server-side-remote-config/)
-- [Open source remote config](/docs/comparisons/open-source-remote-config/)
+- [Remote config overview](/docs/remote-config)
+- [What is remote config?](/docs/remote-config/what-is-remote-config)
+- [Remote config vs environment variables](/docs/remote-config/remote-config-vs-environment-variables)
+- [Server-side remote config](/docs/remote-config/server-side-remote-config)
+- [Open source remote config](/docs/comparisons/open-source-remote-config)
 
 ## Key concepts
 
-- [Client vs server scope](/docs/concepts/client-vs-server-scope/)
-- [Parameters and content types](/docs/concepts/parameters-and-content-types/)
-- [Projects](/docs/concepts/projects/)
-- [Environments](/docs/concepts/environments/)
-- [API keys](/docs/concepts/api-keys/)
-- [History and rollback](/docs/concepts/history-and-rollback/)
-- [Parameter share links](/docs/parameter-share-links/)
-- [Users and project access](/docs/concepts/users-and-project-access/)
+- [Client vs server scope](/docs/concepts/client-vs-server-scope)
+- [Parameters and content types](/docs/concepts/parameters-and-content-types)
+- [Projects](/docs/concepts/projects)
+- [Environments](/docs/concepts/environments)
+- [API keys](/docs/concepts/api-keys)
+- [History and rollback](/docs/concepts/history-and-rollback)
+- [Parameter share links](/docs/parameter-share-links)
+- [Users and project access](/docs/concepts/users-and-project-access)
 
 ## Integration paths
 
 Use the smallest integration path that fits your app:
 
-- [HTTP](/docs/clients/http/) for direct reads without an SDK
-- [JavaScript](/docs/clients/javascript/) for Node.js and TypeScript apps
-- [.NET](/docs/clients/dotnet/) for C# services and applications
-- [OpenFeature](/docs/clients/openfeature/) if you want a vendor-neutral application interface
-- [CLI](/docs/cli/) for admin workflows and migration work
+- [HTTP](/docs/clients/http) for direct reads without an SDK
+- [JavaScript](/docs/clients/javascript) for Node.js and TypeScript apps
+- [.NET](/docs/clients/dotnet) for C# services and applications
+- [OpenFeature](/docs/clients/openfeature) if you want a vendor-neutral application interface
+- [CLI](/docs/cli) for admin workflows and migration work
 
 ## Migration and comparisons
 
 If you are replacing an existing hosted setup:
 
-- [Migrate from Firebase Remote Config](/docs/migration/firebase-remote-config/)
-- [Firebase concept mapping](/docs/migration/firebase-concept-mapping/)
-- [Migration validation](/docs/migration/validation/)
-- [Firebase Remote Config alternative](/docs/comparisons/firebase-remote-config-alternative/)
+- [Migrate from Firebase Remote Config](/docs/migration/firebase-remote-config)
+- [Firebase concept mapping](/docs/migration/firebase-concept-mapping)
+- [Migration validation](/docs/migration/validation)
+- [Firebase Remote Config alternative](/docs/comparisons/firebase-remote-config-alternative)
 
 ## Production and operations
 
 For production deployment and operations:
 
-- [Deployment overview](/docs/deployment/)
-- [Standalone production](/docs/deployment/standalone/)
-- [Primary/replica production](/docs/deployment/primary-replica/)
-- [Security and authentication](/docs/operations/security-and-authentication/)
-- [Backups](/docs/operations/backups/)
-- [Upgrades](/docs/operations/upgrades/)
-- [Audit logs](/docs/concepts/audit-logs/)
-- [Users and project access](/docs/concepts/users-and-project-access/)
+- [Deployment overview](/docs/deployment)
+- [Standalone production](/docs/deployment/standalone)
+- [Primary/replica production](/docs/deployment/primary-replica)
+- [Security and authentication](/docs/operations/security-and-authentication)
+- [Backups](/docs/operations/backups)
+- [Upgrades](/docs/operations/upgrades)
+- [Audit logs](/docs/concepts/audit-logs)
+- [Users and project access](/docs/concepts/users-and-project-access)
 
 ## FAQ
 

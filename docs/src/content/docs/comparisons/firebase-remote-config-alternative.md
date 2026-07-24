@@ -113,15 +113,15 @@ If you are evaluating migration seriously, start with a dry run:
 nona migrate firebase --config ./nona.migration.json --dry-run
 ```
 
-Then continue with [Migration validation](/docs/migration/validation/) before production cutover.
+Then continue with [Migration validation](/docs/migration/validation) before production cutover.
 
 ## Migration path
 
 If you already use Firebase Remote Config, Nona gives you a direct CLI migration path covering source namespaces, content type mapping, scope mapping, environment mapping, dry runs, and conflict handling. Start here:
 
-- [Migrate from Firebase Remote Config](/docs/migration/firebase-remote-config/)
-- [Firebase concept mapping](/docs/migration/firebase-concept-mapping/)
-- [Migration validation](/docs/migration/validation/)
+- [Migrate from Firebase Remote Config](/docs/migration/firebase-remote-config)
+- [Firebase concept mapping](/docs/migration/firebase-concept-mapping)
+- [Migration validation](/docs/migration/validation)
 
 ## FAQ
 
@@ -153,10 +153,10 @@ Run the Docker image, create one project and environment, add one flag and one n
 
 If you are evaluating Nona as a replacement:
 
-- [Get started](/docs/get-started/)
-- [Feature flags](/docs/feature-flags/)
-- [Remote config](/docs/remote-config/)
-- [Client vs server scope](/docs/concepts/client-vs-server-scope/)
-- [OpenFeature](/docs/clients/openfeature/)
+- [Get started](/docs/get-started)
+- [Feature flags](/docs/feature-flags)
+- [Remote config](/docs/remote-config)
+- [Client vs server scope](/docs/concepts/client-vs-server-scope)
+- [OpenFeature](/docs/clients/openfeature)
 
-If you want to try Nona first, start with [Get started](/docs/get-started/).
+If you want to try Nona first, start with [Get started](/docs/get-started).

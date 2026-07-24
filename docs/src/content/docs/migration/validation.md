@@ -79,7 +79,7 @@ Use the admin UI for the visual pass:
 5. click a few migrated parameters and inspect their settings
 6. open the `History` tab for high-risk parameters to confirm the import wrote the expected versions
 
-If you migrated shareable or operationally sensitive flags, also review [Audit logs](/docs/concepts/audit-logs/) after the cutover.
+If you migrated shareable or operationally sensitive flags, also review [Audit logs](/docs/concepts/audit-logs) after the cutover.
 
 ## Suggested checklist
 

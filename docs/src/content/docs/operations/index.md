@@ -14,10 +14,10 @@ This section covers the core operational topics that sit next to deployment:
 
 ## In this section
 
-- [Security and authentication](/docs/operations/security-and-authentication/)
-- [Single sign-on (SSO)](/docs/operations/sso/)
-- [Backups](/docs/operations/backups/)
-- [Upgrades](/docs/operations/upgrades/)
+- [Security and authentication](/docs/operations/security-and-authentication)
+- [Single sign-on (SSO)](/docs/operations/sso)
+- [Backups](/docs/operations/backups)
+- [Upgrades](/docs/operations/upgrades)
 
 ## Typical operator tasks
 
@@ -44,15 +44,15 @@ Use these docs when:
 
 If you are setting up a real production instance, begin with:
 
-1. [Security and authentication](/docs/operations/security-and-authentication/)
-2. [Backups](/docs/operations/backups/)
-3. [Upgrades](/docs/operations/upgrades/)
+1. [Security and authentication](/docs/operations/security-and-authentication)
+2. [Backups](/docs/operations/backups)
+3. [Upgrades](/docs/operations/upgrades)
 
 ## Related docs
 
-- [Deployment](/docs/deployment/)
-- [Users and project access](/docs/concepts/users-and-project-access/)
-- [Audit logs](/docs/concepts/audit-logs/)
+- [Deployment](/docs/deployment)
+- [Users and project access](/docs/concepts/users-and-project-access)
+- [Audit logs](/docs/concepts/audit-logs)
 
 ## FAQ
 

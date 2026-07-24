@@ -97,7 +97,7 @@ The stronger position is that Nona provides a simpler self-hosted system for fea
 
 ## Related docs
 
-- [Feature flags](/docs/feature-flags/)
-- [Kill switches](/docs/feature-flags/kill-switches/)
-- [Open source feature flags](/docs/comparisons/open-source-feature-flags/)
-- [Deployment](/docs/deployment/)
+- [Feature flags](/docs/feature-flags)
+- [Kill switches](/docs/feature-flags/kill-switches)
+- [Open source feature flags](/docs/comparisons/open-source-feature-flags)
+- [Deployment](/docs/deployment)

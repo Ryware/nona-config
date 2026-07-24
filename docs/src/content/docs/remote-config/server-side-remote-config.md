@@ -91,9 +91,9 @@ var maxItemsValue = await client.GetConfigValueAsync("Limits:MaxItems");
 var maxItems = int.Parse(maxItemsValue.Value, CultureInfo.InvariantCulture);
 ```
 
-For a full JSON example, see [.NET client](/docs/clients/dotnet/).
+For a full JSON example, see [.NET client](/docs/clients/dotnet).
 
-If the service is not in .NET, the same values can be fetched with [HTTP](/docs/clients/http/).
+If the service is not in .NET, the same values can be fetched with [HTTP](/docs/clients/http).
 
 ## Operating model
 
@@ -106,10 +106,10 @@ A practical backend remote-config flow looks like this:
 
 ## Related docs
 
-- [Feature flags for backend services](/docs/feature-flags/backend-feature-flags/)
-- [Client vs server scope](/docs/concepts/client-vs-server-scope/)
-- [HTTP](/docs/clients/http/)
-- [.NET client](/docs/clients/dotnet/)
+- [Feature flags for backend services](/docs/feature-flags/backend-feature-flags)
+- [Client vs server scope](/docs/concepts/client-vs-server-scope)
+- [HTTP](/docs/clients/http)
+- [.NET client](/docs/clients/dotnet)
 
 ## FAQ
 

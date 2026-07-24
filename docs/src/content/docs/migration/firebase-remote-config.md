@@ -66,7 +66,7 @@ Once the dry run looks correct:
 nona migrate firebase --config ./nona.migration.json
 ```
 
-Then continue immediately with [Migration validation](/docs/migration/validation/).
+Then continue immediately with [Migration validation](/docs/migration/validation).
 
 ## Migration mindset
 
@@ -80,7 +80,7 @@ Do not assume that a technically successful import means the migration is done. 
 
 The CLI-specific migration guide is here:
 
-- [CLI Firebase migration reference](/docs/cli/firebase-migration/)
+- [CLI Firebase migration reference](/docs/cli/firebase-migration)
 
 ## FAQ
 
@@ -110,5 +110,5 @@ The import is only one part of the cutover. You still need to validate environme
 
 Continue with:
 
-- [Firebase concept mapping](/docs/migration/firebase-concept-mapping/)
-- [Migration validation](/docs/migration/validation/)
+- [Firebase concept mapping](/docs/migration/firebase-concept-mapping)
+- [Migration validation](/docs/migration/validation)

@@ -135,6 +135,6 @@ You know it is useful when you can restore it and validate that the service star
 
 ## Related docs
 
-- [Standalone production](/docs/deployment/standalone/)
-- [Primary/replica production](/docs/deployment/primary-replica/)
-- [Upgrades](/docs/operations/upgrades/)
+- [Standalone production](/docs/deployment/standalone)
+- [Primary/replica production](/docs/deployment/primary-replica)
+- [Upgrades](/docs/operations/upgrades)

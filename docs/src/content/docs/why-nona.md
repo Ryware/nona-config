@@ -66,11 +66,11 @@ If that flow feels right, the rest of the product model will probably fit too.
 
 ## Related docs
 
-- [Get started](/docs/get-started/)
-- [Feature flags](/docs/feature-flags/)
-- [Remote config](/docs/remote-config/)
-- [OpenFeature](/docs/clients/openfeature/)
-- [Migrate from Firebase Remote Config](/docs/migration/firebase-remote-config/)
+- [Get started](/docs/get-started)
+- [Feature flags](/docs/feature-flags)
+- [Remote config](/docs/remote-config)
+- [OpenFeature](/docs/clients/openfeature)
+- [Migrate from Firebase Remote Config](/docs/migration/firebase-remote-config)
 
 ## FAQ
 

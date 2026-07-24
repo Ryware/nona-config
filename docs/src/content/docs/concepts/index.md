@@ -40,16 +40,16 @@ After that, the terms in this section stop being abstract because you have alrea
 
 ## In this section
 
-- [Projects](/docs/concepts/projects/)
-- [Environments](/docs/concepts/environments/)
-- [Releases](/docs/concepts/releases/)
-- [Parameters and content types](/docs/concepts/parameters-and-content-types/)
-- [Client vs server scope](/docs/concepts/client-vs-server-scope/)
-- [API keys](/docs/concepts/api-keys/)
-- [History and rollback](/docs/concepts/history-and-rollback/)
-- [Audit logs](/docs/concepts/audit-logs/)
-- [Parameter share links](/docs/parameter-share-links/)
-- [Users and project access](/docs/concepts/users-and-project-access/)
+- [Projects](/docs/concepts/projects)
+- [Environments](/docs/concepts/environments)
+- [Releases](/docs/concepts/releases)
+- [Parameters and content types](/docs/concepts/parameters-and-content-types)
+- [Client vs server scope](/docs/concepts/client-vs-server-scope)
+- [API keys](/docs/concepts/api-keys)
+- [History and rollback](/docs/concepts/history-and-rollback)
+- [Audit logs](/docs/concepts/audit-logs)
+- [Parameter share links](/docs/parameter-share-links)
+- [Users and project access](/docs/concepts/users-and-project-access)
 
 ## Why these concepts matter
 
@@ -63,9 +63,9 @@ They shape everything else in the product:
 
 ## Related docs
 
-- [Get started](/docs/get-started/)
-- [Feature flags](/docs/feature-flags/)
-- [Remote config](/docs/remote-config/)
+- [Get started](/docs/get-started)
+- [Feature flags](/docs/feature-flags)
+- [Remote config](/docs/remote-config)
 
 ## FAQ
 
