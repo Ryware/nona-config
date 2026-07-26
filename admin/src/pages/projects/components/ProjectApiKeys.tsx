@@ -13,6 +13,7 @@ interface ProjectApiKeysProps {
   isCreating: boolean;
   deletingId: string | null;
   canManage: boolean;
+  activeEnvironmentName: string;
   showCreateForm: boolean;
   setShowCreateForm: (value: boolean) => void;
   onCreate: (data: CreateApiKeyRequest) => void;
@@ -55,7 +56,7 @@ export function ProjectApiKeys(props: ProjectApiKeysProps) {
     props.onCreate({
       name: name().trim(),
       scope: scope(),
-      environment: null,
+      environment: props.activeEnvironmentName || null,
     });
     setName("");
     setScope("client");

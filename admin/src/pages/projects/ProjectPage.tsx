@@ -777,6 +777,7 @@ function ProjectPageContent(props: { section: ProjectPageSection }) {
                 isCreating={createApiKeyMutation.isPending}
                 deletingId={deletingApiKeyId()}
                 canManage={canManageProject()}
+                activeEnvironmentName={activeEnvName()}
                 showCreateForm={showApiKeyForm()}
                 setShowCreateForm={setShowApiKeyForm}
                 onCreate={data => createApiKeyMutation.mutate(data)}
