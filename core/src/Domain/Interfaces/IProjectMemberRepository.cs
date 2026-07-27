@@ -8,6 +8,8 @@ public interface IProjectMemberRepository
 
     Task<IReadOnlyList<ProjectMember>> ListByUserAsync(string username, CancellationToken ct = default);
 
+    Task<IReadOnlyList<ProjectMember>> ListByUsersAsync(IReadOnlyCollection<string> usernames, CancellationToken ct = default);
+
     Task<IReadOnlyList<ProjectMember>> ListByProjectAsync(string projectName, CancellationToken ct = default);
 
     Task<bool> ExistsAsync(string username, string projectName, CancellationToken ct = default);

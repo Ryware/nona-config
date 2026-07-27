@@ -1,7 +1,7 @@
 using Mediator;
 using Nona.Application.Admin.Projects;
+using Nona.Application.Admin.Users;
 using Nona.Application.Admin.Users.DTOs;
-using Nona.Application.Common;
 using Nona.Application.Common.Interfaces;
 using Nona.Domain.Entities;
 using Nona.Domain.Interfaces;
@@ -61,7 +61,7 @@ public class SetProjectAccessCommandHandler(
 
         await projectMemberRepository.AddAsync(member, cancellationToken);
 
-        var dto = new ProjectAccessDto(member.ProjectId, member.Role.ToApiString());
+        var dto = UserDtoMapping.ToProjectAccessDto(member);
         return new SetProjectAccessResult(true, dto, null);
     }
 

@@ -1,5 +1,6 @@
 using Mediator;
 using Nona.Application.Common.Interfaces;
+using Nona.Application.Shared.ParameterShareLinks;
 using Nona.Application.Shared.ParameterShareLinks.DTOs;
 using Nona.Domain.Entities;
 using Nona.Domain.Interfaces;
@@ -55,7 +56,7 @@ public class GetSharedParameterQueryHandler(
         if (auditLogService is not null)
         {
             await auditLogService.WriteAsAsync(
-                ResolveSharedActor(shareLink),
+                SharedParameterMapping.ResolveActor(shareLink),
                 true,
                 "Share Link Accessed",
                 shareLink.Key,
@@ -64,20 +65,9 @@ public class GetSharedParameterQueryHandler(
                 cancellationToken: cancellationToken);
         }
 
-        return new GetSharedParameterResult(true, ToDto(entry, shareLink.CanEdit, shareLink.ExpiresAt), null);
-    }
-
-    private static string ResolveSharedActor(ParameterShareLink shareLink)
-        => $"Shared link #{shareLink.Id}";
-
-    private static SharedParameterDto ToDto(ConfigEntry entry, bool canEdit, DateTime expiresAt)
-    {
-        return new SharedParameterDto(
-            entry.Environment,
-            entry.Key,
-            entry.Value,
-            entry.ContentType,
-            canEdit,
-            expiresAt);
+        return new GetSharedParameterResult(
+            true,
+            SharedParameterMapping.ToDto(entry, shareLink.CanEdit, shareLink.ExpiresAt),
+            null);
     }
 }

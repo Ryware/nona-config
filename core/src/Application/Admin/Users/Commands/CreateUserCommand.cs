@@ -1,5 +1,6 @@
 using Mediator;
 using Nona.Application.Admin.Common;
+using Nona.Application.Admin.Users;
 using Nona.Application.Admin.Users.DTOs;
 using Nona.Application.Common;
 using Nona.Application.Common.Interfaces;
@@ -28,9 +29,14 @@ public class CreateUserCommandHandler(
             return new CreateUserResult(false, null, "User already exists");
 
 
-        var role = ParseRole(request.Role);
-        if (role is null && request.Role is not null)
-            return new CreateUserResult(false, null, "Invalid role. Must be 'viewer' or 'editor'");
+        UserRole? role = null;
+        if (request.Role is not null)
+        {
+            if (!EnumExtensions.TryParseApiRole(request.Role, out var parsedRole))
+                return new CreateUserResult(false, null, "Invalid role. Must be 'viewer' or 'editor'");
+
+            role = parsedRole;
+        }
 
 
         var scope = EnumExtensions.ParseKeyScope(request.Scope);
@@ -61,31 +67,8 @@ public class CreateUserCommandHandler(
                 cancellationToken: cancellationToken);
         }
 
-        var dto = new UserDto(
-            user.Id,
-            user.Email,
-            user.Name,
-            user.Role.ToApiString(),
-            user.Scope.ToApiString(),
-            user.IsAdmin,
-            [],
-            user.CreatedAt,
-            user.UpdatedAt);
+        var dto = UserDtoMapping.ToDto(user, []);
 
         return new CreateUserResult(true, new CreateUserResponse(dto, invitationToken), null);
     }
-
-    private static UserRole? ParseRole(string? role)
-    {
-        if (role is null)
-            return null;
-
-        return role.ToLowerInvariant() switch
-        {
-            "viewer" => UserRole.Viewer,
-            "editor" => UserRole.Editor,
-            _ => null
-        };
-    }
-
 }
