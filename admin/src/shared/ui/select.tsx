@@ -27,6 +27,7 @@ interface SelectProps {
   id?: string;
   disabled?: boolean;
   class?: string;
+  "aria-label"?: string;
 }
 
 type KobalteSelectItemProps = ComponentProps<typeof Item>;
@@ -85,6 +86,7 @@ export function Select(props: SelectProps) {
     >
       <Trigger
         id={props.id}
+        aria-label={props["aria-label"]}
         class={cn(
           "flex items-center justify-between w-full pl-4 pr-3 py-2 text-[13px] text-on-surface bg-surface-container-lowest border border-outline-variant/20 rounded-lg hover:border-outline-variant/30 transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 h-11 cursor-pointer outline-none",
           props.class,

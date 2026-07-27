@@ -7,6 +7,7 @@ import { Label } from "../../shared/ui/label";
 import { Select } from "../../shared/ui/select";
 import { VisualJsonEditor } from "../../shared/ui/visual-json-editor";
 import type { ConfigEntry, ConfigEntryVersion } from "../../types";
+import { isValidConfigEntryValue } from "./config-entry-value";
 
 interface ProjectParamEditDrawerProps {
   entry: ConfigEntry | null;
@@ -16,6 +17,7 @@ interface ProjectParamEditDrawerProps {
   onSaveSettings: (data: {
     value: string;
     description: string;
+    contentType: ConfigEntry["contentType"];
     scope: ConfigEntry["scope"];
   }) => void;
   isSaving: boolean;
@@ -77,6 +79,8 @@ export function ProjectParamEditDrawer(props: ProjectParamEditDrawerProps) {
   const [activeDrawerTab, setActiveDrawerTab] = createSignal<"settings" | "history">("settings");
   const [editVal, setEditVal] = createSignal("");
   const [editDescription, setEditDescription] = createSignal("");
+  const [editContentType, setEditContentType] =
+    createSignal<ConfigEntry["contentType"]>("text");
   const [editScope, setEditScope] = createSignal<ConfigEntry["scope"]>("all");
   const prettyValue = createMemo(() => {
     const entry = props.entry;
@@ -98,27 +102,13 @@ export function ProjectParamEditDrawer(props: ProjectParamEditDrawerProps) {
     if (entry) {
       setEditVal(entry.value);
       setEditDescription(props.initialDescription);
+      setEditContentType(entry.contentType);
       setEditScope(entry.scope);
       setActiveDrawerTab("settings");
     }
   });
 
-  const isValidJson = (str: string): boolean => {
-    try {
-      JSON.parse(str);
-      return true;
-    } catch {
-      return false;
-    }
-  };
-
-  const isEditInvalid = () => {
-    const entry = props.entry;
-    if (entry && entry.contentType === "json") {
-      return !isValidJson(editVal());
-    }
-    return false;
-  };
+  const isEditInvalid = () => !isValidConfigEntryValue(editContentType(), editVal());
 
   const handleSave = () => {
     if (!props.canManage) return;
@@ -126,6 +116,7 @@ export function ProjectParamEditDrawer(props: ProjectParamEditDrawerProps) {
     props.onSaveSettings({
       value: editVal().trim(),
       description: editDescription().trim(),
+      contentType: editContentType(),
       scope: editScope()
     });
   };
@@ -258,10 +249,17 @@ export function ProjectParamEditDrawer(props: ProjectParamEditDrawerProps) {
                     <div class="grid gap-4 sm:grid-cols-2">
                       <div class="space-y-2">
                         <Label class="mb-0">Datatype</Label>
-                        <div class="text-primary bg-primary/5 border-primary/15 inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 font-mono text-[11px]">
-                          <MIcon name="data_object" class="text-[14px]" />
-                          {entry.contentType}
-                        </div>
+                        <Select
+                          id="config-entry-edit-content-type"
+                          aria-label="Datatype"
+                          value={editContentType()}
+                          onChange={val => {
+                            setEditContentType(val as ConfigEntry["contentType"]);
+                            setEditVal("");
+                          }}
+                          disabled={!props.canManage}
+                          options={["text", "number", "boolean", "json"]}
+                        />
                       </div>
 
                       <div class="space-y-2">
@@ -283,19 +281,21 @@ export function ProjectParamEditDrawer(props: ProjectParamEditDrawerProps) {
 
                   <div class="space-y-2">
                     <Label class="mb-0">Value</Label>
-                    <Show when={entry.contentType === "boolean"}>
+                    <Show when={editContentType() === "boolean"}>
                       <Select
                         value={editVal()}
                         onChange={val => setEditVal(val)}
                         disabled={!props.canManage}
+                        placeholder="Select status..."
                         options={[
                           { value: "true", label: "True / Active" },
                           { value: "false", label: "False / Inactive" }
                         ]}
                       />
                     </Show>
-                    <Show when={entry.contentType === "number"}>
+                    <Show when={editContentType() === "number"}>
                       <Input
+                        data-testid="parameter-edit-value-input"
                         type="number"
                         value={editVal()}
                         onInput={(e: InputEvent & { currentTarget: HTMLInputElement }) =>
@@ -305,14 +305,14 @@ export function ProjectParamEditDrawer(props: ProjectParamEditDrawerProps) {
                         leftIcon="pin"
                       />
                     </Show>
-                    <Show when={entry.contentType === "json"}>
+                    <Show when={editContentType() === "json"}>
                       <VisualJsonEditor
                         id="config-entry-edit-value"
                         value={editVal()}
                         onChange={props.canManage ? setEditVal : () => undefined}
                       />
                     </Show>
-                    <Show when={entry.contentType === "text"}>
+                    <Show when={editContentType() === "text"}>
                       <Input
                         type="text"
                         value={editVal()}

@@ -678,7 +678,7 @@ export default function ParametersSection() {
                 updateConfigMutation.mutate({
                   key: editingEntry()!.key,
                   value: data.value,
-                  contentType: editingEntry()!.contentType,
+                  contentType: data.contentType,
                   scope: data.scope,
                   description: data.description
                 });
