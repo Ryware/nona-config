@@ -1,4 +1,5 @@
 using Mediator;
+using Nona.Application.Admin.Users;
 using Nona.Application.Admin.Users.DTOs;
 using Nona.Application.Common;
 using Nona.Application.Common.Interfaces;
@@ -41,9 +42,14 @@ public class UpdateUserCommandHandler(
             return new UpdateUserResult(false, null, "Access denied");
         }
 
-        var role = ParseRole(request.Role);
-        if (role is null && request.Role is not null)
-            return new UpdateUserResult(false, null, "Invalid role. Must be 'viewer' or 'editor'");
+        UserRole? role = null;
+        if (request.Role is not null)
+        {
+            if (!EnumExtensions.TryParseApiRole(request.Role, out var parsedRole))
+                return new UpdateUserResult(false, null, "Invalid role. Must be 'viewer' or 'editor'");
+
+            role = parsedRole;
+        }
 
         var scope = EnumExtensions.ParseKeyScope(request.Scope);
         if (scope is null && request.Scope is not null)
@@ -82,33 +88,8 @@ public class UpdateUserCommandHandler(
         }
 
         var members = await projectMemberRepository.ListByUserAsync(user.Email, cancellationToken);
-        var projects = members.Select(m => new ProjectAccessDto(m.ProjectId, m.Role.ToApiString())).ToList();
-
-        var dto = new UserDto(
-            user.Id,
-            user.Email,
-            user.Name,
-            user.Role.ToApiString(),
-            user.Scope.ToApiString(),
-            user.IsAdmin,
-            projects,
-            user.CreatedAt,
-            user.UpdatedAt);
+        var dto = UserDtoMapping.ToDto(user, members);
 
         return new UpdateUserResult(true, dto, null);
     }
-
-    private static UserRole? ParseRole(string? role)
-    {
-        if (role is null)
-            return null;
-
-        return role.ToLowerInvariant() switch
-        {
-            "viewer" => UserRole.Viewer,
-            "editor" => UserRole.Editor,
-            _ => null
-        };
-    }
-
 }

@@ -1,6 +1,6 @@
 using Mediator;
+using Nona.Application.Admin.Users;
 using Nona.Application.Admin.Users.DTOs;
-using Nona.Application.Common;
 using Nona.Domain.Interfaces;
 
 namespace Nona.Application.Admin.Users.Queries;
@@ -12,25 +12,16 @@ public class ListUsersQueryHandler(IUserRepository userRepository, IProjectMembe
     public async ValueTask<IReadOnlyList<UserDto>> Handle(ListUsersQuery request, CancellationToken cancellationToken)
     {
         var users = await userRepository.ListAsync(cancellationToken);
-        var result = new List<UserDto>();
+        if (users.Count == 0)
+            return [];
 
-        foreach (var user in users)
-        {
-            var members = await projectMemberRepository.ListByUserAsync(user.Email, cancellationToken);
-            var projects = members.Select(m => new ProjectAccessDto(m.ProjectId, m.Role.ToApiString())).ToList();
+        var members = await projectMemberRepository.ListByUsersAsync(
+            users.Select(user => user.Email).ToArray(),
+            cancellationToken);
+        var membersByUser = members.ToLookup(member => member.Username, StringComparer.OrdinalIgnoreCase);
 
-            result.Add(new UserDto(
-                user.Id,
-                user.Email,
-                user.Name,
-                user.Role.ToApiString(),
-                user.Scope.ToApiString(),
-                user.IsAdmin,
-                projects,
-                user.CreatedAt,
-                user.UpdatedAt));
-        }
-
-        return result;
+        return users
+            .Select(user => UserDtoMapping.ToDto(user, membersByUser[user.Email]))
+            .ToList();
     }
 }
