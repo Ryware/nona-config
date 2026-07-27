@@ -392,24 +392,12 @@ internal static class StorageBenchmarkApp
     {
         return
         [
-            new("small-point-1-c1", DatasetSize.Small, WorkloadKind.PointLookup, 1, 1, Required: false, RunPrimaryDiagnostic: true),
-            new("small-range-1-c1", DatasetSize.Small, WorkloadKind.RangeQuery, 1, 1, Required: false),
-            new("medium-point-1-c1", DatasetSize.Medium, WorkloadKind.PointLookup, 1, 1, Required: true, RunPrimaryDiagnostic: true),
-            new("medium-point-1-c50", DatasetSize.Medium, WorkloadKind.PointLookup, 1, 50, Required: true, RunPrimaryDiagnostic: true),
-            new("medium-point-10-c10", DatasetSize.Medium, WorkloadKind.PointLookup, 10, 10, Required: true, RunPrimaryDiagnostic: true),
-            new("medium-point-100-c10", DatasetSize.Medium, WorkloadKind.PointLookup, 100, 10, Required: true, RunPrimaryDiagnostic: true),
-            new("medium-release-hydration-point-1-c1", DatasetSize.Medium, WorkloadKind.ReleaseHydrationPointLookup, 1, 1, Required: false),
-            new("medium-release-point-1-c1", DatasetSize.Medium, WorkloadKind.ReleaseEntryPointLookup, 1, 1, Required: true, RunPrimaryDiagnostic: true),
-            new("medium-release-point-1-c50", DatasetSize.Medium, WorkloadKind.ReleaseEntryPointLookup, 1, 50, Required: true, RunPrimaryDiagnostic: true),
-            new("medium-range-100-c10", DatasetSize.Medium, WorkloadKind.RangeQuery, 100, 10, Required: false, RunPrimaryDiagnostic: true),
-            new("medium-range-1000-c10", DatasetSize.Medium, WorkloadKind.RangeQuery, 1000, 10, Required: true, RunPrimaryDiagnostic: true),
-            new("medium-range-10000-c5", DatasetSize.Medium, WorkloadKind.RangeQuery, 10000, 5, Required: true),
-            new("large-point-1-c1", DatasetSize.Large, WorkloadKind.PointLookup, 1, 1, Required: false, RunPrimaryDiagnostic: true),
-            new("large-point-1-c50", DatasetSize.Large, WorkloadKind.PointLookup, 1, 50, Required: false),
-            new("large-point-100-c10", DatasetSize.Large, WorkloadKind.PointLookup, 100, 10, Required: false),
-            new("large-release-point-1-c1", DatasetSize.Large, WorkloadKind.ReleaseEntryPointLookup, 1, 1, Required: false, RunPrimaryDiagnostic: true),
-            new("large-release-point-1-c50", DatasetSize.Large, WorkloadKind.ReleaseEntryPointLookup, 1, 50, Required: false),
-            new("large-range-10000-c5", DatasetSize.Large, WorkloadKind.RangeQuery, 10000, 5, Required: false)
+            new("keys-1-c1", DatasetSize.Small, WorkloadKind.RangeQuery, 1, 1, Required: true, RunPrimaryDiagnostic: true),
+            new("keys-1-c50", DatasetSize.Small, WorkloadKind.RangeQuery, 1, 50, Required: true, RunPrimaryDiagnostic: true),
+            new("keys-100-c1", DatasetSize.Medium, WorkloadKind.RangeQuery, 100, 1, Required: true, RunPrimaryDiagnostic: true),
+            new("keys-100-c50", DatasetSize.Medium, WorkloadKind.RangeQuery, 100, 50, Required: true, RunPrimaryDiagnostic: true),
+            new("keys-10000-c1", DatasetSize.Large, WorkloadKind.RangeQuery, 10_000, 1, Required: true, RunPrimaryDiagnostic: true),
+            new("keys-10000-c50", DatasetSize.Large, WorkloadKind.RangeQuery, 10_000, 50, Required: true, RunPrimaryDiagnostic: true)
         ];
     }
 

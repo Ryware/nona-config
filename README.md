@@ -295,31 +295,20 @@ See [`cli/src/Nona.Cli/README.md`](cli/src/Nona.Cli/README.md) for the full CLI 
 
 ## Performance
 
-All measurements from production-equivalent environments.
+The following numbers measure full runtime API reads from containerized Nona
+instances. SQLite standalone and standalone managed sqld used the same image and
+seed data.
 
-### Single-node (SQLite local)
+Each request used `GET /api/{environment}` without `If-None-Match` and consumed
+the complete response body. "Users" means concurrent, closed-loop HTTP clients:
+1 for single-user and 50 for multi-user load.
 
-Dataset: **10,000 rows**, p95 latency:
-
-| Scenario | p95 (ms) | req/s |
-|----------|----------|-------|
-| Point lookup — 1 key | 0.154 | 11,248 |
-| Point lookup — 100 keys | 0.712 | 1,616 |
-| Range query — 1,000 rows | 3.703 | 289 |
-
-All targets pass with 0% error rate under load.
-
-### Primary / Replica (remote client)
-
-| Scenario | Primary p95 | Replica p95 |
-|----------|-------------|-------------|
-| 1 key, c1 | 50.0 ms | **2.6 ms** |
-| 100 keys, c1 | 56.8 ms | **6.6 ms** |
-| 1,000 rows, c1 | 263.2 ms | **42.9 ms** |
-
-Replica reads are **10–15× faster** for geographically distant clients.
-
-> **Note:** Replication is asynchronous. Immediate read-after-write consistency is not guaranteed — replicas are best for read-heavy workloads where eventual consistency is acceptable.
+| Keys returned | Users | SQLite p95 (ms) | SQLite req/s | SQLite errors | sqld p95 (ms) | sqld req/s | sqld errors |
+|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 1 | 1.34 | 976.8 | 0% | 11.17 | 100.2 | 0% |
+| 1 | 50 | 8.49 | 8,490.8 | 0% | 225.05 | 248.8 | 0% |
+| 100 | 1 | 2.55 | 549.3 | 0% | 13.25 | 82.8 | 0% |
+| 100 | 50 | 12.05 | 6,687.1 | 0% | 223.33 | 246.4 | 0% |
 
 ---
 

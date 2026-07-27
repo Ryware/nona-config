@@ -144,7 +144,7 @@ internal static class ReportWriter
         sb.AppendLine();
         sb.AppendLine("## Scope");
         sb.AppendLine();
-        sb.AppendLine("- Measured `sqlite-client` for single-node mode with repeatable read workloads that mirror app read flow: project lookup, environment check, then point, range, or release-entry query.");
+        sb.AppendLine("- Measured `sqlite-client` for single-node mode with repeatable read workloads that mirror bulk app reads: project lookup, environment check, then retrieval of all requested keys.");
         if (libsqlReplica.Count > 0)
         {
             sb.AppendLine("- Also compared remote `libsql-primary` and embedded `libsql-replica` when external libsql primary was provided.");
@@ -241,11 +241,11 @@ internal static class ReportWriter
         sb.AppendLine();
         sb.AppendLine("| Target | SQLite client |");
         sb.AppendLine("|---|---|");
-        sb.AppendLine($"| Single key lookup p95 <= 80 ms | {DescribeTarget(sqliteClient, "medium-point-1-c1")} |");
-        sb.AppendLine($"| 100-row query p95 <= 120 ms | {DescribeTarget(sqliteClient, "medium-range-100-c10")} |");
-        sb.AppendLine($"| 1,000-row query p95 <= 750 ms | {DescribeTarget(sqliteClient, "medium-range-1000-c10")} |");
+        sb.AppendLine($"| 1-row query | {DescribeTarget(sqliteClient, "keys-1-c1")} |");
+        sb.AppendLine($"| 100-row query p95 <= 120 ms | {DescribeTarget(sqliteClient, "keys-100-c1")} |");
+        sb.AppendLine($"| 10,000-row query | {DescribeTarget(sqliteClient, "keys-10000-c1")} |");
         sb.AppendLine($"| Error rate under load < 2% | {DescribeErrorTarget(sqliteClient.Values)} |");
-        sb.AppendLine($"| No severe degradation at 50+ users | {DescribeConcurrencyTarget(sqliteClient, "medium-point-1-c50")} |");
+        sb.AppendLine($"| 50-user, 10,000-row load | {DescribeConcurrencyTarget(sqliteClient, "keys-10000-c50")} |");
 
         if (libsqlReplica.Count > 0)
         {
@@ -254,11 +254,11 @@ internal static class ReportWriter
             sb.AppendLine();
             sb.AppendLine("| Target | libSQL replica |");
             sb.AppendLine("|---|---|");
-            sb.AppendLine($"| Single key lookup p95 <= 80 ms | {DescribeTarget(libsqlReplica, "medium-point-1-c1")} |");
-            sb.AppendLine($"| 100-row query p95 <= 120 ms | {DescribeTarget(libsqlReplica, "medium-range-100-c10")} |");
-            sb.AppendLine($"| 1,000-row query p95 <= 750 ms | {DescribeTarget(libsqlReplica, "medium-range-1000-c10")} |");
+            sb.AppendLine($"| 1-row query | {DescribeTarget(libsqlReplica, "keys-1-c1")} |");
+            sb.AppendLine($"| 100-row query p95 <= 120 ms | {DescribeTarget(libsqlReplica, "keys-100-c1")} |");
+            sb.AppendLine($"| 10,000-row query | {DescribeTarget(libsqlReplica, "keys-10000-c1")} |");
             sb.AppendLine($"| Error rate under load < 2% | {DescribeErrorTarget(libsqlReplica.Values)} |");
-            sb.AppendLine($"| No severe degradation at 50+ users | {DescribeConcurrencyTarget(libsqlReplica, "medium-point-1-c50")} |");
+            sb.AppendLine($"| 50-user, 10,000-row load | {DescribeConcurrencyTarget(libsqlReplica, "keys-10000-c50")} |");
         }
 
         sb.AppendLine();
