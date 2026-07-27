@@ -39,6 +39,7 @@ using Nona.Application.Shared.ParameterShareLinks.DTOs;
 using Nona.Application.Shared.ParameterShareLinks.Queries;
 using Nona.Domain;
 using Nona.WebApi.Authentication;
+using Nona.WebApi.Authorization;
 
 namespace Nona.WebApi.Endpoints;
 
@@ -165,22 +166,27 @@ public static class NonaEndpointRouteBuilderExtensions
         users.MapPost("/", CreateUserAsync)
             .Produces<CreateUserResponse>(StatusCodes.Status201Created);
         users.MapGet("/", ListUsersAsync)
-            .Produces<IReadOnlyList<UserDto>>();
+            .Produces<IReadOnlyList<UserDto>>()
+            .RequireAuthorization(AdminReadAuthorizationPolicies.Manage);
         users.MapGet("/{id}", GetUserAsync)
-            .Produces<UserDto>();
+            .Produces<UserDto>()
+            .RequireAuthorization(AdminReadAuthorizationPolicies.SelfOrManageUser);
         users.MapPut("/{id}", UpdateUserAsync)
             .Produces<UserDto>();
         users.MapDelete("/{id}", DeleteUserAsync);
         users.MapGet("/{id}/projects", GetUserProjectsAsync)
-            .Produces<IReadOnlyList<ProjectAccessDto>>();
+            .Produces<IReadOnlyList<ProjectAccessDto>>()
+            .RequireAuthorization(AdminReadAuthorizationPolicies.SelfOrManageUser);
         users.MapPut("/{id}/projects/{projectName}", SetProjectAccessAsync)
             .Produces<ProjectAccessDto>();
         users.MapDelete("/{id}/projects/{projectName}", RemoveProjectAccessAsync);
 
         admin.MapGet("/audit-logs", ListAuditLogsAsync)
-            .Produces<IReadOnlyList<AuditLogDto>>();
+            .Produces<IReadOnlyList<AuditLogDto>>()
+            .RequireAuthorization(AdminReadAuthorizationPolicies.Manage);
         admin.MapGet("/dashboard/counts", GetDashboardCountsAsync)
-            .Produces<DashboardCountDto>();
+            .Produces<DashboardCountDto>()
+            .RequireAuthorization(AdminReadAuthorizationPolicies.Manage);
     }
 
     private static void MapConfigApiEndpoints(RouteGroupBuilder api)
