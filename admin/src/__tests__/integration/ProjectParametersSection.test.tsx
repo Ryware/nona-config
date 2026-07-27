@@ -41,6 +41,65 @@ describe('ProjectParametersSection', () => {
     expect(await screen.findByTestId('parameter-accordion-API_URL')).toBeInTheDocument();
   });
 
+  it('updates a parameter with the selected datatype', async () => {
+    let updateRequest:
+      | { value: string; contentType: string; scope: string }
+      | undefined;
+
+    server.use(
+      http.put(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/config-entries/:key',
+        async ({ params, request }) => {
+          updateRequest = (await request.json()) as {
+            value: string;
+            contentType: string;
+            scope: string;
+          };
+
+          return HttpResponse.json({
+            project: params.projectId,
+            environment: params.envName,
+            key: params.key,
+            ...updateRequest,
+            activeVersion: 2,
+            createdAt: '2024-01-01T00:00:00Z',
+            updatedAt: '2024-01-02T00:00:00Z',
+          });
+        },
+      ),
+    );
+
+    renderProjectSections('/projects/my-app');
+
+    fireEvent.click(await screen.findByTestId('parameter-row-API_URL'));
+
+    const datatypeSelect = await screen.findByLabelText(/^datatype$/i);
+    expect(datatypeSelect).toHaveTextContent('text');
+
+    fireEvent.pointerDown(datatypeSelect, { pointerId: 1, pointerType: 'mouse' });
+    fireEvent.pointerUp(datatypeSelect, { pointerId: 1, pointerType: 'mouse' });
+
+    const numberOption = await screen.findByRole('option', { name: 'number' });
+    fireEvent.pointerDown(numberOption, { pointerId: 1, pointerType: 'mouse' });
+    fireEvent.pointerUp(numberOption, { pointerId: 1, pointerType: 'mouse' });
+
+    const saveButton = screen.getByTestId('parameter-edit-save-button');
+    expect(saveButton).toBeDisabled();
+
+    fireEvent.input(screen.getByTestId('parameter-edit-value-input'), {
+      target: { value: '42' },
+    });
+    fireEvent.click(saveButton);
+
+    await waitFor(() => {
+      expect(updateRequest).toEqual({
+        value: '42',
+        contentType: 'number',
+        scope: 'server',
+      });
+    });
+  });
+
   it('shows prompt to select environment when none is active', async () => {
     server.use(
       http.get('http://localhost:5027/admin/projects/:projectId/environments', () =>
