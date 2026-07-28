@@ -52,6 +52,7 @@ export function SsoSection(props: SsoSectionProps) {
 	createEffect(() => {
 	  const googleConfig = props.ssoConfig?.google;
 	  const onSsoError = props.onSsoError;
+	  const onRedirectStart = props.onRedirectStart;
 	  if (!googleConfig?.enabled || !googleConfig.clientId || !googleButtonHost) {
 	    return;
 	  }
@@ -66,7 +67,7 @@ export function SsoSection(props: SsoSectionProps) {
       flowId,
       () => {
         try {
-          props.onRedirectStart?.();
+          onRedirectStart?.();
           beginSsoRedirect("google", flowId);
           setActiveSsoProvider("google");
           onSsoError("");
