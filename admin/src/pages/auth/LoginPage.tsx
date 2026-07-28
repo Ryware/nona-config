@@ -15,14 +15,17 @@ interface LoginPageProps extends Partial<RouteSectionProps> {
   onLoginSuccess?: (result: LoginResponse) => void;
 }
 
+const SSO_REMEMBER_ME_KEY = "nona:sso:remember-me";
+
 export default function LoginPage(props: LoginPageProps = {}) {
   const navigate = useNavigate();
   const [email, setEmail] = createSignal("");
   const [password, setPassword] = createSignal("");
   const [error, setError] = createSignal("");
-  const [rememberMe, setRememberMe] = createSignal(true);
+  const [rememberMe, setRememberMe] = createSignal(loadSsoRememberMePreference());
 
   const completeLogin = (result: LoginResponse) => {
+    sessionStorage.removeItem(SSO_REMEMBER_ME_KEY);
     authStore.saveSession(
       result.token,
       { email: result.username ?? "", role: result.role },
@@ -160,6 +163,9 @@ export default function LoginPage(props: LoginPageProps = {}) {
           isBusy={isBusy()}
           onSsoSuccess={handleSsoSuccess}
           onSsoError={msg => setError(msg)}
+          onRedirectStart={() => {
+            sessionStorage.setItem(SSO_REMEMBER_ME_KEY, String(rememberMe()));
+          }}
         />
 
         <div class="border-outline-variant/15 mt-6 border-t pt-5">
@@ -197,4 +203,8 @@ function getErrorMessage(caught: unknown, fallback: string) {
   }
 
   return fallback;
+}
+
+function loadSsoRememberMePreference() {
+  return sessionStorage.getItem(SSO_REMEMBER_ME_KEY) !== "false";
 }

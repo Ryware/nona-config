@@ -1,7 +1,13 @@
-import { createEffect, createSignal, onCleanup, Show } from "solid-js";
+import { createEffect, createSignal, onCleanup, onMount, Show } from "solid-js";
 import type { SsoConfig } from "../../types";
 import { renderGoogleSsoButton } from "../../entities/auth/api/google-sso";
-import { signInWithMicrosoftPopup } from "../../entities/auth/api/microsoft-sso";
+import { signInWithMicrosoftRedirect } from "../../entities/auth/api/microsoft-sso";
+import {
+  beginSsoRedirect,
+  cancelSsoRedirect,
+  consumeSsoRedirectResult,
+  createSsoFlowId,
+} from "../../entities/auth/api/sso-redirect";
 import { Button } from "../../shared/ui/button";
 
 interface SsoSectionProps {
@@ -9,6 +15,7 @@ interface SsoSectionProps {
   isBusy: boolean;
   onSsoSuccess: (provider: "google" | "microsoft", idToken: string) => Promise<void>;
   onSsoError: (message: string) => void;
+  onRedirectStart?: () => void;
   dividerLabel?: string;
 }
 
@@ -19,30 +26,56 @@ export function SsoSection(props: SsoSectionProps) {
   const hasSsoOptions = () => !!(props.ssoConfig?.google.enabled || props.ssoConfig?.microsoft.enabled);
   const isCurrentlyBusy = () => props.isBusy || activeSsoProvider() !== null;
 
+  onMount(() => {
+    const result = consumeSsoRedirectResult();
+    if (!result) {
+      return;
+    }
+
+    if (result.error || !result.idToken) {
+      props.onSsoError(result.error || "SSO sign-in did not return a token.");
+      return;
+    }
+
+    setActiveSsoProvider(result.provider);
+    props.onSsoError("");
+
+    void props.onSsoSuccess(result.provider, result.idToken)
+      .catch(() => {
+        // The parent maps backend errors to the authentication page.
+      })
+      .finally(() => {
+        setActiveSsoProvider(null);
+      });
+  });
+
 	createEffect(() => {
 	  const googleConfig = props.ssoConfig?.google;
 	  const onSsoError = props.onSsoError;
-	  const onSsoSuccess = props.onSsoSuccess;
 	  if (!googleConfig?.enabled || !googleConfig.clientId || !googleButtonHost) {
 	    return;
 	  }
 
     let disposed = false;
     let cleanup: (() => void) | undefined;
+    const flowId = createSsoFlowId();
 
     void renderGoogleSsoButton(
       googleButtonHost,
       googleConfig.clientId,
-      async (idToken) => {
-	        setActiveSsoProvider("google");
-	        onSsoError("");
-	
-	        try {
-	          await onSsoSuccess("google", idToken);
-        } catch {
-          // Error is handled by parent, fallback reset is managed in finally
-        } finally {
-          setActiveSsoProvider(null);
+      flowId,
+      () => {
+        try {
+          props.onRedirectStart?.();
+          beginSsoRedirect("google", flowId);
+          setActiveSsoProvider("google");
+          onSsoError("");
+        } catch (caught) {
+          onSsoError(
+            caught instanceof Error
+              ? caught.message
+              : "Google sign-in is unavailable right now. Please try again.",
+          );
         }
       },
       (message) => {
@@ -76,11 +109,20 @@ export function SsoSection(props: SsoSectionProps) {
 
     setActiveSsoProvider("microsoft");
     props.onSsoError("");
+    let flowId: string | undefined;
 
     try {
-      const idToken = await signInWithMicrosoftPopup(microsoftConfig.clientId, microsoftConfig.authority);
-      await props.onSsoSuccess("microsoft", idToken);
+      props.onRedirectStart?.();
+      flowId = beginSsoRedirect("microsoft");
+      await signInWithMicrosoftRedirect(
+        microsoftConfig.clientId,
+        microsoftConfig.authority,
+        flowId,
+      );
     } catch (caught) {
+      if (flowId) {
+        cancelSsoRedirect("microsoft", flowId);
+      }
       props.onSsoError(
         caught instanceof Error && caught.message
           ? caught.message
@@ -104,7 +146,7 @@ export function SsoSection(props: SsoSectionProps) {
           <div class="flex flex-col gap-2">
             <div ref={(element) => { googleButtonHost = element; }} class="w-full flex justify-center" />
             <Show when={activeSsoProvider() === "google"}>
-              <p class="text-center text-[10px] text-outline uppercase tracking-wider font-bold">Verifying Google sign-in…</p>
+              <p class="text-center text-[10px] text-outline uppercase tracking-wider font-bold">Redirecting to Google…</p>
             </Show>
           </div>
         </Show>
@@ -117,7 +159,7 @@ export function SsoSection(props: SsoSectionProps) {
             onClick={handleMicrosoftLogin}
           >
             <span class="material-symbols-outlined text-[18px]">domain_verification</span>
-            {activeSsoProvider() === "microsoft" ? "Connecting to Microsoft…" : "Continue with Microsoft"}
+            {activeSsoProvider() === "microsoft" ? "Redirecting to Microsoft…" : "Continue with Microsoft"}
           </Button>
         </Show>
       </div>
