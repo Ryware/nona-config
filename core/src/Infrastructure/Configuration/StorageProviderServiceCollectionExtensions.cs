@@ -39,13 +39,21 @@ public static class StorageProviderServiceCollectionExtensions
         services.AddSingleton<IAuditLogRepository, InMemoryAuditLogRepository>();
         services.AddSingleton<IUserRepository, InMemoryUserRepository>();
         services.AddSingleton<IExternalIdentityRepository, InMemoryExternalIdentityRepository>();
-        services.AddSingleton<IProjectRepository, InMemoryProjectRepository>();
-        services.AddSingleton<IApiKeyRepository, InMemoryApiKeyRepository>();
-        services.AddSingleton<IEnvironmentRepository, InMemoryEnvironmentRepository>();
-        services.AddSingleton<IConfigEntryRepository, InMemoryConfigEntryRepository>();
-        services.AddSingleton<IConfigReleaseRepository, InMemoryConfigReleaseRepository>();
-        services.AddSingleton<IProjectMemberRepository, InMemoryProjectMemberRepository>();
-        services.AddSingleton<IParameterShareLinkRepository, InMemoryParameterShareLinkRepository>();
+        services.AddSingleton<InMemoryProjectRepository>();
+        services.AddSingleton<IProjectRepository>(provider => provider.GetRequiredService<InMemoryProjectRepository>());
+        services.AddSingleton<InMemoryApiKeyRepository>(provider =>
+            new InMemoryApiKeyRepository(() => provider.GetRequiredService<IProjectRepository>()));
+        services.AddSingleton<IApiKeyRepository>(provider => provider.GetRequiredService<InMemoryApiKeyRepository>());
+        services.AddSingleton<InMemoryEnvironmentRepository>();
+        services.AddSingleton<IEnvironmentRepository>(provider => provider.GetRequiredService<InMemoryEnvironmentRepository>());
+        services.AddSingleton<InMemoryConfigEntryRepository>();
+        services.AddSingleton<IConfigEntryRepository>(provider => provider.GetRequiredService<InMemoryConfigEntryRepository>());
+        services.AddSingleton<InMemoryConfigReleaseRepository>();
+        services.AddSingleton<IConfigReleaseRepository>(provider => provider.GetRequiredService<InMemoryConfigReleaseRepository>());
+        services.AddSingleton<InMemoryProjectMemberRepository>();
+        services.AddSingleton<IProjectMemberRepository>(provider => provider.GetRequiredService<InMemoryProjectMemberRepository>());
+        services.AddSingleton<InMemoryParameterShareLinkRepository>();
+        services.AddSingleton<IParameterShareLinkRepository>(provider => provider.GetRequiredService<InMemoryParameterShareLinkRepository>());
     }
 
     private static void AddLibsqlProvider(

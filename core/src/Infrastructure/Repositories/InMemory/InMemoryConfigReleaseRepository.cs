@@ -198,6 +198,74 @@ public class InMemoryConfigReleaseRepository : IConfigReleaseRepository
         return Task.CompletedTask;
     }
 
+    internal void RenameEnvironment(string projectName, string currentName, string newName)
+    {
+        var matchingReleases = _releases.Values
+            .Where(storedRelease =>
+                storedRelease.Release.Project.Equals(projectName, StringComparison.OrdinalIgnoreCase)
+                && storedRelease.Release.Environment.Equals(currentName, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        foreach (var storedRelease in matchingReleases)
+        {
+            var release = storedRelease.Release;
+            _releases.TryRemove(GetKey(projectName, currentName, release.Version), out _);
+            var renamed = CloneStoredRelease(storedRelease, projectName, newName);
+            _releases[GetKey(projectName, newName, release.Version)] = renamed;
+        }
+    }
+
+    internal void RenameProject(string currentName, string newName)
+    {
+        var matchingReleases = _releases.Values
+            .Where(storedRelease =>
+                storedRelease.Release.Project.Equals(currentName, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        foreach (var storedRelease in matchingReleases)
+        {
+            var release = storedRelease.Release;
+            _releases.TryRemove(GetKey(currentName, release.Environment, release.Version), out _);
+            var renamed = CloneStoredRelease(storedRelease, newName, release.Environment);
+            _releases[GetKey(newName, release.Environment, release.Version)] = renamed;
+        }
+    }
+
+    private static StoredRelease CloneStoredRelease(
+        StoredRelease storedRelease,
+        string projectName,
+        string environmentName)
+    {
+        var release = storedRelease.Release;
+        var renamedEntries = release.Entries.Select(entry => new ConfigReleaseEntry
+        {
+            Project = projectName,
+            Environment = environmentName,
+            ReleaseVersion = entry.ReleaseVersion,
+            Key = entry.Key,
+            Value = entry.Value,
+            ContentType = entry.ContentType,
+            Scope = entry.Scope
+        }).ToList();
+        var renamedRelease = new ConfigRelease
+        {
+            Project = projectName,
+            Environment = environmentName,
+            Version = release.Version,
+            Major = release.Major,
+            Minor = release.Minor,
+            Patch = release.Patch,
+            Entries = renamedEntries,
+            EntryCount = release.EntryCount,
+            CreatedAt = release.CreatedAt,
+            Actor = release.Actor
+        };
+
+        return new StoredRelease(
+            renamedRelease,
+            renamedEntries.ToDictionary(entry => entry.Key, StringComparer.OrdinalIgnoreCase));
+    }
+
     private static ConfigRelease ToMetadata(ConfigRelease release)
     {
         return new ConfigRelease

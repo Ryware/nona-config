@@ -15,6 +15,12 @@ public interface IEnvironmentRepository
 
     Task UpdateAsync(ProjectEnvironment environment, CancellationToken ct = default);
 
+    Task RenameAsync(
+        string projectName,
+        string currentName,
+        string newName,
+        DateTime updatedAt,
+        CancellationToken ct = default);
 
     Task DeleteAsync(string projectName, string environmentName, CancellationToken ct = default);
 }

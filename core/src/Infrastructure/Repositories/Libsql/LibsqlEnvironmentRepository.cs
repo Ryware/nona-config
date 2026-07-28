@@ -92,6 +92,38 @@ public sealed class LibsqlEnvironmentRepository : IEnvironmentRepository
             ct);
     }
 
+    public async Task RenameAsync(
+        string projectName,
+        string currentName,
+        string newName,
+        DateTime updatedAt,
+        CancellationToken ct = default)
+    {
+        var parameters = LibsqlParameters.Create(
+            ("Project", projectName),
+            ("CurrentName", currentName),
+            ("NewName", newName),
+            ("UpdatedAt", updatedAt.ToString("O")));
+
+        await _client.ExecuteBatchAsync(
+        [
+            new LibsqlStatement(
+                """
+                UPDATE Environments
+                SET Name = @NewName, UpdatedAt = @UpdatedAt
+                WHERE Project = @Project COLLATE NOCASE
+                  AND Name = @CurrentName COLLATE NOCASE
+                """,
+                parameters),
+            RenameEnvironmentIn("ConfigEntries", parameters),
+            RenameEnvironmentIn("ConfigEntryVersions", parameters),
+            RenameEnvironmentIn("ParameterShareLinks", parameters),
+            RenameEnvironmentIn("ConfigReleases", parameters),
+            RenameEnvironmentIn("ConfigReleaseEntries", parameters),
+            RenameEnvironmentIn("ApiKeys", parameters)
+        ], ct);
+    }
+
     public async Task DeleteAsync(string projectName, string environmentName, CancellationToken ct = default)
     {
         await _client.ExecuteAsync(
@@ -126,5 +158,19 @@ public sealed class LibsqlEnvironmentRepository : IEnvironmentRepository
             ("ActiveReleaseVersion", environment.ActiveReleaseVersion),
             ("CreatedAt", environment.CreatedAt.ToString("O")),
             ("UpdatedAt", environment.UpdatedAt.ToString("O")));
+    }
+
+    private static LibsqlStatement RenameEnvironmentIn(
+        string table,
+        IReadOnlyDictionary<string, object?> parameters)
+    {
+        return new LibsqlStatement(
+            $"""
+            UPDATE {table}
+            SET Environment = @NewName
+            WHERE Project = @Project COLLATE NOCASE
+              AND Environment = @CurrentName COLLATE NOCASE
+            """,
+            parameters);
     }
 }
