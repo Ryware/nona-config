@@ -170,6 +170,23 @@ describe('ProjectParametersSection', () => {
     expect(generatedUrl).toHaveValue(`${window.location.origin}/share/AbCdEf1234567890`);
   });
 
+  it('asks before exiting release parameter changes', async () => {
+    renderProjectSections('/projects/my-app?release=1.2.0');
+
+    fireEvent.click(await screen.findByTestId('release-create-cancel-button'));
+
+    expect(await screen.findByTestId('release-exit-dialog')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('release-exit-cancel-button'));
+
+    expect(screen.queryByTestId('release-exit-dialog')).not.toBeInTheDocument();
+    expect(screen.getByTestId('release-create-confirm-button')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('release-create-cancel-button'));
+    fireEvent.click(await screen.findByTestId('release-exit-confirm-button'));
+
+    expect(await screen.findByTestId('project-releases-heading')).toBeInTheDocument();
+  });
+
   it('replaces the amend buffer before publishing after an environment switch', async () => {
     let releaseStagingSource: (() => void) | undefined;
     const publishRequests: Array<{ url: string; body: string }> = [];

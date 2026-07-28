@@ -1,8 +1,8 @@
 import { writeClipboard } from "@solid-primitives/clipboard";
 import { createTimer } from "@solid-primitives/timer";
-import { useNavigate, useParams, useSearchParams } from "@solidjs/router";
+import { useBeforeLeave, useNavigate, useParams, useSearchParams } from "@solidjs/router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/solid-query";
-import { Show, createEffect, createMemo, createSignal } from "solid-js";
+import { Show, createEffect, createMemo, createSignal, onCleanup } from "solid-js";
 
 import { configEntryService } from "../../../entities/project/api/config-entry.service";
 import { configReleaseService } from "../../../entities/project/api/config-release.service";
@@ -59,6 +59,7 @@ export default function ParametersSection() {
   const [revokingShareLinkId, setRevokingShareLinkId] = createSignal<number | null>(null);
   const [editDescription, setEditDescription] = createSignal("");
   const [showBulkImport, setShowBulkImport] = createSignal(false);
+  const [pendingReleaseExit, setPendingReleaseExit] = createSignal<(() => void) | null>(null);
 
   const isViewingReleaseSnapshot = () => !!viewedReleaseVersion();
   const isAmendMode = () => !!amendSourceVersion();
@@ -132,6 +133,32 @@ export default function ParametersSection() {
     projectId,
     activeEnvName,
     releases
+  });
+
+  const shouldConfirmReleaseExit = () =>
+    !!releaseDraftVersion() && !publishReleaseMutation.isPending;
+
+  useBeforeLeave(event => {
+    if (!shouldConfirmReleaseExit() || event.defaultPrevented) {
+      return;
+    }
+
+    event.preventDefault();
+    setPendingReleaseExit(() => () => event.retry(true));
+  });
+
+  createEffect(() => {
+    if (!shouldConfirmReleaseExit()) {
+      return;
+    }
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    onCleanup(() => window.removeEventListener("beforeunload", handleBeforeUnload));
   });
 
   createTimer(
@@ -719,6 +746,30 @@ export default function ParametersSection() {
         testId="delete-parameter-dialog"
         confirmTestId="delete-parameter-confirm-button"
         cancelTestId="delete-parameter-cancel-button"
+      />
+
+      <ConfirmDialog
+        open={pendingReleaseExit() !== null}
+        title="Exit Release Creation?"
+        message={
+          <>
+            You are changing parameters for release{" "}
+            <span class="text-primary font-mono font-bold">{releaseDraftVersion()}</span>. Exit
+            this process and discard the in-progress release changes?
+          </>
+        }
+        confirmLabel="Exit"
+        cancelLabel="Keep Editing"
+        variant="warning"
+        onConfirm={() => {
+          const retry = pendingReleaseExit();
+          setPendingReleaseExit(null);
+          retry?.();
+        }}
+        onCancel={() => setPendingReleaseExit(null)}
+        testId="release-exit-dialog"
+        confirmTestId="release-exit-confirm-button"
+        cancelTestId="release-exit-cancel-button"
       />
     </>
   );
