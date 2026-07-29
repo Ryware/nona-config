@@ -4,6 +4,7 @@ using Nona.Application.Common.Interfaces;
 using Nona.Application.Shared.ParameterShareLinks;
 using Nona.Application.Shared.ParameterShareLinks.DTOs;
 using Nona.Domain.Entities;
+using Nona.Domain.Enums;
 using Nona.Domain.Interfaces;
 
 namespace Nona.Application.Shared.ParameterShareLinks.Commands;
@@ -101,6 +102,7 @@ public class UpdateSharedParameterCommandHandler(
             await auditLogService.WriteAsAsync(
                 SharedParameterMapping.ResolveActor(shareLink),
                 true,
+                AuditActionKind.Update,
                 "Parameter Updated Via Shared Link",
                 shareLink.Key,
                 project: shareLink.Project,

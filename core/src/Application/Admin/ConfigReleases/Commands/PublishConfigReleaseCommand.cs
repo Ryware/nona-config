@@ -6,6 +6,7 @@ using Nona.Application.Common;
 using Nona.Application.Common.Interfaces;
 using Nona.Domain;
 using Nona.Domain.Entities;
+using Nona.Domain.Enums;
 using Nona.Domain.Interfaces;
 
 namespace Nona.Application.Admin.ConfigReleases.Commands;
@@ -126,6 +127,7 @@ public class PublishConfigReleaseCommandHandler(
         if (auditLogService is not null)
         {
             await auditLogService.WriteAsync(
+                AuditActionKind.Create,
                 "Published Config Release",
                 version.Normalized,
                 project: projectName,

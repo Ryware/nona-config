@@ -3,6 +3,7 @@ using Nona.Application.Admin.Environments.DTOs;
 using Nona.Application.Admin.Projects;
 using Nona.Application.Common.Interfaces;
 using Nona.Domain.Entities;
+using Nona.Domain.Enums;
 using Nona.Domain.Interfaces;
 
 namespace Nona.Application.Admin.Environments.Commands;
@@ -47,6 +48,7 @@ public class CreateEnvironmentCommandHandler(
         if (auditLogService is not null)
         {
             await auditLogService.WriteAsync(
+                AuditActionKind.Create,
                 "Created Environment",
                 environment.Name,
                 project: environment.Project,

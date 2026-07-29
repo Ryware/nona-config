@@ -1,3 +1,5 @@
+import type { AuditActionKind } from "../../entities/audit-log/model/types";
+
 export interface AuditEntry {
   id: string;
   time: Date;
@@ -5,6 +7,7 @@ export interface AuditEntry {
   actorIconColor: string;
   actorTextColor: string;
   actorIsSystem: boolean;
+  actionKind: AuditActionKind;
   action: string;
   actionStyle: string;
   target: string;

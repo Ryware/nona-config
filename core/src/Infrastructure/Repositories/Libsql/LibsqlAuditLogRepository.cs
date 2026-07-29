@@ -1,4 +1,5 @@
 using Nona.Domain.Entities;
+using Nona.Domain.Enums;
 using Nona.Domain.Interfaces;
 using Nona.Libsql;
 
@@ -17,8 +18,8 @@ public sealed class LibsqlAuditLogRepository : IAuditLogRepository
     {
         var result = await _client.ExecuteAsync(
             """
-            INSERT INTO AuditLogs (Actor, ActorIsSystem, Action, Target, Project, Environment, CreatedAt)
-            VALUES (@Actor, @ActorIsSystem, @Action, @Target, @Project, @Environment, @CreatedAt)
+            INSERT INTO AuditLogs (Actor, ActorIsSystem, ActionKind, Action, Target, Project, Environment, CreatedAt)
+            VALUES (@Actor, @ActorIsSystem, @ActionKind, @Action, @Target, @Project, @Environment, @CreatedAt)
             """,
             ToParameters(entry),
             ct);
@@ -30,7 +31,7 @@ public sealed class LibsqlAuditLogRepository : IAuditLogRepository
     {
         var result = await _client.ExecuteAsync(
             """
-            SELECT rowid AS Id, Actor, ActorIsSystem, Action, Target, Project, Environment, CreatedAt
+            SELECT rowid AS Id, Actor, ActorIsSystem, ActionKind, Action, Target, Project, Environment, CreatedAt
             FROM AuditLogs
             ORDER BY CreatedAt DESC, rowid DESC
             """,
@@ -46,6 +47,7 @@ public sealed class LibsqlAuditLogRepository : IAuditLogRepository
             Id = row.GetInt64("Id"),
             Actor = row.GetString("Actor"),
             ActorIsSystem = row.GetBoolean("ActorIsSystem"),
+            ActionKind = ParseActionKind(row.GetString("ActionKind")),
             Action = row.GetString("Action"),
             Target = row.GetString("Target"),
             Project = row.GetNullableString("Project"),
@@ -59,10 +61,18 @@ public sealed class LibsqlAuditLogRepository : IAuditLogRepository
         return LibsqlParameters.Create(
             ("Actor", entry.Actor),
             ("ActorIsSystem", entry.ActorIsSystem),
+            ("ActionKind", entry.ActionKind.ToString().ToLowerInvariant()),
             ("Action", entry.Action),
             ("Target", entry.Target),
             ("Project", entry.Project),
             ("Environment", entry.Environment),
             ("CreatedAt", entry.CreatedAt.ToString("O")));
+    }
+
+    private static AuditActionKind ParseActionKind(string value)
+    {
+        return Enum.TryParse<AuditActionKind>(value, ignoreCase: true, out var actionKind)
+            ? actionKind
+            : AuditActionKind.Activity;
     }
 }

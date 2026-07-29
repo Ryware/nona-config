@@ -2,6 +2,7 @@ using Mediator;
 using Nona.Application.Admin.Environments.DTOs;
 using Nona.Application.Admin.Projects;
 using Nona.Application.Common.Interfaces;
+using Nona.Domain.Enums;
 using Nona.Domain.Interfaces;
 
 namespace Nona.Application.Admin.Environments.Commands;
@@ -65,6 +66,7 @@ public class RenameEnvironmentCommandHandler(
         if (auditLogService is not null)
         {
             await auditLogService.WriteAsync(
+                AuditActionKind.Update,
                 "Renamed Environment",
                 $"{environment.Name} to {request.NewName}",
                 project: project.Name,

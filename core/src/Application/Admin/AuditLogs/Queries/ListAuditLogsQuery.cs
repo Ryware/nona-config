@@ -18,6 +18,7 @@ public class ListAuditLogsQueryHandler(IAuditLogRepository auditLogRepository)
                 entry.Id,
                 entry.Actor,
                 entry.ActorIsSystem,
+                entry.ActionKind.ToString().ToLowerInvariant(),
                 entry.Action,
                 entry.Target,
                 entry.Project,
