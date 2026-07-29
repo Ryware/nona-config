@@ -8,6 +8,7 @@ import type { AuditLog } from "../../types";
 import { AuditLogsFilters } from "./components/AuditLogsFilters";
 import { AuditLogsHeader } from "./components/AuditLogsHeader";
 import { AuditLogsTable } from "./components/AuditLogsTable";
+import { serializeAuditLogs, type AuditExportFormat } from "./export";
 import type { AuditEntry } from "./types";
 import { ACTION_STYLE, actorStyle, ENV_STYLE } from "./utils";
 
@@ -58,6 +59,7 @@ function mapAuditLog(log: AuditLog): AuditEntry {
     actorIconColor: s.bg,
     actorTextColor: s.text,
     actorIsSystem: log.actorIsSystem,
+    actionKind: log.actionKind,
     action,
     actionStyle: ACTION_STYLE[action] ?? ACTION_STYLE["Updated Parameter"],
     target: log.target,
@@ -134,44 +136,15 @@ export default function AuditLogsPage() {
     setPage(0);
   };
 
-  const exportLogs = (format: "csv" | "json") => {
-    const entries = filtered();
-    if (format === "json") {
-      const json = JSON.stringify(
-        entries.map(e => ({
-          id: e.id,
-          time: e.time.toISOString(),
-          actor: e.actor,
-          action: e.action,
-          target: e.target,
-          environment: e.env,
-          sysId: e.sysId,
-          project: e.project
-        })),
-        null,
-        2
-      );
-      const blob = new Blob([json], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `audit-logs-${new Date().toISOString().slice(0, 10)}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } else {
-      const header = "Time,Actor,Action,Target,Environment,SysID,Project\n";
-      const rows = entries.map(
-        e =>
-          `"${e.time.toISOString()}","${e.actor}","${e.action}","${e.target}","${e.env}","${e.sysId}","${e.project ?? ""}"`
-      );
-      const blob = new Blob([header + rows.join("\n")], { type: "text/csv" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `audit-logs-${new Date().toISOString().slice(0, 10)}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
-    }
+  const exportLogs = (format: AuditExportFormat) => {
+    const { content, mimeType } = serializeAuditLogs(filtered(), format);
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `audit-logs-${new Date().toISOString().slice(0, 10)}.${format}`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
