@@ -2,6 +2,7 @@ using Nona.Application.Admin.ParameterShareLinks.Commands;
 using Nona.Application.Common.Interfaces;
 using Nona.Application.Tests.Common;
 using Nona.Domain.Entities;
+using Nona.Domain.Enums;
 using Nona.Domain.Interfaces;
 using NSubstitute;
 
@@ -65,6 +66,7 @@ public class CreateParameterShareLinkCommandTests
         await Assert.That(savedLink.Key).IsEqualTo(ConfigKey);
 
         await auditLogService.Received(1).WriteAsync(
+            AuditActionKind.Create,
             "Share Link Created",
             ConfigKey,
             ProjectName,

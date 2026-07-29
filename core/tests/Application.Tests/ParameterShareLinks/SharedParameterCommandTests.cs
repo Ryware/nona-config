@@ -48,6 +48,7 @@ public class SharedParameterCommandTests
         await auditLogService.Received(1).WriteAsAsync(
             "Shared link #7",
             true,
+            AuditActionKind.Activity,
             "Share Link Accessed",
             ConfigKey,
             ProjectName,
@@ -178,6 +179,7 @@ public class SharedParameterCommandTests
         await auditLogService.Received(1).WriteAsAsync(
             "Shared link #7",
             true,
+            AuditActionKind.Update,
             "Parameter Updated Via Shared Link",
             ConfigKey,
             ProjectName,

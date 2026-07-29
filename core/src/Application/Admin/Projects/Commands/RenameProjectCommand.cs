@@ -1,6 +1,7 @@
 using Mediator;
 using Nona.Application.Admin.Projects.DTOs;
 using Nona.Application.Common.Interfaces;
+using Nona.Domain.Enums;
 using Nona.Domain.Interfaces;
 
 namespace Nona.Application.Admin.Projects.Commands;
@@ -58,6 +59,7 @@ public class RenameProjectCommandHandler(
         if (auditLogService is not null)
         {
             await auditLogService.WriteAsync(
+                AuditActionKind.Update,
                 "Renamed Project",
                 $"{project.Name} to {request.NewName}",
                 project: request.NewName,

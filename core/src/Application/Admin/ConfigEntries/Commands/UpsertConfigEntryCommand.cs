@@ -53,6 +53,7 @@ public class UpsertConfigEntryCommandHandler(
 
         var now = dateTime.NowUtc;
         var action = existingEntry is null ? "Created Key" : "Updated Key";
+        var actionKind = existingEntry is null ? AuditActionKind.Create : AuditActionKind.Update;
         var entry = new ConfigEntry
         {
             Project = projectName,
@@ -72,6 +73,7 @@ public class UpsertConfigEntryCommandHandler(
         if (auditLogService is not null)
         {
             await auditLogService.WriteAsync(
+                actionKind,
                 action,
                 savedEntry.Key,
                 project: savedEntry.Project,

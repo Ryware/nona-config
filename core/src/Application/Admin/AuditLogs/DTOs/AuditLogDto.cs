@@ -4,6 +4,7 @@ public record AuditLogDto(
     long Id,
     string Actor,
     bool ActorIsSystem,
+    string ActionKind,
     string Action,
     string Target,
     string? Project,

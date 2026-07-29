@@ -62,6 +62,7 @@ public class CreateUserCommandHandler(
         if (auditLogService is not null)
         {
             await auditLogService.WriteAsync(
+                AuditActionKind.Create,
                 "Invited User",
                 user.Email,
                 cancellationToken: cancellationToken);
