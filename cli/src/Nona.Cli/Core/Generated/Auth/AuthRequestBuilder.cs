@@ -3,7 +3,6 @@
 using Microsoft.Kiota.Abstractions.Extensions;
 using Microsoft.Kiota.Abstractions;
 using Nona.Cli.Generated.Auth.FirstTime;
-using Nona.Cli.Generated.Auth.ForgotPassword;
 using Nona.Cli.Generated.Auth.Invitations;
 using Nona.Cli.Generated.Auth.Login;
 using Nona.Cli.Generated.Auth.Register;
@@ -24,11 +23,6 @@ namespace Nona.Cli.Generated.Auth
         public global::Nona.Cli.Generated.Auth.FirstTime.FirstTimeRequestBuilder FirstTime
         {
             get => new global::Nona.Cli.Generated.Auth.FirstTime.FirstTimeRequestBuilder(PathParameters, RequestAdapter);
-        }
-        /// <summary>The forgotPassword property</summary>
-        public global::Nona.Cli.Generated.Auth.ForgotPassword.ForgotPasswordRequestBuilder ForgotPassword
-        {
-            get => new global::Nona.Cli.Generated.Auth.ForgotPassword.ForgotPasswordRequestBuilder(PathParameters, RequestAdapter);
         }
         /// <summary>The invitations property</summary>
         public global::Nona.Cli.Generated.Auth.Invitations.InvitationsRequestBuilder Invitations

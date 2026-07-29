@@ -496,11 +496,6 @@ export const handlers = [
     });
   }),
 
-  // ── Forgot Password ──────────────────────────────────────────────────────────
-  http.post(`${BASE}/auth/forgot-password`, () => {
-    return new HttpResponse(null, { status: 204 });
-  }),
-
   // ── Audit Logs ───────────────────────────────────────────────────────────────
   http.get(`${BASE}/admin/audit-logs`, () => {
     return HttpResponse.json([

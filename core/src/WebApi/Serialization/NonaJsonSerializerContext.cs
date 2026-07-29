@@ -33,7 +33,6 @@ namespace Nona.WebApi.Serialization;
 [JsonSerializable(typeof(LoginRequest))]
 [JsonSerializable(typeof(LoginResponse))]
 [JsonSerializable(typeof(RegisterCommand))]
-[JsonSerializable(typeof(RequestPasswordResetCommand))]
 [JsonSerializable(typeof(SsoLoginRequest))]
 [JsonSerializable(typeof(SsoPublicConfigResponse))]
 [JsonSerializable(typeof(SsoProviderPublicConfig))]

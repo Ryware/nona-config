@@ -4,8 +4,6 @@ import type {
   LoginRequest,
   LoginResponse,
   RegisterRequest,
-  ForgotPasswordRequest,
-  ResetPasswordRequest,
   SsoConfig,
   InvitationDetails,
 } from "../model/types";
@@ -17,17 +15,6 @@ export const authService = {
 
   async register(data: RegisterRequest): Promise<LoginResponse> {
     return apiClient.post<LoginResponse>("/auth/register", data);
-  },
-
-  async requestPasswordReset(data: ForgotPasswordRequest): Promise<void> {
-    await apiClient.post('/auth/forgot-password', data);
-  },
-
-  async resetPassword(_data: ResetPasswordRequest): Promise<void> {
-    // TODO: Implement when backend endpoint is ready
-    throw new Error(
-      "Password reset functionality is not yet implemented on the backend"
-    );
   },
 
   logout() {

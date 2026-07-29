@@ -365,61 +365,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/forgot-password": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["RequestPasswordResetCommand"];
-                };
-            };
-            responses: {
-                /** @description No Content */
-                204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Client Error */
-                "4XX": {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
-                    };
-                };
-                /** @description Server Error */
-                "5XX": {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/auth/invitations/{token}": {
         parameters: {
             query?: never;
@@ -2903,9 +2848,6 @@ export interface components {
         };
         RenameProjectRequest: {
             name: string;
-        };
-        RequestPasswordResetCommand: {
-            email: string;
         };
         RollbackConfigEntryRequest: {
             /** Format: int32 */

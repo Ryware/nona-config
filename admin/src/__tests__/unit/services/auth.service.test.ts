@@ -109,16 +109,4 @@ describe('authService', () => {
       expect(result.token).toBe(mockToken);
     });
   });
-
-  describe('requestPasswordReset / resetPassword', () => {
-    it('successfully calls requestPasswordReset', async () => {
-      await expect(authService.requestPasswordReset({ email: 'x@x.com' })).resolves.toBeUndefined();
-    });
-
-    it('throws not implemented error for resetPassword', async () => {
-      await expect(
-        authService.resetPassword({ token: 'tok', newPassword: 'pw' }),
-      ).rejects.toThrow('Password reset functionality is not yet implemented');
-    });
-  });
 });
