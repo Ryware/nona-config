@@ -295,20 +295,31 @@ See [`cli/src/Nona.Cli/README.md`](cli/src/Nona.Cli/README.md) for the full CLI 
 
 ## Performance
 
-The following numbers measure full runtime API reads from containerized Nona
-instances. SQLite standalone and standalone managed sqld used the same image and
-seed data.
+The following results measure full runtime API reads using SQLite. "Users"
+means concurrent, closed-loop HTTP clients.
 
-Each request used `GET /api/{environment}` without `If-None-Match` and consumed
-the complete response body. "Users" means concurrent, closed-loop HTTP clients:
-1 for single-user and 50 for multi-user load.
+### Full environment
 
-| Keys returned | Users | SQLite p95 (ms) | SQLite req/s | SQLite errors | sqld p95 (ms) | sqld req/s | sqld errors |
-|---:|---:|---:|---:|---:|---:|---:|---:|
-| 1 | 1 | 1.34 | 976.8 | 0% | 11.17 | 100.2 | 0% |
-| 1 | 50 | 8.49 | 8,490.8 | 0% | 225.05 | 248.8 | 0% |
-| 100 | 1 | 2.55 | 549.3 | 0% | 13.25 | 82.8 | 0% |
-| 100 | 50 | 12.05 | 6,687.1 | 0% | 223.33 | 246.4 | 0% |
+Each request used `GET /api/{environment}` and consumed the complete response
+body.
+
+| Keys returned | Users | Average (ms) | p50 (ms) | p95 (ms) | p99 (ms) | req/s |
+|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 1 | 0.731 | 0.725 | 0.812 | 0.930 | 1,361.6 |
+| 1 | 50 | 5.950 | 5.658 | 8.763 | 11.522 | 8,397.7 |
+| 100 | 1 | 1.351 | 1.314 | 1.537 | 2.043 | 738.6 |
+| 100 | 50 | 7.723 | 6.812 | 12.451 | 23.230 | 6,469.5 |
+
+### Single key
+
+Each request used `GET /api/{environment}/{key}` to read one fixed key from an
+environment containing 10,000 keys.
+
+| Keys returned | Users | Average (ms) | p50 (ms) | p95 (ms) | p99 (ms) | req/s |
+|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 1 | 0.664 | 0.644 | 0.749 | 1.410 | 1,501.2 |
+| 1 | 50 | 5.250 | 4.900 | 7.969 | 13.302 | 9,516.8 |
+| 1 | 100 | 10.189 | 9.884 | 15.238 | 21.706 | 9,804.9 |
 
 ---
 

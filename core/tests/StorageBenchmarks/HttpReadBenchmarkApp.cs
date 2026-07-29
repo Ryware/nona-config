@@ -12,6 +12,8 @@ namespace Nona.StorageBenchmarks;
 internal static class HttpReadBenchmarkApp
 {
     private const int MultiUserConcurrency = 50;
+    private const int HighConcurrency = 100;
+    private const int SingleKeyIndex = 1;
 
     public static async Task<int> RunAsync(string[] args)
     {
@@ -28,27 +30,31 @@ internal static class HttpReadBenchmarkApp
                 cancellationSource.Cancel();
             };
 
-            var targets = new[]
-            {
-                new BenchmarkTarget("SQLite", options.SqliteUrl, options.SqliteContainer),
-                new BenchmarkTarget("sqld", options.SqldUrl, options.SqldContainer)
-            };
-            var scenarios = CreateScenarios();
+            var targets = CreateTargets(options);
+            var scenarios = CreateScenarios(options.Operation);
             var results = new List<HttpReadResult>();
 
             foreach (var target in targets)
             {
                 using var client = CreateClient(target.BaseUrl);
 
-                foreach (var keyCount in DatabaseSeeder.DatasetRows.Values)
+                if (scenarios.Any(scenario => scenario.Operation == HttpReadOperation.FullEnvironment))
                 {
-                    await ValidateDatasetAsync(client, keyCount, cancellationSource.Token);
+                    foreach (var keyCount in DatabaseSeeder.DatasetRows.Values)
+                    {
+                        await ValidateDatasetAsync(client, keyCount, cancellationSource.Token);
+                    }
+                }
+                if (scenarios.Any(scenario => scenario.Operation == HttpReadOperation.SingleKey))
+                {
+                    await ValidateSingleKeyAsync(client, cancellationSource.Token);
                 }
 
                 foreach (var scenario in scenarios)
                 {
                     Console.WriteLine(
-                        $"Running {target.Provider} / {scenario.KeyCount:N0} keys / c{scenario.Concurrency}.");
+                        $"Running {target.Provider} / {FormatOperation(scenario.Operation)} / " +
+                        $"{scenario.DatasetKeyCount:N0} dataset keys / c{scenario.Concurrency}.");
                     await RunPhaseAsync(
                         client,
                         scenario,
@@ -104,7 +110,7 @@ internal static class HttpReadBenchmarkApp
         var handler = new SocketsHttpHandler
         {
             AutomaticDecompression = DecompressionMethods.All,
-            MaxConnectionsPerServer = MultiUserConcurrency,
+            MaxConnectionsPerServer = HighConcurrency,
             PooledConnectionIdleTimeout = TimeSpan.FromMinutes(2),
             UseCookies = false
         };
@@ -117,13 +123,28 @@ internal static class HttpReadBenchmarkApp
         return client;
     }
 
+    private static IReadOnlyList<BenchmarkTarget> CreateTargets(HttpReadOptions options)
+    {
+        var targets = new List<BenchmarkTarget>();
+        if (options.SqliteUrl is not null)
+        {
+            targets.Add(new BenchmarkTarget("SQLite", options.SqliteUrl, options.SqliteContainer));
+        }
+        if (options.SqldUrl is not null)
+        {
+            targets.Add(new BenchmarkTarget("sqld", options.SqldUrl, options.SqldContainer));
+        }
+
+        return targets;
+    }
+
     private static async Task ValidateDatasetAsync(
         HttpClient client,
         int expectedKeyCount,
         CancellationToken cancellationToken)
     {
         using var response = await client.GetAsync(
-            BuildRequestPath(expectedKeyCount),
+            BuildFullEnvironmentRequestPath(expectedKeyCount),
             HttpCompletionOption.ResponseHeadersRead,
             cancellationToken);
         response.EnsureSuccessStatusCode();
@@ -135,6 +156,28 @@ internal static class HttpReadBenchmarkApp
         {
             throw new InvalidOperationException(
                 $"{client.BaseAddress} returned {actualKeyCount:N0} keys for the {expectedKeyCount:N0}-key dataset.");
+        }
+    }
+
+    private static async Task ValidateSingleKeyAsync(
+        HttpClient client,
+        CancellationToken cancellationToken)
+    {
+        var datasetKeyCount = DatabaseSeeder.DatasetRows[DatasetSize.Large];
+        using var response = await client.GetAsync(
+            BuildSingleKeyRequestPath(datasetKeyCount),
+            HttpCompletionOption.ResponseHeadersRead,
+            cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var actualValue = await response.Content.ReadAsStringAsync(cancellationToken);
+        var expectedValue = DatabaseSeeder.BuildValue(
+            DatabaseSeeder.GetEnvironmentName(DatasetSize.Large),
+            SingleKeyIndex);
+        if (!string.Equals(actualValue, expectedValue, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"{client.BaseAddress} returned an unexpected value for the single-key benchmark.");
         }
     }
 
@@ -177,7 +220,7 @@ internal static class HttpReadBenchmarkApp
                 try
                 {
                     using var response = await client.GetAsync(
-                        BuildRequestPath(scenario.KeyCount),
+                        BuildRequestPath(scenario),
                         HttpCompletionOption.ResponseHeadersRead,
                         operationSource.Token);
                     response.EnsureSuccessStatusCode();
@@ -212,7 +255,9 @@ internal static class HttpReadBenchmarkApp
         {
             return new HttpReadResult(
                 provider,
-                scenario.KeyCount,
+                scenario.Operation,
+                scenario.DatasetKeyCount,
+                scenario.KeysReturned,
                 scenario.Concurrency,
                 attempts,
                 successes,
@@ -235,7 +280,9 @@ internal static class HttpReadBenchmarkApp
         var orderedLatencies = latencies.OrderBy(value => value).ToArray();
         return new HttpReadResult(
             provider,
-            scenario.KeyCount,
+            scenario.Operation,
+            scenario.DatasetKeyCount,
+            scenario.KeysReturned,
             scenario.Concurrency,
             attempts,
             successes,
@@ -291,21 +338,67 @@ internal static class HttpReadBenchmarkApp
         return sortedValues[lower] + ((sortedValues[upper] - sortedValues[lower]) * fraction);
     }
 
-    private static IReadOnlyList<HttpReadScenario> CreateScenarios()
+    private static IReadOnlyList<HttpReadScenario> CreateScenarios(HttpReadOperation? operation)
     {
-        return DatabaseSeeder.DatasetRows.Values
-            .SelectMany(keyCount => new[]
-            {
-                new HttpReadScenario(keyCount, 1),
-                new HttpReadScenario(keyCount, MultiUserConcurrency)
-            })
-            .ToArray();
+        var scenarios = new List<HttpReadScenario>();
+        if (operation is null or HttpReadOperation.FullEnvironment)
+        {
+            scenarios.AddRange(DatabaseSeeder.DatasetRows.Values
+                .SelectMany(keyCount => new[]
+                {
+                    new HttpReadScenario(HttpReadOperation.FullEnvironment, keyCount, keyCount, 1),
+                    new HttpReadScenario(
+                        HttpReadOperation.FullEnvironment,
+                        keyCount,
+                        keyCount,
+                        MultiUserConcurrency)
+                }));
+        }
+
+        if (operation is null or HttpReadOperation.SingleKey)
+        {
+            var singleKeyDatasetSize = DatabaseSeeder.DatasetRows[DatasetSize.Large];
+            scenarios.AddRange(new[] { 1, MultiUserConcurrency, HighConcurrency }
+                .Select(concurrency => new HttpReadScenario(
+                    HttpReadOperation.SingleKey,
+                    singleKeyDatasetSize,
+                    1,
+                    concurrency)));
+        }
+
+        return scenarios;
     }
 
-    private static string BuildRequestPath(int keyCount)
+    private static string BuildRequestPath(HttpReadScenario scenario)
     {
-        var dataset = DatabaseSeeder.DatasetRows.Single(pair => pair.Value == keyCount).Key;
-        return $"/api/{DatabaseSeeder.GetEnvironmentName(dataset)}";
+        return scenario.Operation switch
+        {
+            HttpReadOperation.FullEnvironment =>
+                BuildFullEnvironmentRequestPath(scenario.DatasetKeyCount),
+            HttpReadOperation.SingleKey =>
+                BuildSingleKeyRequestPath(scenario.DatasetKeyCount),
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(scenario),
+                scenario.Operation,
+                null)
+        };
+    }
+
+    private static string BuildFullEnvironmentRequestPath(int datasetKeyCount)
+    {
+        return $"/api/{GetEnvironmentName(datasetKeyCount)}";
+    }
+
+    private static string BuildSingleKeyRequestPath(int datasetKeyCount)
+    {
+        return $"/api/{GetEnvironmentName(datasetKeyCount)}/" +
+               Uri.EscapeDataString(DatabaseSeeder.BuildKey(SingleKeyIndex));
+    }
+
+    private static string GetEnvironmentName(int datasetKeyCount)
+    {
+        var dataset = DatabaseSeeder.DatasetRows.Single(pair => pair.Value == datasetKeyCount).Key;
+        return Uri.EscapeDataString(DatabaseSeeder.GetEnvironmentName(dataset));
     }
 
     private static async Task WriteReportsAsync(
@@ -336,7 +429,7 @@ internal static class HttpReadBenchmarkApp
     {
         var builder = new StringBuilder();
         builder.AppendLine(
-            "provider,key_count,concurrency,attempts,successes,failures,error_rate_percent,requests_per_second,average_latency_ms,p50_latency_ms,p95_latency_ms,p99_latency_ms,errors,memory_sample_count,csharp_average_ram_mb,csharp_peak_ram_mb,sqld_average_ram_mb,sqld_peak_ram_mb,memory_note");
+            "provider,operation,dataset_key_count,keys_returned,concurrency,attempts,successes,failures,error_rate_percent,requests_per_second,average_latency_ms,p50_latency_ms,p95_latency_ms,p99_latency_ms,errors,memory_sample_count,csharp_average_ram_mb,csharp_peak_ram_mb,sqld_average_ram_mb,sqld_peak_ram_mb,memory_note");
         foreach (var result in results)
         {
             builder.AppendLine(string.Join(
@@ -344,7 +437,9 @@ internal static class HttpReadBenchmarkApp
                 new[]
                 {
                     result.Provider,
-                    result.KeyCount.ToString(CultureInfo.InvariantCulture),
+                    result.Operation.ToString(),
+                    result.DatasetKeyCount.ToString(CultureInfo.InvariantCulture),
+                    result.KeysReturned.ToString(CultureInfo.InvariantCulture),
                     result.Concurrency.ToString(CultureInfo.InvariantCulture),
                     result.Attempts.ToString(CultureInfo.InvariantCulture),
                     result.Successes.ToString(CultureInfo.InvariantCulture),
@@ -379,11 +474,24 @@ internal static class HttpReadBenchmarkApp
         builder.AppendLine();
         builder.AppendLine("## Method");
         builder.AppendLine();
-        builder.AppendLine("- Full HTTP `GET /api/{environment}` requests against containerized Nona instances.");
-        builder.AppendLine("- SQLite standalone compared with standalone managed sqld; no replica is involved.");
+        if (summary.Results.Any(result => result.Operation == HttpReadOperation.FullEnvironment))
+        {
+            builder.AppendLine("- Full-environment reads use `GET /api/{environment}`.");
+        }
+        if (summary.Results.Any(result => result.Operation == HttpReadOperation.SingleKey))
+        {
+            builder.AppendLine("- Single-key reads use `GET /api/{environment}/{key}` for one fixed key in the 10,000-key dataset at concurrency 1, 50, and 100.");
+        }
+        var providers = summary.Results
+            .Select(result => result.Provider)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        builder.AppendLine(providers.Length == 1
+            ? $"- Provider: {providers[0]}."
+            : "- SQLite standalone compared with standalone managed sqld; no replica is involved.");
         builder.AppendLine("- Every 200 response body is fully consumed. No conditional ETag header is sent.");
         builder.AppendLine("- Latency percentiles include successful responses only; failures are reported separately.");
-        builder.AppendLine($"- Single user is concurrency 1; multi-user load is concurrency {MultiUserConcurrency}.");
+        builder.AppendLine("- Concurrency is the number of closed-loop HTTP clients.");
         builder.AppendLine($"- Warmup {summary.Options.WarmupDuration.TotalSeconds:F1}s; measurement {summary.Options.MeasurementDuration.TotalSeconds:F1}s per scenario.");
         if (summary.Results.Any(result => result.MemorySampleCount > 0))
         {
@@ -393,17 +501,17 @@ internal static class HttpReadBenchmarkApp
         builder.AppendLine();
         builder.AppendLine("## Results");
         builder.AppendLine();
-        builder.AppendLine("| Provider | Keys returned | Concurrent users | p50 ms | p95 ms | p99 ms | req/s | Error % | C# RAM avg/peak MiB | sqld RAM avg/peak MiB | Errors |");
-        builder.AppendLine("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|");
+        builder.AppendLine("| Provider | Operation | Dataset keys | Keys returned | Concurrency | p50 ms | p95 ms | p99 ms | req/s | Error % | C# RAM avg/peak MiB | sqld RAM avg/peak MiB | Errors |");
+        builder.AppendLine("|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|");
         foreach (var result in summary.Results)
         {
             builder.AppendLine(
-                $"| {result.Provider} | {result.KeyCount:N0} | {result.Concurrency} | {result.P50LatencyMs:F2} | {result.P95LatencyMs:F2} | {result.P99LatencyMs:F2} | {result.RequestsPerSecond:F1} | {result.ErrorRatePercent:F2} | {FormatMemory(result.CSharpAverageRamMb, result.CSharpPeakRamMb)} | {FormatMemory(result.SqldAverageRamMb, result.SqldPeakRamMb)} | {FormatErrors(result.Errors)} |");
+                $"| {result.Provider} | {FormatOperation(result.Operation)} | {result.DatasetKeyCount:N0} | {result.KeysReturned:N0} | {result.Concurrency} | {result.P50LatencyMs:F2} | {result.P95LatencyMs:F2} | {result.P99LatencyMs:F2} | {result.RequestsPerSecond:F1} | {result.ErrorRatePercent:F2} | {FormatMemory(result.CSharpAverageRamMb, result.CSharpPeakRamMb)} | {FormatMemory(result.SqldAverageRamMb, result.SqldPeakRamMb)} | {FormatErrors(result.Errors)} |");
         }
 
         var memoryNotes = summary.Results
             .Where(result => !string.IsNullOrWhiteSpace(result.MemoryNote))
-            .Select(result => $"{result.Provider}, {result.KeyCount:N0} keys, c{result.Concurrency}: {result.MemoryNote}")
+            .Select(result => $"{result.Provider}, {FormatOperation(result.Operation)}, {result.DatasetKeyCount:N0} dataset keys, c{result.Concurrency}: {result.MemoryNote}")
             .Distinct(StringComparer.Ordinal)
             .ToArray();
         if (memoryNotes.Length > 0)
@@ -418,6 +526,16 @@ internal static class HttpReadBenchmarkApp
         }
 
         return builder.ToString();
+    }
+
+    private static string FormatOperation(HttpReadOperation operation)
+    {
+        return operation switch
+        {
+            HttpReadOperation.FullEnvironment => "full environment",
+            HttpReadOperation.SingleKey => "single key",
+            _ => throw new ArgumentOutOfRangeException(nameof(operation), operation, null)
+        };
     }
 
     private static string FormatErrors(IReadOnlyDictionary<string, int> errors)
@@ -449,6 +567,7 @@ internal static class HttpReadBenchmarkApp
         string? sqliteContainer = null;
         string? sqldContainer = null;
         string? outputDirectory = null;
+        HttpReadOperation? operation = null;
         var warmupSeconds = 2d;
         var measurementSeconds = 8d;
         var timeoutSeconds = 30d;
@@ -473,6 +592,9 @@ internal static class HttpReadBenchmarkApp
                 case "--output":
                     outputDirectory = ReadValue(args, ref index);
                     break;
+                case "--operation":
+                    operation = ParseOperation(ReadValue(args, ref index));
+                    break;
                 case "--warmup-seconds":
                     warmupSeconds = ParsePositiveDouble(ReadValue(args, ref index), "--warmup-seconds");
                     break;
@@ -490,9 +612,9 @@ internal static class HttpReadBenchmarkApp
             }
         }
 
-        if (sqliteUrl is null || sqldUrl is null)
+        if (sqliteUrl is null && sqldUrl is null)
         {
-            throw new ArgumentException("--sqlite-url and --sqld-url are required.");
+            throw new ArgumentException("At least one of --sqlite-url or --sqld-url is required.");
         }
 
         outputDirectory ??= Path.Combine(
@@ -505,6 +627,7 @@ internal static class HttpReadBenchmarkApp
             sqldUrl,
             sqliteContainer,
             sqldContainer,
+            operation,
             outputDirectory,
             TimeSpan.FromSeconds(warmupSeconds),
             TimeSpan.FromSeconds(measurementSeconds),
@@ -532,6 +655,18 @@ internal static class HttpReadBenchmarkApp
         }
 
         return parsed;
+    }
+
+    private static HttpReadOperation? ParseOperation(string value)
+    {
+        return value.ToLowerInvariant() switch
+        {
+            "all" => null,
+            "full-environment" => HttpReadOperation.FullEnvironment,
+            "single-key" => HttpReadOperation.SingleKey,
+            _ => throw new ArgumentException(
+                $"Unknown HTTP read operation '{value}'. Expected all, full-environment, or single-key.")
+        };
     }
 
     private static string ReadValue(string[] args, ref int index)
@@ -566,13 +701,24 @@ internal static class HttpReadBenchmarkApp
         Uri BaseUrl,
         string? ContainerName);
 
-    private sealed record HttpReadScenario(int KeyCount, int Concurrency);
+    private enum HttpReadOperation
+    {
+        FullEnvironment,
+        SingleKey
+    }
+
+    private sealed record HttpReadScenario(
+        HttpReadOperation Operation,
+        int DatasetKeyCount,
+        int KeysReturned,
+        int Concurrency);
 
     private sealed record HttpReadOptions(
-        Uri SqliteUrl,
-        Uri SqldUrl,
+        Uri? SqliteUrl,
+        Uri? SqldUrl,
         string? SqliteContainer,
         string? SqldContainer,
+        HttpReadOperation? Operation,
         string OutputDirectory,
         TimeSpan WarmupDuration,
         TimeSpan MeasurementDuration,
@@ -581,7 +727,9 @@ internal static class HttpReadBenchmarkApp
 
     private sealed record HttpReadResult(
         string Provider,
-        int KeyCount,
+        HttpReadOperation Operation,
+        int DatasetKeyCount,
+        int KeysReturned,
         int Concurrency,
         int Attempts,
         int Successes,
