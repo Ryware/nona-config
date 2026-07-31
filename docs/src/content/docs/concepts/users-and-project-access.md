@@ -112,7 +112,7 @@ For a real team setup:
 1. create the project structure first
 2. invite users individually
 3. grant access by project boundary
-4. review [Audit logs](/docs/concepts/audit-logs/) after sensitive permission changes if needed
+4. review [Audit logs](/docs/concepts/audit-logs) after sensitive permission changes if needed
 
 ## FAQ
 
@@ -140,7 +140,7 @@ Create the project structure first, invite users individually, then grant each p
 
 ## Related docs
 
-- [Projects](/docs/concepts/projects/)
-- [Single sign-on (SSO)](/docs/operations/sso/)
-- [Parameter share links](/docs/parameter-share-links/)
-- [Audit logs](/docs/concepts/audit-logs/)
+- [Projects](/docs/concepts/projects)
+- [Single sign-on (SSO)](/docs/operations/sso)
+- [Parameter share links](/docs/parameter-share-links)
+- [Audit logs](/docs/concepts/audit-logs)

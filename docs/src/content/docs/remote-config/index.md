@@ -70,24 +70,24 @@ nona entries set \
 
 ## In this section
 
-- [What is remote config?](/docs/remote-config/what-is-remote-config/)
-- [Feature flags vs remote config](/docs/feature-flags/feature-flags-vs-remote-config/)
-- [Remote config vs environment variables](/docs/remote-config/remote-config-vs-environment-variables/)
-- [Remote config for mobile apps](/docs/remote-config/mobile-app-remote-config/)
-- [Remote config use cases](/docs/remote-config/use-cases/)
-- [Server-side remote config](/docs/remote-config/server-side-remote-config/)
-- [Open source remote config](/docs/comparisons/open-source-remote-config/)
-- [Firebase Remote Config alternative](/docs/comparisons/firebase-remote-config-alternative/)
+- [What is remote config?](/docs/remote-config/what-is-remote-config)
+- [Feature flags vs remote config](/docs/feature-flags/feature-flags-vs-remote-config)
+- [Remote config vs environment variables](/docs/remote-config/remote-config-vs-environment-variables)
+- [Remote config for mobile apps](/docs/remote-config/mobile-app-remote-config)
+- [Remote config use cases](/docs/remote-config/use-cases)
+- [Server-side remote config](/docs/remote-config/server-side-remote-config)
+- [Open source remote config](/docs/comparisons/open-source-remote-config)
+- [Firebase Remote Config alternative](/docs/comparisons/firebase-remote-config-alternative)
 
 ## Next steps
 
-- Start with [Get started](/docs/get-started/)
-- Compare [Nona vs Firebase Remote Config](/docs/comparisons/firebase-remote-config-alternative/)
-- Read [HTTP](/docs/clients/http/) if you want the smallest integration path
+- Start with [Get started](/docs/get-started)
+- Compare [Nona vs Firebase Remote Config](/docs/comparisons/firebase-remote-config-alternative)
+- Read [HTTP](/docs/clients/http) if you want the smallest integration path
 
-If you want the backend-only path first, jump directly to [Server-side remote config](/docs/remote-config/server-side-remote-config/).
+If you want the backend-only path first, jump directly to [Server-side remote config](/docs/remote-config/server-side-remote-config).
 
-If your main use case is flags rather than broader runtime values, continue with [Feature flags](/docs/feature-flags/).
+If your main use case is flags rather than broader runtime values, continue with [Feature flags](/docs/feature-flags).
 
 ## FAQ
 

@@ -199,6 +199,6 @@ That is what Amend does automatically.
 
 ## Related docs
 
-- [Environments](/docs/concepts/environments/)
-- [Parameters and content types](/docs/concepts/parameters-and-content-types/)
-- [History and rollback](/docs/concepts/history-and-rollback/)
+- [Environments](/docs/concepts/environments)
+- [Parameters and content types](/docs/concepts/parameters-and-content-types)
+- [History and rollback](/docs/concepts/history-and-rollback)

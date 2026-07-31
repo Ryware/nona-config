@@ -84,7 +84,7 @@ var paymentsDisabled =
     string.Equals(flag.Value, "true", StringComparison.OrdinalIgnoreCase);
 ```
 
-A service in another language can use [HTTP](/docs/clients/http/) against the same key.
+A service in another language can use [HTTP](/docs/clients/http) against the same key.
 
 ## How to operate it
 
@@ -110,10 +110,10 @@ That makes it a good fit for services that need both operational toggles and run
 
 ## Related docs
 
-- [Client vs server scope](/docs/concepts/client-vs-server-scope/)
-- [Kill switches](/docs/feature-flags/kill-switches/)
-- [.NET client](/docs/clients/dotnet/)
-- [HTTP](/docs/clients/http/)
+- [Client vs server scope](/docs/concepts/client-vs-server-scope)
+- [Kill switches](/docs/feature-flags/kill-switches)
+- [.NET client](/docs/clients/dotnet)
+- [HTTP](/docs/clients/http)
 
 ## FAQ
 

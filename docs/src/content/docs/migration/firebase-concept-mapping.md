@@ -125,7 +125,7 @@ After planning the mapping, confirm:
 - shared settings that should stay text or JSON kept the correct type
 - conflicting keys were handled intentionally
 
-For the command and config details, use [CLI Firebase migration reference](/docs/cli/firebase-migration/).
+For the command and config details, use [CLI Firebase migration reference](/docs/cli/firebase-migration).
 
 ## FAQ
 

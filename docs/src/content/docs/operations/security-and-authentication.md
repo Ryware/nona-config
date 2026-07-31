@@ -89,7 +89,7 @@ Combined with per-project access, this gives teams a cleaner model than sharing 
 
 SSO is used for admin sign-in and invitation completion. Config consumers still authenticate with API keys.
 
-For implementation details and config keys, see [Single sign-on (SSO)](/docs/operations/sso/).
+For implementation details and config keys, see [Single sign-on (SSO)](/docs/operations/sso).
 
 ## Project-level permissions
 
@@ -140,9 +140,9 @@ Share links are useful for narrow temporary collaboration, but they are not a re
 
 ## Related docs
 
-- [API keys](/docs/concepts/api-keys/)
-- [Single sign-on (SSO)](/docs/operations/sso/)
-- [Audit logs](/docs/concepts/audit-logs/)
-- [Users and project access](/docs/concepts/users-and-project-access/)
-- [Parameter share links](/docs/parameter-share-links/)
-- [Deployment](/docs/deployment/)
+- [API keys](/docs/concepts/api-keys)
+- [Single sign-on (SSO)](/docs/operations/sso)
+- [Audit logs](/docs/concepts/audit-logs)
+- [Users and project access](/docs/concepts/users-and-project-access)
+- [Parameter share links](/docs/parameter-share-links)
+- [Deployment](/docs/deployment)

@@ -135,6 +135,6 @@ That makes values easier to expose accidentally and weakens the access model.
 
 ## Related docs
 
-- [API keys](/docs/concepts/api-keys/)
-- [Feature flags for mobile apps](/docs/feature-flags/mobile-app-feature-flags/)
-- [Feature flags for backend services](/docs/feature-flags/backend-feature-flags/)
+- [API keys](/docs/concepts/api-keys)
+- [Feature flags for mobile apps](/docs/feature-flags/mobile-app-feature-flags)
+- [Feature flags for backend services](/docs/feature-flags/backend-feature-flags)

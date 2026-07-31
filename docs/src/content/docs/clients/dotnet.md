@@ -205,7 +205,7 @@ If a .NET read fails:
 2. confirm the environment has an active release, or configure `ReleaseVersion`
 3. confirm the API key belongs to the same project as the entry
 4. confirm the key scope can read the entry scope
-5. try the same entry once with [HTTP](/docs/clients/http/) to separate transport issues from application code
+5. try the same entry once with [HTTP](/docs/clients/http) to separate transport issues from application code
 
 ## Good first backend flow
 
@@ -226,7 +226,7 @@ Use the .NET client when you want:
 - typed JSON reads
 - a simpler path than building your own HTTP wrapper
 
-Use [HTTP](/docs/clients/http/) instead when you only need a minimal raw request path.
+Use [HTTP](/docs/clients/http) instead when you only need a minimal raw request path.
 
 ## OpenFeature provider
 
@@ -256,4 +256,4 @@ var featureClient = Api.Instance.GetClient(domain);
 var enabled = await featureClient.GetBooleanValueAsync("Features:Checkout", false);
 ```
 
-If your team wants a more flag-oriented, vendor-neutral integration surface, continue with [OpenFeature](/docs/clients/openfeature/).
+If your team wants a more flag-oriented, vendor-neutral integration surface, continue with [OpenFeature](/docs/clients/openfeature).
