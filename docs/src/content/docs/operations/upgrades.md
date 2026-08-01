@@ -140,6 +140,6 @@ A real validation read is much more reliable than assuming the upgrade worked be
 
 ## Related docs
 
-- [Standalone production](/docs/deployment/standalone/)
-- [Primary/replica production](/docs/deployment/primary-replica/)
-- [Backups](/docs/operations/backups/)
+- [Standalone production](/docs/deployment/standalone)
+- [Primary/replica production](/docs/deployment/primary-replica)
+- [Backups](/docs/operations/backups)

@@ -137,4 +137,4 @@ Check the project, environment, and scope alignment first.
 
 Those are the most common reasons a read fails after the key is created.
 
-Next: [Fetch your first config value](/docs/get-started/first-api-call/)
+Next: [Fetch your first config value](/docs/get-started/first-api-call)

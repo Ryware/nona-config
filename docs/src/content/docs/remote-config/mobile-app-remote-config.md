@@ -125,9 +125,9 @@ You can keep:
 
 ## Related docs
 
-- [Feature flags for mobile apps](/docs/feature-flags/mobile-app-feature-flags/)
-- [JavaScript client](/docs/clients/javascript/)
-- [Client vs server scope](/docs/concepts/client-vs-server-scope/)
+- [Feature flags for mobile apps](/docs/feature-flags/mobile-app-feature-flags)
+- [JavaScript client](/docs/clients/javascript)
+- [Client vs server scope](/docs/concepts/client-vs-server-scope)
 
 ## FAQ
 

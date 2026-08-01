@@ -151,6 +151,6 @@ That makes the application logic less clear and weakens the feature-flag model.
 
 ## Related docs
 
-- [Client vs server scope](/docs/concepts/client-vs-server-scope/)
-- [Feature flags](/docs/feature-flags/)
-- [Remote config](/docs/remote-config/)
+- [Client vs server scope](/docs/concepts/client-vs-server-scope)
+- [Feature flags](/docs/feature-flags)
+- [Remote config](/docs/remote-config)

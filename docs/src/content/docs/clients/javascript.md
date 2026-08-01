@@ -202,7 +202,7 @@ Use the JavaScript client when you want:
 - optional in-memory caching
 - a smaller abstraction layer than OpenFeature
 
-Use [HTTP](/docs/clients/http/) instead when the app only needs one very small direct read path.
+Use [HTTP](/docs/clients/http) instead when the app only needs one very small direct read path.
 
 ## Optional cache
 
@@ -237,7 +237,7 @@ If a JavaScript read fails:
 2. confirm the environment has an active release, or configure `releaseVersion`
 3. confirm the API key belongs to the same project as the parameter
 4. confirm the parameter scope is readable by that key
-5. try the same key once with [HTTP](/docs/clients/http/) to isolate client-code issues
+5. try the same key once with [HTTP](/docs/clients/http) to isolate client-code issues
 
 ## Good first app flow
 
@@ -272,4 +272,4 @@ const client = OpenFeature.getClient(domain);
 const enabled = await client.getBooleanValue("Features:Checkout", false);
 ```
 
-If your team thinks in terms of feature flags more than direct config reads, see [OpenFeature](/docs/clients/openfeature/).
+If your team thinks in terms of feature flags more than direct config reads, see [OpenFeature](/docs/clients/openfeature).

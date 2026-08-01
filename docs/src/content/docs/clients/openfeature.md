@@ -129,13 +129,13 @@ Resolve one boolean flag through OpenFeature, confirm the value changes when you
 
 ## Related docs
 
-- [Feature flags](/docs/feature-flags/)
-- [What are feature flags?](/docs/feature-flags/what-are-feature-flags/)
-- [JavaScript client](/docs/clients/javascript/)
-- [.NET client](/docs/clients/dotnet/)
-- [Client vs server scope](/docs/concepts/client-vs-server-scope/)
+- [Feature flags](/docs/feature-flags)
+- [What are feature flags?](/docs/feature-flags/what-are-feature-flags)
+- [JavaScript client](/docs/clients/javascript)
+- [.NET client](/docs/clients/dotnet)
+- [Client vs server scope](/docs/concepts/client-vs-server-scope)
 
-JavaScript OpenFeature usage is also included in [JavaScript client](/docs/clients/javascript/), and .NET usage is included in [.NET client](/docs/clients/dotnet/).
+JavaScript OpenFeature usage is also included in [JavaScript client](/docs/clients/javascript), and .NET usage is included in [.NET client](/docs/clients/dotnet).
 
 ## OpenFeature FAQ
 
