@@ -27,18 +27,57 @@ public sealed class LibsqlAuditLogRepository : IAuditLogRepository
         entry.Id = result.LastInsertRowId ?? 0;
     }
 
-    public async Task<IReadOnlyList<AuditLogEntry>> ListAsync(CancellationToken ct = default)
+    public async Task<AuditLogPageResult> ListAsync(AuditLogPageRequest request, CancellationToken ct = default)
     {
-        var result = await _client.ExecuteAsync(
-            """
+        var parameters = ToParameters(request);
+        var filterParameters = ToParameters(request.Filter);
+        var entriesResult = await _client.ExecuteAsync(
+            $"""
             SELECT rowid AS Id, Actor, ActorIsSystem, ActionKind, Action, Target, Project, Environment, CreatedAt
             FROM AuditLogs
+            {FilterSql}
             ORDER BY CreatedAt DESC, rowid DESC
+            LIMIT @Limit OFFSET @Offset
+            """,
+            parameters,
+            ct);
+        var countResult = await _client.ExecuteAsync(
+            $"SELECT COUNT(*) AS TotalCount FROM AuditLogs {FilterSql}",
+            filterParameters,
+            ct);
+        var actionsResult = await _client.ExecuteAsync(
+            """
+            SELECT DISTINCT Action
+            FROM AuditLogs
+            ORDER BY Action COLLATE NOCASE
+            """,
+            ct: ct);
+        var environmentsResult = await _client.ExecuteAsync(
+            """
+            SELECT DISTINCT Environment
+            FROM AuditLogs
+            WHERE Environment IS NOT NULL AND trim(Environment) <> ''
+            ORDER BY Environment COLLATE NOCASE
             """,
             ct: ct);
 
-        return result.Rows.Select(Map).ToList();
+        return new AuditLogPageResult(
+            entriesResult.Rows.Select(Map).ToList(),
+            checked((int)countResult.Rows.Single().GetInt64("TotalCount")),
+            actionsResult.Rows.Select(row => row.GetString("Action")).ToList(),
+            environmentsResult.Rows.Select(row => row.GetString("Environment")).ToList());
     }
+
+    private const string FilterSql = """
+        WHERE (@Search IS NULL OR
+               instr(lower(Actor), lower(@Search)) > 0 OR
+               instr(lower(Target), lower(@Search)) > 0 OR
+               instr(lower(coalesce(Project, '')), lower(@Search)) > 0)
+          AND (@Action IS NULL OR Action = @Action COLLATE NOCASE)
+          AND (@Environment IS NULL OR Environment = @Environment COLLATE NOCASE)
+          AND (@CreatedFrom IS NULL OR CreatedAt >= @CreatedFrom)
+          AND (@CreatedToExclusive IS NULL OR CreatedAt < @CreatedToExclusive)
+        """;
 
     private static AuditLogEntry Map(LibsqlRow row)
     {
@@ -67,6 +106,33 @@ public sealed class LibsqlAuditLogRepository : IAuditLogRepository
             ("Project", entry.Project),
             ("Environment", entry.Environment),
             ("CreatedAt", entry.CreatedAt.ToString("O")));
+    }
+
+    private static IReadOnlyDictionary<string, object?> ToParameters(AuditLogPageRequest request)
+    {
+        return LibsqlParameters.Create(
+            ("Search", Normalize(request.Filter.Search)),
+            ("Action", Normalize(request.Filter.Action)),
+            ("Environment", Normalize(request.Filter.Environment)),
+            ("CreatedFrom", request.Filter.CreatedFrom?.ToString("O")),
+            ("CreatedToExclusive", request.Filter.CreatedToExclusive?.ToString("O")),
+            ("Limit", request.Limit),
+            ("Offset", request.Offset));
+    }
+
+    private static IReadOnlyDictionary<string, object?> ToParameters(AuditLogFilter filter)
+    {
+        return LibsqlParameters.Create(
+            ("Search", Normalize(filter.Search)),
+            ("Action", Normalize(filter.Action)),
+            ("Environment", Normalize(filter.Environment)),
+            ("CreatedFrom", filter.CreatedFrom?.ToString("O")),
+            ("CreatedToExclusive", filter.CreatedToExclusive?.ToString("O")));
+    }
+
+    private static string? Normalize(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 
     private static AuditActionKind ParseActionKind(string value)

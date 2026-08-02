@@ -186,7 +186,7 @@ public static class NonaEndpointRouteBuilderExtensions
         users.MapDelete("/{id}/projects/{projectName}", RemoveProjectAccessAsync);
 
         admin.MapGet("/audit-logs", ListAuditLogsAsync)
-            .Produces<IReadOnlyList<AuditLogDto>>()
+            .Produces<AuditLogPageDto>()
             .RequireAuthorization(AdminReadAuthorizationPolicies.Manage);
         admin.MapGet("/dashboard/counts", GetDashboardCountsAsync)
             .Produces<DashboardCountDto>()
@@ -1026,9 +1026,27 @@ public static class NonaEndpointRouteBuilderExtensions
             : NotFound(result.Error ?? "Project access not found");
     }
 
-    private static async Task<IResult> ListAuditLogsAsync(IMediator mediator, CancellationToken cancellationToken)
+    private static async Task<IResult> ListAuditLogsAsync(
+        int? page,
+        int? pageSize,
+        string? search,
+        string? action,
+        string? environment,
+        DateOnly? dateFrom,
+        DateOnly? dateTo,
+        IMediator mediator,
+        CancellationToken cancellationToken)
     {
-        return Results.Ok(await mediator.Send(new Nona.Application.Admin.AuditLogs.Queries.ListAuditLogsQuery(), cancellationToken));
+        return Results.Ok(await mediator.Send(
+            new Nona.Application.Admin.AuditLogs.Queries.ListAuditLogsQuery(
+                page ?? 1,
+                pageSize ?? Nona.Application.Admin.AuditLogs.Queries.ListAuditLogsQueryHandler.DefaultPageSize,
+                search,
+                action,
+                environment,
+                dateFrom,
+                dateTo),
+            cancellationToken));
     }
 
     private static async Task<IResult> GetDashboardCountsAsync(IMediator mediator, CancellationToken cancellationToken)

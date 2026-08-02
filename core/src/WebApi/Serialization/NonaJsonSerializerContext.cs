@@ -79,6 +79,7 @@ namespace Nona.WebApi.Serialization;
 [JsonSerializable(typeof(SharedParameterDto))]
 [JsonSerializable(typeof(AuditLogDto))]
 [JsonSerializable(typeof(IReadOnlyList<AuditLogDto>))]
+[JsonSerializable(typeof(AuditLogPageDto))]
 [JsonSerializable(typeof(DashboardCountDto))]
 [JsonSerializable(typeof(ClientConfigValueDto))]
 [JsonSerializable(typeof(Dictionary<string, ClientConfigValueDto>))]
