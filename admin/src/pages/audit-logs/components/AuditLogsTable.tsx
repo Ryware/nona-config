@@ -21,6 +21,9 @@ export function AuditLogsTable(props: AuditLogsTableProps) {
     return Array.from({ length: count }, (_, index) => start + index);
   };
 
+  const firstVisiblePage = () => pageNumbers()[0] ?? 0;
+  const lastVisiblePage = () => pageNumbers().at(-1) ?? 0;
+
   return (
     <div class="space-y-4">
       <div class="border border-outline-variant/15 rounded-xl overflow-hidden bg-surface-container-low">
@@ -77,6 +80,17 @@ export function AuditLogsTable(props: AuditLogsTableProps) {
             >
               <MIcon name="chevron_left" class="text-sm" />
             </button>
+            <Show when={firstVisiblePage() > 0}>
+              <button
+                onClick={() => props.onChangePage(0)}
+                class="h-8 min-w-8 px-2.5 flex items-center justify-center rounded-lg text-[12px] font-medium border border-transparent text-outline hover:text-on-surface hover:bg-surface-container-high/30 transition-all cursor-pointer"
+              >
+                1
+              </button>
+              <Show when={firstVisiblePage() > 1}>
+                <span class="text-outline mx-0.5 text-[12px]">…</span>
+              </Show>
+            </Show>
             <For each={pageNumbers()}>
               {(i) => (
                 <button
@@ -91,15 +105,13 @@ export function AuditLogsTable(props: AuditLogsTableProps) {
                 </button>
               )}
             </For>
-            <Show when={props.totalPages > 5}>
-              <span class="text-outline mx-0.5 text-[12px]">…</span>
+            <Show when={lastVisiblePage() < props.totalPages - 1}>
+              <Show when={lastVisiblePage() < props.totalPages - 2}>
+                <span class="text-outline mx-0.5 text-[12px]">…</span>
+              </Show>
               <button
                 onClick={() => props.onChangePage(props.totalPages - 1)}
-                class={`h-8 min-w-8 px-2.5 flex items-center justify-center rounded-lg text-[12px] font-medium border transition-all cursor-pointer ${
-                  props.page === props.totalPages - 1
-                    ? "bg-surface-container-high text-on-surface border-outline-variant/30"
-                    : "border-transparent text-outline hover:text-on-surface hover:bg-surface-container-high/30"
-                }`}
+                class="h-8 min-w-8 px-2.5 flex items-center justify-center rounded-lg text-[12px] font-medium border border-transparent text-outline hover:text-on-surface hover:bg-surface-container-high/30 transition-all cursor-pointer"
               >
                 {props.totalPages}
               </button>

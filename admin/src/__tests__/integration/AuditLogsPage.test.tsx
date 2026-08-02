@@ -156,6 +156,45 @@ describe('AuditLogsPage', () => {
     expect(requestedPages).toEqual(['1', '2']);
   });
 
+  it('offers direct navigation to both the last and first pages', async () => {
+    const requestedPages: string[] = [];
+    server.use(
+      http.get('http://localhost:5027/admin/audit-logs', ({ request }) => {
+        const url = new URL(request.url);
+        const page = Number(url.searchParams.get('page'));
+        requestedPages.push(String(page));
+
+        return HttpResponse.json({
+          ...auditPage([{
+            id: `page-${page}`,
+            actor: 'audit.user@example.test',
+            actorIsSystem: false,
+            actionKind: 'update',
+            action: 'Updated Parameter',
+            target: `page-${page}-target`,
+            project: 'sample-project',
+            environment: 'production',
+            createdAt: '2026-07-29T12:00:00Z',
+          }]),
+          page,
+          totalCount: 10_197,
+          totalPages: 408,
+        });
+      }),
+    );
+
+    renderAuditLogsPage();
+    expect(await screen.findByText('page-1-target')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '408' }));
+    expect(await screen.findByText('page-408-target')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '1' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '1' }));
+    expect(await screen.findByText('page-1-target')).toBeInTheDocument();
+    expect(requestedPages).toEqual(['1', '408', '1']);
+  });
+
   it('filters entries by search text', async () => {
     renderAuditLogsPage();
 
