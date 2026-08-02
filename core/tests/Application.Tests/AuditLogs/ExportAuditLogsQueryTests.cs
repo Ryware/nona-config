@@ -13,11 +13,10 @@ public class ExportAuditLogsQueryTests
     {
         var repository = Substitute.For<IAuditLogRepository>();
         var createdAt = new DateTime(2026, 7, 29, 12, 0, 0, DateTimeKind.Utc);
-        var firstBatch = Enumerable.Range(2, ExportAuditLogsQueryHandler.BatchSize)
-            .Reverse()
+        var firstBatch = Enumerable.Range(1, ExportAuditLogsQueryHandler.BatchSize)
             .Select(id => Entry(id, createdAt))
             .ToList();
-        var finalBatch = new[] { Entry(1, createdAt) };
+        var finalBatch = new[] { Entry(501, createdAt) };
         var requests = new List<AuditLogBatchRequest>();
         repository.ListBatchAsync(
                 Arg.Do<AuditLogBatchRequest>(request => requests.Add(request)),
@@ -43,7 +42,7 @@ public class ExportAuditLogsQueryTests
         await Assert.That(requests).Count().IsEqualTo(2);
         await Assert.That(requests[0].Filter.Search).IsEqualTo("needle");
         await Assert.That(requests[1].BeforeCreatedAt).IsEqualTo(createdAt);
-        await Assert.That(requests[1].BeforeId).IsEqualTo(2);
+        await Assert.That(requests[1].BeforeId).IsEqualTo(500);
     }
 
     private static AuditLogEntry Entry(long id, DateTime createdAt)

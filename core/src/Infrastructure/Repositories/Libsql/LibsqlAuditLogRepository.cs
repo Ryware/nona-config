@@ -77,15 +77,19 @@ public sealed class LibsqlAuditLogRepository : IAuditLogRepository
         AuditLogBatchRequest request,
         CancellationToken ct = default)
     {
+        var cursorSql = request.BeforeCreatedAt is not null && request.BeforeId is not null
+            ? """
+                AND (CreatedAt < @BeforeCreatedAt OR
+                     (CreatedAt = @BeforeCreatedAt AND rowid > @BeforeId))
+              """
+            : string.Empty;
         var result = await _client.ExecuteAsync(
             $"""
             SELECT rowid AS Id, Actor, ActorIsSystem, ActionKind, Action, Target, Project, Environment, CreatedAt
             FROM AuditLogs
             {FilterSql}
-              AND (@BeforeCreatedAt IS NULL OR
-                   CreatedAt < @BeforeCreatedAt OR
-                   (CreatedAt = @BeforeCreatedAt AND rowid < @BeforeId))
-            ORDER BY CreatedAt DESC, rowid DESC
+            {cursorSql}
+            ORDER BY CreatedAt DESC, rowid ASC
             LIMIT @Limit
             """,
             ToParameters(request),

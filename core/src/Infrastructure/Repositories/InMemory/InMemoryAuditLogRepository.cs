@@ -58,12 +58,12 @@ public sealed class InMemoryAuditLogRepository : IAuditLogRepository
         {
             query = query.Where(entry =>
                 entry.CreatedAt < beforeCreatedAt ||
-                (entry.CreatedAt == beforeCreatedAt && entry.Id < beforeId));
+                (entry.CreatedAt == beforeCreatedAt && entry.Id > beforeId));
         }
 
         var entries = query
             .OrderByDescending(entry => entry.CreatedAt)
-            .ThenByDescending(entry => entry.Id)
+            .ThenBy(entry => entry.Id)
             .Take(request.Limit)
             .ToList();
 

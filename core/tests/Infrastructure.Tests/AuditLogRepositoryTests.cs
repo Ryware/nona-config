@@ -100,13 +100,15 @@ public class AuditLogRepositoryTests
     public async Task Repository_ListsLargeExportsInStableCursorBatches()
     {
         var directory = CreateTempDirectory("nona-audit-export-query");
+        var databasePath = Path.Combine(directory, "nona.db");
 
         try
         {
-            using var client = new SqliteDatabaseClient(Path.Combine(directory, "nona.db"));
+            using var client = new SqliteDatabaseClient(databasePath);
             var migrations = new LibsqlMigrationRunner(client, ResolveMigrationsFolder());
             await migrations.RunMigrationsAsync();
-            var repository = new LibsqlAuditLogRepository(client);
+            var capturingClient = new CapturingLibsqlDatabaseClient(client);
+            var repository = new LibsqlAuditLogRepository(capturingClient);
             var createdAt = new DateTime(2026, 7, 29, 12, 0, 0, DateTimeKind.Utc);
 
             for (var index = 0; index < 505; index++)
@@ -138,8 +140,18 @@ public class AuditLogRepositoryTests
 
             await Assert.That(first).Count().IsEqualTo(500);
             await Assert.That(second).Count().IsEqualTo(5);
+            await Assert.That(first[0].Id).IsEqualTo(1);
+            await Assert.That(first[^1].Id).IsEqualTo(500);
+            await Assert.That(second[0].Id).IsEqualTo(501);
             await Assert.That(first.Select(entry => entry.Id).Intersect(second.Select(entry => entry.Id))).IsEmpty();
             await Assert.That(first.Concat(second).Select(entry => entry.Id).Distinct()).Count().IsEqualTo(505);
+
+            var queryPlanDetails = await ExplainQueryPlanAsync(
+                databasePath,
+                capturingClient.LastSql,
+                capturingClient.LastParameters);
+            await Assert.That(queryPlanDetails).Contains("IX_AuditLogs_CreatedAt");
+            await Assert.That(queryPlanDetails).DoesNotContain("USE TEMP B-TREE");
         }
         finally
         {
@@ -297,5 +309,53 @@ public class AuditLogRepositoryTests
     private static AuditLogPageRequest AllEntriesRequest()
     {
         return new AuditLogPageRequest(new AuditLogFilter(), 0, int.MaxValue);
+    }
+
+    private static async Task<string> ExplainQueryPlanAsync(
+        string databasePath,
+        string sql,
+        object? parameters)
+    {
+        await using var connection = new SqliteConnection($"Data Source={databasePath}");
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = $"EXPLAIN QUERY PLAN {sql}";
+
+        foreach (var parameter in (IReadOnlyDictionary<string, object?>)parameters!)
+        {
+            command.Parameters.AddWithValue($"@{parameter.Key}", parameter.Value ?? DBNull.Value);
+        }
+
+        var details = new List<string>();
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            details.Add(reader.GetString(reader.GetOrdinal("detail")));
+        }
+
+        return string.Join(" | ", details);
+    }
+
+    private sealed class CapturingLibsqlDatabaseClient(ILibsqlDatabaseClient inner) : ILibsqlDatabaseClient
+    {
+        public string LastSql { get; private set; } = string.Empty;
+        public object? LastParameters { get; private set; }
+
+        public async Task<LibsqlQueryResult> ExecuteAsync(
+            string sql,
+            object? parameters = null,
+            CancellationToken ct = default)
+        {
+            LastSql = sql;
+            LastParameters = parameters;
+            return await inner.ExecuteAsync(sql, parameters, ct);
+        }
+
+        public Task<IReadOnlyList<LibsqlQueryResult>> ExecuteBatchAsync(
+            IEnumerable<LibsqlStatement> statements,
+            CancellationToken ct = default)
+        {
+            return inner.ExecuteBatchAsync(statements, ct);
+        }
     }
 }
