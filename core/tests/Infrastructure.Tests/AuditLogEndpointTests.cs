@@ -159,6 +159,39 @@ public class AuditLogEndpointTests
         await Assert.That(invalidResponse.StatusCode).IsEqualTo(System.Net.HttpStatusCode.BadRequest);
     }
 
+    [Test]
+    public async Task ExportAuditLogs_NeutralizesFormulaLeadingCsvCells()
+    {
+        await using var app = await StartAppAsync();
+        var client = app.GetTestClient();
+        var token = await RegisterAdminAsync(client);
+        var repository = app.Services.GetRequiredService<IAuditLogRepository>();
+        await repository.AddAsync(new AuditLogEntry
+        {
+            Actor = "=HYPERLINK(\"https://example.test\")",
+            ActorIsSystem = false,
+            ActionKind = AuditActionKind.Update,
+            Action = "Updated Parameter",
+            Target = "+SUM(1,1)",
+            Project = "@malicious-project",
+            Environment = "-2+3",
+            CreatedAt = new DateTime(2026, 7, 15, 12, 0, 0, DateTimeKind.Utc)
+        });
+
+        using var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            "/admin/audit-logs/export?format=csv");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        using var response = await client.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+        var content = await response.Content.ReadAsStringAsync();
+
+        await Assert.That(content).Contains("\"'=HYPERLINK(\"\"https://example.test\"\")\"");
+        await Assert.That(content).Contains("\"'+SUM(1,1)\"");
+        await Assert.That(content).Contains("\"'@malicious-project\"");
+        await Assert.That(content).Contains("\"'-2+3\"");
+    }
+
     private static async Task<string> RegisterAdminAsync(HttpClient client)
     {
         using var response = await client.PostAsJsonAsync(

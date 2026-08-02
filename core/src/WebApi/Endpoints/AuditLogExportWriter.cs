@@ -120,6 +120,14 @@ internal static class AuditLogExportWriter
 
     private static string CsvCell(string value)
     {
-        return $"\"{value.Replace("\"", "\"\"")}\"";
+        var safeValue = RequiresSpreadsheetNeutralization(value)
+            ? $"'{value}"
+            : value;
+        return $"\"{safeValue.Replace("\"", "\"\"")}\"";
+    }
+
+    private static bool RequiresSpreadsheetNeutralization(string value)
+    {
+        return value.Length > 0 && value[0] is '=' or '+' or '-' or '@' or '\t' or '\r' or '\n';
     }
 }
