@@ -3,6 +3,7 @@ using Nona.Application.Common.Interfaces;
 using Nona.Application.Shared.ParameterShareLinks;
 using Nona.Application.Shared.ParameterShareLinks.DTOs;
 using Nona.Domain.Entities;
+using Nona.Domain.Enums;
 using Nona.Domain.Interfaces;
 
 namespace Nona.Application.Shared.ParameterShareLinks.Queries;
@@ -58,6 +59,7 @@ public class GetSharedParameterQueryHandler(
             await auditLogService.WriteAsAsync(
                 SharedParameterMapping.ResolveActor(shareLink),
                 true,
+                AuditActionKind.Activity,
                 "Share Link Accessed",
                 shareLink.Key,
                 project: shareLink.Project,

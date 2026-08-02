@@ -73,7 +73,7 @@ To patch an older line, choose **Amend** on that release. Nona automatically tar
 
 Non-active releases can be permanently deleted from the release list. Clear or replace the active release before deleting it. Deleting a release does not change the editable working configuration.
 
-For the full release workflow, see [Releases](/docs/concepts/releases/).
+For the full release workflow, see [Releases](/docs/concepts/releases).
 
 ## Common environment models
 
@@ -149,7 +149,7 @@ Firebase conditions can be mapped into Nona environments during migration, but N
 
 ## Related docs
 
-- [Projects](/docs/concepts/projects/)
-- [Releases](/docs/concepts/releases/)
-- [Create your first project](/docs/get-started/first-project/)
-- [Migrate from Firebase Remote Config](/docs/migration/firebase-remote-config/)
+- [Projects](/docs/concepts/projects)
+- [Releases](/docs/concepts/releases)
+- [Create your first project](/docs/get-started/first-project)
+- [Migrate from Firebase Remote Config](/docs/migration/firebase-remote-config)

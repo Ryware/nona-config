@@ -130,9 +130,9 @@ That gives you the clearest real-world feel for the difference.
 
 ## Related docs
 
-- [What are feature flags?](/docs/feature-flags/what-are-feature-flags/)
-- [Kill switches](/docs/feature-flags/kill-switches/)
-- [Remote config vs environment variables](/docs/remote-config/remote-config-vs-environment-variables/)
+- [What are feature flags?](/docs/feature-flags/what-are-feature-flags)
+- [Kill switches](/docs/feature-flags/kill-switches)
+- [Remote config vs environment variables](/docs/remote-config/remote-config-vs-environment-variables)
 
 ## FAQ
 

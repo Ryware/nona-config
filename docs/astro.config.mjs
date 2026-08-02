@@ -7,6 +7,7 @@ import starlight from '@astrojs/starlight';
 export default defineConfig({
 	site: 'https://nonaconfig.com',
 	base: '/docs',
+	trailingSlash: 'never',
 	vite: {
 		server: {
 			allowedHosts: ['nona-standalone--nona--cutehorse256.dev3.ahorse.top'],

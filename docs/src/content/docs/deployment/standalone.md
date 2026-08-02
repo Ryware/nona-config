@@ -96,7 +96,7 @@ Standalone starts with SQLite automatically because no replication arguments are
 
 You can override the automatic choice with `Storage__Type`, but `Storage__Type=Sqlite` is rejected if primary/replica arguments are also configured.
 
-**Warning:** Nona does not automatically convert an existing sqld database to SQLite. Preserve and back up the `/var/lib/nona` volume, and perform provider conversion as a separate, deliberate storage migration. See the [upgrade guide](/docs/operations/upgrades/) before changing storage providers.
+**Warning:** Nona does not automatically convert an existing sqld database to SQLite. Preserve and back up the `/var/lib/nona` volume, and perform provider conversion as a separate, deliberate storage migration. See the [upgrade guide](/docs/operations/upgrades) before changing storage providers.
 
 ## JWT settings
 
@@ -167,6 +167,6 @@ Only when you already know that read-heavy traffic and operational requirements 
 
 ## Related docs
 
-- [Deployment overview](/docs/deployment/)
-- [Primary/replica production](/docs/deployment/primary-replica/)
-- [Get started](/docs/get-started/)
+- [Deployment overview](/docs/deployment)
+- [Primary/replica production](/docs/deployment/primary-replica)
+- [Get started](/docs/get-started)

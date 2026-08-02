@@ -162,6 +162,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write
+      attestations: write
     outputs:
       prerelease: ${{ steps.meta.outputs.prerelease }}
       tag: ${{ steps.meta.outputs.tag }}
@@ -206,6 +208,15 @@ jobs:
           cd release-assets
           sha256sum ./*.zip ./*.tar.gz > SHA256SUMS.txt
 
+      - name: Attest build provenance
+        id: attest
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            release-assets/*.zip
+            release-assets/*.tar.gz
+            release-assets/SHA256SUMS.txt
+
       - name: Create or update GitHub release
         uses: softprops/action-gh-release@v2
         with:
@@ -219,6 +230,7 @@ jobs:
             release-assets/*.zip
             release-assets/*.tar.gz
             release-assets/SHA256SUMS.txt
+            ${{ steps.attest.outputs.bundle-path }}
           fail_on_unmatched_files: true
 
   publish-npm:

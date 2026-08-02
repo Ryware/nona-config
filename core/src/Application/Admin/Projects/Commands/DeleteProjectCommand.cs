@@ -1,6 +1,7 @@
 using Mediator;
 using Nona.Application.Admin.Projects;
 using Nona.Application.Common.Interfaces;
+using Nona.Domain.Enums;
 using Nona.Domain.Interfaces;
 
 namespace Nona.Application.Admin.Projects.Commands;
@@ -50,6 +51,7 @@ public class DeleteProjectCommandHandler(
         if (auditLogService is not null)
         {
             await auditLogService.WriteAsync(
+                AuditActionKind.Delete,
                 "Deleted Project",
                 projectName,
                 project: projectName,

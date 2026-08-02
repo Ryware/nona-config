@@ -43,7 +43,7 @@ If you are already at the evaluation stage, start with:
 nona migrate firebase --config ./nona.migration.json --dry-run
 ```
 
-Then continue with [Migration validation](/docs/migration/validation/) before production cutover.
+Then continue with [Migration validation](/docs/migration/validation) before production cutover.
 
 ## Migration mindset
 
@@ -57,9 +57,9 @@ The safest way to approach migration is:
 
 ## Recommended order
 
-1. [Migrate from Firebase Remote Config](/docs/migration/firebase-remote-config/)
-2. [Firebase concept mapping](/docs/migration/firebase-concept-mapping/)
-3. [Migration validation](/docs/migration/validation/)
+1. [Migrate from Firebase Remote Config](/docs/migration/firebase-remote-config)
+2. [Firebase concept mapping](/docs/migration/firebase-concept-mapping)
+3. [Migration validation](/docs/migration/validation)
 
 ## Recommended migration sequence
 
@@ -73,9 +73,9 @@ That keeps migration as an operator workflow instead of an ad hoc manual rewrite
 
 ## Start here
 
-- [Migrate from Firebase Remote Config](/docs/migration/firebase-remote-config/)
-- [Firebase concept mapping](/docs/migration/firebase-concept-mapping/)
-- [Migration validation](/docs/migration/validation/)
+- [Migrate from Firebase Remote Config](/docs/migration/firebase-remote-config)
+- [Firebase concept mapping](/docs/migration/firebase-concept-mapping)
+- [Migration validation](/docs/migration/validation)
 
 ## FAQ
 

@@ -136,10 +136,10 @@ The best names describe the user-facing behavior, not the internal implementatio
 
 ## Related docs
 
-- [Add a kill switch](/docs/get-started/kill-switch/)
-- [Feature flags vs remote config](/docs/feature-flags/feature-flags-vs-remote-config/)
-- [History and rollback](/docs/concepts/history-and-rollback/)
-- [Client vs server scope](/docs/concepts/client-vs-server-scope/)
+- [Add a kill switch](/docs/get-started/kill-switch)
+- [Feature flags vs remote config](/docs/feature-flags/feature-flags-vs-remote-config)
+- [History and rollback](/docs/concepts/history-and-rollback)
+- [Client vs server scope](/docs/concepts/client-vs-server-scope)
 
 ## FAQ
 

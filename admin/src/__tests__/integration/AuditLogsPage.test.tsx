@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@solidjs/testing-library';
+import { render, screen, fireEvent, waitFor, within } from '@solidjs/testing-library';
 import { Router, Route } from '@solidjs/router';
 import { QueryClient, QueryClientProvider } from '@tanstack/solid-query';
 import { MetaProvider } from '@solidjs/meta';
@@ -97,6 +97,77 @@ describe('AuditLogsPage', () => {
     await waitFor(() => {
       expect(list).toHaveTextContent(mockProjects[1].name);
     });
+  });
+
+  it('renders action badges from backend actionKind values', async () => {
+    server.use(
+      http.get('http://localhost:5027/admin/audit-logs', () =>
+        HttpResponse.json([
+          {
+            id: 'release-published',
+            actor: 'audit.user@example.test',
+            actorIsSystem: false,
+            actionKind: 'create',
+            action: 'Published Config Release',
+            target: '1.3.1',
+            project: 'sample-project',
+            environment: 'production',
+            createdAt: '2026-07-29T12:00:00Z',
+          },
+          {
+            id: 'release-active',
+            actor: 'audit.user@example.test',
+            actorIsSystem: false,
+            actionKind: 'update',
+            action: 'Set Active Config Release',
+            target: '1.3.1',
+            project: 'sample-project',
+            environment: 'production',
+            createdAt: '2026-07-29T12:01:00Z',
+          },
+          {
+            id: 'unusual-delete',
+            actor: 'audit.user@example.test',
+            actorIsSystem: false,
+            actionKind: 'delete',
+            action: 'Unusual Action Text',
+            target: '1.3.0',
+            project: 'sample-project',
+            environment: 'production',
+            createdAt: '2026-07-29T12:02:00Z',
+          },
+          {
+            id: 'share-access',
+            actor: 'System',
+            actorIsSystem: true,
+            actionKind: 'activity',
+            action: 'Share Link Accessed',
+            target: 'API_URL',
+            project: 'sample-project',
+            environment: 'production',
+            createdAt: '2026-07-29T12:03:00Z',
+          },
+        ]),
+      ),
+    );
+
+    renderAuditLogsPage();
+
+    for (const [id, badge] of [
+      ['release-published', 'Created'],
+      ['release-active', 'Updated'],
+      ['unusual-delete', 'Deleted'],
+      ['share-access', 'Activity'],
+    ] as const) {
+      const row = await screen.findByTestId(`audit-row-${id}`);
+      expect(within(row).getByText(badge, { selector: 'span' })).toBeInTheDocument();
+    }
+
+    const userRow = screen.getByTestId('audit-row-release-active');
+    expect(within(userRow).queryByText('System', { selector: 'span' })).not.toBeInTheDocument();
+
+    const systemRow = screen.getByTestId('audit-row-share-access');
+    expect(within(systemRow).getByText('System', { selector: 'span' })).toBeInTheDocument();
   });
 
   it('shows an empty log when there are no projects or users', async () => {

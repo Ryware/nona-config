@@ -4,7 +4,6 @@ import { formatTimestamp, timeAgo } from "../../pages/audit-logs/utils";
 import { MIcon } from "../../shared/ui/icons";
 import {
   getActionDescription,
-  getActionKind,
   isDeleteAction,
   isParamAction
 } from "./audit-kind";
@@ -14,7 +13,7 @@ interface AuditLogRowProps {
   entry: AuditEntry;
 }
 
-function getKindMeta(kind: ReturnType<typeof getActionKind>) {
+function getKindMeta(kind: AuditEntry["actionKind"]) {
   switch (kind) {
     case "create":
       return {
@@ -39,17 +38,16 @@ function getKindMeta(kind: ReturnType<typeof getActionKind>) {
       };
     default:
       return {
-        icon: "settings",
+        icon: "history",
         iconColor: "text-outline",
         badge: "bg-surface-container-highest text-outline",
-        label: "System"
+        label: "Activity"
       };
   }
 }
 
 export function AuditLogRow(props: AuditLogRowProps) {
-  const kind = () => getActionKind(props.entry.action);
-  const kindMeta = () => getKindMeta(kind());
+  const kindMeta = () => getKindMeta(props.entry.actionKind);
   const desc = () => getActionDescription(props.entry.action);
 
   return (

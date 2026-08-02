@@ -103,9 +103,9 @@ nona entries set \
   --content-type text
 ```
 
-Then read that value from the app through [HTTP](/docs/clients/http/) or an official client.
+Then read that value from the app through [HTTP](/docs/clients/http) or an official client.
 
-For first implementation steps, go to [Get started](/docs/get-started/).
+For first implementation steps, go to [Get started](/docs/get-started).
 
 ## FAQ
 

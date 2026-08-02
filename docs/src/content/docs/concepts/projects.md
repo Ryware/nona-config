@@ -112,6 +112,6 @@ If the same app and team own the values, one clear project is usually better tha
 
 ## Related docs
 
-- [Environments](/docs/concepts/environments/)
-- [API keys](/docs/concepts/api-keys/)
-- [Users and project access](/docs/concepts/users-and-project-access/)
+- [Environments](/docs/concepts/environments)
+- [API keys](/docs/concepts/api-keys)
+- [Users and project access](/docs/concepts/users-and-project-access)

@@ -135,7 +135,7 @@ If you want to restrict sign-in to one tenant, set a specific tenant id instead 
 
 ## Related docs
 
-- [Security and authentication](/docs/operations/security-and-authentication/)
-- [Users and project access](/docs/concepts/users-and-project-access/)
-- [API keys](/docs/concepts/api-keys/)
-- [Audit logs](/docs/concepts/audit-logs/)
+- [Security and authentication](/docs/operations/security-and-authentication)
+- [Users and project access](/docs/concepts/users-and-project-access)
+- [API keys](/docs/concepts/api-keys)
+- [Audit logs](/docs/concepts/audit-logs)

@@ -18,12 +18,12 @@ If you are evaluating the product, this path is the fastest way to understand th
 
 ## Recommended order
 
-1. [Deploy with Docker](/docs/get-started/docker/)
-2. [Create your first project](/docs/get-started/first-project/)
-3. [Add your first parameter](/docs/get-started/first-parameter/)
-4. [Create an API key](/docs/get-started/api-keys/)
-5. [Fetch your first config value](/docs/get-started/first-api-call/)
-6. [Add a kill switch](/docs/get-started/kill-switch/)
+1. [Deploy with Docker](/docs/get-started/docker)
+2. [Create your first project](/docs/get-started/first-project)
+3. [Add your first parameter](/docs/get-started/first-parameter)
+4. [Create an API key](/docs/get-started/api-keys)
+5. [Fetch your first config value](/docs/get-started/first-api-call)
+6. [Add a kill switch](/docs/get-started/kill-switch)
 
 ## Fastest first run
 
@@ -58,10 +58,10 @@ That makes it the best starting point before you go deeper into:
 
 After the first successful setup, most teams continue into one of these:
 
-- [Feature flags](/docs/feature-flags/) if the main use case is boolean release control
-- [Remote config](/docs/remote-config/) if the main use case is runtime values and settings
-- [Migration](/docs/migration/) if you are moving from Firebase Remote Config
-- [Deployment](/docs/deployment/) if you are preparing a real production rollout
+- [Feature flags](/docs/feature-flags) if the main use case is boolean release control
+- [Remote config](/docs/remote-config) if the main use case is runtime values and settings
+- [Migration](/docs/migration) if you are moving from Firebase Remote Config
+- [Deployment](/docs/deployment) if you are preparing a real production rollout
 
 ## What you will end up with
 

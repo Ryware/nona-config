@@ -82,6 +82,7 @@ public class UpdateUserCommandHandler(
         if (hasChanges && auditLogService is not null)
         {
             await auditLogService.WriteAsync(
+                AuditActionKind.Update,
                 "Updated User",
                 user.Email,
                 cancellationToken: cancellationToken);

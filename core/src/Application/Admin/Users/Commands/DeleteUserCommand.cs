@@ -1,6 +1,7 @@
 using Mediator;
 using Nona.Application.Common.Interfaces;
 using Nona.Domain.Entities;
+using Nona.Domain.Enums;
 using Nona.Domain.Interfaces;
 
 namespace Nona.Application.Admin.Users.Commands;
@@ -36,6 +37,7 @@ public class DeleteUserCommandHandler(
         if (auditLogService is not null)
         {
             await auditLogService.WriteAsync(
+                AuditActionKind.Delete,
                 "Deleted User",
                 user.Email,
                 cancellationToken: cancellationToken);

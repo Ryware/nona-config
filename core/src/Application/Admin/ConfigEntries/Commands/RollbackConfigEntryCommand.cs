@@ -5,6 +5,7 @@ using Nona.Application.Common;
 using Nona.Application.Common.Interfaces;
 using Nona.Domain;
 using Nona.Domain.Entities;
+using Nona.Domain.Enums;
 using Nona.Domain.Interfaces;
 
 namespace Nona.Application.Admin.ConfigEntries.Commands;
@@ -72,6 +73,7 @@ public class RollbackConfigEntryCommandHandler(
         if (auditLogService is not null)
         {
             await auditLogService.WriteAsync(
+                AuditActionKind.Update,
                 $"Rolled Back Key to v{request.Version}",
                 savedEntry.Key,
                 project: savedEntry.Project,

@@ -103,16 +103,16 @@ Keep names descriptive. Most teams do better with names that explain the behavio
 
 After creating the flag:
 
-1. read it once from the app, client SDK, or [HTTP](/docs/clients/http/)
+1. read it once from the app, client SDK, or [HTTP](/docs/clients/http)
 2. flip the value in admin
 3. confirm the application behavior changes as expected
 4. check `History` if you want to verify the change timeline
 
 ## Next steps
 
-- [Feature flags vs remote config](/docs/feature-flags/feature-flags-vs-remote-config/)
-- [Kill switches](/docs/feature-flags/kill-switches/)
-- [Client vs server scope](/docs/concepts/client-vs-server-scope/)
+- [Feature flags vs remote config](/docs/feature-flags/feature-flags-vs-remote-config)
+- [Kill switches](/docs/feature-flags/kill-switches)
+- [Client vs server scope](/docs/concepts/client-vs-server-scope)
 
 ## FAQ
 

@@ -2,6 +2,7 @@ using Mediator;
 using Nona.Application.Admin.Environments.DTOs;
 using Nona.Application.Admin.Projects;
 using Nona.Application.Common.Interfaces;
+using Nona.Domain.Enums;
 using Nona.Domain.Interfaces;
 
 namespace Nona.Application.Admin.ConfigReleases.Commands;
@@ -55,6 +56,7 @@ public class SetActiveConfigReleaseCommandHandler(
         if (auditLogService is not null)
         {
             await auditLogService.WriteAsync(
+                AuditActionKind.Update,
                 activeReleaseVersion is null ? "Cleared Active Config Release" : "Set Active Config Release",
                 activeReleaseVersion ?? request.EnvironmentName,
                 project: projectName,

@@ -90,11 +90,11 @@ That same sequence works whether you are building a kill switch, a mobile settin
 
 ## Related docs
 
-- [Server-side remote config](/docs/remote-config/server-side-remote-config/)
-- [Feature flags](/docs/feature-flags/)
-- [Client vs server scope](/docs/concepts/client-vs-server-scope/)
+- [Server-side remote config](/docs/remote-config/server-side-remote-config)
+- [Feature flags](/docs/feature-flags)
+- [Client vs server scope](/docs/concepts/client-vs-server-scope)
 
-For a concrete walkthrough, continue with [Get started](/docs/get-started/).
+For a concrete walkthrough, continue with [Get started](/docs/get-started).
 
 ## FAQ
 

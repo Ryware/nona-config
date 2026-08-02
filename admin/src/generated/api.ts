@@ -2655,6 +2655,7 @@ export interface components {
             id: number | string;
             actor: string;
             actorIsSystem: boolean;
+            actionKind: string;
             action: string;
             target: string;
             project: null | string;
