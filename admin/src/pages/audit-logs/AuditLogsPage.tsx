@@ -2,14 +2,15 @@ import { Title } from "@solidjs/meta";
 import { useQuery } from "@tanstack/solid-query";
 import { createEffect, createMemo, createSignal, onCleanup, Show } from "solid-js";
 import { auditLogService } from "../../entities/audit-log/api/audit-log.service";
+import type { AuditLogExportFormat } from "../../entities/audit-log/api/audit-log.service";
 import { auditLogKeys } from "../../entities/audit-log/queries/keys";
 import { QueryErrorBanner } from "../../shared/ui/QueryGuard";
+import { useToast } from "../../shared/ui/toast";
 import type { AuditLog } from "../../types";
 
 import { AuditLogsFilters } from "./components/AuditLogsFilters";
 import { AuditLogsHeader } from "./components/AuditLogsHeader";
 import { AuditLogsTable } from "./components/AuditLogsTable";
-import { serializeAuditLogs, type AuditExportFormat } from "./export";
 import type { AuditEntry } from "./types";
 import { ACTION_STYLE, actorStyle, ENV_STYLE } from "./utils";
 
@@ -86,6 +87,8 @@ export default function AuditLogsPage() {
   const [dateFrom, setDateFrom] = createSignal("");
   const [dateTo, setDateTo] = createSignal("");
   const [page, setPage] = createSignal(0);
+  const [isExporting, setIsExporting] = createSignal(false);
+  const { addToast } = useToast();
 
   createEffect(() => {
     const value = search().trim();
@@ -144,15 +147,34 @@ export default function AuditLogsPage() {
     setPage(0);
   };
 
-  const exportLogs = (format: AuditExportFormat) => {
-    const { content, mimeType } = serializeAuditLogs(pageEntries(), format);
-    const blob = new Blob([content], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `audit-logs-${new Date().toISOString().slice(0, 10)}.${format}`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const exportLogs = async (format: AuditLogExportFormat) => {
+    setIsExporting(true);
+    try {
+      const parameters = auditParameters();
+      const { blob, fileName } = await auditLogService.export(
+        {
+          search: search().trim() || undefined,
+          action: parameters.action,
+          environment: parameters.environment,
+          dateFrom: parameters.dateFrom,
+          dateTo: parameters.dateTo
+        },
+        format
+      );
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = fileName ?? `audit-logs-${new Date().toISOString().slice(0, 10)}.${format}`;
+      anchor.hidden = true;
+      document.body.append(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 0);
+    } catch {
+      addToast("Failed to export audit logs", "error");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
@@ -165,6 +187,7 @@ export default function AuditLogsPage() {
         >
           <AuditLogsHeader
             onExport={exportLogs}
+            isExporting={isExporting()}
             search={search()}
             setSearch={v => {
               setSearch(v);

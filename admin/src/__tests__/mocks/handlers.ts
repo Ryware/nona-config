@@ -570,4 +570,14 @@ export const handlers = [
       environments: [...new Set(auditLogs.flatMap(log => log.environment ? [log.environment] : []))],
     });
   }),
+
+  http.get(`${BASE}/admin/audit-logs/export`, ({ request }) => {
+    const format = new URL(request.url).searchParams.get('format');
+    return new HttpResponse(format === 'json' ? '[]' : 'Time,Actor\n', {
+      headers: {
+        'Content-Type': format === 'json' ? 'application/json' : 'text/csv',
+        'Content-Disposition': `attachment; filename="audit-logs-test.${format ?? 'csv'}"`,
+      },
+    });
+  }),
 ];

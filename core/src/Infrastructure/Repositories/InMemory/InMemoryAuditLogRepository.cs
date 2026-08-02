@@ -22,8 +22,58 @@ public sealed class InMemoryAuditLogRepository : IAuditLogRepository
 
     public Task<AuditLogPageResult> ListAsync(AuditLogPageRequest request, CancellationToken ct = default)
     {
-        IEnumerable<AuditLogEntry> query = _entries;
-        var filter = request.Filter;
+        var filtered = ApplyFilter(_entries, request.Filter)
+            .OrderByDescending(entry => entry.CreatedAt)
+            .ThenByDescending(entry => entry.Id)
+            .ToList();
+
+        var actions = _entries
+            .Select(entry => entry.Action)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Order(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        var environments = _entries
+            .Where(entry => !string.IsNullOrWhiteSpace(entry.Environment))
+            .Select(entry => entry.Environment!)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Order(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var result = new AuditLogPageResult(
+            filtered.Skip(checked((int)Math.Min(request.Offset, int.MaxValue))).Take(request.Limit).ToList(),
+            filtered.Count,
+            actions,
+            environments);
+
+        return Task.FromResult(result);
+    }
+
+    public Task<IReadOnlyList<AuditLogEntry>> ListBatchAsync(
+        AuditLogBatchRequest request,
+        CancellationToken ct = default)
+    {
+        var query = ApplyFilter(_entries, request.Filter);
+        if (request.BeforeCreatedAt is { } beforeCreatedAt && request.BeforeId is { } beforeId)
+        {
+            query = query.Where(entry =>
+                entry.CreatedAt < beforeCreatedAt ||
+                (entry.CreatedAt == beforeCreatedAt && entry.Id < beforeId));
+        }
+
+        var entries = query
+            .OrderByDescending(entry => entry.CreatedAt)
+            .ThenByDescending(entry => entry.Id)
+            .Take(request.Limit)
+            .ToList();
+
+        return Task.FromResult<IReadOnlyList<AuditLogEntry>>(entries);
+    }
+
+    private static IEnumerable<AuditLogEntry> ApplyFilter(
+        IEnumerable<AuditLogEntry> entries,
+        AuditLogFilter filter)
+    {
+        var query = entries;
 
         if (!string.IsNullOrWhiteSpace(filter.Search))
         {
@@ -60,29 +110,6 @@ public sealed class InMemoryAuditLogRepository : IAuditLogRepository
             query = query.Where(entry => entry.CreatedAt < createdToExclusive);
         }
 
-        var filtered = query
-            .OrderByDescending(entry => entry.CreatedAt)
-            .ThenByDescending(entry => entry.Id)
-            .ToList();
-
-        var actions = _entries
-            .Select(entry => entry.Action)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .Order(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-        var environments = _entries
-            .Where(entry => !string.IsNullOrWhiteSpace(entry.Environment))
-            .Select(entry => entry.Environment!)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .Order(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        var result = new AuditLogPageResult(
-            filtered.Skip(checked((int)Math.Min(request.Offset, int.MaxValue))).Take(request.Limit).ToList(),
-            filtered.Count,
-            actions,
-            environments);
-
-        return Task.FromResult(result);
+        return query;
     }
 }

@@ -83,6 +83,42 @@ describe('AuditLogsPage', () => {
     expect(await screen.findByRole('button', { name: /export logs/i })).toBeInTheDocument();
   });
 
+  it('downloads a server-side export with the active filters', async () => {
+    let exportUrl: URL | undefined;
+    server.use(
+      http.get('http://localhost:5027/admin/audit-logs/export', ({ request }) => {
+        exportUrl = new URL(request.url);
+        return new HttpResponse('Time,Actor\n', {
+          headers: {
+            'Content-Type': 'text/csv',
+            'Content-Disposition': 'attachment; filename="filtered-audit.csv"',
+          },
+        });
+      }),
+    );
+    const createObjectUrl = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:audit-export');
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
+
+    renderAuditLogsPage();
+    const list = await screen.findByTestId('audit-log-list');
+    await waitFor(() => expect(list).toHaveTextContent(mockProjects[0].name));
+    fireEvent.input(screen.getByPlaceholderText(/filter audit trail/i), {
+      target: { value: mockProjects[0].name },
+    });
+    await waitFor(() => expect(list).not.toHaveTextContent(mockProjects[1].name));
+
+    fireEvent.click(screen.getByRole('button', { name: /export logs/i }));
+    fireEvent.click(await screen.findByRole('button', { name: /export csv/i }));
+
+    await waitFor(() => expect(exportUrl).toBeDefined());
+    expect(exportUrl?.searchParams.get('format')).toBe('csv');
+    expect(exportUrl?.searchParams.get('search')).toBe(mockProjects[0].name);
+    expect(exportUrl?.searchParams.has('page')).toBe(false);
+    expect(createObjectUrl).toHaveBeenCalledOnce();
+    expect(click).toHaveBeenCalledOnce();
+  });
+
   it('requests bounded pages from the server and loads the next page', async () => {
     const requestedPages: string[] = [];
     server.use(

@@ -50,6 +50,41 @@ describe('auditLogService', () => {
     expect(requestedUrl?.searchParams.get('dateFrom')).toBe('2026-07-01');
     expect(requestedUrl?.searchParams.get('dateTo')).toBe('2026-07-31');
   });
+
+  it('downloads a filtered server-side export', async () => {
+    let requestedUrl: URL | undefined;
+    server.use(
+      http.get(`${BASE}/admin/audit-logs/export`, ({ request }) => {
+        requestedUrl = new URL(request.url);
+        return new HttpResponse('Time,Actor\n', {
+          headers: {
+            'Content-Type': 'text/csv',
+            'Content-Disposition': 'attachment; filename="audit-logs-2026-08-02.csv"',
+          },
+        });
+      }),
+    );
+
+    const result = await auditLogService.export(
+      {
+        search: 'needle value',
+        action: 'Updated Parameter',
+        environment: 'production',
+        dateFrom: '2026-07-01',
+        dateTo: '2026-07-31',
+      },
+      'csv',
+    );
+
+    expect(requestedUrl?.searchParams.get('format')).toBe('csv');
+    expect(requestedUrl?.searchParams.get('search')).toBe('needle value');
+    expect(requestedUrl?.searchParams.get('action')).toBe('Updated Parameter');
+    expect(requestedUrl?.searchParams.get('environment')).toBe('production');
+    expect(requestedUrl?.searchParams.get('dateFrom')).toBe('2026-07-01');
+    expect(requestedUrl?.searchParams.get('dateTo')).toBe('2026-07-31');
+    expect(result.fileName).toBe('audit-logs-2026-08-02.csv');
+    expect(await result.blob.text()).toBe('Time,Actor\n');
+  });
 });
 
 // ── projectService ──────────────────────────────────────────────────────────

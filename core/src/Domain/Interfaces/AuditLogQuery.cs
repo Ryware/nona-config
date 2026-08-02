@@ -19,3 +19,9 @@ public sealed record AuditLogPageResult(
     int TotalCount,
     IReadOnlyList<string> Actions,
     IReadOnlyList<string> Environments);
+
+public sealed record AuditLogBatchRequest(
+    AuditLogFilter Filter,
+    DateTime? BeforeCreatedAt,
+    long? BeforeId,
+    int Limit);

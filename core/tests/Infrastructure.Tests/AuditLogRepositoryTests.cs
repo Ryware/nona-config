@@ -97,6 +97,57 @@ public class AuditLogRepositoryTests
     }
 
     [Test]
+    public async Task Repository_ListsLargeExportsInStableCursorBatches()
+    {
+        var directory = CreateTempDirectory("nona-audit-export-query");
+
+        try
+        {
+            using var client = new SqliteDatabaseClient(Path.Combine(directory, "nona.db"));
+            var migrations = new LibsqlMigrationRunner(client, ResolveMigrationsFolder());
+            await migrations.RunMigrationsAsync();
+            var repository = new LibsqlAuditLogRepository(client);
+            var createdAt = new DateTime(2026, 7, 29, 12, 0, 0, DateTimeKind.Utc);
+
+            for (var index = 0; index < 505; index++)
+            {
+                await repository.AddAsync(new AuditLogEntry
+                {
+                    Actor = "matching.user@example.test",
+                    ActorIsSystem = false,
+                    ActionKind = AuditActionKind.Update,
+                    Action = "Updated Parameter",
+                    Target = $"target-{index}",
+                    Project = "sample-project",
+                    Environment = "production",
+                    CreatedAt = createdAt
+                });
+            }
+
+            var first = await repository.ListBatchAsync(new AuditLogBatchRequest(
+                new AuditLogFilter(Search: "matching.user"),
+                BeforeCreatedAt: null,
+                BeforeId: null,
+                Limit: 500));
+            var last = first[^1];
+            var second = await repository.ListBatchAsync(new AuditLogBatchRequest(
+                new AuditLogFilter(Search: "matching.user"),
+                last.CreatedAt,
+                last.Id,
+                Limit: 500));
+
+            await Assert.That(first).Count().IsEqualTo(500);
+            await Assert.That(second).Count().IsEqualTo(5);
+            await Assert.That(first.Select(entry => entry.Id).Intersect(second.Select(entry => entry.Id))).IsEmpty();
+            await Assert.That(first.Concat(second).Select(entry => entry.Id).Distinct()).Count().IsEqualTo(505);
+        }
+        finally
+        {
+            DeleteTempDirectory(directory);
+        }
+    }
+
+    [Test]
     public async Task Migration018_BackfillsHistoricalActionKinds()
     {
         var directory = CreateTempDirectory("nona-audit-migration");

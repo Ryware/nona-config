@@ -65,6 +65,100 @@ public class AuditLogEndpointTests
             .Contains("production");
     }
 
+    [Test]
+    public async Task ExportAuditLogs_StreamsAtLeastTenThousandFilteredRows()
+    {
+        await using var app = await StartAppAsync();
+        var client = app.GetTestClient();
+        var token = await RegisterAdminAsync(client);
+        var repository = app.Services.GetRequiredService<IAuditLogRepository>();
+        var createdAt = new DateTime(2026, 7, 15, 12, 0, 0, DateTimeKind.Utc);
+
+        for (var index = 0; index < 10_000; index++)
+        {
+            await repository.AddAsync(new AuditLogEntry
+            {
+                Actor = "export.user@example.test",
+                ActorIsSystem = false,
+                ActionKind = AuditActionKind.Update,
+                Action = "Updated Parameter",
+                Target = $"export-target-{index:D5}",
+                Project = "export-project",
+                Environment = "production",
+                CreatedAt = createdAt.AddTicks(index)
+            });
+        }
+
+        await repository.AddAsync(new AuditLogEntry
+        {
+            Actor = "excluded.user@example.test",
+            ActorIsSystem = false,
+            ActionKind = AuditActionKind.Delete,
+            Action = "Deleted Project",
+            Target = "excluded-target",
+            Project = "excluded-project",
+            Environment = "staging",
+            CreatedAt = createdAt
+        });
+
+        var path = "/admin/audit-logs/export?format=csv" +
+                   "&search=export.user" +
+                   "&action=Updated%20Parameter" +
+                   "&environment=production" +
+                   "&dateFrom=2026-07-15&dateTo=2026-07-15";
+        using var request = new HttpRequestMessage(HttpMethod.Get, path);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+        response.EnsureSuccessStatusCode();
+        var content = await response.Content.ReadAsStringAsync();
+
+        await Assert.That(response.Content.Headers.ContentType?.MediaType).IsEqualTo("text/csv");
+        await Assert.That(response.Content.Headers.ContentDisposition?.FileName).Contains("audit-logs-");
+        await Assert.That(content.Split('\n', StringSplitOptions.RemoveEmptyEntries)).Count().IsEqualTo(10_001);
+        await Assert.That(content).Contains("export-target-09999");
+        await Assert.That(content).DoesNotContain("excluded-target");
+    }
+
+    [Test]
+    public async Task ExportAuditLogs_ReturnsJsonAndRejectsUnknownFormats()
+    {
+        await using var app = await StartAppAsync();
+        var client = app.GetTestClient();
+        var token = await RegisterAdminAsync(client);
+        var repository = app.Services.GetRequiredService<IAuditLogRepository>();
+        await repository.AddAsync(new AuditLogEntry
+        {
+            Actor = "json.user@example.test",
+            ActorIsSystem = false,
+            ActionKind = AuditActionKind.Create,
+            Action = "Created Project",
+            Target = "json-export-target",
+            Project = "sample-project",
+            Environment = null,
+            CreatedAt = new DateTime(2026, 7, 15, 12, 0, 0, DateTimeKind.Utc)
+        });
+
+        using var jsonRequest = new HttpRequestMessage(
+            HttpMethod.Get,
+            "/admin/audit-logs/export?format=json&search=json-export-target");
+        jsonRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        using var jsonResponse = await client.SendAsync(jsonRequest);
+        jsonResponse.EnsureSuccessStatusCode();
+        using var json = await JsonDocument.ParseAsync(await jsonResponse.Content.ReadAsStreamAsync());
+
+        await Assert.That(jsonResponse.Content.Headers.ContentType?.MediaType).IsEqualTo("application/json");
+        await Assert.That(json.RootElement.GetArrayLength()).IsEqualTo(1);
+        await Assert.That(json.RootElement[0].GetProperty("target").GetString()).IsEqualTo("json-export-target");
+        await Assert.That(json.RootElement[0].GetProperty("environment").GetString()).IsEqualTo("Global Scope");
+
+        using var invalidRequest = new HttpRequestMessage(
+            HttpMethod.Get,
+            "/admin/audit-logs/export?format=xml");
+        invalidRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        using var invalidResponse = await client.SendAsync(invalidRequest);
+        await Assert.That(invalidResponse.StatusCode).IsEqualTo(System.Net.HttpStatusCode.BadRequest);
+    }
+
     private static async Task<string> RegisterAdminAsync(HttpClient client)
     {
         using var response = await client.PostAsJsonAsync(

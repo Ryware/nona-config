@@ -1,3 +1,4 @@
+using System.Globalization;
 using Nona.Domain.Entities;
 using Nona.Domain.Enums;
 using Nona.Domain.Interfaces;
@@ -68,6 +69,27 @@ public sealed class LibsqlAuditLogRepository : IAuditLogRepository
             environmentsResult.Rows.Select(row => row.GetString("Environment")).ToList());
     }
 
+    public async Task<IReadOnlyList<AuditLogEntry>> ListBatchAsync(
+        AuditLogBatchRequest request,
+        CancellationToken ct = default)
+    {
+        var result = await _client.ExecuteAsync(
+            $"""
+            SELECT rowid AS Id, Actor, ActorIsSystem, ActionKind, Action, Target, Project, Environment, CreatedAt
+            FROM AuditLogs
+            {FilterSql}
+              AND (@BeforeCreatedAt IS NULL OR
+                   CreatedAt < @BeforeCreatedAt OR
+                   (CreatedAt = @BeforeCreatedAt AND rowid < @BeforeId))
+            ORDER BY CreatedAt DESC, rowid DESC
+            LIMIT @Limit
+            """,
+            ToParameters(request),
+            ct);
+
+        return result.Rows.Select(Map).ToList();
+    }
+
     private const string FilterSql = """
         WHERE (@Search IS NULL OR
                instr(lower(Actor), lower(@Search)) > 0 OR
@@ -91,7 +113,10 @@ public sealed class LibsqlAuditLogRepository : IAuditLogRepository
             Target = row.GetString("Target"),
             Project = row.GetNullableString("Project"),
             Environment = row.GetNullableString("Environment"),
-            CreatedAt = DateTime.Parse(row.GetString("CreatedAt"))
+            CreatedAt = DateTime.Parse(
+                row.GetString("CreatedAt"),
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.RoundtripKind)
         };
     }
 
@@ -128,6 +153,19 @@ public sealed class LibsqlAuditLogRepository : IAuditLogRepository
             ("Environment", Normalize(filter.Environment)),
             ("CreatedFrom", filter.CreatedFrom?.ToString("O")),
             ("CreatedToExclusive", filter.CreatedToExclusive?.ToString("O")));
+    }
+
+    private static IReadOnlyDictionary<string, object?> ToParameters(AuditLogBatchRequest request)
+    {
+        return LibsqlParameters.Create(
+            ("Search", Normalize(request.Filter.Search)),
+            ("Action", Normalize(request.Filter.Action)),
+            ("Environment", Normalize(request.Filter.Environment)),
+            ("CreatedFrom", request.Filter.CreatedFrom?.ToString("O")),
+            ("CreatedToExclusive", request.Filter.CreatedToExclusive?.ToString("O")),
+            ("BeforeCreatedAt", request.BeforeCreatedAt?.ToString("O")),
+            ("BeforeId", request.BeforeId),
+            ("Limit", request.Limit));
     }
 
     private static string? Normalize(string? value)

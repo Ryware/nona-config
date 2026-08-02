@@ -28,7 +28,7 @@ export class ApiClient {
     return token ? { Authorization: `Bearer ${token}` } : {};
   }
 
-  async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  private async send(endpoint: string, options: RequestInit = {}): Promise<Response> {
     const url = `${API_BASE_URL}${endpoint}`;
 
     const response = await fetch(url, {
@@ -56,12 +56,29 @@ export class ApiClient {
       );
     }
 
+    return response;
+  }
+
+  async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    const response = await this.send(endpoint, options);
+
     // Handle 204 No Content
     if (response.status === 204) {
       return {} as T;
     }
 
     return response.json();
+  }
+
+  async getBlob(endpoint: string): Promise<{ blob: Blob; fileName?: string }> {
+    const response = await this.send(endpoint, { method: "GET" });
+    const disposition = response.headers.get("Content-Disposition");
+    const encodedFileName = disposition?.match(/filename\*?=(?:UTF-8''|")?([^";]+)/i)?.[1];
+
+    return {
+      blob: await response.blob(),
+      fileName: encodedFileName ? decodeURIComponent(encodedFileName) : undefined,
+    };
   }
 
   async get<T>(endpoint: string): Promise<T> {

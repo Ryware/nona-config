@@ -23,27 +23,18 @@ public class ListAuditLogsQueryHandler(IAuditLogRepository auditLogRepository)
     {
         var page = Math.Max(1, request.Page);
         var pageSize = Math.Clamp(request.PageSize, 1, MaximumPageSize);
-        var filter = new AuditLogFilter(
-            Normalize(request.Search),
-            Normalize(request.Action),
-            Normalize(request.Environment),
-            request.DateFrom?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
-            ToExclusiveDate(request.DateTo));
+        var filter = AuditLogQueryFilter.Create(
+            request.Search,
+            request.Action,
+            request.Environment,
+            request.DateFrom,
+            request.DateTo);
         var result = await auditLogRepository.ListAsync(
             new AuditLogPageRequest(filter, (long)(page - 1) * pageSize, pageSize),
             cancellationToken);
 
         var items = result.Items
-            .Select(entry => new AuditLogDto(
-                entry.Id,
-                entry.Actor,
-                entry.ActorIsSystem,
-                entry.ActionKind.ToString().ToLowerInvariant(),
-                entry.Action,
-                entry.Target,
-                entry.Project,
-                entry.Environment,
-                entry.CreatedAt))
+            .Select(AuditLogDto.FromEntry)
             .ToList();
 
         return new AuditLogPageDto(
@@ -54,20 +45,5 @@ public class ListAuditLogsQueryHandler(IAuditLogRepository auditLogRepository)
             result.TotalCount == 0 ? 0 : (int)Math.Ceiling((double)result.TotalCount / pageSize),
             result.Actions,
             result.Environments);
-    }
-
-    private static string? Normalize(string? value)
-    {
-        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
-    }
-
-    private static DateTime? ToExclusiveDate(DateOnly? date)
-    {
-        if (date is null || date.Value == DateOnly.MaxValue)
-        {
-            return null;
-        }
-
-        return date.Value.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
     }
 }
