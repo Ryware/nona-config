@@ -7,7 +7,18 @@ public sealed record AuditLogFilter(
     string? Action = null,
     string? Environment = null,
     DateTime? CreatedFrom = null,
-    DateTime? CreatedToExclusive = null);
+    DateTime? CreatedToExclusive = null)
+{
+    public const string GlobalScopeEnvironment = "__global__";
+
+    public static bool IsGlobalScopeEnvironment(string? environment)
+    {
+        return string.Equals(
+            environment?.Trim(),
+            GlobalScopeEnvironment,
+            StringComparison.OrdinalIgnoreCase);
+    }
+}
 
 public sealed record AuditLogPageRequest(
     AuditLogFilter Filter,

@@ -498,6 +498,7 @@ export const handlers = [
 
   // ── Audit Logs ───────────────────────────────────────────────────────────────
   http.get(`${BASE}/admin/audit-logs`, ({ request }) => {
+    const globalScopeEnvironment = '__global__';
     const auditLogs = [
       {
         id: 'log-proj-1',
@@ -556,7 +557,10 @@ export const handlers = [
         log.target.toLowerCase().includes(search) ||
         (log.project ?? '').toLowerCase().includes(search)) &&
       (!action || log.action === action) &&
-      (!environment || log.environment === environment)
+      (!environment ||
+        (environment === globalScopeEnvironment
+          ? !log.environment
+          : log.environment === environment))
     );
     const start = (page - 1) * pageSize;
 
@@ -567,7 +571,7 @@ export const handlers = [
       totalCount: filtered.length,
       totalPages: Math.ceil(filtered.length / pageSize),
       actions: [...new Set(auditLogs.map(log => log.action))],
-      environments: [...new Set(auditLogs.flatMap(log => log.environment ? [log.environment] : []))],
+      environments: [...new Set(auditLogs.map(log => log.environment ?? globalScopeEnvironment))],
     });
   }),
 

@@ -66,6 +66,47 @@ public class AuditLogEndpointTests
     }
 
     [Test]
+    public async Task ListAuditLogs_FiltersGlobalScopeEntries()
+    {
+        await using var app = await StartAppAsync();
+        var client = app.GetTestClient();
+        var token = await RegisterAdminAsync(client);
+        var repository = app.Services.GetRequiredService<IAuditLogRepository>();
+        await repository.AddAsync(new AuditLogEntry
+        {
+            Actor = "global.user@example.test",
+            ActionKind = AuditActionKind.Create,
+            Action = "Created Project",
+            Target = "global-target",
+            Environment = null,
+            CreatedAt = new DateTime(2026, 7, 15, 12, 0, 0, DateTimeKind.Utc)
+        });
+        await repository.AddAsync(new AuditLogEntry
+        {
+            Actor = "production.user@example.test",
+            ActionKind = AuditActionKind.Create,
+            Action = "Created Project",
+            Target = "production-target",
+            Environment = "production",
+            CreatedAt = new DateTime(2026, 7, 15, 13, 0, 0, DateTimeKind.Utc)
+        });
+
+        using var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"/admin/audit-logs?page=1&pageSize=25&environment={AuditLogFilter.GlobalScopeEnvironment}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        using var response = await client.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+        using var body = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
+
+        await Assert.That(body.RootElement.GetProperty("totalCount").GetInt32()).IsEqualTo(1);
+        await Assert.That(body.RootElement.GetProperty("items")[0].GetProperty("target").GetString())
+            .IsEqualTo("global-target");
+        await Assert.That(body.RootElement.GetProperty("environments").EnumerateArray().Select(value => value.GetString()))
+            .Contains(AuditLogFilter.GlobalScopeEnvironment);
+    }
+
+    [Test]
     public async Task ExportAuditLogs_StreamsAtLeastTenThousandFilteredRows()
     {
         await using var app = await StartAppAsync();

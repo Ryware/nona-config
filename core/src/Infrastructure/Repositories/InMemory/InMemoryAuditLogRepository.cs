@@ -33,8 +33,9 @@ public sealed class InMemoryAuditLogRepository : IAuditLogRepository
             .Order(StringComparer.OrdinalIgnoreCase)
             .ToList();
         var environments = _entries
-            .Where(entry => !string.IsNullOrWhiteSpace(entry.Environment))
-            .Select(entry => entry.Environment!)
+            .Select(entry => string.IsNullOrWhiteSpace(entry.Environment)
+                ? AuditLogFilter.GlobalScopeEnvironment
+                : entry.Environment!)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .Order(StringComparer.OrdinalIgnoreCase)
             .ToList();
@@ -94,10 +95,13 @@ public sealed class InMemoryAuditLogRepository : IAuditLogRepository
 
         if (!string.IsNullOrWhiteSpace(filter.Environment))
         {
-            query = query.Where(entry => string.Equals(
-                entry.Environment,
-                filter.Environment,
-                StringComparison.OrdinalIgnoreCase));
+            var environment = filter.Environment.Trim();
+            query = AuditLogFilter.IsGlobalScopeEnvironment(environment)
+                ? query.Where(entry => string.IsNullOrWhiteSpace(entry.Environment))
+                : query.Where(entry => string.Equals(
+                    entry.Environment,
+                    environment,
+                    StringComparison.OrdinalIgnoreCase));
         }
 
         if (filter.CreatedFrom is { } createdFrom)

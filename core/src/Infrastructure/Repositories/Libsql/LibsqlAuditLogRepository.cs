@@ -55,11 +55,15 @@ public sealed class LibsqlAuditLogRepository : IAuditLogRepository
             ct: ct);
         var environmentsResult = await _client.ExecuteAsync(
             """
-            SELECT DISTINCT Environment
+            SELECT DISTINCT CASE
+                WHEN Environment IS NULL OR trim(Environment) = '' THEN @GlobalScopeEnvironment
+                ELSE Environment
+            END AS Environment
             FROM AuditLogs
-            WHERE Environment IS NOT NULL AND trim(Environment) <> ''
             ORDER BY Environment COLLATE NOCASE
             """,
+            LibsqlParameters.Create(
+                ("GlobalScopeEnvironment", AuditLogFilter.GlobalScopeEnvironment)),
             ct: ct);
 
         return new AuditLogPageResult(
@@ -96,7 +100,11 @@ public sealed class LibsqlAuditLogRepository : IAuditLogRepository
                instr(lower(Target), lower(@Search)) > 0 OR
                instr(lower(coalesce(Project, '')), lower(@Search)) > 0)
           AND (@Action IS NULL OR Action = @Action COLLATE NOCASE)
-          AND (@Environment IS NULL OR Environment = @Environment COLLATE NOCASE)
+          AND (@Environment IS NULL OR
+               (@Environment = @GlobalScopeEnvironment AND
+                (Environment IS NULL OR trim(Environment) = '')) OR
+               (@Environment <> @GlobalScopeEnvironment AND
+                Environment = @Environment COLLATE NOCASE))
           AND (@CreatedFrom IS NULL OR CreatedAt >= @CreatedFrom)
           AND (@CreatedToExclusive IS NULL OR CreatedAt < @CreatedToExclusive)
         """;
@@ -139,6 +147,7 @@ public sealed class LibsqlAuditLogRepository : IAuditLogRepository
             ("Search", Normalize(request.Filter.Search)),
             ("Action", Normalize(request.Filter.Action)),
             ("Environment", Normalize(request.Filter.Environment)),
+            ("GlobalScopeEnvironment", AuditLogFilter.GlobalScopeEnvironment),
             ("CreatedFrom", request.Filter.CreatedFrom?.ToString("O")),
             ("CreatedToExclusive", request.Filter.CreatedToExclusive?.ToString("O")),
             ("Limit", request.Limit),
@@ -151,6 +160,7 @@ public sealed class LibsqlAuditLogRepository : IAuditLogRepository
             ("Search", Normalize(filter.Search)),
             ("Action", Normalize(filter.Action)),
             ("Environment", Normalize(filter.Environment)),
+            ("GlobalScopeEnvironment", AuditLogFilter.GlobalScopeEnvironment),
             ("CreatedFrom", filter.CreatedFrom?.ToString("O")),
             ("CreatedToExclusive", filter.CreatedToExclusive?.ToString("O")));
     }
@@ -161,6 +171,7 @@ public sealed class LibsqlAuditLogRepository : IAuditLogRepository
             ("Search", Normalize(request.Filter.Search)),
             ("Action", Normalize(request.Filter.Action)),
             ("Environment", Normalize(request.Filter.Environment)),
+            ("GlobalScopeEnvironment", AuditLogFilter.GlobalScopeEnvironment),
             ("CreatedFrom", request.Filter.CreatedFrom?.ToString("O")),
             ("CreatedToExclusive", request.Filter.CreatedToExclusive?.ToString("O")),
             ("BeforeCreatedAt", request.BeforeCreatedAt?.ToString("O")),

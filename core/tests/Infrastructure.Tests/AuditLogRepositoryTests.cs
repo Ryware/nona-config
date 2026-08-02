@@ -148,6 +148,48 @@ public class AuditLogRepositoryTests
     }
 
     [Test]
+    public async Task Repository_FiltersGlobalScopeEntries()
+    {
+        var directory = CreateTempDirectory("nona-audit-global-scope");
+
+        try
+        {
+            using var client = new SqliteDatabaseClient(Path.Combine(directory, "nona.db"));
+            var migrations = new LibsqlMigrationRunner(client, ResolveMigrationsFolder());
+            await migrations.RunMigrationsAsync();
+            var repository = new LibsqlAuditLogRepository(client);
+            var createdAt = new DateTime(2026, 7, 29, 12, 0, 0, DateTimeKind.Utc);
+
+            foreach (var environment in new string?[] { null, " ", "production" })
+            {
+                await repository.AddAsync(new AuditLogEntry
+                {
+                    Actor = "audit.user@example.test",
+                    ActionKind = AuditActionKind.Create,
+                    Action = "Created Project",
+                    Target = environment ?? "null-environment",
+                    Environment = environment,
+                    CreatedAt = createdAt
+                });
+            }
+
+            var result = await repository.ListAsync(new AuditLogPageRequest(
+                new AuditLogFilter(Environment: AuditLogFilter.GlobalScopeEnvironment),
+                Offset: 0,
+                Limit: 25));
+
+            await Assert.That(result.TotalCount).IsEqualTo(2);
+            await Assert.That(result.Items.All(entry => string.IsNullOrWhiteSpace(entry.Environment))).IsTrue();
+            await Assert.That(result.Environments)
+                .IsEquivalentTo([AuditLogFilter.GlobalScopeEnvironment, "production"]);
+        }
+        finally
+        {
+            DeleteTempDirectory(directory);
+        }
+    }
+
+    [Test]
     public async Task Migration018_BackfillsHistoricalActionKinds()
     {
         var directory = CreateTempDirectory("nona-audit-migration");

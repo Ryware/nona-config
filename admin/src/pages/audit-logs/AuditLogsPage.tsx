@@ -16,6 +16,7 @@ import { ACTION_STYLE, actorStyle, ENV_STYLE } from "./utils";
 
 const PAGE_SIZE = 25;
 const SEARCH_DEBOUNCE_MS = 300;
+const GLOBAL_SCOPE_ENVIRONMENT = "__global__";
 
 /** Maps a backend action string to a display label present in ACTION_STYLE. */
 function resolveActionLabel(action: string): string {
@@ -76,6 +77,7 @@ function mapAuditLog(log: AuditLog): AuditEntry {
 }
 
 function environmentLabel(environment: string): string {
+  if (environment === GLOBAL_SCOPE_ENVIRONMENT) return "Global Scope";
   return environment.charAt(0).toUpperCase() + environment.slice(1);
 }
 

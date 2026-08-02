@@ -19,9 +19,9 @@ function auditPage(items: object[]) {
     actions: [...new Set(items.map(item => (item as { action: string }).action))],
     environments: [
       ...new Set(
-        items.flatMap(item => {
+        items.map(item => {
           const environment = (item as { environment: string | null }).environment;
-          return environment ? [environment] : [];
+          return environment ?? '__global__';
         }),
       ),
     ],
@@ -209,6 +209,44 @@ describe('AuditLogsPage', () => {
       expect(list).toHaveTextContent(mockProjects[0].name);
       expect(list).not.toHaveTextContent(mockProjects[1].name);
     });
+  });
+
+  it('requests global-scope entries from the server', async () => {
+    const requestedEnvironments: Array<string | null> = [];
+    server.use(
+      http.get('http://localhost:5027/admin/audit-logs', ({ request }) => {
+        const environment = new URL(request.url).searchParams.get('environment');
+        requestedEnvironments.push(environment);
+        const item = {
+          id: 'global-entry',
+          actor: 'audit.user@example.test',
+          actorIsSystem: false,
+          actionKind: 'create',
+          action: 'Created Project',
+          target: 'global-target',
+          project: 'sample-project',
+          environment: null,
+          createdAt: '2026-07-29T12:00:00Z',
+        };
+
+        return HttpResponse.json({
+          ...auditPage([item]),
+          environments: ['__global__', 'production'],
+        });
+      }),
+    );
+
+    renderAuditLogsPage();
+    expect(await screen.findByText('global-target')).toBeInTheDocument();
+
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Environment' }), {
+      button: 0,
+      pointerId: 1,
+      pointerType: 'mouse',
+    });
+    fireEvent.click(await screen.findByText('Global Scope'));
+
+    await waitFor(() => expect(requestedEnvironments).toEqual([null, '__global__']));
   });
 
   it('shows all entries after clearing the search', async () => {
