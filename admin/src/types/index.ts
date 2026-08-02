@@ -47,7 +47,11 @@ export type {
   DashboardCounts,
 } from "../entities/user/model/types";
 
-export type { AuditLog } from "../entities/audit-log/model/types";
+export type {
+  AuditLog,
+  AuditLogPage,
+  AuditLogQuery,
+} from "../entities/audit-log/model/types";
 
 // Cross-domain shared types (not entity-specific)
 export interface ApiError {

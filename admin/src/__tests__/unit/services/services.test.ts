@@ -4,6 +4,7 @@ import { projectService } from '../../../entities/project/api/project.service';
 import { environmentService } from '../../../entities/project/api/environment.service';
 import { configEntryService } from '../../../entities/project/api/config-entry.service';
 import { userService } from '../../../entities/user/api/user.service';
+import { auditLogService } from '../../../entities/audit-log/api/audit-log.service';
 import { mockProjects, mockEnvironments, mockConfigEntries, mockUsers, mockToken } from '../../mocks/data';
 import { server } from '../../mocks/server';
 
@@ -11,6 +12,44 @@ const BASE = 'http://localhost:5027';
 
 beforeEach(() => {
   localStorage.setItem('auth_token', mockToken);
+});
+
+describe('auditLogService', () => {
+  it('sends pagination and active filters to the server', async () => {
+    let requestedUrl: URL | undefined;
+    server.use(
+      http.get(`${BASE}/admin/audit-logs`, ({ request }) => {
+        requestedUrl = new URL(request.url);
+        return HttpResponse.json({
+          items: [],
+          page: 3,
+          pageSize: 25,
+          totalCount: 0,
+          totalPages: 0,
+          actions: [],
+          environments: [],
+        });
+      }),
+    );
+
+    await auditLogService.getPage({
+      page: 3,
+      pageSize: 25,
+      search: 'needle value',
+      action: 'Updated Parameter',
+      environment: 'production',
+      dateFrom: '2026-07-01',
+      dateTo: '2026-07-31',
+    });
+
+    expect(requestedUrl?.searchParams.get('page')).toBe('3');
+    expect(requestedUrl?.searchParams.get('pageSize')).toBe('25');
+    expect(requestedUrl?.searchParams.get('search')).toBe('needle value');
+    expect(requestedUrl?.searchParams.get('action')).toBe('Updated Parameter');
+    expect(requestedUrl?.searchParams.get('environment')).toBe('production');
+    expect(requestedUrl?.searchParams.get('dateFrom')).toBe('2026-07-01');
+    expect(requestedUrl?.searchParams.get('dateTo')).toBe('2026-07-31');
+  });
 });
 
 // ── projectService ──────────────────────────────────────────────────────────

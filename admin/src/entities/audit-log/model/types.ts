@@ -13,3 +13,23 @@ export interface AuditLog {
   environment: string | null;
   createdAt: string;
 }
+
+export interface AuditLogQuery {
+  page: number;
+  pageSize: number;
+  search?: string;
+  action?: string;
+  environment?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}
+
+export interface AuditLogPage {
+  items: AuditLog[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+  actions: string[];
+  environments: string[];
+}

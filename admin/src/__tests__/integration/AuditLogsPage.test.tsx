@@ -9,6 +9,25 @@ import { ToastProvider } from '../../shared/ui/toast';
 import AuditLogsPage from '../../pages/audit-logs/AuditLogsPage';
 import { mockProjects, mockUsers, mockToken } from '../mocks/data';
 
+function auditPage(items: object[]) {
+  return {
+    items,
+    page: 1,
+    pageSize: 25,
+    totalCount: items.length,
+    totalPages: items.length === 0 ? 0 : Math.ceil(items.length / 25),
+    actions: [...new Set(items.map(item => (item as { action: string }).action))],
+    environments: [
+      ...new Set(
+        items.flatMap(item => {
+          const environment = (item as { environment: string | null }).environment;
+          return environment ? [environment] : [];
+        }),
+      ),
+    ],
+  };
+}
+
 function renderAuditLogsPage() {
   window.history.pushState({}, '', '/audit-logs');
   return render(() => (
@@ -64,6 +83,43 @@ describe('AuditLogsPage', () => {
     expect(await screen.findByRole('button', { name: /export logs/i })).toBeInTheDocument();
   });
 
+  it('requests bounded pages from the server and loads the next page', async () => {
+    const requestedPages: string[] = [];
+    server.use(
+      http.get('http://localhost:5027/admin/audit-logs', ({ request }) => {
+        const url = new URL(request.url);
+        requestedPages.push(url.searchParams.get('page') ?? '');
+        const page = Number(url.searchParams.get('page'));
+        const item = {
+          id: `page-${page}`,
+          actor: 'audit.user@example.test',
+          actorIsSystem: false,
+          actionKind: 'update',
+          action: 'Updated Parameter',
+          target: `page-${page}-target`,
+          project: 'sample-project',
+          environment: 'production',
+          createdAt: '2026-07-29T12:00:00Z',
+        };
+        return HttpResponse.json({
+          ...auditPage([item]),
+          page,
+          totalCount: 50,
+          totalPages: 2,
+        });
+      }),
+    );
+
+    renderAuditLogsPage();
+    expect(await screen.findByText('page-1-target')).toBeInTheDocument();
+    expect(requestedPages).toEqual(['1']);
+
+    fireEvent.click(screen.getByRole('button', { name: /next page/i }));
+
+    expect(await screen.findByText('page-2-target')).toBeInTheDocument();
+    expect(requestedPages).toEqual(['1', '2']);
+  });
+
   it('filters entries by search text', async () => {
     renderAuditLogsPage();
 
@@ -102,7 +158,7 @@ describe('AuditLogsPage', () => {
   it('renders action badges from backend actionKind values', async () => {
     server.use(
       http.get('http://localhost:5027/admin/audit-logs', () =>
-        HttpResponse.json([
+        HttpResponse.json(auditPage([
           {
             id: 'release-published',
             actor: 'audit.user@example.test',
@@ -147,7 +203,7 @@ describe('AuditLogsPage', () => {
             environment: 'production',
             createdAt: '2026-07-29T12:03:00Z',
           },
-        ]),
+        ])),
       ),
     );
 
@@ -172,7 +228,7 @@ describe('AuditLogsPage', () => {
 
   it('shows an empty log when there are no projects or users', async () => {
     server.use(
-      http.get('http://localhost:5027/admin/audit-logs', () => HttpResponse.json([])),
+      http.get('http://localhost:5027/admin/audit-logs', () => HttpResponse.json(auditPage([]))),
     );
 
     renderAuditLogsPage();

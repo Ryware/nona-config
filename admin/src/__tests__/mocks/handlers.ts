@@ -497,8 +497,8 @@ export const handlers = [
   }),
 
   // ── Audit Logs ───────────────────────────────────────────────────────────────
-  http.get(`${BASE}/admin/audit-logs`, () => {
-    return HttpResponse.json([
+  http.get(`${BASE}/admin/audit-logs`, ({ request }) => {
+    const auditLogs = [
       {
         id: 'log-proj-1',
         actor: 'admin@example.com',
@@ -543,6 +543,31 @@ export const handlers = [
         environment: null,
         createdAt: '2024-01-04T00:00:00Z',
       },
-    ]);
+    ];
+    const url = new URL(request.url);
+    const search = url.searchParams.get('search')?.toLowerCase();
+    const action = url.searchParams.get('action');
+    const environment = url.searchParams.get('environment');
+    const page = Number(url.searchParams.get('page') ?? '1');
+    const pageSize = Number(url.searchParams.get('pageSize') ?? '25');
+    const filtered = auditLogs.filter(log =>
+      (!search ||
+        log.actor.toLowerCase().includes(search) ||
+        log.target.toLowerCase().includes(search) ||
+        (log.project ?? '').toLowerCase().includes(search)) &&
+      (!action || log.action === action) &&
+      (!environment || log.environment === environment)
+    );
+    const start = (page - 1) * pageSize;
+
+    return HttpResponse.json({
+      items: filtered.slice(start, start + pageSize),
+      page,
+      pageSize,
+      totalCount: filtered.length,
+      totalPages: Math.ceil(filtered.length / pageSize),
+      actions: [...new Set(auditLogs.map(log => log.action))],
+      environments: [...new Set(auditLogs.flatMap(log => log.environment ? [log.environment] : []))],
+    });
   }),
 ];
