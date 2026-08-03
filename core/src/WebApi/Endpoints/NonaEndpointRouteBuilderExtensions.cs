@@ -1,6 +1,8 @@
 using FluentValidation;
 using Mediator;
 using Microsoft.AspNetCore.Http.HttpResults;
+using System.Security.Cryptography;
+using System.Text;
 using Nona.Application.Admin.ApiKeys.Commands;
 using Nona.Application.Admin.ApiKeys.DTOs;
 using Nona.Application.Admin.ApiKeys.Queries;
@@ -45,6 +47,10 @@ namespace Nona.WebApi.Endpoints;
 
 public static class NonaEndpointRouteBuilderExtensions
 {
+    private const string GoogleRedirectCookiePrefix = "nona.google.sso.";
+    private const string GoogleRedirectFrontendPath = "/sso/callback/google";
+    private static readonly TimeSpan GoogleRedirectCookieLifetime = TimeSpan.FromMinutes(5);
+
     public static IEndpointRouteBuilder MapNonaEndpoints(this IEndpointRouteBuilder app)
     {
         MapAuthEndpoints(app.MapGroup("/auth"));
@@ -63,6 +69,11 @@ public static class NonaEndpointRouteBuilderExtensions
             .Produces<SsoPublicConfigResponse>();
         auth.MapPost("/sso/google", LoginWithGoogleAsync)
             .Produces<LoginResponse>();
+        auth.MapPost("/sso/google/callback", HandleGoogleRedirectCallbackAsync)
+            .ExcludeFromDescription();
+        auth.MapGet("/sso/google/credential", GetGoogleRedirectCredential)
+            .Produces<SsoRedirectCredentialResponse>()
+            .ExcludeFromDescription();
         auth.MapPost("/sso/microsoft", LoginWithMicrosoftAsync)
             .Produces<LoginResponse>();
         auth.MapGet("/first-time", CheckIfAnyUsersExistAsync)
@@ -257,6 +268,127 @@ public static class NonaEndpointRouteBuilderExtensions
         CancellationToken cancellationToken)
     {
         return LoginWithSsoAsync(SsoProviders.Microsoft, request, mediator, cancellationToken);
+    }
+
+    private static async Task<IResult> HandleGoogleRedirectCallbackAsync(
+        HttpContext httpContext,
+        CancellationToken cancellationToken)
+    {
+        IFormCollection form;
+        try
+        {
+            form = await httpContext.Request.ReadFormAsync(cancellationToken);
+        }
+        catch (InvalidDataException)
+        {
+            return GoogleRedirectError(null, "missing_credential");
+        }
+
+        var flowId = form["state"].ToString();
+        if (!IsValidSsoFlowId(flowId))
+        {
+            return GoogleRedirectError(null, "invalid_flow");
+        }
+
+        var postedCsrfToken = form["g_csrf_token"].ToString();
+        var hasCsrfCookie = httpContext.Request.Cookies.TryGetValue("g_csrf_token", out var cookieCsrfToken);
+        if (
+            !hasCsrfCookie ||
+            string.IsNullOrEmpty(postedCsrfToken) ||
+            string.IsNullOrEmpty(cookieCsrfToken) ||
+            !FixedTimeEquals(postedCsrfToken, cookieCsrfToken)
+        )
+        {
+            return GoogleRedirectError(flowId, "csrf");
+        }
+
+        var credential = form["credential"].ToString();
+        if (string.IsNullOrWhiteSpace(credential) || credential.Length > 3500)
+        {
+            return GoogleRedirectError(flowId, "missing_credential");
+        }
+
+        httpContext.Response.Cookies.Append(
+            GoogleRedirectCookiePrefix + flowId,
+            credential,
+            CreateGoogleRedirectCookieOptions(httpContext.Request.IsHttps));
+
+        return Results.Redirect(BuildGoogleRedirectLocation(flowId));
+    }
+
+    private static IResult GetGoogleRedirectCredential(HttpContext httpContext, string? flow)
+    {
+        httpContext.Response.Headers.CacheControl = "no-store";
+
+        if (!IsValidSsoFlowId(flow))
+        {
+            return BadRequest("Invalid Google SSO redirect flow.");
+        }
+
+        var cookieName = GoogleRedirectCookiePrefix + flow;
+        if (!httpContext.Request.Cookies.TryGetValue(cookieName, out var credential) ||
+            string.IsNullOrWhiteSpace(credential))
+        {
+            return Unauthorized("Google SSO redirect credential is missing or expired.");
+        }
+
+        httpContext.Response.Cookies.Delete(
+            cookieName,
+            CreateGoogleRedirectCookieOptions(httpContext.Request.IsHttps));
+
+        return Results.Ok(new SsoRedirectCredentialResponse(credential));
+    }
+
+    private static IResult GoogleRedirectError(string? flowId, string error)
+    {
+        return Results.Redirect(BuildGoogleRedirectLocation(flowId, error));
+    }
+
+    private static string BuildGoogleRedirectLocation(string? flowId, string? error = null)
+    {
+        var query = new List<string>();
+        if (!string.IsNullOrEmpty(flowId))
+        {
+            query.Add($"flow={Uri.EscapeDataString(flowId)}");
+        }
+
+        if (!string.IsNullOrEmpty(error))
+        {
+            query.Add($"error={Uri.EscapeDataString(error)}");
+        }
+
+        return query.Count == 0
+            ? GoogleRedirectFrontendPath
+            : $"{GoogleRedirectFrontendPath}?{string.Join("&", query)}";
+    }
+
+    private static CookieOptions CreateGoogleRedirectCookieOptions(bool secure)
+    {
+        return new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = secure,
+            SameSite = SameSiteMode.Lax,
+            IsEssential = true,
+            MaxAge = GoogleRedirectCookieLifetime,
+            Path = "/auth/sso/google"
+        };
+    }
+
+    private static bool IsValidSsoFlowId(string? flowId)
+    {
+        return flowId is { Length: 32 } &&
+            flowId.All(character =>
+                character is >= '0' and <= '9' ||
+                character is >= 'a' and <= 'f');
+    }
+
+    private static bool FixedTimeEquals(string left, string right)
+    {
+        var leftBytes = Encoding.UTF8.GetBytes(left);
+        var rightBytes = Encoding.UTF8.GetBytes(right);
+        return leftBytes.Length == rightBytes.Length &&
+            CryptographicOperations.FixedTimeEquals(leftBytes, rightBytes);
     }
 
     private static async Task<IResult> CheckIfAnyUsersExistAsync(IMediator mediator, CancellationToken cancellationToken)

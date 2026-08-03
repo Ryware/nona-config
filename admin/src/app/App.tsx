@@ -49,6 +49,11 @@ export default function App(): JSX.Element {
                   component={lazy(() => import("../pages/auth/CliLoginPage"))}
                 />
 
+                <Route
+                  path="/sso/callback/:provider"
+                  component={lazy(() => import("../pages/auth/SsoCallbackPage"))}
+                />
+
                 <Route component={InvitationRoute}>
                   <Route
                     path="/invite/:token"

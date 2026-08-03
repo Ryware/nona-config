@@ -1,12 +1,11 @@
 import { PublicClientApplication } from "@azure/msal-browser";
-import type { SsoProvider } from "./sso-provider";
 
-export async function signInWithMicrosoftPopup(clientId: string, authority: string) {
-  const application = new PublicClientApplication({
+function createMicrosoftApplication(clientId: string, authority: string) {
+  return new PublicClientApplication({
     auth: {
       clientId,
       authority,
-      redirectUri: window.location.origin,
+      redirectUri: getMicrosoftRedirectUri(),
       navigateToLoginRequestUrl: false,
     },
     cache: {
@@ -14,25 +13,28 @@ export async function signInWithMicrosoftPopup(clientId: string, authority: stri
       storeAuthStateInCookie: false,
     },
   });
+}
+
+export async function signInWithMicrosoftRedirect(
+  clientId: string,
+  authority: string,
+  flowId: string,
+) {
+  const application = createMicrosoftApplication(clientId, authority);
 
   if (application.initialize) {
     await application.initialize();
   }
 
   try {
-    const result = await application.loginPopup({
+    await application.loginRedirect({
       scopes: ["openid", "profile", "email"],
       prompt: "select_account",
-      redirectUri: window.location.origin,
+      redirectUri: getMicrosoftRedirectUri(),
+      state: flowId,
     });
-
-    if (!result.idToken) {
-      throw new Error("missing_id_token");
-    }
-
-    return result.idToken;
   } catch (error) {
-    console.error("Microsoft sign-in failed.", {
+    console.error("Microsoft sign-in redirect failed.", {
       error,
       authority,
       clientId,
@@ -42,16 +44,41 @@ export async function signInWithMicrosoftPopup(clientId: string, authority: stri
   }
 }
 
+export async function handleMicrosoftRedirect(clientId: string, authority: string) {
+  const application = createMicrosoftApplication(clientId, authority);
+
+  if (application.initialize) {
+    await application.initialize();
+  }
+
+  try {
+    const result = await application.handleRedirectPromise();
+    if (!result?.idToken) {
+      throw new Error("missing_id_token");
+    }
+
+    return result.idToken;
+  } catch (error) {
+    console.error("Microsoft sign-in callback failed.", {
+      error,
+      authority,
+      clientId,
+    });
+
+    throw new Error(mapMicrosoftError(error));
+  }
+}
+
+function getMicrosoftRedirectUri() {
+  return new URL("/sso/callback/microsoft", window.location.origin).toString();
+}
+
 function mapMicrosoftError(error: unknown) {
   if (error instanceof Error) {
     const code = error.message.toLowerCase();
 
-    if (code.includes("user_cancelled")) {
+    if (code.includes("user_cancelled") || code.includes("access_denied")) {
       return "Microsoft sign-in was cancelled.";
-    }
-
-    if (code.includes("popup_window_error") || code.includes("popup_window")) {
-      return "Microsoft sign-in popup was blocked. Please allow popups and try again.";
     }
 
     if (code.includes("missing_id_token")) {
@@ -60,13 +87,4 @@ function mapMicrosoftError(error: unknown) {
   }
 
   return "Microsoft sign-in is unavailable right now. Please try again.";
-}
-
-/**
- * Creates a {@link SsoProvider} that signs in via a Microsoft popup.
- */
-export function createMicrosoftSsoProvider(clientId: string, authority: string): SsoProvider {
-  return {
-    signIn: () => signInWithMicrosoftPopup(clientId, authority),
-  };
 }
