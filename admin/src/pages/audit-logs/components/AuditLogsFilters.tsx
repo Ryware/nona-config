@@ -4,6 +4,7 @@ import { createEffect, onCleanup, onMount, Show } from "solid-js";
 import { MIcon } from "../../../shared/ui/icons";
 import { Input } from "../../../shared/ui/input";
 import { Select } from "../../../shared/ui/select";
+import type { SelectOption } from "../../../shared/ui/select";
 
 interface AuditLogsFiltersProps {
   search: string;
@@ -16,8 +17,8 @@ interface AuditLogsFiltersProps {
   setDateFrom: (v: string) => void;
   dateTo: string;
   setDateTo: (v: string) => void;
-  uniqueActions: string[];
-  uniqueEnvs: string[];
+  uniqueActions: SelectOption[];
+  uniqueEnvs: SelectOption[];
   clearAllFilters: () => void;
   hideSearch?: boolean;
 }
@@ -127,7 +128,7 @@ export function AuditLogsFilters(props: AuditLogsFiltersProps) {
               onChange={val => props.setFilterAction(val)}
               placeholder="Action Type"
               class="h-10"
-              options={props.uniqueActions.map(action => ({ value: action, label: action }))}
+              options={props.uniqueActions}
             />
           </div>
 
@@ -138,7 +139,7 @@ export function AuditLogsFilters(props: AuditLogsFiltersProps) {
               onChange={val => props.setFilterEnv(val)}
               placeholder="Environment"
               class="h-10"
-              options={props.uniqueEnvs.map(env => ({ value: env, label: env }))}
+              options={props.uniqueEnvs}
             />
           </div>
         </div>

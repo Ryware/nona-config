@@ -1,18 +1,22 @@
 import { Title } from "@solidjs/meta";
 import { useQuery } from "@tanstack/solid-query";
-import { createMemo, createSignal, Show } from "solid-js";
+import { createEffect, createMemo, createSignal, onCleanup, Show } from "solid-js";
 import { auditLogService } from "../../entities/audit-log/api/audit-log.service";
+import type { AuditLogExportFormat } from "../../entities/audit-log/api/audit-log.service";
+import { auditLogKeys } from "../../entities/audit-log/queries/keys";
 import { QueryErrorBanner } from "../../shared/ui/QueryGuard";
+import { useToast } from "../../shared/ui/toast";
 import type { AuditLog } from "../../types";
 
 import { AuditLogsFilters } from "./components/AuditLogsFilters";
 import { AuditLogsHeader } from "./components/AuditLogsHeader";
 import { AuditLogsTable } from "./components/AuditLogsTable";
-import { serializeAuditLogs, type AuditExportFormat } from "./export";
 import type { AuditEntry } from "./types";
 import { ACTION_STYLE, actorStyle, ENV_STYLE } from "./utils";
 
 const PAGE_SIZE = 25;
+const SEARCH_DEBOUNCE_MS = 300;
+const GLOBAL_SCOPE_ENVIRONMENT = "__global__";
 
 /** Maps a backend action string to a display label present in ACTION_STYLE. */
 function resolveActionLabel(action: string): string {
@@ -72,56 +76,65 @@ function mapAuditLog(log: AuditLog): AuditEntry {
   };
 }
 
+function environmentLabel(environment: string): string {
+  if (environment === GLOBAL_SCOPE_ENVIRONMENT) return "Global Scope";
+  return environment.charAt(0).toUpperCase() + environment.slice(1);
+}
+
 export default function AuditLogsPage() {
   const [search, setSearch] = createSignal("");
+  const [debouncedSearch, setDebouncedSearch] = createSignal("");
   const [filterAction, setFilterAction] = createSignal("all");
   const [filterEnv, setFilterEnv] = createSignal("all");
   const [dateFrom, setDateFrom] = createSignal("");
   const [dateTo, setDateTo] = createSignal("");
   const [page, setPage] = createSignal(0);
+  const [isExporting, setIsExporting] = createSignal(false);
+  const { addToast } = useToast();
 
-  const auditQuery = useQuery(() => ({
-    queryKey: ["audit-logs"],
-    queryFn: () => auditLogService.getAll()
-  }));
-
-  const allEntries = createMemo<AuditEntry[]>(() => {
-    const data = auditQuery.status === "success" ? (auditQuery.data ?? []) : [];
-    return data.map(mapAuditLog).sort((a, b) => b.time.getTime() - a.time.getTime());
+  createEffect(() => {
+    const value = search().trim();
+    const timeout = window.setTimeout(() => setDebouncedSearch(value), SEARCH_DEBOUNCE_MS);
+    onCleanup(() => window.clearTimeout(timeout));
   });
 
-  const filtered = createMemo(() => {
-    let entries = allEntries();
-    if (filterAction() !== "all") entries = entries.filter(e => e.action === filterAction());
-    if (filterEnv() !== "all") entries = entries.filter(e => e.env === filterEnv());
-
-    if (dateFrom()) {
-      const from = new Date(dateFrom()).getTime();
-      if (!isNaN(from)) entries = entries.filter(e => e.time.getTime() >= from);
-    }
-    if (dateTo()) {
-      const to = new Date(dateTo()).getTime() + 86_400_000;
-      if (!isNaN(to)) entries = entries.filter(e => e.time.getTime() <= to);
-    }
-    if (search().trim()) {
-      const q = search().toLowerCase();
-      entries = entries.filter(
-        e =>
-          e.actor.toLowerCase().includes(q) ||
-          e.target.toLowerCase().includes(q) ||
-          (e.project ?? "").toLowerCase().includes(q)
-      );
-    }
-    return entries;
+  const auditParameters = () => ({
+    page: page() + 1,
+    pageSize: PAGE_SIZE,
+    search: debouncedSearch() || undefined,
+    action: filterAction() === "all" ? undefined : filterAction(),
+    environment: filterEnv() === "all" ? undefined : filterEnv(),
+    dateFrom: dateFrom() || undefined,
+    dateTo: dateTo() || undefined
   });
 
-  const totalPages = createMemo(() => Math.max(1, Math.ceil(filtered().length / PAGE_SIZE)));
-  const pageEntries = createMemo(() =>
-    filtered().slice(page() * PAGE_SIZE, (page() + 1) * PAGE_SIZE)
+  const auditQuery = useQuery(() => {
+    const parameters = auditParameters();
+    return {
+      queryKey: auditLogKeys.list(parameters),
+      queryFn: () => auditLogService.getPage(parameters),
+      placeholderData: previous => previous
+    };
+  });
+
+  const pageEntries = createMemo<AuditEntry[]>(() =>
+    (auditQuery.data?.items ?? []).map(mapAuditLog)
   );
-  const uniqueActions = createMemo(() => [...new Set(allEntries().map(e => e.action))]);
-  const uniqueEnvs = createMemo(() => [...new Set(allEntries().map(e => e.env))]);
-  const isLoading = () => auditQuery.isLoading;
+  const totalCount = () => auditQuery.data?.totalCount ?? 0;
+  const totalPages = () => Math.max(1, auditQuery.data?.totalPages ?? 0);
+  const uniqueActions = createMemo(() =>
+    (auditQuery.data?.actions ?? []).map(action => ({
+      value: action,
+      label: resolveActionLabel(action)
+    }))
+  );
+  const uniqueEnvs = createMemo(() =>
+    (auditQuery.data?.environments ?? []).map(environment => ({
+      value: environment,
+      label: environmentLabel(environment)
+    }))
+  );
+  const isLoading = () => auditQuery.isLoading || auditQuery.isFetching;
 
   const changePage = (n: number) => {
     if (n >= 0 && n < totalPages()) setPage(n);
@@ -136,15 +149,34 @@ export default function AuditLogsPage() {
     setPage(0);
   };
 
-  const exportLogs = (format: AuditExportFormat) => {
-    const { content, mimeType } = serializeAuditLogs(filtered(), format);
-    const blob = new Blob([content], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `audit-logs-${new Date().toISOString().slice(0, 10)}.${format}`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const exportLogs = async (format: AuditLogExportFormat) => {
+    setIsExporting(true);
+    try {
+      const parameters = auditParameters();
+      const { blob, fileName } = await auditLogService.export(
+        {
+          search: search().trim() || undefined,
+          action: parameters.action,
+          environment: parameters.environment,
+          dateFrom: parameters.dateFrom,
+          dateTo: parameters.dateTo
+        },
+        format
+      );
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = fileName ?? `audit-logs-${new Date().toISOString().slice(0, 10)}.${format}`;
+      anchor.hidden = true;
+      document.body.append(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 0);
+    } catch {
+      addToast("Failed to export audit logs", "error");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
@@ -157,6 +189,7 @@ export default function AuditLogsPage() {
         >
           <AuditLogsHeader
             onExport={exportLogs}
+            isExporting={isExporting()}
             search={search()}
             setSearch={v => {
               setSearch(v);
@@ -205,8 +238,8 @@ export default function AuditLogsPage() {
 
         <AuditLogsTable
           isLoading={isLoading()}
-          filteredEntries={filtered()}
-          pageEntries={pageEntries()}
+          entries={pageEntries()}
+          totalCount={totalCount()}
           page={page()}
           totalPages={totalPages()}
           pageSize={PAGE_SIZE}

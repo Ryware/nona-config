@@ -3,90 +3,86 @@
 using Microsoft.Kiota.Abstractions.Extensions;
 using Microsoft.Kiota.Abstractions.Serialization;
 using Microsoft.Kiota.Abstractions;
-using Nona.Migrator.Core.Generated.Admin.AuditLogs.Export;
 using Nona.Migrator.Core.Generated.Models;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using System.Threading;
 using System;
-namespace Nona.Migrator.Core.Generated.Admin.AuditLogs
+namespace Nona.Migrator.Core.Generated.Admin.AuditLogs.Export
 {
     /// <summary>
-    /// Builds and executes requests for operations under \admin\audit-logs
+    /// Builds and executes requests for operations under \admin\audit-logs\export
     /// </summary>
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
-    public partial class AuditLogsRequestBuilder : BaseRequestBuilder
+    public partial class ExportRequestBuilder : BaseRequestBuilder
     {
-        /// <summary>The export property</summary>
-        public global::Nona.Migrator.Core.Generated.Admin.AuditLogs.Export.ExportRequestBuilder Export
-        {
-            get => new global::Nona.Migrator.Core.Generated.Admin.AuditLogs.Export.ExportRequestBuilder(PathParameters, RequestAdapter);
-        }
         /// <summary>
-        /// Instantiates a new <see cref="global::Nona.Migrator.Core.Generated.Admin.AuditLogs.AuditLogsRequestBuilder"/> and sets the default values.
+        /// Instantiates a new <see cref="global::Nona.Migrator.Core.Generated.Admin.AuditLogs.Export.ExportRequestBuilder"/> and sets the default values.
         /// </summary>
         /// <param name="pathParameters">Path parameters for the request</param>
         /// <param name="requestAdapter">The request adapter to use to execute the requests.</param>
-        public AuditLogsRequestBuilder(Dictionary<string, object> pathParameters, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/admin/audit-logs{?action*,dateFrom*,dateTo*,environment*,page*,pageSize*,search*}", pathParameters)
+        public ExportRequestBuilder(Dictionary<string, object> pathParameters, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/admin/audit-logs/export{?action*,dateFrom*,dateTo*,environment*,format*,search*}", pathParameters)
         {
         }
         /// <summary>
-        /// Instantiates a new <see cref="global::Nona.Migrator.Core.Generated.Admin.AuditLogs.AuditLogsRequestBuilder"/> and sets the default values.
+        /// Instantiates a new <see cref="global::Nona.Migrator.Core.Generated.Admin.AuditLogs.Export.ExportRequestBuilder"/> and sets the default values.
         /// </summary>
         /// <param name="rawUrl">The raw URL to use for the request builder.</param>
         /// <param name="requestAdapter">The request adapter to use to execute the requests.</param>
-        public AuditLogsRequestBuilder(string rawUrl, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/admin/audit-logs{?action*,dateFrom*,dateTo*,environment*,page*,pageSize*,search*}", rawUrl)
+        public ExportRequestBuilder(string rawUrl, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/admin/audit-logs/export{?action*,dateFrom*,dateTo*,environment*,format*,search*}", rawUrl)
         {
         }
-        /// <returns>A <see cref="global::Nona.Migrator.Core.Generated.Models.AuditLogPageDto"/></returns>
+        /// <returns>A <see cref="Stream"/></returns>
         /// <param name="cancellationToken">Cancellation token to use when cancelling requests</param>
         /// <param name="requestConfiguration">Configuration for the request such as headers, query parameters, and middleware options.</param>
+        /// <exception cref="global::Nona.Migrator.Core.Generated.Models.ApiProblemDetails">When receiving a 400 status code</exception>
         /// <exception cref="global::Nona.Migrator.Core.Generated.Models.ApiProblemDetails">When receiving a 4XX or 5XX status code</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
-        public async Task<global::Nona.Migrator.Core.Generated.Models.AuditLogPageDto?> GetAsync(Action<RequestConfiguration<global::Nona.Migrator.Core.Generated.Admin.AuditLogs.AuditLogsRequestBuilder.AuditLogsRequestBuilderGetQueryParameters>>? requestConfiguration = default, CancellationToken cancellationToken = default)
+        public async Task<Stream?> GetAsync(Action<RequestConfiguration<global::Nona.Migrator.Core.Generated.Admin.AuditLogs.Export.ExportRequestBuilder.ExportRequestBuilderGetQueryParameters>>? requestConfiguration = default, CancellationToken cancellationToken = default)
         {
 #nullable restore
 #else
-        public async Task<global::Nona.Migrator.Core.Generated.Models.AuditLogPageDto> GetAsync(Action<RequestConfiguration<global::Nona.Migrator.Core.Generated.Admin.AuditLogs.AuditLogsRequestBuilder.AuditLogsRequestBuilderGetQueryParameters>> requestConfiguration = default, CancellationToken cancellationToken = default)
+        public async Task<Stream> GetAsync(Action<RequestConfiguration<global::Nona.Migrator.Core.Generated.Admin.AuditLogs.Export.ExportRequestBuilder.ExportRequestBuilderGetQueryParameters>> requestConfiguration = default, CancellationToken cancellationToken = default)
         {
 #endif
             var requestInfo = ToGetRequestInformation(requestConfiguration);
             var errorMapping = new Dictionary<string, ParsableFactory<IParsable>>
             {
+                { "400", global::Nona.Migrator.Core.Generated.Models.ApiProblemDetails.CreateFromDiscriminatorValue },
                 { "XXX", global::Nona.Migrator.Core.Generated.Models.ApiProblemDetails.CreateFromDiscriminatorValue },
             };
-            return await RequestAdapter.SendAsync<global::Nona.Migrator.Core.Generated.Models.AuditLogPageDto>(requestInfo, global::Nona.Migrator.Core.Generated.Models.AuditLogPageDto.CreateFromDiscriminatorValue, errorMapping, cancellationToken).ConfigureAwait(false);
+            return await RequestAdapter.SendPrimitiveAsync<Stream>(requestInfo, errorMapping, cancellationToken).ConfigureAwait(false);
         }
         /// <returns>A <see cref="RequestInformation"/></returns>
         /// <param name="requestConfiguration">Configuration for the request such as headers, query parameters, and middleware options.</param>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
-        public RequestInformation ToGetRequestInformation(Action<RequestConfiguration<global::Nona.Migrator.Core.Generated.Admin.AuditLogs.AuditLogsRequestBuilder.AuditLogsRequestBuilderGetQueryParameters>>? requestConfiguration = default)
+        public RequestInformation ToGetRequestInformation(Action<RequestConfiguration<global::Nona.Migrator.Core.Generated.Admin.AuditLogs.Export.ExportRequestBuilder.ExportRequestBuilderGetQueryParameters>>? requestConfiguration = default)
         {
 #nullable restore
 #else
-        public RequestInformation ToGetRequestInformation(Action<RequestConfiguration<global::Nona.Migrator.Core.Generated.Admin.AuditLogs.AuditLogsRequestBuilder.AuditLogsRequestBuilderGetQueryParameters>> requestConfiguration = default)
+        public RequestInformation ToGetRequestInformation(Action<RequestConfiguration<global::Nona.Migrator.Core.Generated.Admin.AuditLogs.Export.ExportRequestBuilder.ExportRequestBuilderGetQueryParameters>> requestConfiguration = default)
         {
 #endif
             var requestInfo = new RequestInformation(Method.GET, UrlTemplate, PathParameters);
             requestInfo.Configure(requestConfiguration);
-            requestInfo.Headers.TryAdd("Accept", "application/json");
+            requestInfo.Headers.TryAdd("Accept", "application/problem+json");
             return requestInfo;
         }
         /// <summary>
         /// Returns a request builder with the provided arbitrary URL. Using this method means any other path or query parameters are ignored.
         /// </summary>
-        /// <returns>A <see cref="global::Nona.Migrator.Core.Generated.Admin.AuditLogs.AuditLogsRequestBuilder"/></returns>
+        /// <returns>A <see cref="global::Nona.Migrator.Core.Generated.Admin.AuditLogs.Export.ExportRequestBuilder"/></returns>
         /// <param name="rawUrl">The raw URL to use for the request builder.</param>
-        public global::Nona.Migrator.Core.Generated.Admin.AuditLogs.AuditLogsRequestBuilder WithUrl(string rawUrl)
+        public global::Nona.Migrator.Core.Generated.Admin.AuditLogs.Export.ExportRequestBuilder WithUrl(string rawUrl)
         {
-            return new global::Nona.Migrator.Core.Generated.Admin.AuditLogs.AuditLogsRequestBuilder(rawUrl, RequestAdapter);
+            return new global::Nona.Migrator.Core.Generated.Admin.AuditLogs.Export.ExportRequestBuilder(rawUrl, RequestAdapter);
         }
         [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
         #pragma warning disable CS1591
-        public partial class AuditLogsRequestBuilderGetQueryParameters 
+        public partial class ExportRequestBuilderGetQueryParameters 
         #pragma warning restore CS1591
         {
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
@@ -113,21 +109,12 @@ namespace Nona.Migrator.Core.Generated.Admin.AuditLogs
 #endif
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
-            [QueryParameter("page")]
-            public string? Page { get; set; }
+            [QueryParameter("format")]
+            public string? Format { get; set; }
 #nullable restore
 #else
-            [QueryParameter("page")]
-            public string Page { get; set; }
-#endif
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-            [QueryParameter("pageSize")]
-            public string? PageSize { get; set; }
-#nullable restore
-#else
-            [QueryParameter("pageSize")]
-            public string PageSize { get; set; }
+            [QueryParameter("format")]
+            public string Format { get; set; }
 #endif
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
@@ -144,7 +131,7 @@ namespace Nona.Migrator.Core.Generated.Admin.AuditLogs
         /// </summary>
         [Obsolete("This class is deprecated. Please use the generic RequestConfiguration class generated by the generator.")]
         [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
-        public partial class AuditLogsRequestBuilderGetRequestConfiguration : RequestConfiguration<global::Nona.Migrator.Core.Generated.Admin.AuditLogs.AuditLogsRequestBuilder.AuditLogsRequestBuilderGetQueryParameters>
+        public partial class ExportRequestBuilderGetRequestConfiguration : RequestConfiguration<global::Nona.Migrator.Core.Generated.Admin.AuditLogs.Export.ExportRequestBuilder.ExportRequestBuilderGetQueryParameters>
         {
         }
     }

@@ -6,8 +6,8 @@ import type { AuditEntry } from "../types";
 
 interface AuditLogsTableProps {
   isLoading: boolean;
-  filteredEntries: AuditEntry[];
-  pageEntries: AuditEntry[];
+  entries: AuditEntry[];
+  totalCount: number;
   page: number;
   totalPages: number;
   pageSize: number;
@@ -15,6 +15,15 @@ interface AuditLogsTableProps {
 }
 
 export function AuditLogsTable(props: AuditLogsTableProps) {
+  const pageNumbers = () => {
+    const count = Math.min(props.totalPages, 5);
+    const start = Math.max(0, Math.min(props.page - 2, props.totalPages - count));
+    return Array.from({ length: count }, (_, index) => start + index);
+  };
+
+  const firstVisiblePage = () => pageNumbers()[0] ?? 0;
+  const lastVisiblePage = () => pageNumbers().at(-1) ?? 0;
+
   return (
     <div class="space-y-4">
       <div class="border border-outline-variant/15 rounded-xl overflow-hidden bg-surface-container-low">
@@ -32,7 +41,7 @@ export function AuditLogsTable(props: AuditLogsTableProps) {
                 <AuditLogTableSkeleton rows={6} />
               </Show>
 
-              <Show when={!props.isLoading && props.filteredEntries.length === 0}>
+              <Show when={!props.isLoading && props.totalCount === 0}>
                 <tr>
                   <td colspan="3" class="py-16 text-center">
                     <MIcon name="search_off" class="text-[40px] text-outline/30 block mx-auto mb-3" />
@@ -43,7 +52,7 @@ export function AuditLogsTable(props: AuditLogsTableProps) {
               </Show>
 
               <Show when={!props.isLoading}>
-                <For each={props.pageEntries}>
+                <For each={props.entries}>
                   {(entry) => <AuditLogRow entry={entry} />}
                 </For>
               </Show>
@@ -52,17 +61,15 @@ export function AuditLogsTable(props: AuditLogsTableProps) {
         </div>
       </div>
 
-      <Show when={props.filteredEntries.length > 0}>
+      <Show when={props.totalCount > 0}>
         <div class="flex items-center justify-between">
           <p class="text-[12px] text-outline">
             <span class="font-medium text-on-surface-variant">
-              {props.filteredEntries.length === 0
-                ? 0
-                : props.page * props.pageSize + 1}
+              {props.page * props.pageSize + 1}
               –
-              {Math.min((props.page + 1) * props.pageSize, props.filteredEntries.length)}
+              {Math.min((props.page + 1) * props.pageSize, props.totalCount)}
             </span>
-            {" "}of {props.filteredEntries.length}
+            {" "}of {props.totalCount}
           </p>
           <div class="flex items-center gap-1.5">
             <button
@@ -73,7 +80,18 @@ export function AuditLogsTable(props: AuditLogsTableProps) {
             >
               <MIcon name="chevron_left" class="text-sm" />
             </button>
-            <For each={Array.from({ length: Math.min(props.totalPages, 5) }, (_, i) => i)}>
+            <Show when={firstVisiblePage() > 0}>
+              <button
+                onClick={() => props.onChangePage(0)}
+                class="h-8 min-w-8 px-2.5 flex items-center justify-center rounded-lg text-[12px] font-medium border border-transparent text-outline hover:text-on-surface hover:bg-surface-container-high/30 transition-all cursor-pointer"
+              >
+                1
+              </button>
+              <Show when={firstVisiblePage() > 1}>
+                <span class="text-outline mx-0.5 text-[12px]">…</span>
+              </Show>
+            </Show>
+            <For each={pageNumbers()}>
               {(i) => (
                 <button
                   onClick={() => props.onChangePage(i)}
@@ -87,15 +105,13 @@ export function AuditLogsTable(props: AuditLogsTableProps) {
                 </button>
               )}
             </For>
-            <Show when={props.totalPages > 5}>
-              <span class="text-outline mx-0.5 text-[12px]">…</span>
+            <Show when={lastVisiblePage() < props.totalPages - 1}>
+              <Show when={lastVisiblePage() < props.totalPages - 2}>
+                <span class="text-outline mx-0.5 text-[12px]">…</span>
+              </Show>
               <button
                 onClick={() => props.onChangePage(props.totalPages - 1)}
-                class={`h-8 min-w-8 px-2.5 flex items-center justify-center rounded-lg text-[12px] font-medium border transition-all cursor-pointer ${
-                  props.page === props.totalPages - 1
-                    ? "bg-surface-container-high text-on-surface border-outline-variant/30"
-                    : "border-transparent text-outline hover:text-on-surface hover:bg-surface-container-high/30"
-                }`}
+                class="h-8 min-w-8 px-2.5 flex items-center justify-center rounded-lg text-[12px] font-medium border border-transparent text-outline hover:text-on-surface hover:bg-surface-container-high/30 transition-all cursor-pointer"
               >
                 {props.totalPages}
               </button>

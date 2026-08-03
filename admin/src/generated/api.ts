@@ -2259,6 +2259,73 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/audit-logs/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    format?: string;
+                    search?: string;
+                    action?: string;
+                    environment?: string;
+                    dateFrom?: string;
+                    dateTo?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Client Error */
+                "4XX": {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Server Error */
+                "5XX": {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/audit-logs": {
         parameters: {
             query?: never;
@@ -2268,7 +2335,15 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    page?: number | string;
+                    pageSize?: number | string;
+                    search?: string;
+                    action?: string;
+                    environment?: string;
+                    dateFrom?: string;
+                    dateTo?: string;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -2281,7 +2356,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["AuditLogDto"][];
+                        "application/json": components["schemas"]["AuditLogPageDto"];
                     };
                 };
                 /** @description Client Error */
@@ -2662,6 +2737,19 @@ export interface components {
             environment: null | string;
             /** Format: date-time */
             createdAt: string;
+        };
+        AuditLogPageDto: {
+            items: components["schemas"]["AuditLogDto"][];
+            /** Format: int32 */
+            page: number | string;
+            /** Format: int32 */
+            pageSize: number | string;
+            /** Format: int32 */
+            totalCount: number | string;
+            /** Format: int32 */
+            totalPages: number | string;
+            actions: string[];
+            environments: string[];
         };
         ClientConfigValueDto: {
             value: string;

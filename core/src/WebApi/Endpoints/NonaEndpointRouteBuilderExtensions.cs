@@ -185,8 +185,13 @@ public static class NonaEndpointRouteBuilderExtensions
             .Produces<ProjectAccessDto>();
         users.MapDelete("/{id}/projects/{projectName}", RemoveProjectAccessAsync);
 
+        admin.MapGet("/audit-logs/export", ExportAuditLogsAsync)
+            .Produces(StatusCodes.Status200OK, contentType: "text/csv")
+            .Produces(StatusCodes.Status200OK, contentType: "application/json")
+            .Produces<ApiProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")
+            .RequireAuthorization(AdminReadAuthorizationPolicies.Manage);
         admin.MapGet("/audit-logs", ListAuditLogsAsync)
-            .Produces<IReadOnlyList<AuditLogDto>>()
+            .Produces<AuditLogPageDto>()
             .RequireAuthorization(AdminReadAuthorizationPolicies.Manage);
         admin.MapGet("/dashboard/counts", GetDashboardCountsAsync)
             .Produces<DashboardCountDto>()
@@ -1026,9 +1031,74 @@ public static class NonaEndpointRouteBuilderExtensions
             : NotFound(result.Error ?? "Project access not found");
     }
 
-    private static async Task<IResult> ListAuditLogsAsync(IMediator mediator, CancellationToken cancellationToken)
+    private static async Task<IResult> ListAuditLogsAsync(
+        int? page,
+        int? pageSize,
+        string? search,
+        string? action,
+        string? environment,
+        DateOnly? dateFrom,
+        DateOnly? dateTo,
+        IMediator mediator,
+        CancellationToken cancellationToken)
     {
-        return Results.Ok(await mediator.Send(new Nona.Application.Admin.AuditLogs.Queries.ListAuditLogsQuery(), cancellationToken));
+        return Results.Ok(await mediator.Send(
+            new Nona.Application.Admin.AuditLogs.Queries.ListAuditLogsQuery(
+                page ?? 1,
+                pageSize ?? Nona.Application.Admin.AuditLogs.Queries.ListAuditLogsQueryHandler.DefaultPageSize,
+                search,
+                action,
+                environment,
+                dateFrom,
+                dateTo),
+            cancellationToken));
+    }
+
+    private static IResult ExportAuditLogsAsync(
+        string? format,
+        string? search,
+        string? action,
+        string? environment,
+        DateOnly? dateFrom,
+        DateOnly? dateTo,
+        IMediator mediator,
+        CancellationToken cancellationToken)
+    {
+        var normalizedFormat = string.IsNullOrWhiteSpace(format)
+            ? "csv"
+            : format.Trim().ToLowerInvariant();
+        if (normalizedFormat is not ("csv" or "json"))
+        {
+            return BadRequest("Export format must be csv or json.");
+        }
+
+        var logs = mediator.CreateStream(
+            new Nona.Application.Admin.AuditLogs.Queries.ExportAuditLogsQuery(
+                search,
+                action,
+                environment,
+                dateFrom,
+                dateTo),
+            cancellationToken);
+        var contentType = normalizedFormat == "csv"
+            ? "text/csv; charset=utf-8"
+            : "application/json; charset=utf-8";
+        var fileName = $"audit-logs-{DateTime.UtcNow:yyyy-MM-dd}.{normalizedFormat}";
+
+        return Results.Stream(
+            async output =>
+            {
+                if (normalizedFormat == "csv")
+                {
+                    await AuditLogExportWriter.WriteCsvAsync(output, logs, cancellationToken);
+                }
+                else
+                {
+                    await AuditLogExportWriter.WriteJsonAsync(output, logs, cancellationToken);
+                }
+            },
+            contentType,
+            fileName);
     }
 
     private static async Task<IResult> GetDashboardCountsAsync(IMediator mediator, CancellationToken cancellationToken)

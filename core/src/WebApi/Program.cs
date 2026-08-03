@@ -36,7 +36,8 @@ public partial class Program
                 .AllowAnyMethod()
                 .WithExposedHeaders(
                     NonaResponseHeaders.LogicalContentType,
-                    NonaResponseHeaders.EntityTag)
+                    NonaResponseHeaders.EntityTag,
+                    "Content-Disposition")
                 .AllowCredentials());
         });
 

@@ -80,6 +80,7 @@ public class AdminReadAuthorizationTests
             $"/admin/users/{targetUserId}",
             $"/admin/users/{targetUserId}/projects",
             "/admin/audit-logs",
+            "/admin/audit-logs/export?format=csv",
             "/admin/dashboard/counts"
         ];
     }
