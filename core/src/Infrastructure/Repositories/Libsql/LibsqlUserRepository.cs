@@ -18,7 +18,7 @@ public sealed class LibsqlUserRepository : IUserRepository
     {
         var result = await _client.ExecuteAsync(
             """
-            SELECT rowid AS Id, Email, Name, PasswordHash, PasswordSalt, Role, Scope, IsAdmin, CreatedAt, UpdatedAt, PasswordResetToken, InviteTokenHash
+            SELECT rowid AS Id, Email, Name, PasswordHash, PasswordSalt, Role, Scope, IsAdmin, CreatedAt, UpdatedAt, InviteTokenHash
             FROM Users
             WHERE Email = @Email COLLATE NOCASE
             LIMIT 1
@@ -33,7 +33,7 @@ public sealed class LibsqlUserRepository : IUserRepository
     {
         var result = await _client.ExecuteAsync(
             """
-            SELECT rowid AS Id, Email, Name, PasswordHash, PasswordSalt, Role, Scope, IsAdmin, CreatedAt, UpdatedAt, PasswordResetToken, InviteTokenHash
+            SELECT rowid AS Id, Email, Name, PasswordHash, PasswordSalt, Role, Scope, IsAdmin, CreatedAt, UpdatedAt, InviteTokenHash
             FROM Users
             ORDER BY Email
             """,
@@ -46,7 +46,7 @@ public sealed class LibsqlUserRepository : IUserRepository
     {
         var result = await _client.ExecuteAsync(
             """
-            SELECT rowid AS Id, Email, Name, PasswordHash, PasswordSalt, Role, Scope, IsAdmin, CreatedAt, UpdatedAt, PasswordResetToken, InviteTokenHash
+            SELECT rowid AS Id, Email, Name, PasswordHash, PasswordSalt, Role, Scope, IsAdmin, CreatedAt, UpdatedAt, InviteTokenHash
             FROM Users
             WHERE rowid = @Id
             LIMIT 1
@@ -61,7 +61,7 @@ public sealed class LibsqlUserRepository : IUserRepository
     {
         var result = await _client.ExecuteAsync(
             """
-            SELECT rowid AS Id, Email, Name, PasswordHash, PasswordSalt, Role, Scope, IsAdmin, CreatedAt, UpdatedAt, PasswordResetToken, InviteTokenHash
+            SELECT rowid AS Id, Email, Name, PasswordHash, PasswordSalt, Role, Scope, IsAdmin, CreatedAt, UpdatedAt, InviteTokenHash
             FROM Users
             WHERE InviteTokenHash = @InviteTokenHash
             LIMIT 1
@@ -117,7 +117,6 @@ public sealed class LibsqlUserRepository : IUserRepository
 
         AddOptionalColumn(columns, parameters, "PasswordHash", user.PasswordHash);
         AddOptionalColumn(columns, parameters, "PasswordSalt", user.PasswordSalt);
-        AddOptionalColumn(columns, parameters, "PasswordResetToken", user.PasswordResetToken);
         AddOptionalColumn(columns, parameters, "InviteTokenHash", user.InviteTokenHash);
 
         var values = columns.Select(column => $"@{column}");
@@ -143,7 +142,6 @@ public sealed class LibsqlUserRepository : IUserRepository
                 Scope = @Scope,
                 IsAdmin = @IsAdmin,
                 UpdatedAt = @UpdatedAt,
-                PasswordResetToken = @PasswordResetToken,
                 InviteTokenHash = @InviteTokenHash
             WHERE Email = @Email COLLATE NOCASE
             """,
@@ -184,7 +182,6 @@ public sealed class LibsqlUserRepository : IUserRepository
             IsAdmin = row.GetBoolean("IsAdmin"),
             CreatedAt = DateTime.Parse(row.GetString("CreatedAt")),
             UpdatedAt = DateTime.Parse(row.GetString("UpdatedAt")),
-            PasswordResetToken = row.GetNullableString("PasswordResetToken"),
             InviteTokenHash = row.GetNullableString("InviteTokenHash")
         };
     }
@@ -200,7 +197,6 @@ public sealed class LibsqlUserRepository : IUserRepository
             ("Scope", (int)user.Scope),
             ("IsAdmin", user.IsAdmin),
             ("UpdatedAt", user.UpdatedAt.ToString("O")),
-            ("PasswordResetToken", user.PasswordResetToken),
             ("InviteTokenHash", user.InviteTokenHash));
     }
 

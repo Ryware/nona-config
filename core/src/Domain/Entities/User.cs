@@ -23,7 +23,6 @@ public class User
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
-    public string? PasswordResetToken { get; set; }
     public string? InviteTokenHash { get; set; }
 
 }

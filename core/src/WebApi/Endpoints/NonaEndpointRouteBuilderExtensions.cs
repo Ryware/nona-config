@@ -72,8 +72,6 @@ public static class NonaEndpointRouteBuilderExtensions
             .Produces<ApiValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")
             .Produces<ApiProblemDetails>(StatusCodes.Status403Forbidden, "application/problem+json")
             .Produces<ApiProblemDetails>(StatusCodes.Status409Conflict, "application/problem+json");
-        auth.MapPost("/forgot-password", RequestPasswordResetAsync)
-            .Produces(StatusCodes.Status204NoContent);
         auth.MapGet("/invitations/{token}", GetInvitationAsync)
             .Produces<InvitationDetailsResponse>();
         auth.MapPost("/invitations/{token}/password", CompleteInvitationWithPasswordAsync)
@@ -284,21 +282,6 @@ public static class NonaEndpointRouteBuilderExtensions
             AuthErrorCodes.RegistrationDisabled => Forbidden(result.Error ?? "Registration is disabled", result.ErrorCode),
             _ => BadRequest(result.Error ?? "Registration failed", result.ErrorCode)
         };
-    }
-
-    private static async Task<IResult> RequestPasswordResetAsync(
-        RequestPasswordResetCommand command,
-        IValidator<RequestPasswordResetCommand> validator,
-        IMediator mediator,
-        CancellationToken cancellationToken)
-    {
-        if (await ValidateRequestAsync(command, validator, cancellationToken) is { } validationResult)
-        {
-            return validationResult;
-        }
-
-        await mediator.Send(command, cancellationToken);
-        return Results.NoContent();
     }
 
     private static async Task<IResult> GetInvitationAsync(

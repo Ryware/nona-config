@@ -11,8 +11,6 @@ export type {
   SsoProviderConfig,
   SsoConfig,
   RegisterRequest,
-  ForgotPasswordRequest,
-  ResetPasswordRequest,
   InvitationDetails,
 } from "../entities/auth/model/types";
 
