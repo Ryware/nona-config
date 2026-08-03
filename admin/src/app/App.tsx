@@ -72,15 +72,15 @@ export default function App(): JSX.Element {
                   />
                   <Route
                     path="/projects/:slug/environments"
-                    component={ProjectEnvironmentsPage}
+                    component={EnvironmentsSection}
                   />
                   <Route
                     path="/projects/:slug/shared-links"
-                    component={ProjectShareLinksPage}
+                    component={SharedLinksSection}
                   />
-                  <Route path="/projects/:slug/api-keys" component={ProjectApiKeysPage} />
-                  <Route path="/projects/:slug/releases" component={ProjectReleasesPage} />
-                  <Route path="/projects/:slug" component={ProjectPage} />
+                  <Route path="/projects/:slug/api-keys" component={ApiKeysSection} />
+                  <Route path="/projects/:slug/releases" component={ReleasesSection} />
+                  <Route path="/projects/:slug" component={ParametersSection} />
                   <Route path="/users" component={lazy(() => import("../pages/users/UsersPage"))} />
                   <Route
                     path="/audit-logs"
@@ -96,21 +96,11 @@ export default function App(): JSX.Element {
   );
 }
 
-// The project detail page and its section variants all live in one module, so
-// they share a single lazily-loaded chunk (the dynamic import is cached).
-const ProjectPage = lazy(() => import("../pages/projects/ProjectPage"));
-const ProjectEnvironmentsPage = lazy(() =>
-  import("../pages/projects/ProjectPage").then(module => ({ default: module.ProjectEnvironmentsPage }))
-);
-const ProjectApiKeysPage = lazy(() =>
-  import("../pages/projects/ProjectPage").then(module => ({ default: module.ProjectApiKeysPage }))
-);
-const ProjectShareLinksPage = lazy(() =>
-  import("../pages/projects/ProjectPage").then(module => ({ default: module.ProjectShareLinksPage }))
-);
-const ProjectReleasesPage = lazy(() =>
-  import("../pages/projects/ProjectPage").then(module => ({ default: module.ProjectReleasesPage }))
-);
+const ParametersSection = lazy(() => import("../pages/projects/sections/ParametersSection"));
+const EnvironmentsSection = lazy(() => import("../pages/projects/sections/EnvironmentsSection"));
+const ApiKeysSection = lazy(() => import("../pages/projects/sections/ApiKeysSection"));
+const SharedLinksSection = lazy(() => import("../pages/projects/sections/SharedLinksSection"));
+const ReleasesSection = lazy(() => import("../pages/projects/sections/ReleasesSection"));
 
 const AppLayout = lazy(() =>
   import("../widgets/app-shell/AppLayout").then(module => ({ default: module.AppLayout }))
