@@ -20,7 +20,7 @@ public class ListProjectsQueryHandler(
 
         var currentUser = await userAuthorizationService.GetCurrentUserAsync(cancellationToken);
 
-        if (currentUser?.IsAdmin == true || currentUser?.Role == Nona.Domain.Entities.UserRole.Editor)
+        if (currentUser?.Role is UserRole.Admin or UserRole.Editor)
         {
             return await ToDtosAsync(projects, cancellationToken);
         }

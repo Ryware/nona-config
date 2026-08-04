@@ -24,7 +24,7 @@ public class CreateProjectCommandHandler(
     public async ValueTask<CreateProjectResult> Handle(CreateProjectCommand request, CancellationToken cancellationToken)
     {
         var currentUser = await userAuthorizationService.GetCurrentUserAsync(cancellationToken);
-        if (currentUser?.IsAdmin != true)
+        if (currentUser?.Role != UserRole.Admin)
             return new CreateProjectResult(false, null, "Access denied. Only admin users can create projects.");
 
         if (await projectRepository.ExistsAsync(request.Name, cancellationToken))

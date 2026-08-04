@@ -1,6 +1,7 @@
 using Mediator;
 using Nona.Application.Admin.Projects.DTOs;
 using Nona.Application.Common.Interfaces;
+using Nona.Domain.Entities;
 using Nona.Domain.Enums;
 using Nona.Domain.Interfaces;
 
@@ -34,7 +35,7 @@ public class RenameProjectCommandHandler(
         }
 
         var currentUser = await userAuthorizationService.GetCurrentUserAsync(cancellationToken);
-        if (currentUser?.IsAdmin != true)
+        if (currentUser?.Role != UserRole.Admin)
         {
             return new RenameProjectResult(
                 false,

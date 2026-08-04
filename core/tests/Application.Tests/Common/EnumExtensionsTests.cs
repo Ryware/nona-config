@@ -6,6 +6,15 @@ namespace Nona.Application.Tests.Common;
 public class EnumExtensionsTests
 {
     [Test]
+    [Arguments(UserRole.Viewer, "viewer")]
+    [Arguments(UserRole.Editor, "editor")]
+    [Arguments(UserRole.Admin, "admin")]
+    public async Task ToApiString_ReturnsExplicitRoleName(UserRole role, string expected)
+    {
+        await Assert.That(role.ToApiString()).IsEqualTo(expected);
+    }
+
+    [Test]
     [Arguments("viewer", UserRole.Viewer)]
     [Arguments("EDITOR", UserRole.Editor)]
     public async Task TryParseApiRole_AcceptsSupportedRoles(string value, UserRole expectedRole)

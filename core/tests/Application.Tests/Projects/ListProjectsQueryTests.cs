@@ -149,7 +149,6 @@ public class ListProjectsQueryTests
         var fixture = new TestFixture();
         var username = "multiuser";
         fixture.CurrentUserService.Username.Returns(username);
-        fixture.CurrentUserService.IsAdmin.Returns(false);
         fixture.UserAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
             .Returns(new User { Email = username, Name = username, Role = UserRole.Viewer });
 
@@ -193,7 +192,6 @@ public class ListProjectsQueryTests
         var fixture = new TestFixture();
         var username = "noassignments";
         fixture.CurrentUserService.Username.Returns(username);
-        fixture.CurrentUserService.IsAdmin.Returns(false);
         fixture.UserAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
             .Returns(new User { Email = username, Name = username, Role = UserRole.Viewer });
 
@@ -227,7 +225,6 @@ public class ListProjectsQueryTests
         // Arrange
         var fixture = new TestFixture();
         fixture.CurrentUserService.Username.Returns((string?)null);
-        fixture.CurrentUserService.IsAdmin.Returns(false);
         fixture.UserAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
             .Returns((User?)null);
 

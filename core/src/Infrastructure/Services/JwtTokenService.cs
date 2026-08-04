@@ -18,23 +18,13 @@ public class JwtTokenService(IConfiguration configuration) : IJwtTokenService
         var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
         var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
-        var claims = new Dictionary<string, object>
-        {
-            [JwtRegisteredClaimNames.Sub] = user.Email,
-            [JwtRegisteredClaimNames.Jti] = Guid.NewGuid().ToString(),
-            [ClaimTypes.Name] = user.Email,
-            [ClaimTypes.Role] = user.Role.ToString(),
-            ["isAdmin"] = user.IsAdmin.ToString().ToLowerInvariant()
-        };
-
         var tokenDescriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(
             [
                 new Claim(JwtRegisteredClaimNames.Sub, user.Email),
                 new Claim(ClaimTypes.Name, user.Email),
-                new Claim(ClaimTypes.Role, user.Role.ToString()),
-                new Claim("isAdmin", user.IsAdmin.ToString().ToLowerInvariant())
+                new Claim(ClaimTypes.Role, user.Role.ToString())
             ]),
             Expires = DateTime.UtcNow.AddHours(24),
             Issuer = issuer,

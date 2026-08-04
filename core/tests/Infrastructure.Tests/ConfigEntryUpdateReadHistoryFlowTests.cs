@@ -208,7 +208,6 @@ public class ConfigEntryUpdateReadHistoryFlowTests
         public string? UsernameValue { get; set; } = username;
         public string? Username => UsernameValue;
         public UserRole? Role => UserRole.Viewer;
-        public bool IsAdmin => true;
     }
 
     private sealed class MutableDateTime(DateTime nowUtc) : IDateTime

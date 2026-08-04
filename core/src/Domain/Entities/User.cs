@@ -15,8 +15,6 @@ public class User
     public string? PasswordHash { get; set; }
     public string? PasswordSalt { get; set; }
 
-    public bool IsAdmin { get; set; }
-
     public UserRole Role { get; set; } = UserRole.Viewer;
     public KeyScope Scope { get; set; } = KeyScope.All;
 
@@ -29,6 +27,7 @@ public class User
 
 public enum UserRole
 {
-    Viewer,
-    Editor
+    Viewer = 0,
+    Editor = 1,
+    Admin = 2
 }

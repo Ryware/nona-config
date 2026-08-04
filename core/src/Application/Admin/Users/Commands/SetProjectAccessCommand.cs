@@ -21,7 +21,7 @@ public class SetProjectAccessCommandHandler(
     public async ValueTask<SetProjectAccessResult> Handle(SetProjectAccessCommand request, CancellationToken cancellationToken)
     {
         var currentUser = await userAuthorizationService.GetCurrentUserAsync(cancellationToken);
-        var canManageUsers = currentUser?.IsAdmin == true || currentUser?.Role == UserRole.Editor;
+        var canManageUsers = currentUser?.Role is UserRole.Admin or UserRole.Editor;
         if (!canManageUsers)
             return new SetProjectAccessResult(false, null, "Access denied");
 
@@ -29,8 +29,8 @@ public class SetProjectAccessCommandHandler(
         if (user is null)
             return new SetProjectAccessResult(false, null, "User not found");
 
-        if (user.IsAdmin && currentUser?.IsAdmin != true)
-            return new SetProjectAccessResult(false, null, "Access denied");
+        if (user.Role == UserRole.Admin)
+            return new SetProjectAccessResult(false, null, "Admin project access cannot be modified");
 
         var project = await ProjectResolution.ResolveProjectAsync(
             projectRepository,

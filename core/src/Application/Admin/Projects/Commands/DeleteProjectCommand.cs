@@ -1,6 +1,7 @@
 using Mediator;
 using Nona.Application.Admin.Projects;
 using Nona.Application.Common.Interfaces;
+using Nona.Domain.Entities;
 using Nona.Domain.Enums;
 using Nona.Domain.Interfaces;
 
@@ -31,7 +32,7 @@ public class DeleteProjectCommandHandler(
 
         // Only admin users can delete projects
         var currentUser = await userAuthorizationService.GetCurrentUserAsync(cancellationToken);
-        if (currentUser?.IsAdmin != true)
+        if (currentUser?.Role != UserRole.Admin)
             return new DeleteProjectResult(false, "Access denied. Only admin users can delete projects.");
 
         var projectName = project.Name;

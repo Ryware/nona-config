@@ -18,7 +18,7 @@ public class RemoveProjectAccessCommandHandler(
     public async ValueTask<RemoveProjectAccessResult> Handle(RemoveProjectAccessCommand request, CancellationToken cancellationToken)
     {
         var currentUser = await userAuthorizationService.GetCurrentUserAsync(cancellationToken);
-        var canManageUsers = currentUser?.IsAdmin == true || currentUser?.Role == UserRole.Editor;
+        var canManageUsers = currentUser?.Role is UserRole.Admin or UserRole.Editor;
         if (!canManageUsers)
             return new RemoveProjectAccessResult(false, "Access denied");
 
@@ -26,8 +26,8 @@ public class RemoveProjectAccessCommandHandler(
         if (user is null)
             return new RemoveProjectAccessResult(false, "User not found");
 
-        if (user.IsAdmin && currentUser?.IsAdmin != true)
-            return new RemoveProjectAccessResult(false, "Access denied");
+        if (user.Role == UserRole.Admin)
+            return new RemoveProjectAccessResult(false, "Admin project access cannot be modified");
 
         var project = await ProjectResolution.ResolveProjectAsync(
             projectRepository,
