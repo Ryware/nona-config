@@ -32,8 +32,6 @@ namespace Nona.Migrator.Core.Generated.Models
 #else
         public UntypedNode Id { get; set; }
 #endif
-        /// <summary>The isAdmin property</summary>
-        public bool? IsAdmin { get; set; }
         /// <summary>The name property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
@@ -96,7 +94,6 @@ namespace Nona.Migrator.Core.Generated.Models
                 { "createdAt", n => { CreatedAt = n.GetDateTimeOffsetValue(); } },
                 { "email", n => { Email = n.GetStringValue(); } },
                 { "id", n => { Id = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
-                { "isAdmin", n => { IsAdmin = n.GetBoolValue(); } },
                 { "name", n => { Name = n.GetStringValue(); } },
                 { "projects", n => { Projects = n.GetCollectionOfObjectValues<global::Nona.Migrator.Core.Generated.Models.ProjectAccessDto>(global::Nona.Migrator.Core.Generated.Models.ProjectAccessDto.CreateFromDiscriminatorValue)?.AsList(); } },
                 { "role", n => { Role = n.GetStringValue(); } },
@@ -114,7 +111,6 @@ namespace Nona.Migrator.Core.Generated.Models
             writer.WriteDateTimeOffsetValue("createdAt", CreatedAt);
             writer.WriteStringValue("email", Email);
             writer.WriteObjectValue<UntypedNode>("id", Id);
-            writer.WriteBoolValue("isAdmin", IsAdmin);
             writer.WriteStringValue("name", Name);
             writer.WriteCollectionOfObjectValues<global::Nona.Migrator.Core.Generated.Models.ProjectAccessDto>("projects", Projects);
             writer.WriteStringValue("role", Role);
