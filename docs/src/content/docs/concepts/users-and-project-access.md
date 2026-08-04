@@ -1,6 +1,6 @@
 ---
 title: Users and project access
-description: Learn how Nona handles users, invitations, project access, and SSO-based onboarding.
+description: Learn how Nona handles users, invitations, project access, and SSO-based onboarding so the right people reach the right projects.
 ---
 
 Nona includes user management and per-project access controls.

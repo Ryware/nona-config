@@ -1,6 +1,6 @@
 ---
 title: Parameter share links
-description: Create temporary links that let someone view or edit one config parameter.
+description: Create temporary, no-login links that let someone view or edit a single Nona config parameter, with expiry, revocation, and audit.
 ---
 
 Parameter share links give a time-limited link to one config entry. A link can be editable or view-only, expires automatically, and can be revoked before it expires.

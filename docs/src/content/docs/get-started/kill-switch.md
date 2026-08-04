@@ -1,6 +1,6 @@
 ---
 title: Add a kill switch
-description: Use a boolean Nona parameter as a kill switch so you can disable risky behavior without redeploying.
+description: Use a boolean Nona parameter as a kill switch so you can disable risky behavior instantly without redeploying or shipping an update.
 ---
 
 A kill switch is one of the simplest and most valuable feature flag patterns.

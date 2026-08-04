@@ -1,6 +1,6 @@
 ---
 title: Firebase migration
-description: Migrate Firebase Remote Config parameters into Nona with the CLI.
+description: Migrate Firebase Remote Config parameters into Nona with the CLI, mapping environments and scopes and using dry runs before cutover.
 ---
 
 Use `nona migrate firebase` to import Firebase Remote Config parameters into a Nona project.

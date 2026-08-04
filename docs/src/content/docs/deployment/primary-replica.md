@@ -1,6 +1,6 @@
 ---
 title: Primary/replica production
-description: Configure the production primary and replica Docker Compose deployment.
+description: Configure the production primary and replica Docker Compose deployment for Nona to add read scaling and higher availability.
 ---
 
 Use primary/replica mode for read-heavy deployments where eventual consistency is acceptable. This topology is for teams that need more than the simplest single-instance model and are willing to trade simplicity for a dedicated read path.

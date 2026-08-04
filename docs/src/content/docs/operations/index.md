@@ -1,6 +1,6 @@
 ---
 title: Operations
-description: Operate a self-hosted Nona deployment with guidance on security, backups, and upgrades.
+description: Operate a self-hosted Nona deployment with guidance on security, authentication, backups, upgrades, and day-to-day production tasks.
 ---
 
 Because Nona is self-hosted, operating the service is part of the product story.

@@ -1,6 +1,6 @@
 ---
 title: Projects
-description: Understand how Nona projects group config for an app or service and act as the boundary for keys and access.
+description: Understand how Nona projects group config for an app or service and act as the boundary for keys, environments, and team access.
 ---
 
 A project is the top-level container for config in Nona.
