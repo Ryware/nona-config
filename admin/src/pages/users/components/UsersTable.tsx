@@ -99,7 +99,8 @@ export function UsersTable(props: UsersTableProps) {
                 const rm = roleMeta(user.role);
                 const isCurrentUser =
                   props.currentUserEmail?.toLowerCase() === user.email.toLowerCase();
-                const canEditUser = props.canManageUsers || isCurrentUser;
+                const isAdmin = user.role === "admin";
+                const canEditUser = isCurrentUser || (props.canManageUsers && !isAdmin);
                 const isExpanded = () => props.editingUserId === user.id;
 
                 return (
@@ -168,22 +169,26 @@ export function UsersTable(props: UsersTableProps) {
                         <button
                           data-testid={`team-remove-${user.id}`}
                           type="button"
-                          disabled={isCurrentUser}
+                          disabled={isCurrentUser || isAdmin}
                           onClick={() => {
-                            if (!isCurrentUser) props.onDelete(user);
+                            if (!isCurrentUser && !isAdmin) props.onDelete(user);
                           }}
                           class={
-                            isCurrentUser
+                            isCurrentUser || isAdmin
                               ? "text-outline/35 cursor-not-allowed rounded-lg border-0 bg-transparent p-1.5 opacity-60"
                               : "text-outline hover:text-error hover:bg-error/10 cursor-pointer rounded-lg border-0 bg-transparent p-1.5"
                           }
                           title={
-                            isCurrentUser
+                            isAdmin
+                              ? "The admin account cannot be removed"
+                              : isCurrentUser
                               ? "You cannot remove your own account"
                               : `Remove ${user.name || user.email}`
                           }
                           aria-label={
-                            isCurrentUser
+                            isAdmin
+                              ? "The admin account cannot be removed"
+                              : isCurrentUser
                               ? "You cannot remove your own account"
                               : `Remove ${user.name || user.email}`
                           }
@@ -208,7 +213,6 @@ export function UsersTable(props: UsersTableProps) {
                               name: props.editingUser!.name,
                               email: props.editingUser!.email,
                               role: props.editingUser!.role,
-                              isAdmin: props.editingUser!.isAdmin,
                               projects: (props.editingUser!.projects ?? []).map(
                                 p => p.projectName
                               )
@@ -327,7 +331,8 @@ export function UsersTable(props: UsersTableProps) {
                   const rm = roleMeta(user.role);
                   const isCurrentUser =
                     props.currentUserEmail?.toLowerCase() === user.email.toLowerCase();
-                  const canEditUser = props.canManageUsers || isCurrentUser;
+                  const isAdmin = user.role === "admin";
+                  const canEditUser = isCurrentUser || (props.canManageUsers && !isAdmin);
                   const isExpanded = () => props.editingUserId === user.id;
 
                   return (
@@ -393,22 +398,26 @@ export function UsersTable(props: UsersTableProps) {
                             <button
                               data-testid={`team-remove-${user.id}`}
                               type="button"
-                              disabled={isCurrentUser}
+                              disabled={isCurrentUser || isAdmin}
                               onClick={() => {
-                                if (!isCurrentUser) props.onDelete(user);
+                                if (!isCurrentUser && !isAdmin) props.onDelete(user);
                               }}
                               class={
-                                isCurrentUser
+                                isCurrentUser || isAdmin
                                   ? "text-outline/35 cursor-not-allowed rounded-lg border-0 bg-transparent p-1.5 opacity-60"
                                   : "text-outline hover:text-error hover:bg-error/10 cursor-pointer rounded-lg border-0 bg-transparent p-1.5 opacity-40 transition-opacity group-hover:opacity-100 focus:opacity-100"
                               }
                               title={
-                                isCurrentUser
+                                isAdmin
+                                  ? "The admin account cannot be removed"
+                                  : isCurrentUser
                                   ? "You cannot remove your own account"
                                   : `Remove ${user.name || user.email}`
                               }
                               aria-label={
-                                isCurrentUser
+                                isAdmin
+                                  ? "The admin account cannot be removed"
+                                  : isCurrentUser
                                   ? "You cannot remove your own account"
                                   : `Remove ${user.name || user.email}`
                               }
@@ -432,7 +441,6 @@ export function UsersTable(props: UsersTableProps) {
                                   name: props.editingUser!.name,
                                   email: props.editingUser!.email,
                                   role: props.editingUser!.role,
-                                  isAdmin: props.editingUser!.isAdmin,
                                   projects: (props.editingUser!.projects ?? []).map(
                                     p => p.projectName
                                   )

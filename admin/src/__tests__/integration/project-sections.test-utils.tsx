@@ -27,7 +27,7 @@ export function resetProjectSectionsTestState() {
   localStorage.setItem('auth_token', mockToken);
   localStorage.setItem(
     'auth_session',
-    JSON.stringify({ email: 'admin@example.com', role: 'admin', isAdmin: true }),
+    JSON.stringify({ email: 'admin@example.com', role: 'admin' }),
   );
   vi.clearAllMocks();
   if (vi.isMockFunction(writeClipboard)) {

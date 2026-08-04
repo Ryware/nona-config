@@ -15,7 +15,6 @@ const users = [
     id: 'user-1',
     email: 'admin@example.com',
     name: 'Admin User',
-    isAdmin: true,
     role: 'admin',
     scope: 'all',
     createdAt: '2024-01-01T00:00:00Z',
@@ -178,7 +177,7 @@ async function signIn(page: Page) {
     localStorage.setItem('auth_token', 'visual-test-token');
     localStorage.setItem(
       'auth_session',
-      JSON.stringify({ email: 'admin@example.com', role: 'admin', isAdmin: true }),
+      JSON.stringify({ email: 'admin@example.com', role: 'admin' }),
     );
     localStorage.setItem('sidebar_collapsed', 'true');
   });

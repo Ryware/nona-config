@@ -25,7 +25,7 @@ export const authStore = {
       "auth_session",
       JSON.stringify({
         ...session,
-        isAdmin: session.isAdmin ?? getIsAdminClaim(token)
+        role: normalizeRole(session, token)
       })
     );
   },
@@ -48,7 +48,7 @@ export const authStore = {
         const session = JSON.parse(raw) as AuthSession;
         return {
           ...session,
-          isAdmin: session.isAdmin ?? getIsAdminClaim(this.getToken() ?? "")
+          role: normalizeRole(session, this.getToken() ?? "")
         };
       }
     } catch {
@@ -110,4 +110,9 @@ function getIsAdminClaim(token: string): boolean {
   } catch {
     return false;
   }
+}
+
+function normalizeRole(session: AuthSession, token: string): string {
+  // Sessions created before Admin became an explicit role stored viewer + isAdmin=true.
+  return session.isAdmin === true || getIsAdminClaim(token) ? "admin" : session.role;
 }

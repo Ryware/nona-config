@@ -85,6 +85,8 @@ export default function UsersPage() {
 
   const createMutation = useMutation(() => ({
     mutationFn: async (value: UserFormValue) => {
+      if (value.role === "admin") throw new Error("Admin role cannot be assigned");
+
       const response = await userService.create({
         name: value.name,
         email: value.email,
@@ -116,10 +118,11 @@ export default function UsersPage() {
         await userService.update(user.id, { name: value.name });
         return;
       }
-      const updates: UpdateUserRequest = { name: value.name, role: value.role };
+      const updates: UpdateUserRequest = { name: value.name };
+      if (user.role !== "admin") updates.role = value.role;
       await userService.update(user.id, updates);
 
-      const canScope = value.role === "viewer" && user.isAdmin !== true;
+      const canScope = value.role === "viewer" && user.role !== "admin";
       if (canScope) {
         const original = new Set((user.projects ?? []).map(p => p.projectName));
         const current = new Set(value.selectedProjects);
