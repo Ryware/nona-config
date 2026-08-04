@@ -227,7 +227,7 @@ describe('userService', () => {
   it('getById returns the matching user', async () => {
     const result = await userService.getById('user-1');
     expect(result.id).toBe('user-1');
-    expect(result.role).toBe('editor');
+    expect(result.role).toBe('admin');
   });
 
   it('getById throws 404 for unknown id', async () => {

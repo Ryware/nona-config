@@ -54,10 +54,9 @@ public class TestFixture
     public void SetupAsSystemAdmin(string username = "admin")
     {
         CurrentUserService.Username.Returns(username);
-        CurrentUserService.Role.Returns(UserRole.Viewer);
-        CurrentUserService.IsAdmin.Returns(true);
+        CurrentUserService.Role.Returns(UserRole.Admin);
         UserAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
-            .Returns(new User { Email = username, Name = username, IsAdmin = true, Role = UserRole.Viewer });
+            .Returns(new User { Email = username, Name = username, Role = UserRole.Admin });
         UserAuthorizationService.CanManageUsersAsync(Arg.Any<CancellationToken>()).Returns(true);
         UserAuthorizationService.HasGlobalProjectAccessAsync(Arg.Any<CancellationToken>()).Returns(true);
         ProjectAccessService.HasViewAccessAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(true);
@@ -68,7 +67,6 @@ public class TestFixture
     {
         CurrentUserService.Username.Returns(username);
         CurrentUserService.Role.Returns(UserRole.Viewer);
-        CurrentUserService.IsAdmin.Returns(false);
         UserAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
             .Returns(new User { Email = username, Name = username, Role = UserRole.Viewer });
         UserAuthorizationService.CanManageUsersAsync(Arg.Any<CancellationToken>()).Returns(false);
@@ -84,7 +82,6 @@ public class TestFixture
     {
         CurrentUserService.Username.Returns(username);
         CurrentUserService.Role.Returns(UserRole.Viewer);
-        CurrentUserService.IsAdmin.Returns(false);
         UserAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
             .Returns(new User { Email = username, Name = username, Role = UserRole.Viewer });
         UserAuthorizationService.CanManageUsersAsync(Arg.Any<CancellationToken>()).Returns(false);
@@ -100,7 +97,6 @@ public class TestFixture
     {
         CurrentUserService.Username.Returns(username);
         CurrentUserService.Role.Returns(UserRole.Viewer);
-        CurrentUserService.IsAdmin.Returns(false);
         UserAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
             .Returns(new User { Email = username, Name = username, Role = UserRole.Viewer });
         UserAuthorizationService.CanManageUsersAsync(Arg.Any<CancellationToken>()).Returns(false);

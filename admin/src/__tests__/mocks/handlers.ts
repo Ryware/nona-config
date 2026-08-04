@@ -465,7 +465,6 @@ export const handlers = [
         id: 'user-new',
         email: body.email,
         name: body.name,
-        isAdmin: false,
         role: body.role ?? 'viewer',
         scope: 'all',
         projects: [],

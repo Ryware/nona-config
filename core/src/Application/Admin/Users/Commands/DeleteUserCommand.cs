@@ -27,8 +27,11 @@ public class DeleteUserCommandHandler(
         if (string.Equals(user.Email, currentUser?.Email, StringComparison.OrdinalIgnoreCase))
             return new DeleteUserResult(false, "You cannot delete your own user account");
 
-        var canManageUsers = currentUser?.IsAdmin == true || currentUser?.Role == UserRole.Editor;
-        if (!canManageUsers || (user.IsAdmin && currentUser?.IsAdmin != true))
+        if (user.Role == UserRole.Admin)
+            return new DeleteUserResult(false, "Admin user cannot be deleted");
+
+        var canManageUsers = currentUser?.Role is UserRole.Admin or UserRole.Editor;
+        if (!canManageUsers)
             return new DeleteUserResult(false, "Access denied");
 
         await projectMemberRepository.DeleteByUserAsync(user.Email, cancellationToken);

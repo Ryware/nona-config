@@ -2987,7 +2987,6 @@ export interface components {
             name: string;
             role: string;
             scope: string;
-            isAdmin: boolean;
             projects: components["schemas"]["ProjectAccessDto"][];
             /** Format: date-time */
             createdAt: string;

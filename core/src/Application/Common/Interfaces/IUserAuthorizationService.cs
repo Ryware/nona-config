@@ -26,12 +26,12 @@ public class UserAuthorizationService(
     public async Task<bool> CanManageUsersAsync(CancellationToken ct = default)
     {
         var user = await GetCurrentUserAsync(ct);
-        return user?.IsAdmin == true || user?.Role == UserRole.Editor;
+        return user?.Role is UserRole.Admin or UserRole.Editor;
     }
 
     public async Task<bool> HasGlobalProjectAccessAsync(CancellationToken ct = default)
     {
         var user = await GetCurrentUserAsync(ct);
-        return user?.IsAdmin == true || user?.Role == UserRole.Editor;
+        return user?.Role is UserRole.Admin or UserRole.Editor;
     }
 }

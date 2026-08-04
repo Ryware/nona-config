@@ -14,7 +14,6 @@ internal static class UserDtoMapping
             user.Name,
             user.Role.ToApiString(),
             user.Scope.ToApiString(),
-            user.IsAdmin,
             ToProjectAccessDtos(memberships),
             user.CreatedAt,
             user.UpdatedAt);

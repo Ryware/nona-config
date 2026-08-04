@@ -113,7 +113,7 @@ public class SetProjectAccessCommandTests
                 Id = UserId,
                 Email = "admin@example.com",
                 Name = "Admin",
-                IsAdmin = true
+                Role = UserRole.Admin
             });
 
         var handler = new SetProjectAccessCommandHandler(
@@ -127,7 +127,7 @@ public class SetProjectAccessCommandTests
             CancellationToken.None);
 
         await Assert.That(result.Success).IsFalse();
-        await Assert.That(result.Error).IsEqualTo("Access denied");
+        await Assert.That(result.Error).IsEqualTo("Admin project access cannot be modified");
         await fixture.ProjectMemberRepository.DidNotReceive().AddAsync(
             Arg.Any<ProjectMember>(),
             Arg.Any<CancellationToken>());

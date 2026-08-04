@@ -32,7 +32,7 @@ describe('UsersPage', () => {
     localStorage.clear();
     sessionStorage.clear();
     localStorage.setItem('auth_token', mockToken);
-    localStorage.setItem('auth_session', JSON.stringify({ email: mockUsers[0].email, role: 'admin', isAdmin: true }));
+    localStorage.setItem('auth_session', JSON.stringify({ email: mockUsers[0].email, role: 'admin' }));
     vi.restoreAllMocks();
   });
 
@@ -47,6 +47,21 @@ describe('UsersPage', () => {
     for (const user of mockUsers) {
       expect(await screen.findByText(user.email)).toBeInTheDocument();
     }
+  });
+
+  it('shows the first user as an admin with an immutable role', async () => {
+    renderWithProviders(() => <UsersPage />);
+
+    const emailCell = await screen.findByText(mockUsers[0].email);
+    expect(screen.getByText('Admin')).toBeInTheDocument();
+
+    fireEvent.click(emailCell.closest('tr')!);
+
+    expect(await screen.findByTestId('user-admin-role-locked')).toHaveTextContent(
+      /cannot be reassigned or removed/i,
+    );
+    expect(screen.queryByTestId('invite-role-editor')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('invite-role-viewer')).not.toBeInTheDocument();
   });
 
   it('shows empty state when there are no users', async () => {
@@ -95,18 +110,18 @@ describe('UsersPage', () => {
   });
 
   it('disables deletion for the current user', async () => {
-    localStorage.setItem('auth_session', JSON.stringify({ email: mockUsers[0].email, role: 'admin', isAdmin: true }));
+    localStorage.setItem('auth_session', JSON.stringify({ email: mockUsers[0].email, role: 'admin' }));
 
     renderWithProviders(() => <UsersPage />);
 
     const selfRemoveButton = await screen.findByTestId(`team-remove-${mockUsers[0].id}`);
 
     expect(selfRemoveButton).toBeDisabled();
-    expect(selfRemoveButton).toHaveAccessibleName(/cannot remove your own account/i);
+    expect(selfRemoveButton).toHaveAccessibleName(/admin account cannot be removed/i);
   });
 
   it('still allows deleting other users when the current user is listed', async () => {
-    localStorage.setItem('auth_session', JSON.stringify({ email: mockUsers[0].email, role: 'admin', isAdmin: true }));
+    localStorage.setItem('auth_session', JSON.stringify({ email: mockUsers[0].email, role: 'admin' }));
 
     renderWithProviders(() => <UsersPage />);
 
@@ -162,7 +177,7 @@ describe('UsersPage', () => {
   });
 
   it('hides management actions when persisted current user is viewer despite stale session role', async () => {
-    localStorage.setItem('auth_session', JSON.stringify({ email: mockUsers[1].email, role: 'editor', isAdmin: false }));
+    localStorage.setItem('auth_session', JSON.stringify({ email: mockUsers[1].email, role: 'editor' }));
 
     renderWithProviders(() => <UsersPage />);
 

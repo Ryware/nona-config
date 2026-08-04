@@ -72,6 +72,27 @@ public class AdminReadAuthorizationTests
         await AssertForbiddenAsync(client, editor.Token, sensitivePaths);
     }
 
+    [Test]
+    public async Task UpdateAdmin_AcceptsUnchangedAdminRole()
+    {
+        await using var app = await StartAppAsync();
+        var client = app.GetTestClient();
+        var admin = await RegisterAdminAsync(client);
+        var adminId = await GetUserIdAsync(client, admin.Token, admin.Email);
+
+        using var response = await SendAuthorizedAsync(
+            client,
+            HttpMethod.Put,
+            $"/admin/users/{adminId}",
+            admin.Token,
+            new { name = "Updated Admin", role = "admin", scope = "all" });
+        using var body = await ParseJsonAsync(response);
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        await Assert.That(body.RootElement.GetProperty("name").GetString()).IsEqualTo("Updated Admin");
+        await Assert.That(body.RootElement.GetProperty("role").GetString()).IsEqualTo("admin");
+    }
+
     private static IReadOnlyList<string> SensitivePaths(long targetUserId)
     {
         return

@@ -25,6 +25,7 @@ public static class EnumExtensions
     {
         UserRole.Viewer => "viewer",
         UserRole.Editor => "editor",
+        UserRole.Admin => "admin",
         _ => role.ToString().ToLowerInvariant()
     };
 

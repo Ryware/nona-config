@@ -9,7 +9,7 @@ import { UserRoleSelector } from "./UserRoleSelector";
 export interface UserFormValue {
   name: string;
   email: string;
-  role: "editor" | "viewer";
+  role: "admin" | "editor" | "viewer";
   selectedProjects: string[];
 }
 
@@ -19,7 +19,6 @@ interface UserFormProps {
     name: string;
     email: string;
     role: string;
-    isAdmin?: boolean;
     projects?: string[];
   };
   projects: Project[];
@@ -35,15 +34,20 @@ export function UserForm(props: UserFormProps) {
 
   const [name, setName] = createSignal(props.initial?.name ?? "");
   const [email, setEmail] = createSignal(props.initial?.email ?? "");
-  const [role, setRole] = createSignal<"editor" | "viewer">(
-    props.initial?.role === "viewer" ? "viewer" : "editor"
+  const [role, setRole] = createSignal<"admin" | "editor" | "viewer">(
+    props.initial?.role === "admin"
+      ? "admin"
+      : props.initial?.role === "viewer"
+        ? "viewer"
+        : "editor"
   );
   const [selectedProjects, setSelectedProjects] = createSignal<Set<string>>(
     new Set(props.initial?.projects ?? [])
   );
+  const assignableRole = () => (role() === "viewer" ? "viewer" : "editor");
 
   const canEditProjectScope = createMemo(
-    () => props.allowManagement && role() === "viewer" && props.initial?.isAdmin !== true
+    () => props.allowManagement && role() === "viewer"
   );
 
   const toggleProject = (id: string) => {
@@ -80,8 +84,27 @@ export function UserForm(props: UserFormProps) {
         onEmailChange={setEmail}
       />
 
-      <Show when={props.allowManagement}>
-        <UserRoleSelector role={role()} onChange={setRole} />
+      <Show when={role() === "admin"}>
+        <section
+          data-testid="user-admin-role-locked"
+          class="bg-surface-container-low border-outline-variant/15 space-y-4 rounded-xl border p-4 shadow-sm sm:p-8"
+        >
+          <div class="flex items-center gap-3">
+            <div class="bg-primary/10 border-primary/20 text-primary flex h-10 w-10 items-center justify-center rounded-lg border">
+              <MIcon name="admin_panel_settings" class="text-xl" />
+            </div>
+            <div>
+              <h3 class="font-headline text-on-surface text-base font-bold">Admin</h3>
+              <p class="text-on-surface-variant mt-1 text-xs">
+                The first user is the system admin. This role cannot be reassigned or removed.
+              </p>
+            </div>
+          </div>
+        </section>
+      </Show>
+
+      <Show when={props.allowManagement && role() !== "admin"}>
+        <UserRoleSelector role={assignableRole()} onChange={setRole} />
       </Show>
 
       <Show when={canEditProjectScope()}>

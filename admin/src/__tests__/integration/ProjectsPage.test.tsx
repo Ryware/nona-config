@@ -30,7 +30,7 @@ function renderWithProviders(ui: () => JSX.Element) {
 describe('ProjectsPage', () => {
   beforeEach(() => {
     localStorage.setItem('auth_token', mockToken);
-    localStorage.setItem('auth_session', JSON.stringify({ email: 'admin@example.com', role: 'admin', isAdmin: true }));
+    localStorage.setItem('auth_session', JSON.stringify({ email: 'admin@example.com', role: 'admin' }));
     vi.restoreAllMocks();
   });
 

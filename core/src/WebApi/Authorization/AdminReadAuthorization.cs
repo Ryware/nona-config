@@ -30,7 +30,7 @@ public sealed class AdminReadAuthorizationHandler(IUserAuthorizationService user
         if (currentUser is null)
             return;
 
-        if (currentUser.IsAdmin || currentUser.Role == UserRole.Editor)
+        if (currentUser.Role is UserRole.Admin or UserRole.Editor)
         {
             context.Succeed(requirement);
             return;

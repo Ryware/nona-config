@@ -27,7 +27,7 @@ public class UpdateUserCommandHandler(
             return new UpdateUserResult(false, null, "User not found");
 
         var currentUser = await userAuthorizationService.GetCurrentUserAsync(cancellationToken);
-        var canManageUsers = currentUser?.IsAdmin == true || currentUser?.Role == UserRole.Editor;
+        var canManageUsers = currentUser?.Role is UserRole.Admin or UserRole.Editor;
         var isSelf = string.Equals(user.Email, currentUser?.Email, StringComparison.OrdinalIgnoreCase);
         if (!canManageUsers)
         {
@@ -37,13 +37,20 @@ public class UpdateUserCommandHandler(
             if (request.Role is not null || request.Scope is not null)
                 return new UpdateUserResult(false, null, "Access denied");
         }
-        else if (user.IsAdmin && currentUser?.IsAdmin != true)
+        else if (user.Role == UserRole.Admin && currentUser?.Role != UserRole.Admin)
         {
             return new UpdateUserResult(false, null, "Access denied");
         }
 
+        if (user.Role == UserRole.Admin
+            && request.Role is not null
+            && !request.Role.Equals("admin", StringComparison.OrdinalIgnoreCase))
+        {
+            return new UpdateUserResult(false, null, "Admin role cannot be modified");
+        }
+
         UserRole? role = null;
-        if (request.Role is not null)
+        if (request.Role is not null && user.Role != UserRole.Admin)
         {
             if (!EnumExtensions.TryParseApiRole(request.Role, out var parsedRole))
                 return new UpdateUserResult(false, null, "Invalid role. Must be 'viewer' or 'editor'");

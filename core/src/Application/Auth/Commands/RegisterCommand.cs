@@ -33,8 +33,7 @@ public class RegisterCommandHandler(IMediator mediator, IUserRepository userRepo
         {
             Email = request.Email,
             Name = request.Email,
-            IsAdmin = true,
-            Role = UserRole.Viewer,
+            Role = UserRole.Admin,
             Scope = KeyScope.All,
             PasswordHash = hash,
             PasswordSalt = salt,

@@ -4,21 +4,21 @@ import { authStore } from "./store";
 export function canManageUsers(): boolean {
   const session = authStore.getSession();
   const role = session?.role?.toLowerCase();
-  return session?.isAdmin === true || role === "admin" || role === "editor";
+  return role === "admin" || role === "editor";
 }
 
 export function canManageUsersFor(user: User | undefined): boolean {
   const role = user?.role?.toLowerCase();
-  return user?.isAdmin === true || role === "admin" || role === "editor";
+  return role === "admin" || role === "editor";
 }
 
 export function canManageProjects(): boolean {
   const session = authStore.getSession();
-  return session?.isAdmin === true || session?.role?.toLowerCase() === "admin";
+  return session?.role?.toLowerCase() === "admin";
 }
 
 export function canManageProjectsFor(user: User | undefined): boolean {
-  return user?.isAdmin === true || user?.role?.toLowerCase() === "admin";
+  return user?.role?.toLowerCase() === "admin";
 }
 
 export function canManageProjectResources(projectName: string, users: User[]): boolean {
@@ -29,7 +29,7 @@ export function canManageProjectResources(projectName: string, users: User[]): b
   );
   if (currentUser) {
     const role = currentUser.role?.toLowerCase();
-    if (currentUser.isAdmin || role === "admin" || role === "editor") {
+    if (role === "admin" || role === "editor") {
       return true;
     }
 
@@ -43,7 +43,7 @@ export function canManageProjectResources(projectName: string, users: User[]): b
   }
 
   const role = session?.role?.toLowerCase();
-  if (session?.isAdmin || role === "admin" || role === "editor") {
+  if (role === "admin" || role === "editor") {
     return true;
   }
 

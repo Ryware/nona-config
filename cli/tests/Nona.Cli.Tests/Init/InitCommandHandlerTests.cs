@@ -19,7 +19,7 @@ public sealed class InitCommandHandlerTests
         var server = new SequenceServer(
             Json(HttpStatusCode.OK, "true"),
             Json(HttpStatusCode.OK, """
-                {"token":"jwt-token","username":"admin@example.com","role":"viewer","expiresAt":"2026-06-04T12:00:00Z"}
+                {"token":"jwt-token","username":"admin@example.com","role":"admin","expiresAt":"2026-06-04T12:00:00Z"}
                 """),
             Json(HttpStatusCode.OK, "[]"),
             Json(HttpStatusCode.Created, """{"name":"nona-todo"}"""),
@@ -59,7 +59,7 @@ public sealed class InitCommandHandlerTests
     {
         var server = new SequenceServer(
             Json(HttpStatusCode.OK, "false"),
-            Json(HttpStatusCode.OK, """{"token":"jwt-token","username":"admin@example.com","role":"viewer","expiresAt":"2026-06-04T12:00:00Z"}"""),
+            Json(HttpStatusCode.OK, """{"token":"jwt-token","username":"admin@example.com","role":"admin","expiresAt":"2026-06-04T12:00:00Z"}"""),
             Json(HttpStatusCode.OK, """[{"name":"nona-todo"}]"""),
             Json(HttpStatusCode.OK, """[{"name":"production"}]"""),
             Json(HttpStatusCode.OK, """{"key":"Features:Example"}"""),

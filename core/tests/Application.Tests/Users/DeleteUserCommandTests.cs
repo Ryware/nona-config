@@ -143,7 +143,7 @@ public class DeleteUserCommandTests
                 Id = UserId,
                 Email = "admin@example.com",
                 Name = "Admin",
-                IsAdmin = true
+                Role = UserRole.Admin
             });
 
         var handler = new DeleteUserCommandHandler(
@@ -154,7 +154,7 @@ public class DeleteUserCommandTests
         var result = await handler.Handle(new DeleteUserCommand(UserId), CancellationToken.None);
 
         await Assert.That(result.Success).IsFalse();
-        await Assert.That(result.Error).IsEqualTo("Access denied");
+        await Assert.That(result.Error).IsEqualTo("Admin user cannot be deleted");
         await fixture.UserRepository.DidNotReceive()
             .DeleteAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
     }

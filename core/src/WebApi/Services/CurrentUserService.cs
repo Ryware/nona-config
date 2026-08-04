@@ -13,11 +13,20 @@ public class CurrentUserService(IHttpContextAccessor httpContextAccessor) : ICur
         get
         {
             var role = httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.Role);
-            return Enum.TryParse<UserRole>(role, ignoreCase: true, out var parsedRole)
-                ? parsedRole
-                : null;
+            if (Enum.TryParse<UserRole>(role, ignoreCase: true, out var parsedRole))
+            {
+                // Tokens issued before the explicit Admin role used Viewer + isAdmin=true.
+                // Keep those short-lived sessions working while making Role authoritative.
+                if (parsedRole == UserRole.Viewer
+                    && httpContextAccessor.HttpContext?.User?.FindFirstValue("isAdmin") == "true")
+                {
+                    return UserRole.Admin;
+                }
+
+                return parsedRole;
+            }
+
+            return null;
         }
     }
-
-    public bool IsAdmin => httpContextAccessor.HttpContext?.User?.FindFirstValue("isAdmin") == "true";
 }

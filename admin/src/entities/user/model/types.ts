@@ -8,7 +8,6 @@ export interface ProjectAccess {
 export interface User {
   id: string;
   email: string;
-  isAdmin: boolean;
   role: string;
   name: string;
   scope?: string;
