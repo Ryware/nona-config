@@ -27,6 +27,7 @@ export interface ProjectParamsTableProps {
   onSaveSettings: (data: {
     value: string;
     description: string;
+    contentType: ConfigEntry["contentType"];
     scope: ConfigEntry["scope"];
   }) => void;
   isSaving: boolean;
