@@ -69,6 +69,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Run TypeScript typecheck
+        run: npm run typecheck
+
       - name: Run unit and integration tests
         run: npm run test:run
 
