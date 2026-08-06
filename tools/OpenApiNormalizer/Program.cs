@@ -134,6 +134,18 @@ static void Normalize(JsonObject spec)
         }
     }
 
+    if (paths["/admin/audit-logs/export"] is JsonObject auditLogExportPath &&
+        auditLogExportPath["get"] is JsonObject auditLogExportGet &&
+        auditLogExportGet["responses"] is JsonObject auditLogExportResponses &&
+        auditLogExportResponses["200"] is JsonObject auditLogExportSuccess)
+    {
+        auditLogExportSuccess["content"] = new JsonObject
+        {
+            ["text/csv"] = BinaryContent(),
+            ["application/json"] = BinaryContent()
+        };
+    }
+
     const string configEntryPath = "/admin/projects/{projectId}/environments/{environmentName}/config-entries/{key}";
     var baseParameters = new JsonArray(
         PathParameter("projectId"),
@@ -253,6 +265,11 @@ static JsonObject StringSchema() => new() { ["type"] = "string" };
 static JsonObject NullableStringSchema() => new() { ["type"] = "string", ["nullable"] = true };
 
 static JsonObject IntegerSchema() => new() { ["type"] = "integer", ["format"] = "int32" };
+
+static JsonObject BinaryContent() => new()
+{
+    ["schema"] = new JsonObject { ["type"] = "string", ["format"] = "binary" }
+};
 
 static JsonObject Reference(string value) => new() { ["$ref"] = value };
 

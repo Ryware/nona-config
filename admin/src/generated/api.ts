@@ -2287,7 +2287,10 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "text/csv": string;
+                        "application/json": string;
+                    };
                 };
                 /** @description Bad Request */
                 400: {
