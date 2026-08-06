@@ -221,6 +221,29 @@ try {
     }
     Write-Host '  -> cli/src/Nona.Cli/Core/Generated'
 
+    Write-Host ''
+    Write-Host 'Normalizing generated audit export Accept headers...'
+    $nodeCommand = if (Get-Command node.exe -ErrorAction SilentlyContinue) {
+        'node.exe'
+    }
+    elseif (Get-Command node -ErrorAction SilentlyContinue) {
+        'node'
+    }
+    else {
+        $null
+    }
+
+    if (-not $nodeCommand) {
+        throw 'Node.js is required to normalize generated audit export Accept headers, but node.exe/node was not found on PATH.'
+    }
+
+    $exportAcceptNormalizer = Join-Path $scriptDir 'tools/normalize-generated-export-accept.mjs'
+    $cliExportBuilder = Join-Path $cliOutput 'Admin/AuditLogs/Export/ExportRequestBuilder.cs'
+    $migratorExportBuilder = Join-Path $migratorOutput 'Admin/AuditLogs/Export/ExportRequestBuilder.cs'
+    Invoke-Checked {
+        & $nodeCommand "$exportAcceptNormalizer" "$cliExportBuilder" "$migratorExportBuilder"
+    }
+
     if ($generateAdmin) {
         if (-not (Test-Path -LiteralPath $AdminPath -PathType Container)) {
             throw "Admin path not found: $AdminPath. Pass --admin-path PATH or --skip-admin."
