@@ -256,7 +256,7 @@ docker compose -f primary-replica-prod.yml up -d
 | `nona-primary` | `18081` | `19080` | `15001` |
 | `nona-replica` | `18082` | `19082` | — |
 
-The replica connects to the primary over gRPC and syncs automatically. Reads served from the replica are **10–15× faster** for remote clients (see [Performance](#performance)).
+The replica connects to the primary over gRPC and syncs automatically.
 
 ### JWT Settings
 
