@@ -60,13 +60,19 @@ export function useReleaseActions(props: UseReleaseActionsOptions) {
   };
 
   const setActiveReleaseMutation = useMutation(() => ({
-    mutationFn: (version: string | null) =>
+    mutationFn: ({
+      environmentName,
       version
-        ? configReleaseService.setActive(props.projectId(), props.activeEnvName(), { version })
-        : configReleaseService.clearActive(props.projectId(), props.activeEnvName()),
-    onSuccess: () => {
+    }: {
+      environmentName: string;
+      version: string | null;
+    }) =>
+      version
+        ? configReleaseService.setActive(props.projectId(), environmentName, { version })
+        : configReleaseService.clearActive(props.projectId(), environmentName),
+    onSuccess: (_, { environmentName }) => {
       queryClient.invalidateQueries({
-        queryKey: projectKeys.configReleases(params.slug, props.activeEnvName())
+        queryKey: projectKeys.configReleases(params.slug, environmentName)
       });
       queryClient.invalidateQueries({ queryKey: projectKeys.environments(params.slug) });
       addToast(MSG.RELEASE_ACTIVATED, "success");
@@ -75,13 +81,13 @@ export function useReleaseActions(props: UseReleaseActionsOptions) {
   }));
 
   const deleteReleaseMutation = useMutation(() => ({
-    mutationFn: (version: string) => {
+    mutationFn: ({ environmentName, version }: { environmentName: string; version: string }) => {
       setDeletingReleaseVersion(version);
-      return configReleaseService.delete(props.projectId(), props.activeEnvName(), version);
+      return configReleaseService.delete(props.projectId(), environmentName, version);
     },
-    onSuccess: () => {
+    onSuccess: (_, { environmentName }) => {
       queryClient.invalidateQueries({
-        queryKey: projectKeys.configReleases(params.slug, props.activeEnvName())
+        queryKey: projectKeys.configReleases(params.slug, environmentName)
       });
       props.onDeleteSuccess?.();
       addToast(MSG.RELEASE_DELETED, "success");
