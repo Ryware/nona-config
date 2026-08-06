@@ -54,14 +54,14 @@ export function AuditLogsHeader(props: AuditLogsHeaderProps) {
               <Content class="bg-surface-container-low border-outline-variant/20 animate-fade-in z-50 min-w-40 overflow-hidden rounded-lg border shadow-xl outline-none">
                 <Item
                   onSelect={() => void props.onExport("csv")}
-                  class="text-on-surface hover:bg-surface-container-high flex w-full cursor-pointer items-center gap-2.5 border-0 bg-transparent px-4 py-2.5 text-[13px] outline-none transition-colors"
+                  class="text-on-surface hover:bg-surface-container-high data-[highlighted]:bg-surface-container-high data-[highlighted]:ring-primary/40 flex w-full cursor-pointer items-center gap-2.5 border-0 bg-transparent px-4 py-2.5 text-[13px] outline-none transition-colors data-[highlighted]:ring-2 data-[highlighted]:ring-inset"
                 >
                   <MIcon name="table_view" class="text-outline text-[16px]" />
                   Export CSV
                 </Item>
                 <Item
                   onSelect={() => void props.onExport("json")}
-                  class="text-on-surface hover:bg-surface-container-high flex w-full cursor-pointer items-center gap-2.5 border-0 bg-transparent px-4 py-2.5 text-[13px] outline-none transition-colors"
+                  class="text-on-surface hover:bg-surface-container-high data-[highlighted]:bg-surface-container-high data-[highlighted]:ring-primary/40 flex w-full cursor-pointer items-center gap-2.5 border-0 bg-transparent px-4 py-2.5 text-[13px] outline-none transition-colors data-[highlighted]:ring-2 data-[highlighted]:ring-inset"
                 >
                   <MIcon name="data_object" class="text-outline text-[16px]" />
                   Export JSON

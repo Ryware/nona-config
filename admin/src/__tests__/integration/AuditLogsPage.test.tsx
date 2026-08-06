@@ -129,7 +129,10 @@ describe('AuditLogsPage', () => {
     fireEvent.keyDown(trigger, { key });
 
     const csvItem = await screen.findByRole('menuitem', { name: /export csv/i });
-    await waitFor(() => expect(csvItem).toHaveFocus());
+    await waitFor(() => {
+      expect(csvItem).toHaveFocus();
+      expect(csvItem).toHaveAttribute('data-highlighted');
+    });
   });
 
   it('dismisses the export menu with Escape and returns focus to the trigger', async () => {
