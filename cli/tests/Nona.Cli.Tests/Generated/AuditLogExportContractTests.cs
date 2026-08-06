@@ -11,23 +11,32 @@ namespace Nona.Cli.Tests.Generated;
 public sealed class AuditLogExportContractTests
 {
     [Test]
-    public async Task CliExport_AdvertisesSuccessMediaTypeAndReturnsReadableStream()
-        => await AssertExportContractAsync(adapter =>
-            new CliExportRequestBuilder(
-                    "https://nona.example/admin/audit-logs/export",
-                    adapter)
-                .GetAsync(config => config.QueryParameters.Format = "csv"));
-
-    [Test]
-    public async Task MigratorExport_AdvertisesSuccessMediaTypeAndReturnsReadableStream()
-        => await AssertExportContractAsync(adapter =>
-            new MigratorExportRequestBuilder(
-                    "https://nona.example/admin/audit-logs/export",
-                    adapter)
-                .GetAsync(config => config.QueryParameters.Format = "csv"));
+    [Arguments("cli", "csv", "text/csv")]
+    [Arguments("cli", "json", "application/json")]
+    [Arguments("migrator", "csv", "text/csv")]
+    [Arguments("migrator", "json", "application/json")]
+    public async Task Export_AdvertisesRequestedSuccessMediaTypeAndReturnsReadableStream(
+        string client,
+        string format,
+        string expectedMediaType)
+        => await AssertExportContractAsync(
+            adapter => client switch
+            {
+                "cli" => new CliExportRequestBuilder(
+                        "https://nona.example/admin/audit-logs/export",
+                        adapter)
+                    .GetAsync(config => config.QueryParameters.Format = format),
+                "migrator" => new MigratorExportRequestBuilder(
+                        "https://nona.example/admin/audit-logs/export",
+                        adapter)
+                    .GetAsync(config => config.QueryParameters.Format = format),
+                _ => throw new ArgumentOutOfRangeException(nameof(client), client, null)
+            },
+            expectedMediaType);
 
     private static async Task AssertExportContractAsync(
-        Func<HttpClientRequestAdapter, Task<Stream?>> sendAsync)
+        Func<HttpClientRequestAdapter, Task<Stream?>> sendAsync,
+        string expectedMediaType)
     {
         using var handler = new CaptureHandler();
         using var httpClient = new HttpClient(handler);
@@ -42,13 +51,7 @@ public sealed class AuditLogExportContractTests
         await Assert.That(handler.AcceptMediaTypes).IsNotNull();
 
         var acceptMediaTypes = handler.AcceptMediaTypes!;
-        var advertisesSuccess = acceptMediaTypes.Contains("text/csv", StringComparer.OrdinalIgnoreCase)
-            || acceptMediaTypes.Contains("application/json", StringComparer.OrdinalIgnoreCase);
-        var advertisesOnlyProblem = acceptMediaTypes.Count == 1
-            && acceptMediaTypes.Contains("application/problem+json", StringComparer.OrdinalIgnoreCase);
-
-        await Assert.That(advertisesSuccess).IsTrue();
-        await Assert.That(advertisesOnlyProblem).IsFalse();
+        await Assert.That(acceptMediaTypes).Contains(expectedMediaType);
     }
 
     private sealed class CaptureHandler : HttpMessageHandler
