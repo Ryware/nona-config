@@ -55,6 +55,20 @@ async function openExportMenu() {
   return screen.findByRole('menu');
 }
 
+async function finishMenuExit(menu: HTMLElement) {
+  // happy-dom does not run CSS animations, so complete Kobalte's exit presence
+  // lifecycle with the same animationend event a browser emits.
+  await waitFor(() => expect(menu).toHaveAttribute('data-closed'));
+  fireEvent.animationEnd(menu);
+  await waitFor(() => expect(menu).not.toBeInTheDocument());
+}
+
+function selectMenuItem(item: HTMLElement) {
+  // Kobalte selects pointer-driven menu items on primary pointerup.
+  fireEvent.pointerDown(item, primaryPointer);
+  fireEvent.pointerUp(item, primaryPointer);
+}
+
 describe('AuditLogsPage', () => {
   beforeEach(() => {
     localStorage.setItem('auth_token', mockToken);
@@ -126,10 +140,11 @@ describe('AuditLogsPage', () => {
 
     const csvItem = await screen.findByRole('menuitem', { name: /export csv/i });
     await waitFor(() => expect(csvItem).toHaveFocus());
+    const menu = screen.getByRole('menu');
     fireEvent.keyDown(csvItem, { key: 'Escape' });
+    await finishMenuExit(menu);
 
     await waitFor(() => {
-      expect(screen.queryByRole('menu')).not.toBeInTheDocument();
       expect(trigger).toHaveAttribute('aria-expanded', 'false');
       expect(trigger).toHaveFocus();
     });
@@ -142,17 +157,19 @@ describe('AuditLogsPage', () => {
     fireEvent.keyDown(trigger, { key: 'ArrowDown' });
     const csvItem = await screen.findByRole('menuitem', { name: /export csv/i });
     await waitFor(() => expect(csvItem).toHaveFocus());
+    const initialMenu = screen.getByRole('menu');
     fireEvent.keyDown(csvItem, { key: 'Escape' });
-    await waitFor(() => expect(screen.queryByRole('menu')).not.toBeInTheDocument());
+    await finishMenuExit(initialMenu);
 
     const menu = await openExportMenu();
     expect(menu).toBeInTheDocument();
+    // Kobalte defers its outside listener by one turn so the opening pointerdown
+    // cannot dismiss the menu; model the later user interaction accordingly.
+    await new Promise(resolve => window.setTimeout(resolve, 0));
     fireEvent.pointerDown(document.body, primaryPointer);
+    await finishMenuExit(menu);
 
-    await waitFor(() => {
-      expect(screen.queryByRole('menu')).not.toBeInTheDocument();
-      expect(trigger).toHaveAttribute('aria-expanded', 'false');
-    });
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
   });
 
   it('downloads a server-side export with the active filters', async () => {
@@ -181,7 +198,7 @@ describe('AuditLogsPage', () => {
     await waitFor(() => expect(list).not.toHaveTextContent(mockProjects[1].name));
 
     const menu = await openExportMenu();
-    fireEvent.click(within(menu).getByRole('menuitem', { name: /export csv/i }));
+    selectMenuItem(within(menu).getByRole('menuitem', { name: /export csv/i }));
 
     await waitFor(() => expect(exportUrls).toHaveLength(1));
     const exportUrl = exportUrls[0];
@@ -212,7 +229,7 @@ describe('AuditLogsPage', () => {
 
     renderAuditLogsPage();
     const menu = await openExportMenu();
-    fireEvent.click(within(menu).getByRole('menuitem', { name: /export json/i }));
+    selectMenuItem(within(menu).getByRole('menuitem', { name: /export json/i }));
 
     await waitFor(() => expect(exportUrls).toHaveLength(1));
     expect(exportUrls[0]?.searchParams.get('format')).toBe('json');
