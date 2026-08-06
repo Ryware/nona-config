@@ -110,7 +110,30 @@ static void Normalize(JsonObject spec)
     });
     GetOrAddObject(GetOrAddObject(schemas, "RollbackConfigEntryRequest"), "properties")["version"] = IntegerSchema();
 
+    if (schemas["AuditLogPageDto"] is JsonObject auditLogPage)
+    {
+        var properties = GetOrAddObject(auditLogPage, "properties");
+        foreach (var propertyName in new[] { "page", "pageSize", "totalCount", "totalPages" })
+        {
+            properties[propertyName] = IntegerSchema();
+        }
+    }
+
     var paths = GetOrAddObject(spec, "paths");
+    if (paths["/admin/audit-logs"] is JsonObject auditLogsPath &&
+        auditLogsPath["get"] is JsonObject auditLogsGet &&
+        auditLogsGet["parameters"] is JsonArray auditLogsParameters)
+    {
+        foreach (var parameter in auditLogsParameters.OfType<JsonObject>())
+        {
+            if (parameter["in"]?.GetValue<string>() == "query" &&
+                parameter["name"]?.GetValue<string>() is "page" or "pageSize")
+            {
+                parameter["schema"] = IntegerSchema();
+            }
+        }
+    }
+
     const string configEntryPath = "/admin/projects/{projectId}/environments/{environmentName}/config-entries/{key}";
     var baseParameters = new JsonArray(
         PathParameter("projectId"),

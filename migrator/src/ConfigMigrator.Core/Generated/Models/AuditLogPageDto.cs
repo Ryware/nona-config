@@ -39,37 +39,13 @@ namespace Nona.Migrator.Core.Generated.Models
         public List<global::Nona.Migrator.Core.Generated.Models.AuditLogDto> Items { get; set; }
 #endif
         /// <summary>The page property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? Page { get; set; }
-#nullable restore
-#else
-        public UntypedNode Page { get; set; }
-#endif
+        public int? Page { get; set; }
         /// <summary>The pageSize property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? PageSize { get; set; }
-#nullable restore
-#else
-        public UntypedNode PageSize { get; set; }
-#endif
+        public int? PageSize { get; set; }
         /// <summary>The totalCount property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? TotalCount { get; set; }
-#nullable restore
-#else
-        public UntypedNode TotalCount { get; set; }
-#endif
+        public int? TotalCount { get; set; }
         /// <summary>The totalPages property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public UntypedNode? TotalPages { get; set; }
-#nullable restore
-#else
-        public UntypedNode TotalPages { get; set; }
-#endif
+        public int? TotalPages { get; set; }
         /// <summary>
         /// Instantiates a new <see cref="global::Nona.Migrator.Core.Generated.Models.AuditLogPageDto"/> and sets the default values.
         /// </summary>
@@ -98,10 +74,10 @@ namespace Nona.Migrator.Core.Generated.Models
                 { "actions", n => { Actions = n.GetCollectionOfPrimitiveValues<string>()?.AsList(); } },
                 { "environments", n => { Environments = n.GetCollectionOfPrimitiveValues<string>()?.AsList(); } },
                 { "items", n => { Items = n.GetCollectionOfObjectValues<global::Nona.Migrator.Core.Generated.Models.AuditLogDto>(global::Nona.Migrator.Core.Generated.Models.AuditLogDto.CreateFromDiscriminatorValue)?.AsList(); } },
-                { "page", n => { Page = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
-                { "pageSize", n => { PageSize = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
-                { "totalCount", n => { TotalCount = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
-                { "totalPages", n => { TotalPages = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
+                { "page", n => { Page = n.GetIntValue(); } },
+                { "pageSize", n => { PageSize = n.GetIntValue(); } },
+                { "totalCount", n => { TotalCount = n.GetIntValue(); } },
+                { "totalPages", n => { TotalPages = n.GetIntValue(); } },
             };
         }
         /// <summary>
@@ -114,10 +90,10 @@ namespace Nona.Migrator.Core.Generated.Models
             writer.WriteCollectionOfPrimitiveValues<string>("actions", Actions);
             writer.WriteCollectionOfPrimitiveValues<string>("environments", Environments);
             writer.WriteCollectionOfObjectValues<global::Nona.Migrator.Core.Generated.Models.AuditLogDto>("items", Items);
-            writer.WriteObjectValue<UntypedNode>("page", Page);
-            writer.WriteObjectValue<UntypedNode>("pageSize", PageSize);
-            writer.WriteObjectValue<UntypedNode>("totalCount", TotalCount);
-            writer.WriteObjectValue<UntypedNode>("totalPages", TotalPages);
+            writer.WriteIntValue("page", Page);
+            writer.WriteIntValue("pageSize", PageSize);
+            writer.WriteIntValue("totalCount", TotalCount);
+            writer.WriteIntValue("totalPages", TotalPages);
             writer.WriteAdditionalData(AdditionalData);
         }
     }
