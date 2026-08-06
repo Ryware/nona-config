@@ -43,6 +43,18 @@ function renderAuditLogsPage() {
   ));
 }
 
+const primaryPointer = {
+  button: 0,
+  pointerId: 1,
+  pointerType: 'mouse',
+} as const;
+
+async function openExportMenu() {
+  const trigger = await screen.findByRole('button', { name: /export logs/i });
+  fireEvent.pointerDown(trigger, primaryPointer);
+  return screen.findByRole('menu');
+}
+
 describe('AuditLogsPage', () => {
   beforeEach(() => {
     localStorage.setItem('auth_token', mockToken);
@@ -83,11 +95,71 @@ describe('AuditLogsPage', () => {
     expect(await screen.findByRole('button', { name: /export logs/i })).toBeInTheDocument();
   });
 
+  it('exposes the export trigger and items with menu semantics', async () => {
+    renderAuditLogsPage();
+    const trigger = await screen.findByRole('button', { name: /export logs/i });
+
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    const menu = await openExportMenu();
+
+    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    expect(within(menu).getByRole('menuitem', { name: /export csv/i })).toBeInTheDocument();
+    expect(within(menu).getByRole('menuitem', { name: /export json/i })).toBeInTheDocument();
+  });
+
+  it.each(['ArrowDown', 'Enter'])('opens the export menu with %s and focuses the first item', async key => {
+    renderAuditLogsPage();
+    const trigger = await screen.findByRole('button', { name: /export logs/i });
+    trigger.focus();
+
+    fireEvent.keyDown(trigger, { key });
+
+    const csvItem = await screen.findByRole('menuitem', { name: /export csv/i });
+    await waitFor(() => expect(csvItem).toHaveFocus());
+  });
+
+  it('dismisses the export menu with Escape and returns focus to the trigger', async () => {
+    renderAuditLogsPage();
+    const trigger = await screen.findByRole('button', { name: /export logs/i });
+    trigger.focus();
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+
+    const csvItem = await screen.findByRole('menuitem', { name: /export csv/i });
+    await waitFor(() => expect(csvItem).toHaveFocus());
+    fireEvent.keyDown(csvItem, { key: 'Escape' });
+
+    await waitFor(() => {
+      expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+      expect(trigger).toHaveAttribute('aria-expanded', 'false');
+      expect(trigger).toHaveFocus();
+    });
+  });
+
+  it('dismisses the export menu on an outside pointer interaction after reopening', async () => {
+    renderAuditLogsPage();
+    const trigger = await screen.findByRole('button', { name: /export logs/i });
+    trigger.focus();
+    fireEvent.keyDown(trigger, { key: 'ArrowDown' });
+    const csvItem = await screen.findByRole('menuitem', { name: /export csv/i });
+    await waitFor(() => expect(csvItem).toHaveFocus());
+    fireEvent.keyDown(csvItem, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('menu')).not.toBeInTheDocument());
+
+    const menu = await openExportMenu();
+    expect(menu).toBeInTheDocument();
+    fireEvent.pointerDown(document.body, primaryPointer);
+
+    await waitFor(() => {
+      expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+      expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    });
+  });
+
   it('downloads a server-side export with the active filters', async () => {
-    let exportUrl: URL | undefined;
+    const exportUrls: URL[] = [];
     server.use(
       http.get('http://localhost:5027/admin/audit-logs/export', ({ request }) => {
-        exportUrl = new URL(request.url);
+        exportUrls.push(new URL(request.url));
         return new HttpResponse('Time,Actor\n', {
           headers: {
             'Content-Type': 'text/csv',
@@ -108,13 +180,43 @@ describe('AuditLogsPage', () => {
     });
     await waitFor(() => expect(list).not.toHaveTextContent(mockProjects[1].name));
 
-    fireEvent.click(screen.getByRole('button', { name: /export logs/i }));
-    fireEvent.click(await screen.findByRole('button', { name: /export csv/i }));
+    const menu = await openExportMenu();
+    fireEvent.click(within(menu).getByRole('menuitem', { name: /export csv/i }));
 
-    await waitFor(() => expect(exportUrl).toBeDefined());
+    await waitFor(() => expect(exportUrls).toHaveLength(1));
+    const exportUrl = exportUrls[0];
     expect(exportUrl?.searchParams.get('format')).toBe('csv');
     expect(exportUrl?.searchParams.get('search')).toBe(mockProjects[0].name);
     expect(exportUrl?.searchParams.has('page')).toBe(false);
+    expect(exportUrls.filter(url => url.searchParams.get('format') === 'json')).toHaveLength(0);
+    expect(createObjectUrl).toHaveBeenCalledOnce();
+    expect(click).toHaveBeenCalledOnce();
+  });
+
+  it('downloads exactly one JSON export without requesting CSV', async () => {
+    const exportUrls: URL[] = [];
+    server.use(
+      http.get('http://localhost:5027/admin/audit-logs/export', ({ request }) => {
+        exportUrls.push(new URL(request.url));
+        return new HttpResponse('[]', {
+          headers: {
+            'Content-Type': 'application/json',
+            'Content-Disposition': 'attachment; filename="audit.json"',
+          },
+        });
+      }),
+    );
+    const createObjectUrl = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:audit-export');
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
+
+    renderAuditLogsPage();
+    const menu = await openExportMenu();
+    fireEvent.click(within(menu).getByRole('menuitem', { name: /export json/i }));
+
+    await waitFor(() => expect(exportUrls).toHaveLength(1));
+    expect(exportUrls[0]?.searchParams.get('format')).toBe('json');
+    expect(exportUrls.filter(url => url.searchParams.get('format') === 'csv')).toHaveLength(0);
     expect(createObjectUrl).toHaveBeenCalledOnce();
     expect(click).toHaveBeenCalledOnce();
   });
