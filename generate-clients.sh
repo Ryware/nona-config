@@ -172,12 +172,6 @@ dotnet kiota generate \
   --co
 echo "  -> cli/src/Nona.Cli/Core/Generated"
 
-echo ""
-echo "Normalizing generated audit export Accept headers..."
-node "$SCRIPT_DIR/tools/normalize-generated-export-accept.mjs" \
-  "$SCRIPT_DIR/cli/src/Nona.Cli/Core/Generated/Admin/AuditLogs/Export/ExportRequestBuilder.cs" \
-  "$SCRIPT_DIR/migrator/src/ConfigMigrator.Core/Generated/Admin/AuditLogs/Export/ExportRequestBuilder.cs"
-
 if [[ "$GENERATE_ADMIN" == "1" ]]; then
   if [[ ! -d "$ADMIN_PATH" ]]; then
     echo "Admin path not found: $ADMIN_PATH" >&2
