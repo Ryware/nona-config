@@ -43,7 +43,7 @@ export function renderProjectSections(path = '/projects/my-app') {
 
   window.history.pushState({}, '', path);
 
-  return render(() => (
+  const renderResult = render(() => (
     <MetaProvider>
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
@@ -58,4 +58,6 @@ export function renderProjectSections(path = '/projects/my-app') {
       </QueryClientProvider>
     </MetaProvider>
   ));
+
+  return Object.assign(renderResult, { queryClient });
 }
