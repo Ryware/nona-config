@@ -215,7 +215,7 @@ jobs:
 
   deploy:
     name: Publish container image
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
     needs:
       - verify-generated-clients
       - test-admin-frontend
