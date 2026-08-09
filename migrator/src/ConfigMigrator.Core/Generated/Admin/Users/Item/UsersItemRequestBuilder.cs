@@ -3,6 +3,7 @@
 using Microsoft.Kiota.Abstractions.Extensions;
 using Microsoft.Kiota.Abstractions.Serialization;
 using Microsoft.Kiota.Abstractions;
+using Nona.Migrator.Core.Generated.Admin.Users.Item.PasswordReset;
 using Nona.Migrator.Core.Generated.Admin.Users.Item.Projects;
 using Nona.Migrator.Core.Generated.Models;
 using System.Collections.Generic;
@@ -18,6 +19,11 @@ namespace Nona.Migrator.Core.Generated.Admin.Users.Item
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
     public partial class UsersItemRequestBuilder : BaseRequestBuilder
     {
+        /// <summary>The passwordReset property</summary>
+        public global::Nona.Migrator.Core.Generated.Admin.Users.Item.PasswordReset.PasswordResetRequestBuilder PasswordReset
+        {
+            get => new global::Nona.Migrator.Core.Generated.Admin.Users.Item.PasswordReset.PasswordResetRequestBuilder(PathParameters, RequestAdapter);
+        }
         /// <summary>The projects property</summary>
         public global::Nona.Migrator.Core.Generated.Admin.Users.Item.Projects.ProjectsRequestBuilder Projects
         {
