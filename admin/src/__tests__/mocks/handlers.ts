@@ -176,6 +176,35 @@ export const handlers = [
     return new HttpResponse(null, { status: 204 });
   }),
 
+  http.get(`${BASE}/auth/me`, () => {
+    return HttpResponse.json({
+      email: 'admin@example.com',
+      name: 'Admin User',
+      role: 'admin',
+      passwordEnabled: true,
+    });
+  }),
+
+  http.put(`${BASE}/auth/password`, async ({ request }) => {
+    const body = await request.json() as { currentPassword?: string; newPassword?: string };
+    if (body.currentPassword === 'wrong') {
+      return HttpResponse.json(
+        { detail: 'Current password is incorrect.', errorCode: 'current_password_invalid' },
+        { status: 400 },
+      );
+    }
+    if (body.currentPassword === body.newPassword) {
+      return HttpResponse.json(
+        {
+          detail: 'New password must be different from the current password.',
+          errorCode: 'new_password_must_differ',
+        },
+        { status: 400 },
+      );
+    }
+    return new HttpResponse(null, { status: 204 });
+  }),
+
   // ── Projects ─────────────────────────────────────────────────────────────────
   http.get(`${BASE}/admin/projects`, () => {
     return HttpResponse.json(mockProjects);

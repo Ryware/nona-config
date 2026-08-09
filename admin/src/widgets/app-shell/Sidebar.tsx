@@ -260,19 +260,26 @@ export const Sidebar = (props: {
 
           <Show when={authService.isAuthenticated() && !props.collapsed}>
             <div class="rounded-xl border border-outline-variant/20 bg-surface-container-low flex items-center gap-3 p-3 hover:border-outline-variant/35 transition-all">
-              <div class="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center bg-primary/20 border border-primary/20">
-                <span class="text-[11px] font-headline font-bold text-primary">
-                  {initials}
-                </span>
-              </div>
-              <div class="flex-1 min-w-0">
-                <p class="text-[12px] font-semibold text-on-surface truncate leading-tight">
-                  {user.email || "Console User"}
-                </p>
-                <p class="text-[10px] text-outline/60 mt-0.5 capitalize tracking-wide">
-                  {user.role || "editor"}
-                </p>
-              </div>
+              <A
+                href="/account"
+                data-testid="sidebar-account-link"
+                aria-label="Account settings"
+                class="flex min-w-0 flex-1 items-center gap-3 rounded-lg"
+              >
+                <div class="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center bg-primary/20 border border-primary/20">
+                  <span class="text-[11px] font-headline font-bold text-primary">
+                    {initials}
+                  </span>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-[12px] font-semibold text-on-surface truncate leading-tight">
+                    {user.email || "Console User"}
+                  </p>
+                  <p class="text-[10px] text-outline/60 mt-0.5 capitalize tracking-wide">
+                    {user.role || "editor"}
+                  </p>
+                </div>
+              </A>
               <button
                 onClick={() => authService.logout()}
                 title="Sign out"
@@ -288,11 +295,16 @@ export const Sidebar = (props: {
 
           <Show when={authService.isAuthenticated() && props.collapsed}>
             <div class="flex flex-col items-center gap-1.5">
-              <div class="w-8 h-8 rounded-lg flex items-center justify-center bg-primary/20 border border-primary/20">
+              <A
+                href="/account"
+                aria-label="Account settings"
+                title="Account settings"
+                class="w-8 h-8 rounded-lg flex items-center justify-center bg-primary/20 border border-primary/20"
+              >
                 <span class="text-[11px] font-headline font-bold text-primary">
                   {initials}
                 </span>
-              </div>
+              </A>
               <button
                 onClick={() => authService.logout()}
                 title="Sign out"

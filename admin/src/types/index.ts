@@ -13,6 +13,8 @@ export type {
   RegisterRequest,
   InvitationDetails,
   PasswordResetDetails,
+  AccountDetails,
+  ChangePasswordRequest,
 } from "../entities/auth/model/types";
 
 export type {

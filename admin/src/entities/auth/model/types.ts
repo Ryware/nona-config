@@ -39,3 +39,15 @@ export interface PasswordResetDetails {
   name: string;
   expiresAt: string;
 }
+
+export interface AccountDetails {
+  email: string;
+  name: string;
+  role: string;
+  passwordEnabled: boolean;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}

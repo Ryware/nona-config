@@ -95,6 +95,10 @@ export default function App(): JSX.Element {
                   <Route path="/projects/:slug" component={ParametersSection} />
                   <Route path="/users" component={lazy(() => import("../pages/users/UsersPage"))} />
                   <Route
+                    path="/account"
+                    component={lazy(() => import("../pages/account/AccountPage"))}
+                  />
+                  <Route
                     path="/audit-logs"
                     component={lazy(() => import("../pages/audit-logs/AuditLogsPage"))}
                   />

@@ -72,6 +72,8 @@ export const MSG = {
   SSO_FAILED_MICROSOFT: "Microsoft sign-in failed. Please try again.",
   PASSWORD_MISMATCH: "Passwords do not match.",
   PASSWORD_RESET_COMPLETE: "Password updated. Sign in with your new password.",
+  PASSWORD_CHANGED: "Password changed successfully",
+  PASSWORD_CHANGE_FAILED: "Failed to change password",
 
   // --- Bulk Import (dynamic) ---
   bulkImportSuccess: (count: number) => `Imported ${count} parameter${count !== 1 ? "s" : ""} successfully`,

@@ -7,6 +7,8 @@ import type {
   SsoConfig,
   InvitationDetails,
   PasswordResetDetails,
+  AccountDetails,
+  ChangePasswordRequest,
 } from "../model/types";
 
 export const authService = {
@@ -69,6 +71,14 @@ export const authService = {
 
   async completePasswordReset(token: string, newPassword: string): Promise<void> {
     await apiClient.post(`/auth/password-resets/${token}/password`, { newPassword });
+  },
+
+  async getCurrentAccount(): Promise<AccountDetails> {
+    return apiClient.get("/auth/me");
+  },
+
+  async changePassword(data: ChangePasswordRequest): Promise<void> {
+    await apiClient.put("/auth/password", data);
   },
 };
 
