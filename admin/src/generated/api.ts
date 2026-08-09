@@ -2287,7 +2287,10 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "text/csv": string;
+                        "application/json": string;
+                    };
                 };
                 /** @description Bad Request */
                 400: {
@@ -2336,8 +2339,8 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
-                    page?: number | string;
-                    pageSize?: number | string;
+                    page?: number;
+                    pageSize?: number;
                     search?: string;
                     action?: string;
                     environment?: string;
@@ -2741,13 +2744,13 @@ export interface components {
         AuditLogPageDto: {
             items: components["schemas"]["AuditLogDto"][];
             /** Format: int32 */
-            page: number | string;
+            page: number;
             /** Format: int32 */
-            pageSize: number | string;
+            pageSize: number;
             /** Format: int32 */
-            totalCount: number | string;
+            totalCount: number;
             /** Format: int32 */
-            totalPages: number | string;
+            totalPages: number;
             actions: string[];
             environments: string[];
         };

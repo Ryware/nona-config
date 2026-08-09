@@ -111,24 +111,10 @@ namespace Nona.Cli.Generated.Admin.AuditLogs
             [QueryParameter("environment")]
             public string Environment { get; set; }
 #endif
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
             [QueryParameter("page")]
-            public string? Page { get; set; }
-#nullable restore
-#else
-            [QueryParameter("page")]
-            public string Page { get; set; }
-#endif
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
+            public int? Page { get; set; }
             [QueryParameter("pageSize")]
-            public string? PageSize { get; set; }
-#nullable restore
-#else
-            [QueryParameter("pageSize")]
-            public string PageSize { get; set; }
-#endif
+            public int? PageSize { get; set; }
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
             [QueryParameter("search")]

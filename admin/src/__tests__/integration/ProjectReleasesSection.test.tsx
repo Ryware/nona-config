@@ -1,7 +1,9 @@
 import { fireEvent, screen, waitFor } from '@solidjs/testing-library';
 import { http, HttpResponse } from 'msw';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { setActiveEnvironmentName } from '../../entities/project/model/active-environment';
+import { projectKeys } from '../../entities/project/queries/keys';
 import { server } from '../mocks/server';
 import {
   renderProjectSections,
@@ -166,6 +168,110 @@ describe('ProjectReleasesSection', () => {
     });
   });
 
+  it('invalidates the confirmed environment when activation finishes after an environment switch', async () => {
+    let resolveResponse: (() => void) | undefined;
+    const activeRequests: Array<{ url: string; version: string | null }> = [];
+    server.use(
+      http.put(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/active-release',
+        async ({ params, request }) => {
+          const body = (await request.json()) as { version: string | null };
+          activeRequests.push({ url: request.url, version: body.version });
+          await new Promise<void>(resolve => {
+            resolveResponse = resolve;
+          });
+          return HttpResponse.json({
+            project: params.projectId,
+            name: params.envName,
+            activeReleaseVersion: body.version,
+            createdAt: '2024-01-01T00:00:00Z',
+            updatedAt: new Date().toISOString(),
+          });
+        },
+      ),
+    );
+
+    const { queryClient } = renderProjectSections('/projects/my-app/releases');
+    const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries');
+
+    await screen.findByText('1.1.0');
+    const activateButtons = screen.getAllByRole('button', { name: /activate/i });
+    const enabledActivate = activateButtons.find(button => !button.hasAttribute('disabled'));
+    expect(enabledActivate).toBeTruthy();
+    fireEvent.click(enabledActivate!);
+    fireEvent.click(await screen.findByTestId('release-activate-confirm-button'));
+
+    await waitFor(() => {
+      expect(resolveResponse).toBeTypeOf('function');
+    });
+    expect(activeRequests).toEqual([
+      {
+        url: 'http://localhost:5027/admin/projects/my-app/environments/production/active-release',
+        version: '1.1.0',
+      },
+    ]);
+
+    setActiveEnvironmentName('my-app', 'staging');
+    resolveResponse!();
+
+    await waitFor(() => {
+      expect(invalidateQueries).toHaveBeenCalledWith({
+        queryKey: projectKeys.configReleases('my-app', 'production'),
+      });
+    });
+    expect(invalidateQueries).not.toHaveBeenCalledWith({
+      queryKey: projectKeys.configReleases('my-app', 'staging'),
+    });
+  });
+
+  it('invalidates the confirmed environment when clearing active finishes after an environment switch', async () => {
+    let resolveResponse: (() => void) | undefined;
+    const clearRequests: string[] = [];
+    server.use(
+      http.delete(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/active-release',
+        async ({ params, request }) => {
+          clearRequests.push(request.url);
+          await new Promise<void>(resolve => {
+            resolveResponse = resolve;
+          });
+          return HttpResponse.json({
+            project: params.projectId,
+            name: params.envName,
+            activeReleaseVersion: null,
+            createdAt: '2024-01-01T00:00:00Z',
+            updatedAt: new Date().toISOString(),
+          });
+        },
+      ),
+    );
+
+    const { queryClient } = renderProjectSections('/projects/my-app/releases');
+    const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries');
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Clear' }));
+    fireEvent.click(await screen.findByTestId('release-clear-active-confirm-button'));
+
+    await waitFor(() => {
+      expect(resolveResponse).toBeTypeOf('function');
+    });
+    expect(clearRequests).toEqual([
+      'http://localhost:5027/admin/projects/my-app/environments/production/active-release',
+    ]);
+
+    setActiveEnvironmentName('my-app', 'staging');
+    resolveResponse!();
+
+    await waitFor(() => {
+      expect(invalidateQueries).toHaveBeenCalledWith({
+        queryKey: projectKeys.configReleases('my-app', 'production'),
+      });
+    });
+    expect(invalidateQueries).not.toHaveBeenCalledWith({
+      queryKey: projectKeys.configReleases('my-app', 'staging'),
+    });
+  });
+
   it('opens release parameters on the parameters page without starting an amend flow', async () => {
     renderProjectSections('/projects/my-app/releases');
 
@@ -199,6 +305,48 @@ describe('ProjectReleasesSection', () => {
 
     await waitFor(() => {
       expect(deleteRequests).toEqual(['1.1.0']);
+    });
+  });
+
+  it('invalidates the confirmed environment when deletion finishes after an environment switch', async () => {
+    let resolveResponse: (() => void) | undefined;
+    const deleteRequests: string[] = [];
+    server.use(
+      http.delete(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/releases/:version',
+        async ({ request }) => {
+          deleteRequests.push(request.url);
+          await new Promise<void>(resolve => {
+            resolveResponse = resolve;
+          });
+          return new HttpResponse(null, { status: 204 });
+        },
+      ),
+    );
+
+    const { queryClient } = renderProjectSections('/projects/my-app/releases');
+    const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries');
+
+    fireEvent.click(await screen.findByTestId('release-delete-1.1.0'));
+    fireEvent.click(await screen.findByTestId('release-delete-confirm-button'));
+
+    await waitFor(() => {
+      expect(resolveResponse).toBeTypeOf('function');
+    });
+    expect(deleteRequests).toEqual([
+      'http://localhost:5027/admin/projects/my-app/environments/production/releases/1.1.0',
+    ]);
+
+    setActiveEnvironmentName('my-app', 'staging');
+    resolveResponse!();
+
+    await waitFor(() => {
+      expect(invalidateQueries).toHaveBeenCalledWith({
+        queryKey: projectKeys.configReleases('my-app', 'production'),
+      });
+    });
+    expect(invalidateQueries).not.toHaveBeenCalledWith({
+      queryKey: projectKeys.configReleases('my-app', 'staging'),
     });
   });
 });

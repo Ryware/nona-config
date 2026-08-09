@@ -113,9 +113,10 @@ export default function ReleasesSection() {
         confirmLabel="Activate Release"
         isLoading={setActiveReleaseMutation.isPending}
         onConfirm={() => {
+          const environmentName = activeEnvName();
           const version = confirmActivateRelease();
-          if (version) {
-            setActiveReleaseMutation.mutate(version);
+          if (environmentName && version) {
+            setActiveReleaseMutation.mutate({ environmentName, version });
             setConfirmActivateRelease(null);
           }
         }}
@@ -138,8 +139,11 @@ export default function ReleasesSection() {
         confirmLabel="Clear Active Release"
         isLoading={setActiveReleaseMutation.isPending}
         onConfirm={() => {
-          setActiveReleaseMutation.mutate(null);
-          setConfirmClearActiveRelease(false);
+          const environmentName = activeEnvName();
+          if (environmentName) {
+            setActiveReleaseMutation.mutate({ environmentName, version: null });
+            setConfirmClearActiveRelease(false);
+          }
         }}
         onCancel={() => setConfirmClearActiveRelease(false)}
         testId="release-clear-active-dialog"
@@ -162,9 +166,10 @@ export default function ReleasesSection() {
         variant="danger"
         isLoading={deleteReleaseMutation.isPending}
         onConfirm={() => {
+          const environmentName = activeEnvName();
           const version = confirmDeleteRelease();
-          if (version) {
-            deleteReleaseMutation.mutate(version);
+          if (environmentName && version) {
+            deleteReleaseMutation.mutate({ environmentName, version });
           }
         }}
         onCancel={() => setConfirmDeleteRelease(null)}
