@@ -33,3 +33,9 @@ export interface InvitationDetails {
   email: string;
   name: string;
 }
+
+export interface PasswordResetDetails {
+  email: string;
+  name: string;
+  expiresAt: string;
+}

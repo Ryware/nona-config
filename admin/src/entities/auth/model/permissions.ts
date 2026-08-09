@@ -7,6 +7,10 @@ export function canManageUsers(): boolean {
   return role === "admin" || role === "editor";
 }
 
+export function canResetPasswords(): boolean {
+  return authStore.getSession()?.role?.toLowerCase() === "admin";
+}
+
 export function canManageUsersFor(user: User | undefined): boolean {
   const role = user?.role?.toLowerCase();
   return role === "admin" || role === "editor";

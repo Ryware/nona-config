@@ -144,6 +144,38 @@ export const handlers = [
     return HttpResponse.json({ detail: 'Authentication failed' }, { status: 401 });
   }),
 
+  http.get(`${BASE}/auth/password-resets/:token`, ({ params }) => {
+    if (params.token === 'invalid-token') {
+      return HttpResponse.json(
+        {
+          detail: 'Password reset link is invalid, expired, or has already been used.',
+          errorCode: 'password_reset_invalid_or_used',
+        },
+        { status: 404 },
+      );
+    }
+
+    return HttpResponse.json({
+      email: 'reset@example.com',
+      name: 'Reset User',
+      expiresAt: '2099-01-01T00:00:00Z',
+    });
+  }),
+
+  http.post(`${BASE}/auth/password-resets/:token/password`, ({ params }) => {
+    if (params.token === 'invalid-token') {
+      return HttpResponse.json(
+        {
+          detail: 'Password reset link is invalid, expired, or has already been used.',
+          errorCode: 'password_reset_invalid_or_used',
+        },
+        { status: 404 },
+      );
+    }
+
+    return new HttpResponse(null, { status: 204 });
+  }),
+
   // ── Projects ─────────────────────────────────────────────────────────────────
   http.get(`${BASE}/admin/projects`, () => {
     return HttpResponse.json(mockProjects);
@@ -467,6 +499,7 @@ export const handlers = [
         name: body.name,
         role: body.role ?? 'viewer',
         scope: 'all',
+        passwordEnabled: false,
         projects: [],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -484,6 +517,13 @@ export const handlers = [
 
   http.delete(`${BASE}/admin/users/:id`, () => {
     return new HttpResponse(null, { status: 204 });
+  }),
+
+  http.post(`${BASE}/admin/users/:id/password-reset`, () => {
+    return HttpResponse.json({
+      passwordResetToken: 'password-reset-token-123',
+      expiresAt: '2099-01-01T00:00:00Z',
+    });
   }),
 
   // ── Dashboard ────────────────────────────────────────────────────────────────

@@ -61,6 +61,13 @@ export default function App(): JSX.Element {
                   />
                 </Route>
 
+                <Route component={InvitationRoute}>
+                  <Route
+                    path="/reset-password/:token"
+                    component={lazy(() => import("../pages/auth/ResetPasswordPage"))}
+                  />
+                </Route>
+
                 <Route
                   path="/share/:token"
                   component={lazy(() => import("../pages/shared/SharedParameterPage"))}

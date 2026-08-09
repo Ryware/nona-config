@@ -12,6 +12,7 @@ export interface User {
   name: string;
   scope?: string;
   projects?: ProjectAccess[];
+  passwordEnabled: boolean;
   createdAt: string;
   updatedAt?: string;
 }
@@ -26,6 +27,11 @@ export interface CreateUserRequest {
 export interface CreateUserResponse {
   user: User;
   invitationToken: string;
+}
+
+export interface GeneratePasswordResetResponse {
+  passwordResetToken: string;
+  expiresAt: string;
 }
 
 export interface DashboardCounts {

@@ -9,7 +9,11 @@ const ALLOW_401_ENDPOINTS = [
 ];
 
 function isAllowlisted401Endpoint(endpoint: string) {
-  return ALLOW_401_ENDPOINTS.includes(endpoint) || endpoint.startsWith("/auth/invitations/");
+  return (
+    ALLOW_401_ENDPOINTS.includes(endpoint) ||
+    endpoint.startsWith("/auth/invitations/") ||
+    endpoint.startsWith("/auth/password-resets/")
+  );
 }
 
 export class ApiRequestError extends Error {
