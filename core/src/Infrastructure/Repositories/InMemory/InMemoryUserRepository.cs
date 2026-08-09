@@ -28,6 +28,13 @@ public class InMemoryUserRepository : IUserRepository
         return Task.FromResult(user);
     }
 
+    public Task<User?> GetByPasswordResetTokenHashAsync(string passwordResetTokenHash, CancellationToken ct = default)
+    {
+        var user = _users.Values.FirstOrDefault(candidate =>
+            string.Equals(candidate.PasswordResetTokenHash, passwordResetTokenHash, StringComparison.Ordinal));
+        return Task.FromResult(user);
+    }
+
     public Task<IReadOnlyList<User>> ListAsync(CancellationToken ct = default)
     {
         var users = _users.Values.ToList();
@@ -57,6 +64,37 @@ public class InMemoryUserRepository : IUserRepository
     {
         _users[user.Email] = user;
         return Task.CompletedTask;
+    }
+
+    public Task<bool> TryResetPasswordAsync(
+        string passwordResetTokenHash,
+        DateTime nowUtc,
+        string passwordHash,
+        string passwordSalt,
+        DateTime updatedAt,
+        CancellationToken ct = default)
+    {
+        var user = _users.Values.FirstOrDefault(candidate =>
+            string.Equals(candidate.PasswordResetTokenHash, passwordResetTokenHash, StringComparison.Ordinal));
+        if (user is null)
+            return Task.FromResult(false);
+
+        lock (user)
+        {
+            if (!string.Equals(user.PasswordResetTokenHash, passwordResetTokenHash, StringComparison.Ordinal)
+                || user.PasswordResetTokenExpiresAt is null
+                || user.PasswordResetTokenExpiresAt <= nowUtc)
+            {
+                return Task.FromResult(false);
+            }
+
+            user.PasswordHash = passwordHash;
+            user.PasswordSalt = passwordSalt;
+            user.PasswordResetTokenHash = null;
+            user.PasswordResetTokenExpiresAt = null;
+            user.UpdatedAt = updatedAt;
+            return Task.FromResult(true);
+        }
     }
 
     public Task<bool> DeleteAsync(string email, CancellationToken ct = default)
