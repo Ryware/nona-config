@@ -41,6 +41,8 @@ namespace Nona.WebApi.Serialization;
 [JsonSerializable(typeof(ResetPasswordRequest))]
 [JsonSerializable(typeof(PasswordResetDetailsResponse))]
 [JsonSerializable(typeof(GeneratePasswordResetResponse))]
+[JsonSerializable(typeof(AccountDetailsResponse))]
+[JsonSerializable(typeof(ChangePasswordRequest))]
 [JsonSerializable(typeof(InvitationDetailsResponse))]
 [JsonSerializable(typeof(CreateProjectRequest))]
 [JsonSerializable(typeof(RenameProjectRequest))]

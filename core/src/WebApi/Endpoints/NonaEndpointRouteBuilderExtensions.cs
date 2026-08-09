@@ -96,6 +96,16 @@ public static class NonaEndpointRouteBuilderExtensions
             .Produces(StatusCodes.Status204NoContent)
             .Produces<ApiValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")
             .Produces<ApiProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json");
+        auth.MapGet("/me", GetCurrentAccountAsync)
+            .Produces<AccountDetailsResponse>()
+            .Produces<ApiProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")
+            .RequireAuthorization();
+        auth.MapPut("/password", ChangePasswordAsync)
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces<ApiValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")
+            .Produces<ApiProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")
+            .Produces<ApiProblemDetails>(StatusCodes.Status409Conflict, "application/problem+json")
+            .RequireAuthorization();
     }
 
     private static void MapAdminEndpoints(RouteGroupBuilder admin)
@@ -520,6 +530,45 @@ public static class NonaEndpointRouteBuilderExtensions
         return result.Success
             ? Results.NoContent()
             : NotFound(result.Error ?? "Password reset link not found", result.ErrorCode);
+    }
+
+    private static async Task<IResult> GetCurrentAccountAsync(
+        IMediator mediator,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new GetCurrentAccountQuery(), cancellationToken);
+        return result.Success
+            ? Results.Ok(result.Account)
+            : NotFound(result.Error ?? "User not found");
+    }
+
+    private static async Task<IResult> ChangePasswordAsync(
+        ChangePasswordRequest request,
+        IValidator<ChangePasswordRequest> validator,
+        IMediator mediator,
+        CancellationToken cancellationToken)
+    {
+        if (await ValidateRequestAsync(request, validator, cancellationToken) is { } validationResult)
+        {
+            return validationResult;
+        }
+
+        var result = await mediator.Send(
+            new ChangePasswordCommand(request.CurrentPassword, request.NewPassword),
+            cancellationToken);
+        if (result.Success)
+        {
+            return Results.NoContent();
+        }
+
+        return result.ErrorCode switch
+        {
+            AuthErrorCodes.PasswordChangeUnavailable =>
+                Conflict(result.Error ?? "Password change is unavailable", result.ErrorCode),
+            AuthErrorCodes.CurrentPasswordInvalid or AuthErrorCodes.NewPasswordMustDiffer =>
+                BadRequest(result.Error ?? "Password could not be changed", result.ErrorCode),
+            _ => NotFound(result.Error ?? "User not found")
+        };
     }
 
     private static async Task<IResult> LoginWithSsoAsync(
