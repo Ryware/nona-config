@@ -13,7 +13,12 @@ type AuditLogExportJson =
 type AuditLogExportProblem<Status extends 400 | "4XX" | "5XX"> =
   AuditLogExportResponses[Status]["content"]["application/problem+json"];
 
-describe("generated audit API contract", () => {
+describe("generated API contract", () => {
+  it("includes project access levels", () => {
+    expectTypeOf<components["schemas"]["ProjectDto"]["accessLevel"]>()
+      .toEqualTypeOf<string>();
+  });
+
   it("uses numbers for pagination queries and response counts", () => {
     expectTypeOf<AuditLogQuery["page"]>().toEqualTypeOf<
       number | undefined

@@ -13,6 +13,6 @@ export const NonaConfigScopes = {
 } as const;
 
 export const NonaUserRoles = {
-  Viewer: "viewer",
-  Editor: "editor"
+  Admin: "admin",
+  Member: "member"
 } as const;

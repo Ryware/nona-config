@@ -12,6 +12,14 @@ namespace Nona.Migrator.Core.Generated.Models
     public partial class ProjectDto : IAdditionalDataHolder, IParsable
     #pragma warning restore CS1591
     {
+        /// <summary>The accessLevel property</summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
+#nullable enable
+        public string? AccessLevel { get; set; }
+#nullable restore
+#else
+        public string AccessLevel { get; set; }
+#endif
         /// <summary>Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.</summary>
         public IDictionary<string, object> AdditionalData { get; set; }
         /// <summary>The createdAt property</summary>
@@ -75,6 +83,7 @@ namespace Nona.Migrator.Core.Generated.Models
         {
             return new Dictionary<string, Action<IParseNode>>
             {
+                { "accessLevel", n => { AccessLevel = n.GetStringValue(); } },
                 { "createdAt", n => { CreatedAt = n.GetDateTimeOffsetValue(); } },
                 { "environments", n => { Environments = n.GetCollectionOfPrimitiveValues<string>()?.AsList(); } },
                 { "id", n => { Id = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
@@ -90,6 +99,7 @@ namespace Nona.Migrator.Core.Generated.Models
         public virtual void Serialize(ISerializationWriter writer)
         {
             if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));
+            writer.WriteStringValue("accessLevel", AccessLevel);
             writer.WriteDateTimeOffsetValue("createdAt", CreatedAt);
             writer.WriteCollectionOfPrimitiveValues<string>("environments", Environments);
             writer.WriteObjectValue<UntypedNode>("id", Id);

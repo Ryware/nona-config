@@ -2,23 +2,23 @@ import { For, Show } from "solid-js";
 import { cn } from "../../../shared/lib/utils";
 
 interface UserRoleSelectorProps {
-  role: "editor" | "viewer";
-  onChange: (role: "editor" | "viewer") => void;
+  role: "admin" | "member";
+  onChange: (role: "admin" | "member") => void;
 }
 
 export function UserRoleSelector(props: UserRoleSelectorProps) {
   const ROLE_CARDS = [
     {
-      value: "editor" as const,
-      icon: "shield_person",
-      label: "Editor",
-      desc: "Full access to modify projects, manage team members, and view billing logs."
+      value: "admin" as const,
+      icon: "admin_panel_settings",
+      label: "Admin",
+      desc: "Global project access plus user management and audit logs."
     },
     {
-      value: "viewer" as const,
-      icon: "visibility",
-      label: "Viewer",
-      desc: "Read-only access to configurations and logs. Cannot modify environment variables."
+      value: "member" as const,
+      icon: "person",
+      label: "Member",
+      desc: "Access only to assigned projects, with Viewer or Editor permission per project."
     }
   ];
 

@@ -207,7 +207,6 @@ public class ConfigEntryUpdateReadHistoryFlowTests
     {
         public string? UsernameValue { get; set; } = username;
         public string? Username => UsernameValue;
-        public UserRole? Role => UserRole.Viewer;
     }
 
     private sealed class MutableDateTime(DateTime nowUtc) : IDateTime

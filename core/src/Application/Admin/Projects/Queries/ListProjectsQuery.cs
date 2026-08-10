@@ -1,5 +1,6 @@
 using Mediator;
 using Nona.Application.Admin.Projects.DTOs;
+using Nona.Application.Common;
 using Nona.Application.Common.Interfaces;
 using Nona.Domain.Entities;
 using Nona.Domain.Interfaces;
@@ -20,28 +21,34 @@ public class ListProjectsQueryHandler(
 
         var currentUser = await userAuthorizationService.GetCurrentUserAsync(cancellationToken);
 
-        if (currentUser?.Role is UserRole.Admin or UserRole.Editor)
+        if (currentUser?.Role == UserRole.Admin)
         {
-            return await ToDtosAsync(projects, cancellationToken);
+            return await ToDtosAsync(projects, _ => "admin", cancellationToken);
         }
 
-        // Non-admin users only see projects they have access to
         var username = currentUser?.Email;
         if (string.IsNullOrWhiteSpace(username))
-            return Array.Empty<ProjectDto>();
+            return [];
 
         var userProjects = await projectMemberRepository.ListByUserAsync(username, cancellationToken);
-        var accessibleProjectNames = userProjects.Select(m => m.ProjectId).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var accessByProject = userProjects.ToDictionary(
+            membership => membership.ProjectId,
+            membership => membership.Role.ToApiString(),
+            StringComparer.OrdinalIgnoreCase);
 
         var accessibleProjects = projects
-            .Where(p => accessibleProjectNames.Contains(p.Name))
+            .Where(project => accessByProject.ContainsKey(project.Name))
             .ToList();
 
-        return await ToDtosAsync(accessibleProjects, cancellationToken);
+        return await ToDtosAsync(
+            accessibleProjects,
+            project => accessByProject[project.Name],
+            cancellationToken);
     }
 
     private async Task<IReadOnlyList<ProjectDto>> ToDtosAsync(
         IEnumerable<Project> projects,
+        Func<Project, string> accessLevel,
         CancellationToken cancellationToken)
     {
         var dtos = new List<ProjectDto>();
@@ -57,6 +64,7 @@ public class ListProjectsQueryHandler(
                 project.Id,
                 project.Name,
                 project.UrlSlug,
+                accessLevel(project),
                 environmentNames,
                 project.CreatedAt,
                 project.UpdatedAt));

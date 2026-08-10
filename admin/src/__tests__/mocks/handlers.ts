@@ -102,7 +102,7 @@ export const handlers = [
       return HttpResponse.json({ detail: 'Password is required' }, { status: 400 });
     }
 
-    return HttpResponse.json({ token: mockToken, role: 'viewer', expiresAt: '2099-01-01T00:00:00Z' });
+    return HttpResponse.json({ token: mockToken, role: 'member', expiresAt: '2099-01-01T00:00:00Z' });
   }),
 
   http.post(`${BASE}/auth/invitations/:token/sso/google`, async ({ params, request }) => {
@@ -115,7 +115,7 @@ export const handlers = [
 
     const body = await request.json() as { idToken?: string };
     if (body.idToken === 'google-valid-token') {
-      return HttpResponse.json({ token: mockToken, role: 'viewer', expiresAt: '2099-01-01T00:00:00Z' });
+      return HttpResponse.json({ token: mockToken, role: 'member', expiresAt: '2099-01-01T00:00:00Z' });
     }
 
     if (body.idToken === 'google-mismatch-token') {
@@ -138,7 +138,7 @@ export const handlers = [
 
     const body = await request.json() as { idToken?: string };
     if (body.idToken === 'microsoft-valid-token') {
-      return HttpResponse.json({ token: mockToken, role: 'viewer', expiresAt: '2099-01-01T00:00:00Z' });
+      return HttpResponse.json({ token: mockToken, role: 'member', expiresAt: '2099-01-01T00:00:00Z' });
     }
 
     return HttpResponse.json({ detail: 'Authentication failed' }, { status: 401 });
@@ -465,7 +465,7 @@ export const handlers = [
         id: 'user-new',
         email: body.email,
         name: body.name,
-        role: body.role ?? 'viewer',
+        role: body.role ?? 'member',
         scope: 'all',
         projects: [],
         createdAt: new Date().toISOString(),

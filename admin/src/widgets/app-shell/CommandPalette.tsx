@@ -10,6 +10,7 @@ import {
   onMount,
   Show,
 } from "solid-js";
+import { canManageUsers } from "../../entities/auth/model/permissions";
 import { projectService } from "../../entities/project/api/project.service";
 import { projectKeys } from "../../entities/project/queries/keys";
 import { userService } from "../../entities/user/api/user.service";
@@ -53,6 +54,7 @@ export const CommandPalette = (props: CommandPaletteProps) => {
   const [query, setQuery] = createSignal("");
   const [activeIdx, setActiveIdx] = createSignal(0);
   let inputRef: HTMLInputElement | undefined;
+  const isAdmin = canManageUsers();
 
   const projectsQuery = useQuery(() => ({
     queryKey: projectKeys.list(),
@@ -62,6 +64,7 @@ export const CommandPalette = (props: CommandPaletteProps) => {
   const usersQuery = useQuery(() => ({
     queryKey: userKeys.list(),
     queryFn: () => userService.getAll(),
+    enabled: isAdmin,
   }));
 
   const quickNav = [
@@ -71,18 +74,22 @@ export const CommandPalette = (props: CommandPaletteProps) => {
       path: "/projects",
       desc: "View all configuration projects",
     },
-    {
-      label: "Team Management",
-      icon: "group",
-      path: "/users",
-      desc: "Manage team members and roles",
-    },
-    {
-      label: "Audit Logs",
-      icon: "history",
-      path: "/audit-logs",
-      desc: "Review recent system activity",
-    },
+    ...(isAdmin
+      ? [
+          {
+            label: "Team Management",
+            icon: "group",
+            path: "/users",
+            desc: "Manage team members and roles",
+          },
+          {
+            label: "Audit Logs",
+            icon: "history",
+            path: "/audit-logs",
+            desc: "Review recent system activity",
+          },
+        ]
+      : []),
   ];
 
   const filteredProjects = createMemo(() => {
@@ -194,7 +201,7 @@ export const CommandPalette = (props: CommandPaletteProps) => {
           <Input
             ref={inputRef}
             type="text"
-            placeholder="Search projects, team members…"
+            placeholder={isAdmin ? "Search projects, team members…" : "Search projects…"}
             value={query()}
             onInput={(e) => setQuery(e.currentTarget.value)}
             class="flex-1 bg-transparent border-0 rounded-none h-auto py-0 px-0 text-sm hover:border-transparent focus:border-transparent focus:ring-0"

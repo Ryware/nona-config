@@ -177,21 +177,19 @@ public static class NonaEndpointRouteBuilderExtensions
             async (string projectId, string environmentName, string key, long shareLinkId, IMediator mediator, CancellationToken cancellationToken) =>
                 await RevokeParameterShareLinkAsync(projectId, environmentName, key, shareLinkId, mediator, cancellationToken));
 
-        var users = admin.MapGroup("/users");
+        var users = admin.MapGroup("/users")
+            .RequireAuthorization(AdminReadAuthorizationPolicies.Manage);
         users.MapPost("/", CreateUserAsync)
             .Produces<CreateUserResponse>(StatusCodes.Status201Created);
         users.MapGet("/", ListUsersAsync)
-            .Produces<IReadOnlyList<UserDto>>()
-            .RequireAuthorization(AdminReadAuthorizationPolicies.Manage);
+            .Produces<IReadOnlyList<UserDto>>();
         users.MapGet("/{id}", GetUserAsync)
-            .Produces<UserDto>()
-            .RequireAuthorization(AdminReadAuthorizationPolicies.SelfOrManageUser);
+            .Produces<UserDto>();
         users.MapPut("/{id}", UpdateUserAsync)
             .Produces<UserDto>();
         users.MapDelete("/{id}", DeleteUserAsync);
         users.MapGet("/{id}/projects", GetUserProjectsAsync)
-            .Produces<IReadOnlyList<ProjectAccessDto>>()
-            .RequireAuthorization(AdminReadAuthorizationPolicies.SelfOrManageUser);
+            .Produces<IReadOnlyList<ProjectAccessDto>>();
         users.MapPut("/{id}/projects/{projectName}", SetProjectAccessAsync)
             .Produces<ProjectAccessDto>();
         users.MapDelete("/{id}/projects/{projectName}", RemoveProjectAccessAsync);
@@ -508,9 +506,12 @@ public static class NonaEndpointRouteBuilderExtensions
             return Results.Created("/admin/projects", result.Project);
         }
 
-        return result.Error == "Project already exists"
-            ? Conflict(result.Error)
-            : BadRequest(result.Error ?? "Project could not be created");
+        return result.Error switch
+        {
+            "Access denied. Only admin users can create projects." => Forbidden(result.Error),
+            "Project already exists" => Conflict(result.Error),
+            _ => BadRequest(result.Error ?? "Project could not be created")
+        };
     }
 
     private static async Task<IResult> ListProjectsAsync(IMediator mediator, CancellationToken cancellationToken)
@@ -526,7 +527,11 @@ public static class NonaEndpointRouteBuilderExtensions
         var result = await mediator.Send(new DeleteProjectCommand(projectId), cancellationToken);
         return result.Success
             ? Results.NoContent()
-            : NotFound(result.Error ?? "Project not found");
+            : result.Error switch
+            {
+                "Access denied. Only admin users can delete projects." => Forbidden(result.Error),
+                _ => NotFound(result.Error ?? "Project not found")
+            };
     }
 
     private static async Task<IResult> RenameProjectAsync(
@@ -578,6 +583,7 @@ public static class NonaEndpointRouteBuilderExtensions
 
         return result.Error switch
         {
+            "Access denied" => Forbidden(result.Error),
             "Project not found" => NotFound(result.Error),
             "Environment already exists" => Conflict(result.Error),
             _ => BadRequest(result.Error ?? "Environment could not be created")
@@ -592,7 +598,9 @@ public static class NonaEndpointRouteBuilderExtensions
         var result = await mediator.Send(new ListEnvironmentsQuery(projectId), cancellationToken);
         return result.Success
             ? Results.Ok(result.Environments)
-            : NotFound(result.Error ?? "Project not found");
+            : result.Error == "Access denied"
+                ? Forbidden(result.Error)
+                : NotFound(result.Error ?? "Project not found");
     }
 
     private static async Task<IResult> DeleteEnvironmentAsync(
@@ -604,7 +612,9 @@ public static class NonaEndpointRouteBuilderExtensions
         var result = await mediator.Send(new DeleteEnvironmentCommand(projectId, environmentId), cancellationToken);
         return result.Success
             ? Results.NoContent()
-            : NotFound(result.Error ?? "Environment not found");
+            : result.Error == "Access denied"
+                ? Forbidden(result.Error)
+                : NotFound(result.Error ?? "Environment not found");
     }
 
     private static async Task<IResult> RenameEnvironmentAsync(
@@ -856,7 +866,9 @@ public static class NonaEndpointRouteBuilderExtensions
         var result = await mediator.Send(new GetConfigEntriesQuery(projectId, environmentName), cancellationToken);
         return result.Success
             ? Results.Ok(result.ConfigEntries)
-            : NotFound(result.Error ?? "Config entries not found");
+            : result.Error == "Access denied"
+                ? Forbidden(result.Error)
+                : NotFound(result.Error ?? "Config entries not found");
     }
 
     private static async Task<IResult> GetConfigEntryAsync(
@@ -869,7 +881,9 @@ public static class NonaEndpointRouteBuilderExtensions
         var result = await mediator.Send(new GetConfigEntryQuery(projectId, environmentName, key), cancellationToken);
         return result.Success
             ? Results.Ok(result.ConfigEntry)
-            : NotFound(result.Error ?? "Config entry not found");
+            : result.Error == "Access denied"
+                ? Forbidden(result.Error)
+                : NotFound(result.Error ?? "Config entry not found");
     }
 
     private static async Task<IResult> GetConfigEntryHistoryAsync(
@@ -882,7 +896,9 @@ public static class NonaEndpointRouteBuilderExtensions
         var result = await mediator.Send(new ListConfigEntryVersionsQuery(projectId, environmentName, key), cancellationToken);
         return result.Success
             ? Results.Ok(result.Versions)
-            : NotFound(result.Error ?? "Config entry history not found");
+            : result.Error == "Access denied"
+                ? Forbidden(result.Error)
+                : NotFound(result.Error ?? "Config entry history not found");
     }
 
     private static async Task<IResult> UpsertConfigEntryAsync(
@@ -915,6 +931,7 @@ public static class NonaEndpointRouteBuilderExtensions
 
         return result.Error switch
         {
+            "Access denied" => Forbidden(result.Error),
             "Project not found" or "Environment not found" => NotFound(result.Error),
             _ => BadRequest(result.Error ?? "Config entry could not be saved")
         };
@@ -944,6 +961,7 @@ public static class NonaEndpointRouteBuilderExtensions
 
         return result.Error switch
         {
+            "Access denied" => Forbidden(result.Error),
             "Project not found" or "Environment not found" or "Config entry not found" or "Version not found" => NotFound(result.Error),
             _ => BadRequest(result.Error ?? "Config entry could not be rolled back")
         };
@@ -1040,7 +1058,9 @@ public static class NonaEndpointRouteBuilderExtensions
         var result = await mediator.Send(new DeleteConfigEntryCommand(projectId, environmentName, key), cancellationToken);
         return result.Success
             ? Results.NoContent()
-            : NotFound(result.Error ?? "Config entry not found");
+            : result.Error == "Access denied"
+                ? Forbidden(result.Error)
+                : NotFound(result.Error ?? "Config entry not found");
     }
 
     private static async Task<IResult> CreateUserAsync(

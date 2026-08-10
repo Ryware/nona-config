@@ -23,8 +23,7 @@ public static class EnumExtensions
 
     public static string ToApiString(this UserRole role) => role switch
     {
-        UserRole.Viewer => "viewer",
-        UserRole.Editor => "editor",
+        UserRole.Member => "member",
         UserRole.Admin => "admin",
         _ => role.ToString().ToLowerInvariant()
     };
@@ -33,11 +32,11 @@ public static class EnumExtensions
     {
         switch (value?.ToLowerInvariant())
         {
-            case "viewer":
-                role = UserRole.Viewer;
+            case "member":
+                role = UserRole.Member;
                 return true;
-            case "editor":
-                role = UserRole.Editor;
+            case "admin":
+                role = UserRole.Admin;
                 return true;
             default:
                 role = default;

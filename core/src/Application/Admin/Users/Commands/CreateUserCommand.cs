@@ -33,7 +33,7 @@ public class CreateUserCommandHandler(
         if (request.Role is not null)
         {
             if (!EnumExtensions.TryParseApiRole(request.Role, out var parsedRole))
-                return new CreateUserResult(false, null, "Invalid role. Must be 'viewer' or 'editor'");
+                return new CreateUserResult(false, null, "Invalid role. Must be 'admin' or 'member'");
 
             role = parsedRole;
         }
@@ -51,7 +51,7 @@ public class CreateUserCommandHandler(
             Email = request.Email,
             InviteTokenHash = TokenHelper.Hash(invitationToken),
             Name = request.Name,
-            Role = role ?? UserRole.Viewer,
+            Role = role ?? UserRole.Member,
             Scope = scope ?? KeyScope.All,
             CreatedAt = now,
             UpdatedAt = now

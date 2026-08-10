@@ -9,10 +9,10 @@ interface UsersTableProps {
   totalUsersCount: number;
   filteredUsers: User[];
   currentUserEmail?: string;
-  canManageUsers: boolean;
+  adminCount: number;
   onEdit: (user: User) => void;
   onDelete: (user: User) => void;
-  onInvite?: () => void;
+  onInvite: () => void;
   // Inline edit
   editingUserId: string | null;
   editingUser: User | null;
@@ -27,19 +27,11 @@ function roleMeta(role: string) {
   if (role === "admin")
     return {
       label: "Admin",
-      class: "bg-primary/10 text-primary border border-primary/20",
-      icon: "admin_panel_settings"
-    };
-  if (role === "editor")
-    return {
-      label: "Editor",
-      class: "bg-secondary/15 text-secondary border border-secondary/20",
-      icon: "edit"
+      class: "bg-primary/10 text-primary border border-primary/20"
     };
   return {
-    label: "Viewer",
-    class: "bg-surface-container-high text-outline border border-outline-variant/15",
-    icon: "visibility"
+    label: "Member",
+    class: "bg-surface-container-high text-outline border border-outline-variant/15"
   };
 }
 
@@ -69,16 +61,14 @@ export function UsersTable(props: UsersTableProps) {
               <p class="text-on-surface-variant mb-4 text-[13px]">
                 Invite your first team member to get started.
               </p>
-              <Show when={props.onInvite}>
-                <button
-                  type="button"
-                  onClick={() => props.onInvite?.()}
-                  class="bg-primary text-on-primary inline-flex cursor-pointer items-center gap-2 rounded-lg border-0 px-4 py-2 text-[13px] font-semibold transition-all hover:brightness-105 active:scale-[0.98]"
-                >
-                  <MIcon name="person_add" class="text-[17px]" />
-                  Invite Member
-                </button>
-              </Show>
+              <button
+                type="button"
+                onClick={() => props.onInvite()}
+                class="bg-primary text-on-primary inline-flex cursor-pointer items-center gap-2 rounded-lg border-0 px-4 py-2 text-[13px] font-semibold transition-all hover:brightness-105 active:scale-[0.98]"
+              >
+                <MIcon name="person_add" class="text-[17px]" />
+                Invite User
+              </button>
             </div>
           </Show>
 
@@ -100,38 +90,33 @@ export function UsersTable(props: UsersTableProps) {
                 const isCurrentUser =
                   props.currentUserEmail?.toLowerCase() === user.email.toLowerCase();
                 const isAdmin = user.role === "admin";
-                const canEditUser = isCurrentUser || (props.canManageUsers && !isAdmin);
+                const isProtectedAdmin = isAdmin && props.adminCount === 1;
                 const isExpanded = () => props.editingUserId === user.id;
 
                 return (
                   <article class="bg-surface-container border-outline-variant/10 overflow-hidden rounded-2xl border">
                     <div
                       data-testid={`team-row-${user.id}`}
-                      role={canEditUser ? "button" : undefined}
-                      tabindex={canEditUser ? 0 : undefined}
-                      aria-label={canEditUser ? `Edit ${user.email}` : undefined}
-                      onClick={() => {
-                        if (canEditUser) props.onEdit(user);
-                      }}
+                      role="button"
+                      tabindex={0}
+                      aria-label={`Edit ${user.email}`}
+                      onClick={() => props.onEdit(user)}
                       onKeyDown={e => {
-                        if (!canEditUser) return;
                         if (e.key === "Enter" || e.key === " ") {
                           e.preventDefault();
                           props.onEdit(user);
                         }
                       }}
-                      class={`p-4 ${canEditUser ? "cursor-pointer" : ""}`}
+                      class="cursor-pointer p-4"
                     >
                       <div class="flex items-start gap-3">
-                        <Show when={canEditUser}>
-                          <div
-                            class={`bg-surface-container-high text-outline mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-transform ${
-                              isExpanded() ? "rotate-180" : ""
-                            }`}
-                          >
-                            <MIcon name="expand_more" class="text-[16px]" />
-                          </div>
-                        </Show>
+                        <div
+                          class={`bg-surface-container-high text-outline mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-transform ${
+                            isExpanded() ? "rotate-180" : ""
+                          }`}
+                        >
+                          <MIcon name="expand_more" class="text-[16px]" />
+                        </div>
                         <div class="font-headline bg-primary/10 text-primary border-primary/20 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-xs font-bold">
                           {initials}
                         </div>
@@ -156,7 +141,11 @@ export function UsersTable(props: UsersTableProps) {
                                 {user.role === "admin" ? "public" : "lock_person"}
                               </span>
                               <span>
-                                {user.role === "admin" ? "Global Access" : "Scoped Access"}
+                                {user.role === "admin"
+                                  ? "Global Access"
+                                  : user.projects?.length
+                                    ? `${user.projects.length} project${user.projects.length === 1 ? "" : "s"}`
+                                    : "No projects"}
                               </span>
                             </span>
                           </div>
@@ -164,39 +153,37 @@ export function UsersTable(props: UsersTableProps) {
                       </div>
                     </div>
 
-                    <Show when={props.canManageUsers}>
-                      <div class="border-outline-variant/10 flex justify-end border-t px-4 py-2">
-                        <button
-                          data-testid={`team-remove-${user.id}`}
-                          type="button"
-                          disabled={isCurrentUser || isAdmin}
-                          onClick={() => {
-                            if (!isCurrentUser && !isAdmin) props.onDelete(user);
-                          }}
-                          class={
-                            isCurrentUser || isAdmin
-                              ? "text-outline/35 cursor-not-allowed rounded-lg border-0 bg-transparent p-1.5 opacity-60"
-                              : "text-outline hover:text-error hover:bg-error/10 cursor-pointer rounded-lg border-0 bg-transparent p-1.5"
-                          }
-                          title={
-                            isAdmin
-                              ? "The admin account cannot be removed"
-                              : isCurrentUser
-                              ? "You cannot remove your own account"
-                              : `Remove ${user.name || user.email}`
-                          }
-                          aria-label={
-                            isAdmin
-                              ? "The admin account cannot be removed"
-                              : isCurrentUser
-                              ? "You cannot remove your own account"
-                              : `Remove ${user.name || user.email}`
-                          }
-                        >
-                          <MIcon name="delete_outline" class="text-[18px]" />
-                        </button>
-                      </div>
-                    </Show>
+                    <div class="border-outline-variant/10 flex justify-end border-t px-4 py-2">
+                      <button
+                        data-testid={`team-remove-${user.id}`}
+                        type="button"
+                        disabled={isCurrentUser || isProtectedAdmin}
+                        onClick={() => {
+                          if (!isCurrentUser && !isProtectedAdmin) props.onDelete(user);
+                        }}
+                        class={
+                          isCurrentUser || isProtectedAdmin
+                            ? "text-outline/35 cursor-not-allowed rounded-lg border-0 bg-transparent p-1.5 opacity-60"
+                            : "text-outline hover:text-error hover:bg-error/10 cursor-pointer rounded-lg border-0 bg-transparent p-1.5"
+                        }
+                        title={
+                          isCurrentUser
+                            ? "You cannot remove your own account"
+                            : isProtectedAdmin
+                              ? "The last admin cannot be removed"
+                            : `Remove ${user.name || user.email}`
+                        }
+                        aria-label={
+                          isCurrentUser
+                            ? "You cannot remove your own account"
+                            : isProtectedAdmin
+                              ? "The last admin cannot be removed"
+                            : `Remove ${user.name || user.email}`
+                        }
+                      >
+                        <MIcon name="delete_outline" class="text-[18px]" />
+                      </button>
+                    </div>
 
                     <Show when={isExpanded()}>
                       <div
@@ -213,12 +200,10 @@ export function UsersTable(props: UsersTableProps) {
                               name: props.editingUser!.name,
                               email: props.editingUser!.email,
                               role: props.editingUser!.role,
-                              projects: (props.editingUser!.projects ?? []).map(
-                                p => p.projectName
-                              )
+                              projects: props.editingUser!.projects
                             }}
                             projects={props.projects}
-                            allowManagement={props.canManageUsers}
+                            roleLocked={isCurrentUser && isAdmin}
                             isPending={props.isSaving}
                             onCancel={props.onCancelEdit}
                             onSubmit={props.onSubmitEdit}
@@ -298,16 +283,14 @@ export function UsersTable(props: UsersTableProps) {
                   <p class="text-on-surface-variant mb-4 text-[13px]">
                     Invite your first team member to get started.
                   </p>
-                  <Show when={props.onInvite}>
-                    <button
-                      type="button"
-                      onClick={() => props.onInvite?.()}
-                      class="bg-primary text-on-primary inline-flex cursor-pointer items-center gap-2 rounded-lg border-0 px-4 py-2 text-[13px] font-semibold transition-all hover:brightness-105 active:scale-[0.98]"
-                    >
-                      <MIcon name="person_add" class="text-[17px]" />
-                      Invite Member
-                    </button>
-                  </Show>
+                  <button
+                    type="button"
+                    onClick={() => props.onInvite()}
+                    class="bg-primary text-on-primary inline-flex cursor-pointer items-center gap-2 rounded-lg border-0 px-4 py-2 text-[13px] font-semibold transition-all hover:brightness-105 active:scale-[0.98]"
+                  >
+                    <MIcon name="person_add" class="text-[17px]" />
+                    Invite User
+                  </button>
                 </td>
               </tr>
             </Show>
@@ -332,39 +315,29 @@ export function UsersTable(props: UsersTableProps) {
                   const isCurrentUser =
                     props.currentUserEmail?.toLowerCase() === user.email.toLowerCase();
                   const isAdmin = user.role === "admin";
-                  const canEditUser = isCurrentUser || (props.canManageUsers && !isAdmin);
+                  const isProtectedAdmin = isAdmin && props.adminCount === 1;
                   const isExpanded = () => props.editingUserId === user.id;
 
                   return (
                     <>
                       <tr
                         data-testid={`team-row-${user.id}`}
-                        onClick={() => {
-                          if (canEditUser) props.onEdit(user);
-                        }}
-                        class={`group transition-colors ${
-                          canEditUser
-                            ? "cursor-pointer"
-                            : "cursor-default"
-                        } ${
+                        onClick={() => props.onEdit(user)}
+                        class={`group cursor-pointer transition-colors ${
                           isExpanded()
                             ? "bg-surface-container-high/40"
-                            : canEditUser
-                              ? "hover:bg-surface-container-high/40"
-                              : ""
+                            : "hover:bg-surface-container-high/40"
                         }`}
                       >
                         <td class="px-6 py-4">
                           <div class="flex items-center gap-3">
-                            <Show when={canEditUser}>
-                              <div
-                                class={`bg-surface-container-high text-outline flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-transform ${
-                                  isExpanded() ? "rotate-180" : ""
-                                }`}
-                              >
-                                <MIcon name="expand_more" class="text-[16px]" />
-                              </div>
-                            </Show>
+                            <div
+                              class={`bg-surface-container-high text-outline flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-transform ${
+                                isExpanded() ? "rotate-180" : ""
+                              }`}
+                            >
+                              <MIcon name="expand_more" class="text-[16px]" />
+                            </div>
                             <div class="font-headline bg-primary/10 text-primary border-primary/20 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-xs font-bold">
                               {initials}
                             </div>
@@ -390,41 +363,45 @@ export function UsersTable(props: UsersTableProps) {
                             <span class="material-symbols-outlined text-outline text-[16px]">
                               {user.role === "admin" ? "public" : "lock_person"}
                             </span>
-                            <span>{user.role === "admin" ? "Global Access" : "Scoped Access"}</span>
+                            <span>
+                              {user.role === "admin"
+                                ? "Global Access"
+                                : user.projects?.length
+                                  ? `${user.projects.length} project${user.projects.length === 1 ? "" : "s"}`
+                                  : "No projects"}
+                            </span>
                           </div>
                         </td>
                         <td class="px-6 py-4 text-right" onClick={e => e.stopPropagation()}>
-                          <Show when={props.canManageUsers}>
-                            <button
-                              data-testid={`team-remove-${user.id}`}
-                              type="button"
-                              disabled={isCurrentUser || isAdmin}
-                              onClick={() => {
-                                if (!isCurrentUser && !isAdmin) props.onDelete(user);
-                              }}
-                              class={
-                                isCurrentUser || isAdmin
-                                  ? "text-outline/35 cursor-not-allowed rounded-lg border-0 bg-transparent p-1.5 opacity-60"
-                                  : "text-outline hover:text-error hover:bg-error/10 cursor-pointer rounded-lg border-0 bg-transparent p-1.5 opacity-40 transition-opacity group-hover:opacity-100 focus:opacity-100"
-                              }
-                              title={
-                                isAdmin
-                                  ? "The admin account cannot be removed"
-                                  : isCurrentUser
-                                  ? "You cannot remove your own account"
-                                  : `Remove ${user.name || user.email}`
-                              }
-                              aria-label={
-                                isAdmin
-                                  ? "The admin account cannot be removed"
-                                  : isCurrentUser
-                                  ? "You cannot remove your own account"
-                                  : `Remove ${user.name || user.email}`
-                              }
-                            >
-                              <MIcon name="delete_outline" class="text-[18px]" />
-                            </button>
-                          </Show>
+                          <button
+                            data-testid={`team-remove-${user.id}`}
+                            type="button"
+                            disabled={isCurrentUser || isProtectedAdmin}
+                            onClick={() => {
+                              if (!isCurrentUser && !isProtectedAdmin) props.onDelete(user);
+                            }}
+                            class={
+                              isCurrentUser || isProtectedAdmin
+                                ? "text-outline/35 cursor-not-allowed rounded-lg border-0 bg-transparent p-1.5 opacity-60"
+                                : "text-outline hover:text-error hover:bg-error/10 cursor-pointer rounded-lg border-0 bg-transparent p-1.5 opacity-40 transition-opacity group-hover:opacity-100 focus:opacity-100"
+                            }
+                            title={
+                              isCurrentUser
+                                ? "You cannot remove your own account"
+                                : isProtectedAdmin
+                                  ? "The last admin cannot be removed"
+                                : `Remove ${user.name || user.email}`
+                            }
+                            aria-label={
+                              isCurrentUser
+                                ? "You cannot remove your own account"
+                                : isProtectedAdmin
+                                  ? "The last admin cannot be removed"
+                                : `Remove ${user.name || user.email}`
+                            }
+                          >
+                            <MIcon name="delete_outline" class="text-[18px]" />
+                          </button>
                         </td>
                       </tr>
 
@@ -441,12 +418,10 @@ export function UsersTable(props: UsersTableProps) {
                                   name: props.editingUser!.name,
                                   email: props.editingUser!.email,
                                   role: props.editingUser!.role,
-                                  projects: (props.editingUser!.projects ?? []).map(
-                                    p => p.projectName
-                                  )
+                                  projects: props.editingUser!.projects
                                 }}
                                 projects={props.projects}
-                                allowManagement={props.canManageUsers}
+                                roleLocked={isCurrentUser && isAdmin}
                                 isPending={props.isSaving}
                                 onCancel={props.onCancelEdit}
                                 onSubmit={props.onSubmitEdit}

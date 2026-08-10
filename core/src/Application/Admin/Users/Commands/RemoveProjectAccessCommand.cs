@@ -17,9 +17,7 @@ public class RemoveProjectAccessCommandHandler(
 {
     public async ValueTask<RemoveProjectAccessResult> Handle(RemoveProjectAccessCommand request, CancellationToken cancellationToken)
     {
-        var currentUser = await userAuthorizationService.GetCurrentUserAsync(cancellationToken);
-        var canManageUsers = currentUser?.Role is UserRole.Admin or UserRole.Editor;
-        if (!canManageUsers)
+        if (!await userAuthorizationService.CanManageUsersAsync(cancellationToken))
             return new RemoveProjectAccessResult(false, "Access denied");
 
         var user = await userRepository.GetByIdAsync(request.UserId, cancellationToken);

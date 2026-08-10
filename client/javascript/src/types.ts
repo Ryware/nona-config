@@ -1,6 +1,6 @@
 export type NonaContentType = "text" | "number" | "boolean" | "json";
 export type NonaConfigScope = "client" | "server" | "all";
-export type NonaUserRole = "viewer" | "editor";
+export type NonaUserRole = "admin" | "member";
 
 export interface NonaClientOptions {
   baseUrl: string | URL;

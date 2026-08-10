@@ -8,10 +8,9 @@ namespace Nona.Application.Tests.Users;
 public class CreateUserCommandTests
 {
     [Test]
-    public async Task CreateUser_RejectsViewer()
+    public async Task CreateUser_RejectsMember()
     {
         var fixture = new TestFixture();
-        fixture.CurrentUserService.Role.Returns(UserRole.Viewer);
         fixture.UserAuthorizationService.CanManageUsersAsync(Arg.Any<CancellationToken>()).Returns(false);
 
         var handler = new CreateUserCommandHandler(
@@ -20,7 +19,7 @@ public class CreateUserCommandTests
             fixture.UserAuthorizationService);
 
         var result = await handler.Handle(
-            new CreateUserCommand("New User", "new@example.com", "viewer", "all"),
+            new CreateUserCommand("New User", "new@example.com", "member", "all"),
             CancellationToken.None);
 
         await Assert.That(result.Success).IsFalse();
@@ -31,10 +30,9 @@ public class CreateUserCommandTests
     }
 
     [Test]
-    public async Task CreateUser_AllowsEditor()
+    public async Task CreateUser_AdminCanInviteAnotherAdmin()
     {
         var fixture = new TestFixture();
-        fixture.CurrentUserService.Role.Returns(UserRole.Editor);
         fixture.UserAuthorizationService.CanManageUsersAsync(Arg.Any<CancellationToken>()).Returns(true);
         fixture.DateTime.NowUtc.Returns(new DateTime(2026, 6, 15, 12, 0, 0, DateTimeKind.Utc));
 
@@ -44,12 +42,35 @@ public class CreateUserCommandTests
             fixture.UserAuthorizationService);
 
         var result = await handler.Handle(
-            new CreateUserCommand("New User", "new@example.com", "viewer", "all"),
+            new CreateUserCommand("New Admin", "new@example.com", "admin", "all"),
             CancellationToken.None);
 
         await Assert.That(result.Success).IsTrue();
         await fixture.UserRepository.Received(1).AddAsync(
-            Arg.Is<User>(user => user.Email == "new@example.com" && user.Name == "New User"),
+            Arg.Is<User>(user =>
+                user.Email == "new@example.com"
+                && user.Name == "New Admin"
+                && user.Role == UserRole.Admin),
             Arg.Any<CancellationToken>());
+    }
+
+    [Test]
+    public async Task CreateUser_DefaultsToMemberWithoutProjects()
+    {
+        var fixture = new TestFixture();
+        fixture.UserAuthorizationService.CanManageUsersAsync(Arg.Any<CancellationToken>()).Returns(true);
+
+        var handler = new CreateUserCommandHandler(
+            fixture.UserRepository,
+            fixture.DateTime,
+            fixture.UserAuthorizationService);
+
+        var result = await handler.Handle(
+            new CreateUserCommand("New Member", "member@example.com", null, null),
+            CancellationToken.None);
+
+        await Assert.That(result.Success).IsTrue();
+        await Assert.That(result.Response!.User.Role).IsEqualTo("member");
+        await Assert.That(result.Response.User.Projects).IsEmpty();
     }
 }

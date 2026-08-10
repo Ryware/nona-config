@@ -18,6 +18,9 @@ public class DeleteUserCommandHandler(
 {
     public async ValueTask<DeleteUserResult> Handle(DeleteUserCommand request, CancellationToken cancellationToken)
     {
+        if (!await userAuthorizationService.CanManageUsersAsync(cancellationToken))
+            return new DeleteUserResult(false, "Access denied");
+
         var user = await userRepository.GetByIdAsync(request.Id, cancellationToken);
         if (user is null)
             return new DeleteUserResult(false, "User not found");
@@ -28,11 +31,11 @@ public class DeleteUserCommandHandler(
             return new DeleteUserResult(false, "You cannot delete your own user account");
 
         if (user.Role == UserRole.Admin)
-            return new DeleteUserResult(false, "Admin user cannot be deleted");
-
-        var canManageUsers = currentUser?.Role is UserRole.Admin or UserRole.Editor;
-        if (!canManageUsers)
-            return new DeleteUserResult(false, "Access denied");
+        {
+            var users = await userRepository.ListAsync(cancellationToken);
+            if (users.Count(candidate => candidate.Role == UserRole.Admin) <= 1)
+                return new DeleteUserResult(false, "At least one admin is required");
+        }
 
         await projectMemberRepository.DeleteByUserAsync(user.Email, cancellationToken);
         await userRepository.DeleteAsync(user.Email, cancellationToken);

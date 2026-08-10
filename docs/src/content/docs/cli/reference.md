@@ -98,7 +98,7 @@ nona users create [options]
 --bearer-token, --token <bearer-token>  Admin bearer token.
 --name <name> (REQUIRED)                Full name of the new user.
 --user-email <user-email> (REQUIRED)    Email address of the new user.
---role <role>                           User role: viewer or editor.
+--role <role>                           User role: admin or member.
 --scope <scope>                         User scope: client, server, or all.
 ```
 

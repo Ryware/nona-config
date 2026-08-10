@@ -6,6 +6,7 @@ import { projectService } from "../../../entities/project/api/project.service";
 import { projectKeys } from "../../../entities/project/queries/keys";
 import { useEscapeKey } from "../../../shared/hooks/useEscapeKey";
 import { MSG } from "../../../shared/lib/messages";
+import { AccessDenied } from "../../../shared/ui/AccessDenied";
 import { useToast } from "../../../shared/ui/toast";
 import type { CreateApiKeyRequest } from "../../../types";
 import { ProjectApiKeys } from "../components/ProjectApiKeys";
@@ -76,7 +77,7 @@ export default function ApiKeysSection() {
       project={project()}
       projectLoading={projectsQuery.isLoading}
     >
-      <Show when={canManageProject()}>
+      <Show when={canManageProject()} fallback={<AccessDenied />}>
         <ProjectApiKeys
           apiKeys={apiKeysQuery.status === "success" ? (apiKeysQuery.data ?? []) : []}
           isLoading={apiKeysQuery.isLoading}

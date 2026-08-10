@@ -2,9 +2,10 @@ import { A, useLocation } from "@solidjs/router";
 import { useQuery } from "@tanstack/solid-query";
 import { For, Show } from "solid-js";
 import { authService } from "../../entities/auth/api/auth.service";
+import { canManageProjects, canManageUsers } from "../../entities/auth/model/permissions";
 import { authStore } from "../../entities/auth/model/store";
 import { projectService } from "../../entities/project/api/project.service";
-import { getActiveProjectHref } from "../../entities/project/model/active-project";
+import { getActiveProjectHref, getActiveProjectSlug } from "../../entities/project/model/active-project";
 import { projectKeys } from "../../entities/project/queries/keys";
 
 function getUser(): { email: string; role: string } {
@@ -17,6 +18,7 @@ interface NavItemDef {
   icon: string;
   href: () => string;
   isActive: () => boolean;
+  requiresEdit?: boolean;
 }
 
 export const Sidebar = (props: {
@@ -27,6 +29,8 @@ export const Sidebar = (props: {
 }) => {
   const location = useLocation();
   const user = getUser();
+  const isAdmin = canManageUsers();
+  const canCreateProjects = canManageProjects();
   const initials = user.email ? user.email.slice(0, 2).toUpperCase() : "NA";
 
   const projectsQuery = useQuery(() => ({
@@ -35,6 +39,10 @@ export const Sidebar = (props: {
   }));
   // Once loaded, an empty instance collapses the nav to a single Create Project CTA.
   const noProjects = () => projectsQuery.isSuccess && (projectsQuery.data?.length ?? 0) === 0;
+  const activeProject = () =>
+    projectsQuery.data?.find(project => project.urlSlug === getActiveProjectSlug());
+  const canEditActiveProject = () =>
+    activeProject()?.accessLevel === "admin" || activeProject()?.accessLevel === "editor";
 
   const selectedProjectHref = () => getActiveProjectHref();
   const projectPageHref = (
@@ -66,6 +74,7 @@ export const Sidebar = (props: {
       icon: "key",
       href: () => projectPageHref("apiKeys"),
       isActive: () => location.pathname.endsWith("/api-keys"),
+      requiresEdit: true,
     },
     {
       label: "Releases",
@@ -78,6 +87,7 @@ export const Sidebar = (props: {
       icon: "link",
       href: () => projectPageHref("sharedLinks"),
       isActive: () => location.pathname.endsWith("/shared-links"),
+      requiresEdit: true,
     },
     {
       label: "Environments",
@@ -86,6 +96,8 @@ export const Sidebar = (props: {
       isActive: () => location.pathname.endsWith("/environments"),
     },
   ];
+  const visibleProjectNavItems = () =>
+    projectNavItems.filter(item => !item.requiresEdit || canEditActiveProject());
 
   const footerNavItems: NavItemDef[] = [
     {
@@ -94,18 +106,23 @@ export const Sidebar = (props: {
       href: () => "/projects",
       isActive: () => location.pathname === "/projects",
     },
-    {
-      label: "Team",
-      icon: "group",
-      href: () => "/users",
-      isActive: () => location.pathname === "/users" || location.pathname.startsWith("/user"),
-    },
-    {
-      label: "Audit Logs",
-      icon: "manage_history",
-      href: () => "/audit-logs",
-      isActive: () => location.pathname === "/audit-logs",
-    },
+    ...(isAdmin
+      ? [
+          {
+            label: "Team",
+            icon: "group",
+            href: () => "/users",
+            isActive: () =>
+              location.pathname === "/users" || location.pathname.startsWith("/user"),
+          },
+          {
+            label: "Audit Logs",
+            icon: "manage_history",
+            href: () => "/audit-logs",
+            isActive: () => location.pathname === "/audit-logs",
+          },
+        ]
+      : []),
   ];
 
   const navItem = (active: boolean, collapsed: boolean) =>
@@ -163,7 +180,7 @@ export const Sidebar = (props: {
           <Show
             when={noProjects()}
             fallback={
-              <For each={projectNavItems}>
+              <For each={visibleProjectNavItems()}>
                 {item => (
                   <A
                     href={item.href()}
@@ -188,26 +205,41 @@ export const Sidebar = (props: {
               </For>
             }
           >
-            <A
-              href="/projects?new=1"
-              onClick={() => props.onClose()}
-              title={props.collapsed ? "Create Project" : undefined}
-              aria-label="Create Project"
-              data-testid="sidebar-create-project"
-              class={`bg-primary text-on-primary flex items-center justify-center gap-2 rounded-lg text-[13px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] ${
-                props.collapsed ? "px-2.5 py-2.5" : "px-3 py-2.5"
-              }`}
+            <Show
+              when={canCreateProjects}
+              fallback={
+                <A
+                  href="/projects"
+                  onClick={() => props.onClose()}
+                  aria-label="Projects"
+                  class={navItem(location.pathname === "/projects", props.collapsed)}
+                >
+                  <span class="material-symbols-outlined text-[20px] shrink-0">folder_open</span>
+                  <Show when={!props.collapsed}>Projects</Show>
+                </A>
+              }
             >
-              <span class="material-symbols-outlined text-[18px] shrink-0">add</span>
-              <Show when={!props.collapsed}>Create Project</Show>
-            </A>
+              <A
+                href="/projects?new=1"
+                onClick={() => props.onClose()}
+                title={props.collapsed ? "Create Project" : undefined}
+                aria-label="Create Project"
+                data-testid="sidebar-create-project"
+                class={`bg-primary text-on-primary flex items-center justify-center gap-2 rounded-lg text-[13px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] ${
+                  props.collapsed ? "px-2.5 py-2.5" : "px-3 py-2.5"
+                }`}
+              >
+                <span class="material-symbols-outlined text-[18px] shrink-0">add</span>
+                <Show when={!props.collapsed}>Create Project</Show>
+              </A>
+            </Show>
           </Show>
         </div>
 
         <div class="flex-1" />
 
         <div class={`mt-auto pb-4 space-y-2 ${props.collapsed ? "px-2" : "px-3"}`}>
-          <Show when={!noProjects()}>
+          <Show when={!noProjects() || isAdmin}>
             <Show when={!props.collapsed}>
               <p class="px-1 pb-1 text-[10px] font-semibold text-outline/50 tracking-[0.08em] uppercase">
                 Admin
@@ -270,7 +302,7 @@ export const Sidebar = (props: {
                   {user.email || "Console User"}
                 </p>
                 <p class="text-[10px] text-outline/60 mt-0.5 capitalize tracking-wide">
-                  {user.role || "editor"}
+                  {user.role || "member"}
                 </p>
               </div>
               <button

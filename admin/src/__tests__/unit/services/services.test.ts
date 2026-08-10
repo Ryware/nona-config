@@ -236,12 +236,12 @@ describe('userService', () => {
 
   it('create returns new user', async () => {
     const result = await userService.create({
-      name: 'Charlie Viewer',
+      name: 'Charlie Member',
       email: 'charlie@example.com',
-      role: 'viewer',
+      role: 'member',
     });
     expect(result.user.email).toBe('charlie@example.com');
-    expect(result.user.role).toBe('viewer');
+    expect(result.user.role).toBe('member');
     expect(result.invitationToken).toBe('invite-token-123');
   });
 

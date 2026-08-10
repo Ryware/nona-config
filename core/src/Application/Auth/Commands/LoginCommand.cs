@@ -1,5 +1,6 @@
 using Mediator;
 using Nona.Application.Auth.DTOs;
+using Nona.Application.Common;
 using Nona.Application.Common.Interfaces;
 using Nona.Domain.Interfaces;
 
@@ -27,7 +28,7 @@ public class LoginCommandHandler(IUserRepository userRepository, IJwtTokenServic
         var response = new LoginResponse(
             token,
             user.Email,
-            user.Role.ToString().ToLowerInvariant(),
+            user.Role.ToApiString(),
             expiresAt);
 
         return new LoginResult(true, response, null);

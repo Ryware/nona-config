@@ -1,5 +1,7 @@
 // Auth domain types — source of truth for auth-related contracts
 
+export type OrganizationRole = "admin" | "member";
+
 export interface LoginRequest {
   email: string;
   password: string;
@@ -8,7 +10,7 @@ export interface LoginRequest {
 export interface LoginResponse {
   token: string;
   username?: string;
-  role: string;
+  role: OrganizationRole;
   expiresAt: string;
 }
 

@@ -186,7 +186,7 @@ public class LoginWithSsoCommandTests
             Id = 42,
             Email = email,
             Name = "Example User",
-            Role = UserRole.Editor,
+            Role = UserRole.Member,
             Scope = KeyScope.All,
             CreatedAt = new DateTime(2026, 4, 16, 10, 0, 0, DateTimeKind.Utc),
             UpdatedAt = new DateTime(2026, 4, 16, 10, 0, 0, DateTimeKind.Utc)

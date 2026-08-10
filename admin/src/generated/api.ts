@@ -2919,6 +2919,7 @@ export interface components {
             id: number | string;
             name: string;
             urlSlug: null | string;
+            accessLevel: string;
             environments: string[];
             /** Format: date-time */
             createdAt: string;
@@ -2974,7 +2975,7 @@ export interface components {
             value: string;
         };
         UpdateUserRequest: {
-            name: string;
+            name: null | string;
             role: null | string;
             scope: null | string;
         };

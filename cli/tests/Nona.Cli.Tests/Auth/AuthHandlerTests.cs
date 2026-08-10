@@ -15,7 +15,7 @@ public sealed class AuthHandlerTests
             {
               "token": "jwt-token",
               "username": "admin@example.com",
-              "role": "viewer",
+              "role": "admin",
               "expiresAt": "2026-06-04T12:00:00Z"
             }
             """;

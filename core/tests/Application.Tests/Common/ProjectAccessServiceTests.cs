@@ -36,7 +36,7 @@ public class ProjectAccessServiceTests
 
         userAuthorizationService.HasGlobalProjectAccessAsync(Arg.Any<CancellationToken>()).Returns(false);
         userAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
-            .Returns(new User { Email = Username, Name = Username, Role = UserRole.Viewer });
+            .Returns(new User { Email = Username, Name = Username, Role = UserRole.Member });
         projectMemberRepository.ExistsAsync(Username, ProjectName, Arg.Any<CancellationToken>()).Returns(true);
 
         var service = new ProjectAccessService(currentUserService, userAuthorizationService, projectMemberRepository);
@@ -55,7 +55,7 @@ public class ProjectAccessServiceTests
 
         userAuthorizationService.HasGlobalProjectAccessAsync(Arg.Any<CancellationToken>()).Returns(false);
         userAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
-            .Returns(new User { Email = Username, Name = Username, Role = UserRole.Viewer });
+            .Returns(new User { Email = Username, Name = Username, Role = UserRole.Member });
         projectMemberRepository.ExistsAsync(Username, ProjectName, Arg.Any<CancellationToken>()).Returns(false);
 
         var service = new ProjectAccessService(currentUserService, userAuthorizationService, projectMemberRepository);
@@ -109,7 +109,7 @@ public class ProjectAccessServiceTests
 
         userAuthorizationService.HasGlobalProjectAccessAsync(Arg.Any<CancellationToken>()).Returns(false);
         userAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
-            .Returns(new User { Email = Username, Name = Username, Role = UserRole.Viewer });
+            .Returns(new User { Email = Username, Name = Username, Role = UserRole.Member });
         projectMemberRepository.GetAsync(Username, ProjectName, Arg.Any<CancellationToken>())
             .Returns(new ProjectMember { Username = Username, ProjectId = ProjectName, Role = ProjectRole.Editor });
 
@@ -129,7 +129,7 @@ public class ProjectAccessServiceTests
 
         userAuthorizationService.HasGlobalProjectAccessAsync(Arg.Any<CancellationToken>()).Returns(false);
         userAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
-            .Returns(new User { Email = Username, Name = Username, Role = UserRole.Viewer });
+            .Returns(new User { Email = Username, Name = Username, Role = UserRole.Member });
         projectMemberRepository.GetAsync(Username, ProjectName, Arg.Any<CancellationToken>())
             .Returns(new ProjectMember { Username = Username, ProjectId = ProjectName, Role = ProjectRole.Viewer });
 
@@ -149,7 +149,7 @@ public class ProjectAccessServiceTests
 
         userAuthorizationService.HasGlobalProjectAccessAsync(Arg.Any<CancellationToken>()).Returns(false);
         userAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
-            .Returns(new User { Email = Username, Name = Username, Role = UserRole.Viewer });
+            .Returns(new User { Email = Username, Name = Username, Role = UserRole.Member });
         projectMemberRepository.GetAsync(Username, ProjectName, Arg.Any<CancellationToken>())
             .Returns((ProjectMember?)null);
 

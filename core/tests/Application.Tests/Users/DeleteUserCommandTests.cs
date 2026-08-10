@@ -8,154 +8,97 @@ namespace Nona.Application.Tests.Users;
 public class DeleteUserCommandTests
 {
     private const long UserId = 42;
-    private const string Email = "user@example.com";
 
     [Test]
-    public async Task DeleteUser_RejectsDeletingCurrentUser()
+    public async Task Member_CannotDeleteUsers()
     {
         var fixture = new TestFixture();
-        fixture.CurrentUserService.Username.Returns("USER@example.com");
-        fixture.UserAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
-            .Returns(new User { Id = UserId, Email = "USER@example.com", Name = "User", Role = UserRole.Editor });
-        fixture.UserRepository.GetByIdAsync(UserId, Arg.Any<CancellationToken>())
-            .Returns(new User
-            {
-                Id = UserId,
-                Email = Email,
-                Name = "User"
-            });
+        fixture.UserAuthorizationService.CanManageUsersAsync(Arg.Any<CancellationToken>()).Returns(false);
 
-        var handler = new DeleteUserCommandHandler(
-            fixture.UserRepository,
-            fixture.ProjectMemberRepository,
-            fixture.UserAuthorizationService);
+        var result = await CreateHandler(fixture).Handle(new DeleteUserCommand(UserId), CancellationToken.None);
 
-        var result = await handler.Handle(new DeleteUserCommand(UserId), CancellationToken.None);
+        await Assert.That(result.Success).IsFalse();
+        await Assert.That(result.Error).IsEqualTo("Access denied");
+        await fixture.UserRepository.DidNotReceive().DeleteAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Test]
+    public async Task Admin_CannotDeleteSelf()
+    {
+        var fixture = new TestFixture();
+        fixture.SetupAsSystemAdmin("admin@example.com");
+        fixture.UserRepository.GetByIdAsync(UserId, Arg.Any<CancellationToken>()).Returns(new User
+        {
+            Id = UserId,
+            Email = "ADMIN@example.com",
+            Name = "Admin",
+            Role = UserRole.Admin
+        });
+
+        var result = await CreateHandler(fixture).Handle(new DeleteUserCommand(UserId), CancellationToken.None);
 
         await Assert.That(result.Success).IsFalse();
         await Assert.That(result.Error).IsEqualTo("You cannot delete your own user account");
-        await fixture.ProjectMemberRepository.DidNotReceive()
-            .DeleteByUserAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
-        await fixture.UserRepository.DidNotReceive()
-            .DeleteAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await fixture.UserRepository.DidNotReceive().DeleteAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     [Test]
-    public async Task DeleteUser_DeletesDifferentUser()
+    public async Task Admin_DeletesMemberAndMemberships()
     {
         var fixture = new TestFixture();
-        fixture.CurrentUserService.Username.Returns("admin@example.com");
-        fixture.CurrentUserService.Role.Returns(UserRole.Editor);
-        fixture.UserAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
-            .Returns(new User { Id = 7, Email = "admin@example.com", Name = "Admin", Role = UserRole.Editor });
-        fixture.UserRepository.GetByIdAsync(UserId, Arg.Any<CancellationToken>())
-            .Returns(new User
-            {
-                Id = UserId,
-                Email = Email,
-                Name = "User"
-            });
+        fixture.SetupAsSystemAdmin("admin@example.com");
+        fixture.UserRepository.GetByIdAsync(UserId, Arg.Any<CancellationToken>()).Returns(new User
+        {
+            Id = UserId,
+            Email = "member@example.com",
+            Name = "Member",
+            Role = UserRole.Member
+        });
 
-        var handler = new DeleteUserCommandHandler(
-            fixture.UserRepository,
-            fixture.ProjectMemberRepository,
-            fixture.UserAuthorizationService);
-
-        var result = await handler.Handle(new DeleteUserCommand(UserId), CancellationToken.None);
+        var result = await CreateHandler(fixture).Handle(new DeleteUserCommand(UserId), CancellationToken.None);
 
         await Assert.That(result.Success).IsTrue();
-        await Assert.That(result.Error).IsNull();
         await fixture.ProjectMemberRepository.Received(1)
-            .DeleteByUserAsync(Email, Arg.Any<CancellationToken>());
+            .DeleteByUserAsync("member@example.com", Arg.Any<CancellationToken>());
         await fixture.UserRepository.Received(1)
-            .DeleteAsync(Email, Arg.Any<CancellationToken>());
+            .DeleteAsync("member@example.com", Arg.Any<CancellationToken>());
     }
 
     [Test]
-    public async Task DeleteUser_RejectsViewerDeletingDifferentUser()
+    public async Task Admin_DeletesAnotherAdminWhenOneRemains()
     {
         var fixture = new TestFixture();
-        fixture.CurrentUserService.Username.Returns("viewer@example.com");
-        fixture.CurrentUserService.Role.Returns(UserRole.Viewer);
-        fixture.UserAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
-            .Returns(new User { Id = 7, Email = "viewer@example.com", Name = "Viewer", Role = UserRole.Viewer });
-        fixture.UserRepository.GetByIdAsync(UserId, Arg.Any<CancellationToken>())
-            .Returns(new User
-            {
-                Id = UserId,
-                Email = Email,
-                Name = "User"
-            });
+        fixture.SetupAsSystemAdmin("current@example.com");
+        var current = new User { Email = "current@example.com", Name = "Current", Role = UserRole.Admin };
+        var target = new User { Id = UserId, Email = "other@example.com", Name = "Other", Role = UserRole.Admin };
+        fixture.UserRepository.GetByIdAsync(UserId, Arg.Any<CancellationToken>()).Returns(target);
+        fixture.UserRepository.ListAsync(Arg.Any<CancellationToken>()).Returns([current, target]);
 
-        var handler = new DeleteUserCommandHandler(
-            fixture.UserRepository,
-            fixture.ProjectMemberRepository,
-            fixture.UserAuthorizationService);
+        var result = await CreateHandler(fixture).Handle(new DeleteUserCommand(UserId), CancellationToken.None);
 
-        var result = await handler.Handle(new DeleteUserCommand(UserId), CancellationToken.None);
-
-        await Assert.That(result.Success).IsFalse();
-        await Assert.That(result.Error).IsEqualTo("Access denied");
-        await fixture.ProjectMemberRepository.DidNotReceive()
-            .DeleteByUserAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
-        await fixture.UserRepository.DidNotReceive()
-            .DeleteAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await Assert.That(result.Success).IsTrue();
+        await fixture.UserRepository.Received(1)
+            .DeleteAsync("other@example.com", Arg.Any<CancellationToken>());
     }
 
     [Test]
-    public async Task DeleteUser_UsesPersistedRoleAfterSelfDemotion()
+    public async Task Admin_CannotDeleteLastAdmin()
     {
         var fixture = new TestFixture();
-        fixture.CurrentUserService.Username.Returns("viewer@example.com");
-        fixture.CurrentUserService.Role.Returns(UserRole.Editor);
-        fixture.UserAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
-            .Returns(new User { Id = 7, Email = "viewer@example.com", Name = "Former Editor", Role = UserRole.Viewer });
-        fixture.UserRepository.GetByIdAsync(UserId, Arg.Any<CancellationToken>())
-            .Returns(new User
-            {
-                Id = UserId,
-                Email = Email,
-                Name = "User"
-            });
+        fixture.SetupAsSystemAdmin("current@example.com");
+        var target = new User { Id = UserId, Email = "other@example.com", Name = "Other", Role = UserRole.Admin };
+        fixture.UserRepository.GetByIdAsync(UserId, Arg.Any<CancellationToken>()).Returns(target);
+        fixture.UserRepository.ListAsync(Arg.Any<CancellationToken>()).Returns([target]);
 
-        var handler = new DeleteUserCommandHandler(
-            fixture.UserRepository,
-            fixture.ProjectMemberRepository,
-            fixture.UserAuthorizationService);
-
-        var result = await handler.Handle(new DeleteUserCommand(UserId), CancellationToken.None);
+        var result = await CreateHandler(fixture).Handle(new DeleteUserCommand(UserId), CancellationToken.None);
 
         await Assert.That(result.Success).IsFalse();
-        await Assert.That(result.Error).IsEqualTo("Access denied");
-        await fixture.UserRepository.DidNotReceive()
-            .DeleteAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await Assert.That(result.Error).IsEqualTo("At least one admin is required");
+        await fixture.UserRepository.DidNotReceive().DeleteAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
-    [Test]
-    public async Task DeleteUser_RejectsEditorDeletingSystemAdmin()
-    {
-        var fixture = new TestFixture();
-        fixture.UserAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
-            .Returns(new User { Id = 7, Email = "editor@example.com", Name = "Editor", Role = UserRole.Editor });
-        fixture.UserRepository.GetByIdAsync(UserId, Arg.Any<CancellationToken>())
-            .Returns(new User
-            {
-                Id = UserId,
-                Email = "admin@example.com",
-                Name = "Admin",
-                Role = UserRole.Admin
-            });
-
-        var handler = new DeleteUserCommandHandler(
-            fixture.UserRepository,
-            fixture.ProjectMemberRepository,
-            fixture.UserAuthorizationService);
-
-        var result = await handler.Handle(new DeleteUserCommand(UserId), CancellationToken.None);
-
-        await Assert.That(result.Success).IsFalse();
-        await Assert.That(result.Error).IsEqualTo("Admin user cannot be deleted");
-        await fixture.UserRepository.DidNotReceive()
-            .DeleteAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
-    }
+    private static DeleteUserCommandHandler CreateHandler(TestFixture fixture) => new(
+        fixture.UserRepository,
+        fixture.ProjectMemberRepository,
+        fixture.UserAuthorizationService);
 }

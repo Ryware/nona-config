@@ -3,6 +3,7 @@ import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { setActiveEnvironmentName } from '../../entities/project/model/active-environment';
+import { mockProjects } from '../mocks/data';
 import { server } from '../mocks/server';
 import {
   renderProjectSections,
@@ -31,6 +32,24 @@ describe('ProjectParametersSection', () => {
 
     expect(await screen.findByText('API_URL')).toBeInTheDocument();
     expect(await screen.findByText('MAX_RETRIES')).toBeInTheDocument();
+  });
+
+  it('keeps project Viewers read-only', async () => {
+    localStorage.setItem(
+      'auth_session',
+      JSON.stringify({ email: 'viewer@example.com', role: 'member' }),
+    );
+    server.use(
+      http.get('http://localhost:5027/admin/projects', () =>
+        HttpResponse.json([{ ...mockProjects[0], accessLevel: 'viewer' }]),
+      ),
+    );
+
+    renderProjectSections('/projects/my-app');
+
+    expect(await screen.findByText('API_URL')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /add parameter/i })).not.toBeInTheDocument();
+    expect(screen.queryByTestId('parameter-share-API_URL')).not.toBeInTheDocument();
   });
 
   it('opens parameter details inline as an accordion', async () => {

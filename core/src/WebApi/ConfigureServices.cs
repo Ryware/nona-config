@@ -69,10 +69,7 @@ public static class ConfigureServices
                 .RequireAuthenticatedUser())
             .AddPolicy(AdminReadAuthorizationPolicies.Manage, policy => policy
                 .RequireAuthenticatedUser()
-                .AddRequirements(new AdminReadAuthorizationRequirement(allowSelf: false)))
-            .AddPolicy(AdminReadAuthorizationPolicies.SelfOrManageUser, policy => policy
-                .RequireAuthenticatedUser()
-                .AddRequirements(new AdminReadAuthorizationRequirement(allowSelf: true)));
+                .AddRequirements(new AdminReadAuthorizationRequirement()));
 
         return services;
     }

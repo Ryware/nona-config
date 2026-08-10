@@ -52,7 +52,7 @@ export function ProjectGrid(props: ProjectGridProps) {
               <p class="text-on-surface-variant mb-6 text-[13px]">
                 {props.canCreateProjects
                   ? "Create your first project to start managing configuration."
-                  : "No projects are available for your account."}
+                  : "You have no project assignments. Contact an Admin for access."}
               </p>
               <Show when={props.canCreateProjects}>
                 <button

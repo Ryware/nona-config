@@ -3,9 +3,8 @@ import type { User, CreateUserRequest, CreateUserResponse, ProjectAccess } from 
 
 export interface UpdateUserRequest {
   name?: string;
-  email?: string;
-  password?: string;
-  role?: string;
+  role?: "admin" | "member";
+  scope?: "client" | "server" | "all";
 }
 
 export const userService = {
@@ -29,7 +28,7 @@ export const userService = {
     return apiClient.delete(`/admin/users/${id}`);
   },
 
-  async addProject(userId: string, projectName: string, role: string): Promise<ProjectAccess> {
+  async addProject(userId: string, projectName: string, role: "editor" | "viewer"): Promise<ProjectAccess> {
     return apiClient.put<ProjectAccess>(
       `/admin/users/${userId}/projects/${projectName}`,
       { role },

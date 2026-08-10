@@ -6,8 +6,7 @@ namespace Nona.Application.Tests.Common;
 public class EnumExtensionsTests
 {
     [Test]
-    [Arguments(UserRole.Viewer, "viewer")]
-    [Arguments(UserRole.Editor, "editor")]
+    [Arguments(UserRole.Member, "member")]
     [Arguments(UserRole.Admin, "admin")]
     public async Task ToApiString_ReturnsExplicitRoleName(UserRole role, string expected)
     {
@@ -15,8 +14,8 @@ public class EnumExtensionsTests
     }
 
     [Test]
-    [Arguments("viewer", UserRole.Viewer)]
-    [Arguments("EDITOR", UserRole.Editor)]
+    [Arguments("member", UserRole.Member)]
+    [Arguments("ADMIN", UserRole.Admin)]
     public async Task TryParseApiRole_AcceptsSupportedRoles(string value, UserRole expectedRole)
     {
         var parsed = EnumExtensions.TryParseApiRole(value, out var role);
@@ -28,7 +27,8 @@ public class EnumExtensionsTests
     [Test]
     [Arguments(null)]
     [Arguments("")]
-    [Arguments("admin")]
+    [Arguments("viewer")]
+    [Arguments("editor")]
     [Arguments(" viewer ")]
     public async Task TryParseApiRole_RejectsUnsupportedRoles(string? value)
     {
