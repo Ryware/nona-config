@@ -4,11 +4,13 @@ import { createSignal, Show } from "solid-js";
 import { authService } from "../../entities/auth/api/auth.service";
 import { authStore } from "../../entities/auth/model/store";
 import { ApiRequestError } from "../../shared/api/client";
+import { validateNewPassword } from "../../shared/lib/password-policy";
 import { Button } from "../../shared/ui/button";
 import { MIcon } from "../../shared/ui/icons";
 import type { LoginResponse } from "../../types";
 import { AuthCard } from "../../widgets/auth-shell/AuthCard";
 import { FormField } from "../../widgets/auth-shell/FormField";
+import { PasswordStrengthMeter } from "../../widgets/auth-shell/PasswordStrengthMeter";
 import { SsoSection } from "../../widgets/auth-shell/SsoSection";
 
 export default function InvitePage() {
@@ -49,8 +51,9 @@ export default function InvitePage() {
     e.preventDefault();
     setError("");
 
-    if (password() !== confirmPassword()) {
-      setError("Passwords do not match.");
+    const passwordError = validateNewPassword(password(), confirmPassword());
+    if (passwordError) {
+      setError(passwordError);
       return;
     }
 
@@ -116,18 +119,21 @@ export default function InvitePage() {
           </div>
 
           <form onSubmit={handleSubmit} class="space-y-5">
-            <FormField
-              id="password"
-              label="Create Password"
-              type="password"
-              placeholder="••••••••••••"
-              value={password()}
-              onInput={e => setPassword(e.currentTarget.value)}
-              required
-              autofocus
-              autocomplete="new-password"
-              leftIcon="key"
-            />
+            <div>
+              <FormField
+                id="password"
+                label="Create Password"
+                type="password"
+                placeholder="••••••••••••"
+                value={password()}
+                onInput={e => setPassword(e.currentTarget.value)}
+                required
+                autofocus
+                autocomplete="new-password"
+                leftIcon="key"
+              />
+              <PasswordStrengthMeter password={password()} />
+            </div>
             <FormField
               id="confirm-password"
               label="Confirm Password"

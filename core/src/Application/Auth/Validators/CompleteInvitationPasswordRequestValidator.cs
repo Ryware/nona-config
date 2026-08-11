@@ -6,7 +6,6 @@ public class CompleteInvitationPasswordRequestValidator : AbstractValidator<Comp
 {
     public CompleteInvitationPasswordRequestValidator()
     {
-        RuleFor(x => x.NewPassword)
-            .NotEmpty();
+        RuleFor(x => x.NewPassword).PasswordPolicy();
     }
 }

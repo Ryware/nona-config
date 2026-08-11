@@ -30,7 +30,17 @@ function renderWithProviders(ui: () => JSX.Element) {
 describe('LoginPage', () => {
   beforeEach(() => {
     localStorage.clear();
+    window.history.replaceState({}, '', '/login');
     vi.restoreAllMocks();
+  });
+
+  it('shows confirmation after a completed password reset', () => {
+    window.history.replaceState({}, '', '/login?passwordReset=success');
+    renderWithProviders(LoginPage);
+
+    expect(screen.getByTestId('password-reset-success')).toHaveTextContent(
+      /sign in with your new password/i,
+    );
   });
 
   it('renders email and password fields and a submit button', () => {

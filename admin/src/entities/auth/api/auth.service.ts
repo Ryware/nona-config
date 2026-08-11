@@ -6,6 +6,9 @@ import type {
   RegisterRequest,
   SsoConfig,
   InvitationDetails,
+  PasswordResetDetails,
+  AccountDetails,
+  ChangePasswordRequest,
 } from "../model/types";
 
 export const authService = {
@@ -60,6 +63,22 @@ export const authService = {
 
   async completeInvitationWithMicrosoft(token: string, idToken: string): Promise<LoginResponse> {
     return apiClient.post<LoginResponse>(`/auth/invitations/${token}/sso/microsoft`, { idToken });
+  },
+
+  async getPasswordReset(token: string): Promise<PasswordResetDetails> {
+    return apiClient.get(`/auth/password-resets/${token}`);
+  },
+
+  async completePasswordReset(token: string, newPassword: string): Promise<void> {
+    await apiClient.post(`/auth/password-resets/${token}/password`, { newPassword });
+  },
+
+  async getCurrentAccount(): Promise<AccountDetails> {
+    return apiClient.get("/auth/me");
+  },
+
+  async changePassword(data: ChangePasswordRequest): Promise<void> {
+    await apiClient.put("/auth/password", data);
   },
 };
 

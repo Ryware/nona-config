@@ -15,6 +15,7 @@ internal static class UserDtoMapping
             user.Role.ToApiString(),
             user.Scope.ToApiString(),
             ToProjectAccessDtos(memberships),
+            !string.IsNullOrEmpty(user.PasswordHash),
             user.CreatedAt,
             user.UpdatedAt);
     }

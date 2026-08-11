@@ -22,6 +22,8 @@ public class User
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     public string? InviteTokenHash { get; set; }
+    public string? PasswordResetTokenHash { get; set; }
+    public DateTime? PasswordResetTokenExpiresAt { get; set; }
 
 }
 

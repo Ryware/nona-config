@@ -21,6 +21,17 @@ public class AuthRegisterEndpointTests
         var client = app.GetTestClient();
         var email = $"admin-{Guid.NewGuid():N}@example.com";
 
+        using (var weakPasswordResponse = await client.PostAsJsonAsync(
+            "/auth/register",
+            new { email, password = "x" }))
+        {
+            using var weakPasswordBody = await ParseJsonAsync(weakPasswordResponse);
+
+            await Assert.That(weakPasswordResponse.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+            await Assert.That(weakPasswordBody.RootElement.GetProperty("errors").GetProperty("Password")[0].GetString())
+                .IsEqualTo("Password must be at least 8 characters long");
+        }
+
         using var registerResponse = await client.PostAsJsonAsync(
             "/auth/register",
             new { email, password = "Password123!" });

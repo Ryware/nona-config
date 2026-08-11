@@ -210,6 +210,46 @@ describe('UsersPage', () => {
     expect(projectAssignmentCalls).toBe(0);
   });
 
+  it('generates a password reset link for a password-enabled user', async () => {
+    renderWithProviders(() => <UsersPage />);
+
+    fireEvent.click(await screen.findByTestId(`team-password-reset-${mockUsers[1].id}`));
+
+    expect(await screen.findByTestId('password-reset-link-dialog')).toBeInTheDocument();
+    expect(screen.getByDisplayValue(/\/reset-password\/password-reset-token-123$/i)).toBeInTheDocument();
+    expect(screen.getByText(/24 hours/i)).toBeInTheDocument();
+  });
+
+  it('does not offer password reset for the current user', async () => {
+    renderWithProviders(() => <UsersPage />);
+
+    await screen.findByText(mockUsers[0].email);
+
+    expect(screen.queryByTestId(`team-password-reset-${mockUsers[0].id}`)).not.toBeInTheDocument();
+    expect(screen.getByTestId(`team-password-reset-${mockUsers[1].id}`)).toBeInTheDocument();
+  });
+
+  it('does not offer password reset for passwordless users or Members', async () => {
+    server.use(
+      http.get('http://localhost:5027/admin/users', () =>
+        HttpResponse.json([
+          mockUsers[0],
+          { ...mockUsers[1], passwordEnabled: false },
+        ]),
+      ),
+    );
+    const firstRender = renderWithProviders(() => <UsersPage />);
+
+    await screen.findByText(mockUsers[1].email);
+    expect(screen.queryByTestId(`team-password-reset-${mockUsers[1].id}`)).not.toBeInTheDocument();
+
+    firstRender.unmount();
+    localStorage.setItem('auth_session', JSON.stringify({ email: mockUsers[0].email, role: 'member' }));
+    renderWithProviders(() => <UsersPage />);
+    await screen.findByText(mockUsers[0].email);
+    expect(screen.queryByTestId(`team-password-reset-${mockUsers[0].id}`)).not.toBeInTheDocument();
+  });
+
   it('pre-fills the email when editing a member inline', async () => {
     renderWithProviders(() => <UsersPage />);
 

@@ -1,3 +1,5 @@
+import { USER_ROLES, type UserRole } from "./roles";
+
 /**
  * Centralized auth session management.
  * Single source of truth for token storage and session metadata.
@@ -8,7 +10,7 @@
 
 export interface AuthSession {
   email: string;
-  role: "admin" | "member";
+  role: UserRole;
   username?: string;
 }
 
@@ -39,7 +41,9 @@ export const authStore = {
       const raw = localStorage.getItem("auth_session") ?? sessionStorage.getItem("auth_session");
       if (raw) {
         const session = JSON.parse(raw) as AuthSession;
-        return session.role === "admin" || session.role === "member" ? session : null;
+        return session.role === USER_ROLES.ADMIN || session.role === USER_ROLES.MEMBER
+          ? session
+          : null;
       }
     } catch {
       // corrupted storage — treat as logged out

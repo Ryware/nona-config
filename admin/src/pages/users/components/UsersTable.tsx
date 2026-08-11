@@ -10,8 +10,10 @@ interface UsersTableProps {
   filteredUsers: User[];
   currentUserEmail?: string;
   adminCount: number;
+  canResetPasswords: boolean;
   onEdit: (user: User) => void;
   onDelete: (user: User) => void;
+  onResetPassword: (user: User) => void;
   onInvite: () => void;
   // Inline edit
   editingUserId: string | null;
@@ -154,6 +156,20 @@ export function UsersTable(props: UsersTableProps) {
                     </div>
 
                     <div class="border-outline-variant/10 flex justify-end border-t px-4 py-2">
+                      <Show
+                        when={props.canResetPasswords && user.passwordEnabled && !isCurrentUser}
+                      >
+                        <button
+                          data-testid={`team-password-reset-${user.id}`}
+                          type="button"
+                          onClick={() => props.onResetPassword(user)}
+                          class="text-outline hover:text-warning hover:bg-warning/10 cursor-pointer rounded-lg border-0 bg-transparent p-1.5"
+                          title={`Generate password reset link for ${user.name || user.email}`}
+                          aria-label={`Generate password reset link for ${user.name || user.email}`}
+                        >
+                          <MIcon name="lock_reset" class="text-[18px]" />
+                        </button>
+                      </Show>
                       <button
                         data-testid={`team-remove-${user.id}`}
                         type="button"
@@ -373,6 +389,20 @@ export function UsersTable(props: UsersTableProps) {
                           </div>
                         </td>
                         <td class="px-6 py-4 text-right" onClick={e => e.stopPropagation()}>
+                          <Show
+                            when={props.canResetPasswords && user.passwordEnabled && !isCurrentUser}
+                          >
+                            <button
+                              data-testid={`team-password-reset-${user.id}`}
+                              type="button"
+                              onClick={() => props.onResetPassword(user)}
+                              class="text-outline hover:text-warning hover:bg-warning/10 cursor-pointer rounded-lg border-0 bg-transparent p-1.5 opacity-40 transition-opacity group-hover:opacity-100 focus:opacity-100"
+                              title={`Generate password reset link for ${user.name || user.email}`}
+                              aria-label={`Generate password reset link for ${user.name || user.email}`}
+                            >
+                              <MIcon name="lock_reset" class="text-[18px]" />
+                            </button>
+                          </Show>
                           <button
                             data-testid={`team-remove-${user.id}`}
                             type="button"

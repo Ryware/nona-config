@@ -2,6 +2,7 @@ import { writeClipboard } from "@solid-primitives/clipboard";
 import { Title } from "@solidjs/meta";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/solid-query";
 import { createMemo, createSignal, Show } from "solid-js";
+import { canResetPasswords } from "../../entities/auth/model/permissions";
 import { authStore } from "../../entities/auth/model/store";
 import { projectService } from "../../entities/project/api/project.service";
 import { projectKeys } from "../../entities/project/queries/keys";
@@ -14,10 +15,11 @@ import { MIcon } from "../../shared/ui/icons";
 import { Input } from "../../shared/ui/input";
 import { QueryErrorBanner } from "../../shared/ui/QueryGuard";
 import { useToast } from "../../shared/ui/toast";
-import type { CreateUserResponse, User } from "../../types";
+import type { CreateUserResponse, GeneratePasswordResetResponse, User } from "../../types";
 
 import { UserForm, type UserFormValue } from "./components/UserForm";
 import { UserInviteDialog } from "./components/UserInviteDialog";
+import { PasswordResetDialog } from "./components/PasswordResetDialog";
 import { UsersFilters } from "./components/UsersFilters";
 import { UsersStats } from "./components/UsersStats";
 import { UsersTable } from "./components/UsersTable";
@@ -33,6 +35,12 @@ export default function UsersPage() {
   const [editingUserId, setEditingUserId] = createSignal<string | null>(null);
   const [createdInvite, setCreatedInvite] = createSignal<CreateUserResponse | null>(null);
   const [copyFeedback, setCopyFeedback] = createSignal("");
+  const [createdPasswordReset, setCreatedPasswordReset] = createSignal<{
+    user: User;
+    response: GeneratePasswordResetResponse;
+  } | null>(null);
+  const [passwordResetCopyFeedback, setPasswordResetCopyFeedback] = createSignal("");
+  const sessionAllowsPasswordReset = canResetPasswords();
 
   const usersQuery = useQuery(() => ({
     queryKey: userKeys.list(),
@@ -132,6 +140,20 @@ export default function UsersPage() {
     onError: () => addToast(MSG.MEMBER_REMOVE_FAILED, "error")
   }));
 
+  const passwordResetMutation = useMutation(() => ({
+    mutationFn: async (user: User) => ({
+      user,
+      response: await userService.generatePasswordReset(user.id)
+    }),
+    onSuccess: result => {
+      setCreatedPasswordReset(result);
+      setPasswordResetCopyFeedback("");
+      addToast(MSG.PASSWORD_RESET_GENERATED, "success");
+    },
+    onError: (error: Error) =>
+      addToast(error.message || "Failed to generate password reset link", "error")
+  }));
+
   const toggleInvite = () => {
     setEditingUserId(null);
     setShowInvite(v => !v);
@@ -156,6 +178,26 @@ export default function UsersPage() {
     } catch {
       setCopyFeedback("Copy failed. You can still copy the URL manually.");
       addToast(MSG.INVITE_COPY_FAILED, "error");
+    }
+  };
+
+  const passwordResetUrl = () => {
+    const reset = createdPasswordReset();
+    if (!reset) return "";
+    return new URL(
+      `/reset-password/${reset.response.passwordResetToken}`,
+      window.location.origin
+    ).toString();
+  };
+
+  const copyPasswordResetUrl = async () => {
+    try {
+      await writeClipboard(passwordResetUrl());
+      setPasswordResetCopyFeedback("Password reset link copied");
+      addToast(MSG.PASSWORD_RESET_COPIED, "success");
+    } catch {
+      setPasswordResetCopyFeedback("Copy failed. You can still copy the URL manually.");
+      addToast(MSG.PASSWORD_RESET_COPY_FAILED, "error");
     }
   };
 
@@ -246,8 +288,10 @@ export default function UsersPage() {
             filteredUsers={filteredUsers()}
             currentUserEmail={currentUserEmail()}
             adminCount={adminCount()}
+            canResetPasswords={sessionAllowsPasswordReset}
             onEdit={openEdit}
             onDelete={user => setDeleteTarget(user)}
+            onResetPassword={user => passwordResetMutation.mutate(user)}
             onInvite={() => setShowInvite(true)}
             editingUserId={editingUserId()}
             editingUser={editUserQuery.data ?? null}
@@ -271,6 +315,16 @@ export default function UsersPage() {
         copyFeedback={copyFeedback()}
         onCopy={copyInvitationUrl}
         onClose={() => setCreatedInvite(null)}
+      />
+
+      <PasswordResetDialog
+        open={createdPasswordReset() !== null}
+        email={createdPasswordReset()?.user.email ?? ""}
+        resetUrl={passwordResetUrl()}
+        expiresAt={createdPasswordReset()?.response.expiresAt}
+        copyFeedback={passwordResetCopyFeedback()}
+        onCopy={copyPasswordResetUrl}
+        onClose={() => setCreatedPasswordReset(null)}
       />
 
       {/* Delete confirmation */}

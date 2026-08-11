@@ -40,6 +40,8 @@ namespace Nona.Cli.Generated.Models
 #else
         public string Name { get; set; }
 #endif
+        /// <summary>The passwordEnabled property</summary>
+        public bool? PasswordEnabled { get; set; }
         /// <summary>The projects property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
@@ -95,6 +97,7 @@ namespace Nona.Cli.Generated.Models
                 { "email", n => { Email = n.GetStringValue(); } },
                 { "id", n => { Id = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
                 { "name", n => { Name = n.GetStringValue(); } },
+                { "passwordEnabled", n => { PasswordEnabled = n.GetBoolValue(); } },
                 { "projects", n => { Projects = n.GetCollectionOfObjectValues<global::Nona.Cli.Generated.Models.ProjectAccessDto>(global::Nona.Cli.Generated.Models.ProjectAccessDto.CreateFromDiscriminatorValue)?.AsList(); } },
                 { "role", n => { Role = n.GetStringValue(); } },
                 { "scope", n => { Scope = n.GetStringValue(); } },
@@ -112,6 +115,7 @@ namespace Nona.Cli.Generated.Models
             writer.WriteStringValue("email", Email);
             writer.WriteObjectValue<UntypedNode>("id", Id);
             writer.WriteStringValue("name", Name);
+            writer.WriteBoolValue("passwordEnabled", PasswordEnabled);
             writer.WriteCollectionOfObjectValues<global::Nona.Cli.Generated.Models.ProjectAccessDto>("projects", Projects);
             writer.WriteStringValue("role", Role);
             writer.WriteStringValue("scope", Scope);

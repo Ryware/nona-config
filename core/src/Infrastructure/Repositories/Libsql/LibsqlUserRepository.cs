@@ -2,6 +2,7 @@ using Nona.Domain.Entities;
 using Nona.Domain.Enums;
 using Nona.Domain.Interfaces;
 using Nona.Libsql;
+using System.Globalization;
 
 namespace Nona.Infrastructure.Repositories.Libsql;
 
@@ -18,7 +19,7 @@ public sealed class LibsqlUserRepository : IUserRepository
     {
         var result = await _client.ExecuteAsync(
             """
-            SELECT rowid AS Id, Email, Name, PasswordHash, PasswordSalt, Role, Scope, CreatedAt, UpdatedAt, InviteTokenHash
+            SELECT rowid AS Id, Email, Name, PasswordHash, PasswordSalt, Role, Scope, CreatedAt, UpdatedAt, InviteTokenHash, PasswordResetTokenHash, PasswordResetTokenExpiresAt
             FROM Users
             WHERE Email = @Email COLLATE NOCASE
             LIMIT 1
@@ -33,7 +34,7 @@ public sealed class LibsqlUserRepository : IUserRepository
     {
         var result = await _client.ExecuteAsync(
             """
-            SELECT rowid AS Id, Email, Name, PasswordHash, PasswordSalt, Role, Scope, CreatedAt, UpdatedAt, InviteTokenHash
+            SELECT rowid AS Id, Email, Name, PasswordHash, PasswordSalt, Role, Scope, CreatedAt, UpdatedAt, InviteTokenHash, PasswordResetTokenHash, PasswordResetTokenExpiresAt
             FROM Users
             ORDER BY Email
             """,
@@ -46,7 +47,7 @@ public sealed class LibsqlUserRepository : IUserRepository
     {
         var result = await _client.ExecuteAsync(
             """
-            SELECT rowid AS Id, Email, Name, PasswordHash, PasswordSalt, Role, Scope, CreatedAt, UpdatedAt, InviteTokenHash
+            SELECT rowid AS Id, Email, Name, PasswordHash, PasswordSalt, Role, Scope, CreatedAt, UpdatedAt, InviteTokenHash, PasswordResetTokenHash, PasswordResetTokenExpiresAt
             FROM Users
             WHERE rowid = @Id
             LIMIT 1
@@ -61,12 +62,27 @@ public sealed class LibsqlUserRepository : IUserRepository
     {
         var result = await _client.ExecuteAsync(
             """
-            SELECT rowid AS Id, Email, Name, PasswordHash, PasswordSalt, Role, Scope, CreatedAt, UpdatedAt, InviteTokenHash
+            SELECT rowid AS Id, Email, Name, PasswordHash, PasswordSalt, Role, Scope, CreatedAt, UpdatedAt, InviteTokenHash, PasswordResetTokenHash, PasswordResetTokenExpiresAt
             FROM Users
             WHERE InviteTokenHash = @InviteTokenHash
             LIMIT 1
             """,
             LibsqlParameters.Create(("InviteTokenHash", inviteTokenHash)),
+            ct);
+
+        return result.Rows.Count == 0 ? null : Map(result.Rows[0]);
+    }
+
+    public async Task<User?> GetByPasswordResetTokenHashAsync(string passwordResetTokenHash, CancellationToken ct = default)
+    {
+        var result = await _client.ExecuteAsync(
+            """
+            SELECT rowid AS Id, Email, Name, PasswordHash, PasswordSalt, Role, Scope, CreatedAt, UpdatedAt, InviteTokenHash, PasswordResetTokenHash, PasswordResetTokenExpiresAt
+            FROM Users
+            WHERE PasswordResetTokenHash = @PasswordResetTokenHash
+            LIMIT 1
+            """,
+            LibsqlParameters.Create(("PasswordResetTokenHash", passwordResetTokenHash)),
             ct);
 
         return result.Rows.Count == 0 ? null : Map(result.Rows[0]);
@@ -116,6 +132,12 @@ public sealed class LibsqlUserRepository : IUserRepository
         AddOptionalColumn(columns, parameters, "PasswordHash", user.PasswordHash);
         AddOptionalColumn(columns, parameters, "PasswordSalt", user.PasswordSalt);
         AddOptionalColumn(columns, parameters, "InviteTokenHash", user.InviteTokenHash);
+        AddOptionalColumn(columns, parameters, "PasswordResetTokenHash", user.PasswordResetTokenHash);
+        AddOptionalColumn(
+            columns,
+            parameters,
+            "PasswordResetTokenExpiresAt",
+            user.PasswordResetTokenExpiresAt?.ToString("O"));
 
         var values = columns.Select(column => $"@{column}");
         var sql = $"""
@@ -139,11 +161,44 @@ public sealed class LibsqlUserRepository : IUserRepository
                 Role = @Role,
                 Scope = @Scope,
                 UpdatedAt = @UpdatedAt,
-                InviteTokenHash = @InviteTokenHash
+                InviteTokenHash = @InviteTokenHash,
+                PasswordResetTokenHash = @PasswordResetTokenHash,
+                PasswordResetTokenExpiresAt = @PasswordResetTokenExpiresAt
             WHERE Email = @Email COLLATE NOCASE
             """,
             ToParameters(user),
             ct);
+    }
+
+    public async Task<bool> TryResetPasswordAsync(
+        string passwordResetTokenHash,
+        DateTime nowUtc,
+        string passwordHash,
+        string passwordSalt,
+        DateTime updatedAt,
+        CancellationToken ct = default)
+    {
+        var result = await _client.ExecuteAsync(
+            """
+            UPDATE Users
+            SET PasswordHash = @PasswordHash,
+                PasswordSalt = @PasswordSalt,
+                PasswordResetTokenHash = NULL,
+                PasswordResetTokenExpiresAt = NULL,
+                UpdatedAt = @UpdatedAt
+            WHERE PasswordResetTokenHash = @PasswordResetTokenHash
+              AND PasswordResetTokenExpiresAt IS NOT NULL
+              AND PasswordResetTokenExpiresAt > @NowUtc
+            """,
+            LibsqlParameters.Create(
+                ("PasswordHash", passwordHash),
+                ("PasswordSalt", passwordSalt),
+                ("PasswordResetTokenHash", passwordResetTokenHash),
+                ("NowUtc", nowUtc.ToString("O")),
+                ("UpdatedAt", updatedAt.ToString("O"))),
+            ct);
+
+        return result.AffectedRowCount > 0;
     }
 
     public async Task<bool> DeleteAsync(string email, CancellationToken ct = default)
@@ -176,10 +231,22 @@ public sealed class LibsqlUserRepository : IUserRepository
             PasswordSalt = row.GetNullableString("PasswordSalt"),
             Role = (UserRole)row.GetInt32("Role"),
             Scope = (KeyScope)row.GetInt32("Scope"),
-            CreatedAt = DateTime.Parse(row.GetString("CreatedAt")),
-            UpdatedAt = DateTime.Parse(row.GetString("UpdatedAt")),
-            InviteTokenHash = row.GetNullableString("InviteTokenHash")
+            CreatedAt = ParseUtc(row.GetString("CreatedAt")),
+            UpdatedAt = ParseUtc(row.GetString("UpdatedAt")),
+            InviteTokenHash = row.GetNullableString("InviteTokenHash"),
+            PasswordResetTokenHash = row.GetNullableString("PasswordResetTokenHash"),
+            PasswordResetTokenExpiresAt = row.GetNullableString("PasswordResetTokenExpiresAt") is { } expiresAt
+                ? ParseUtc(expiresAt)
+                : null
         };
+    }
+
+    private static DateTime ParseUtc(string value)
+    {
+        return DateTimeOffset.Parse(
+            value,
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal).UtcDateTime;
     }
 
     private static IReadOnlyDictionary<string, object?> ToParameters(User user)
@@ -192,7 +259,9 @@ public sealed class LibsqlUserRepository : IUserRepository
             ("Role", (int)user.Role),
             ("Scope", (int)user.Scope),
             ("UpdatedAt", user.UpdatedAt.ToString("O")),
-            ("InviteTokenHash", user.InviteTokenHash));
+            ("InviteTokenHash", user.InviteTokenHash),
+            ("PasswordResetTokenHash", user.PasswordResetTokenHash),
+            ("PasswordResetTokenExpiresAt", user.PasswordResetTokenExpiresAt?.ToString("O")));
     }
 
     private static void AddOptionalColumn(

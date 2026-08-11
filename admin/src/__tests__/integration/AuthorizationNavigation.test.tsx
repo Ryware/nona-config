@@ -11,6 +11,9 @@ import { clearActiveProjectSlug, setActiveProjectSlug } from '../../entities/pro
 import { Sidebar } from '../../widgets/app-shell/Sidebar';
 import { mockProjects, mockToken } from '../mocks/data';
 import { server } from '../mocks/server';
+import '../../pages/audit-logs/AuditLogsPage';
+import '../../pages/users/UsersPage';
+import '../../widgets/app-shell/AppLayout';
 
 describe('role-aware navigation', () => {
   beforeEach(() => {

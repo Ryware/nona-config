@@ -12,6 +12,14 @@ type AuditLogExportJson =
   AuditLogExportResponses[200]["content"]["application/json"];
 type AuditLogExportProblem<Status extends 400 | "4XX" | "5XX"> =
   AuditLogExportResponses[Status]["content"]["application/problem+json"];
+type GeneratePasswordResetBody =
+  paths["/admin/users/{id}/password-reset"]["post"]["responses"][200]["content"]["application/json"];
+type ResetPasswordBody =
+  paths["/auth/password-resets/{token}/password"]["post"]["requestBody"]["content"]["application/json"];
+type AccountDetails =
+  paths["/auth/me"]["get"]["responses"][200]["content"]["application/json"];
+type ChangePasswordBody =
+  paths["/auth/password"]["put"]["requestBody"]["content"]["application/json"];
 
 describe("generated API contract", () => {
   it("includes project access levels", () => {
@@ -44,5 +52,26 @@ describe("generated API contract", () => {
     expectTypeOf<AuditLogExportProblem<"5XX">>().toEqualTypeOf<
       components["schemas"]["ApiProblemDetails"]
     >();
+  });
+});
+
+describe("generated password API contract", () => {
+  it("types password reset operations", () => {
+    expectTypeOf<GeneratePasswordResetBody>().toEqualTypeOf<
+      components["schemas"]["GeneratePasswordResetResponse"]
+    >();
+    expectTypeOf<ResetPasswordBody>().toEqualTypeOf<
+      components["schemas"]["ResetPasswordRequest"]
+    >();
+  });
+
+  it("types current-account and password-change operations", () => {
+    expectTypeOf<AccountDetails>().toEqualTypeOf<
+      components["schemas"]["AccountDetailsResponse"]
+    >();
+    expectTypeOf<ChangePasswordBody>().toEqualTypeOf<
+      components["schemas"]["ChangePasswordRequest"]
+    >();
+    expectTypeOf<components["schemas"]["UserDto"]["passwordEnabled"]>().toEqualTypeOf<boolean>();
   });
 });

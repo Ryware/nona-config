@@ -89,6 +89,23 @@ public static class NonaEndpointRouteBuilderExtensions
             .Produces<LoginResponse>();
         auth.MapPost("/invitations/{token}/sso/{provider}", CompleteInvitationWithSsoAsync)
             .Produces<LoginResponse>();
+        auth.MapGet("/password-resets/{token}", GetPasswordResetAsync)
+            .Produces<PasswordResetDetailsResponse>()
+            .Produces<ApiProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json");
+        auth.MapPost("/password-resets/{token}/password", CompletePasswordResetAsync)
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces<ApiValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")
+            .Produces<ApiProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json");
+        auth.MapGet("/me", GetCurrentAccountAsync)
+            .Produces<AccountDetailsResponse>()
+            .Produces<ApiProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")
+            .RequireAuthorization();
+        auth.MapPut("/password", ChangePasswordAsync)
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces<ApiValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")
+            .Produces<ApiProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")
+            .Produces<ApiProblemDetails>(StatusCodes.Status409Conflict, "application/problem+json")
+            .RequireAuthorization();
     }
 
     private static void MapAdminEndpoints(RouteGroupBuilder admin)
@@ -193,6 +210,11 @@ public static class NonaEndpointRouteBuilderExtensions
         users.MapPut("/{id}/projects/{projectName}", SetProjectAccessAsync)
             .Produces<ProjectAccessDto>();
         users.MapDelete("/{id}/projects/{projectName}", RemoveProjectAccessAsync);
+        users.MapPost("/{id}/password-reset", GeneratePasswordResetAsync)
+            .Produces<GeneratePasswordResetResponse>()
+            .Produces<ApiProblemDetails>(StatusCodes.Status403Forbidden, "application/problem+json")
+            .Produces<ApiProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")
+            .Produces<ApiProblemDetails>(StatusCodes.Status409Conflict, "application/problem+json");
 
         admin.MapGet("/audit-logs/export", ExportAuditLogsAsync)
             .Produces(StatusCodes.Status200OK, contentType: "text/csv")
@@ -475,6 +497,76 @@ public static class NonaEndpointRouteBuilderExtensions
         return result.ErrorCode == AuthErrorCodes.InvitationInvalidOrUsed
             ? NotFound(result.Error ?? "Invitation not found", result.ErrorCode)
             : Unauthorized(result.Error ?? "Authentication failed", result.ErrorCode);
+    }
+
+    private static async Task<IResult> GetPasswordResetAsync(
+        string token,
+        IMediator mediator,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new GetPasswordResetQuery(token), cancellationToken);
+        return result.Success
+            ? Results.Ok(result.PasswordReset)
+            : NotFound(result.Error ?? "Password reset link not found", result.ErrorCode);
+    }
+
+    private static async Task<IResult> CompletePasswordResetAsync(
+        string token,
+        ResetPasswordRequest request,
+        IValidator<ResetPasswordRequest> validator,
+        IMediator mediator,
+        CancellationToken cancellationToken)
+    {
+        if (await ValidateRequestAsync(request, validator, cancellationToken) is { } validationResult)
+        {
+            return validationResult;
+        }
+
+        var result = await mediator.Send(
+            new CompletePasswordResetCommand(token, request.NewPassword),
+            cancellationToken);
+        return result.Success
+            ? Results.NoContent()
+            : NotFound(result.Error ?? "Password reset link not found", result.ErrorCode);
+    }
+
+    private static async Task<IResult> GetCurrentAccountAsync(
+        IMediator mediator,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new GetCurrentAccountQuery(), cancellationToken);
+        return result.Success
+            ? Results.Ok(result.Account)
+            : NotFound(result.Error ?? "User not found");
+    }
+
+    private static async Task<IResult> ChangePasswordAsync(
+        ChangePasswordRequest request,
+        IValidator<ChangePasswordRequest> validator,
+        IMediator mediator,
+        CancellationToken cancellationToken)
+    {
+        if (await ValidateRequestAsync(request, validator, cancellationToken) is { } validationResult)
+        {
+            return validationResult;
+        }
+
+        var result = await mediator.Send(
+            new ChangePasswordCommand(request.CurrentPassword, request.NewPassword),
+            cancellationToken);
+        if (result.Success)
+        {
+            return Results.NoContent();
+        }
+
+        return result.ErrorCode switch
+        {
+            AuthErrorCodes.PasswordChangeUnavailable =>
+                Conflict(result.Error ?? "Password change is unavailable", result.ErrorCode),
+            AuthErrorCodes.CurrentPasswordInvalid or AuthErrorCodes.NewPasswordMustDiffer =>
+                BadRequest(result.Error ?? "Password could not be changed", result.ErrorCode),
+            _ => NotFound(result.Error ?? "User not found")
+        };
     }
 
     private static async Task<IResult> LoginWithSsoAsync(
@@ -1143,6 +1235,28 @@ public static class NonaEndpointRouteBuilderExtensions
                 : BadRequest(result.Error ?? "User could not be deleted");
     }
 
+    private static async Task<IResult> GeneratePasswordResetAsync(
+        long id,
+        IMediator mediator,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new GeneratePasswordResetCommand(id), cancellationToken);
+        if (result.Success)
+        {
+            return Results.Ok(result.Response);
+        }
+
+        return result.Error switch
+        {
+            "Access denied" => Forbidden(result.Error),
+            "User not found" => NotFound(result.Error),
+            _ when result.ErrorCode is AuthErrorCodes.PasswordResetUnavailable
+                or AuthErrorCodes.PasswordResetSelfNotAllowed =>
+                Conflict(result.Error ?? "Password reset is unavailable", result.ErrorCode),
+            _ => BadRequest(result.Error ?? "Password reset link could not be generated", result.ErrorCode)
+        };
+    }
+
     private static async Task<IResult> GetUserProjectsAsync(long id, IMediator mediator, CancellationToken cancellationToken)
     {
         var result = await mediator.Send(new GetUserProjectsQuery(id), cancellationToken);
@@ -1365,9 +1479,9 @@ public static class NonaEndpointRouteBuilderExtensions
         return ApiProblemResults.BadRequest(error, errorCode);
     }
 
-    private static IResult Conflict(string error)
+    private static IResult Conflict(string error, string? errorCode = null)
     {
-        return ApiProblemResults.Conflict(error);
+        return ApiProblemResults.Conflict(error, errorCode);
     }
 
     private static IResult NotFound(string error, string? errorCode = null)
