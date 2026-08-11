@@ -1,4 +1,5 @@
 using Nona.Application.Admin.Users.Commands;
+using Nona.Application.Common;
 using Nona.Application.Tests.Common;
 using Nona.Domain.Entities;
 using NSubstitute;
@@ -19,6 +20,7 @@ public class DeleteUserCommandTests
 
         await Assert.That(result.Success).IsFalse();
         await Assert.That(result.Error).IsEqualTo("Access denied");
+        await Assert.That(result.ErrorCode).IsEqualTo(AuthorizationErrorCodes.AccessDenied);
         await fixture.UserRepository.DidNotReceive().DeleteAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 

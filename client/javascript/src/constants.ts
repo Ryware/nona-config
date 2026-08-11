@@ -16,3 +16,8 @@ export const NonaUserRoles = {
   Admin: "admin",
   Member: "member"
 } as const;
+
+export const NonaProjectRoles = {
+  Viewer: "viewer",
+  Editor: "editor"
+} as const;

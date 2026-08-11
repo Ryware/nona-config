@@ -183,6 +183,18 @@ public class AdminReadAuthorizationTests
             await Assert.That(viewerWriteResponse.StatusCode).IsEqualTo(HttpStatusCode.Forbidden);
         }
 
+        using (var viewerConfigWriteResponse = await SendAuthorizedAsync(
+            client,
+            HttpMethod.Put,
+            $"/admin/projects/{projectName}/environments/Production/config-entries/sample",
+            member.Token,
+            new { value = "value", contentType = "text", scope = "all" }))
+        {
+            using var body = await ParseJsonAsync(viewerConfigWriteResponse);
+            await Assert.That(viewerConfigWriteResponse.StatusCode).IsEqualTo(HttpStatusCode.Forbidden);
+            await Assert.That(body.RootElement.GetProperty("errorCode").GetString()).IsEqualTo("access_denied");
+        }
+
         using (var assignEditorResponse = await SendAuthorizedAsync(
             client,
             HttpMethod.Put,

@@ -929,9 +929,13 @@ public static class NonaEndpointRouteBuilderExtensions
             return Results.Ok(result.ConfigEntry);
         }
 
+        if (result.ErrorCode == AuthorizationErrorCodes.AccessDenied)
+        {
+            return Forbidden(result.Error ?? "Access denied", result.ErrorCode);
+        }
+
         return result.Error switch
         {
-            "Access denied" => Forbidden(result.Error),
             "Project not found" or "Environment not found" => NotFound(result.Error),
             _ => BadRequest(result.Error ?? "Config entry could not be saved")
         };
@@ -1132,9 +1136,11 @@ public static class NonaEndpointRouteBuilderExtensions
             return Results.NoContent();
         }
 
-        return result.Error == "User not found"
-            ? NotFound(result.Error)
-            : BadRequest(result.Error ?? "User could not be deleted");
+        return result.ErrorCode == AuthorizationErrorCodes.AccessDenied
+            ? Forbidden(result.Error ?? "Access denied", result.ErrorCode)
+            : result.Error == "User not found"
+                ? NotFound(result.Error)
+                : BadRequest(result.Error ?? "User could not be deleted");
     }
 
     private static async Task<IResult> GetUserProjectsAsync(long id, IMediator mediator, CancellationToken cancellationToken)
@@ -1180,7 +1186,9 @@ public static class NonaEndpointRouteBuilderExtensions
         var result = await mediator.Send(new RemoveProjectAccessCommand(id, projectName), cancellationToken);
         return result.Success
             ? Results.NoContent()
-            : NotFound(result.Error ?? "Project access not found");
+            : result.ErrorCode == AuthorizationErrorCodes.AccessDenied
+                ? Forbidden(result.Error ?? "Access denied", result.ErrorCode)
+                : NotFound(result.Error ?? "Project access not found");
     }
 
     private static async Task<IResult> ListAuditLogsAsync(
