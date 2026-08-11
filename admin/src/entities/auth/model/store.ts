@@ -1,3 +1,5 @@
+import { USER_ROLES } from "./roles";
+
 /**
  * Centralized auth session management.
  * Single source of truth for token storage and session metadata.
@@ -114,5 +116,5 @@ function getIsAdminClaim(token: string): boolean {
 
 function normalizeRole(session: AuthSession, token: string): string {
   // Sessions created before Admin became an explicit role stored viewer + isAdmin=true.
-  return session.isAdmin === true || getIsAdminClaim(token) ? "admin" : session.role;
+  return session.isAdmin === true || getIsAdminClaim(token) ? USER_ROLES.ADMIN : session.role;
 }

@@ -1,28 +1,29 @@
 import type { User } from "../../user/model/types";
+import { USER_ROLES } from "./roles";
 import { authStore } from "./store";
 
 export function canManageUsers(): boolean {
   const session = authStore.getSession();
   const role = session?.role?.toLowerCase();
-  return role === "admin" || role === "editor";
+  return role === USER_ROLES.ADMIN || role === USER_ROLES.EDITOR;
 }
 
 export function canResetPasswords(): boolean {
-  return authStore.getSession()?.role?.toLowerCase() === "admin";
+  return authStore.getSession()?.role?.toLowerCase() === USER_ROLES.ADMIN;
 }
 
 export function canManageUsersFor(user: User | undefined): boolean {
   const role = user?.role?.toLowerCase();
-  return role === "admin" || role === "editor";
+  return role === USER_ROLES.ADMIN || role === USER_ROLES.EDITOR;
 }
 
 export function canManageProjects(): boolean {
   const session = authStore.getSession();
-  return session?.role?.toLowerCase() === "admin";
+  return session?.role?.toLowerCase() === USER_ROLES.ADMIN;
 }
 
 export function canManageProjectsFor(user: User | undefined): boolean {
-  return user?.role?.toLowerCase() === "admin";
+  return user?.role?.toLowerCase() === USER_ROLES.ADMIN;
 }
 
 export function canManageProjectResources(projectName: string, users: User[]): boolean {
@@ -33,7 +34,7 @@ export function canManageProjectResources(projectName: string, users: User[]): b
   );
   if (currentUser) {
     const role = currentUser.role?.toLowerCase();
-    if (role === "admin" || role === "editor") {
+    if (role === USER_ROLES.ADMIN || role === USER_ROLES.EDITOR) {
       return true;
     }
 
@@ -41,13 +42,13 @@ export function canManageProjectResources(projectName: string, users: User[]): b
       currentUser.projects?.some(
         project =>
           project.projectName.toLowerCase() === projectName.toLowerCase() &&
-          project.role.toLowerCase() === "editor"
+          project.role.toLowerCase() === USER_ROLES.EDITOR
       ) ?? false
     );
   }
 
   const role = session?.role?.toLowerCase();
-  if (role === "admin" || role === "editor") {
+  if (role === USER_ROLES.ADMIN || role === USER_ROLES.EDITOR) {
     return true;
   }
 
