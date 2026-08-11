@@ -106,6 +106,21 @@ describe('InvitePage', () => {
     });
   });
 
+  it('rejects a weak password before accepting the invitation', async () => {
+    renderWithProviders('/invite/invite-token-123', InvitePage);
+
+    fireEvent.input(await screen.findByLabelText(/create password/i), {
+      target: { value: 'short' },
+    });
+    fireEvent.input(screen.getByLabelText(/confirm password/i), {
+      target: { value: 'short' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /set password and continue/i }));
+
+    expect(await screen.findByText(/^password must be at least 8 characters long\.$/i)).toBeInTheDocument();
+    expect(localStorage.getItem('auth_token')).toBeNull();
+  });
+
   it('auto-logs in after successful Google SSO', async () => {
     window.history.replaceState({}, '', '/invite/invite-token-123');
     const flowId = beginSsoRedirect('google');

@@ -1,5 +1,11 @@
 import { apiClient } from "../../../shared/api/client";
-import type { User, CreateUserRequest, CreateUserResponse, ProjectAccess } from "../../../types";
+import type {
+  User,
+  CreateUserRequest,
+  CreateUserResponse,
+  GeneratePasswordResetResponse,
+  ProjectAccess
+} from "../../../types";
 
 export interface UpdateUserRequest {
   name?: string;
@@ -27,6 +33,10 @@ export const userService = {
 
   async delete(id: string): Promise<void> {
     return apiClient.delete(`/admin/users/${id}`);
+  },
+
+  async generatePasswordReset(id: string): Promise<GeneratePasswordResetResponse> {
+    return apiClient.post(`/admin/users/${id}/password-reset`);
   },
 
   async addProject(userId: string, projectName: string, role: string): Promise<ProjectAccess> {

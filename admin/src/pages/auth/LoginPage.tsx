@@ -1,4 +1,4 @@
-import { type RouteSectionProps, useNavigate } from "@solidjs/router";
+import { type RouteSectionProps, useNavigate, useSearchParams } from "@solidjs/router";
 import { useMutation, useQuery } from "@tanstack/solid-query";
 import { createEffect, createSignal, Show } from "solid-js";
 import { authService } from "../../entities/auth/api/auth.service";
@@ -19,6 +19,7 @@ const SSO_REMEMBER_ME_KEY = "nona:sso:remember-me";
 
 export default function LoginPage(props: LoginPageProps = {}) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [email, setEmail] = createSignal("");
   const [password, setPassword] = createSignal("");
   const [error, setError] = createSignal("");
@@ -98,6 +99,15 @@ export default function LoginPage(props: LoginPageProps = {}) {
         testId="login-card"
         headingTestId="login-heading"
       >
+        <Show when={searchParams.passwordReset === "success"}>
+          <div
+            data-testid="password-reset-success"
+            class="bg-success/10 text-success border-success/20 mb-5 flex items-start gap-2 rounded-xl border px-3.5 py-3 text-xs"
+          >
+            <span class="material-symbols-outlined text-[17px]">check_circle</span>
+            <span>{MSG.PASSWORD_RESET_COMPLETE}</span>
+          </div>
+        </Show>
         <form onSubmit={handleSubmit} class="space-y-5">
           <FormField
             id="email"

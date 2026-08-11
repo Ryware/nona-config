@@ -4,6 +4,7 @@ import { createSignal } from "solid-js";
 import { authService } from "../../entities/auth/api/auth.service";
 import { authStore } from "../../entities/auth/model/store";
 import { MSG } from "../../shared/lib/messages";
+import { validateNewPassword } from "../../shared/lib/password-policy";
 import { Button } from "../../shared/ui/button";
 import type { RegisterRequest } from "../../types";
 import { AuthCard } from "../../widgets/auth-shell/AuthCard";
@@ -38,8 +39,9 @@ export default function RegisterPage() {
   const handleSubmit = (e: Event) => {
     e.preventDefault();
     setError("");
-    if (password() !== confirmPassword()) {
-      setError(MSG.PASSWORD_MISMATCH);
+    const passwordError = validateNewPassword(password(), confirmPassword());
+    if (passwordError) {
+      setError(passwordError);
       return;
     }
     registerMutation.mutate({ email: email(), password: password() });

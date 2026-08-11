@@ -12,6 +12,9 @@ export type {
   SsoConfig,
   RegisterRequest,
   InvitationDetails,
+  PasswordResetDetails,
+  AccountDetails,
+  ChangePasswordRequest,
 } from "../entities/auth/model/types";
 
 export type {
@@ -44,6 +47,7 @@ export type {
   User,
   CreateUserRequest,
   CreateUserResponse,
+  GeneratePasswordResetResponse,
   DashboardCounts,
 } from "../entities/user/model/types";
 

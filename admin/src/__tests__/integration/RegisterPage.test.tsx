@@ -68,6 +68,22 @@ describe('RegisterPage', () => {
     });
   });
 
+  it('rejects a weak password before submitting', async () => {
+    renderRegisterPage();
+
+    fireEvent.input(screen.getByPlaceholderText(/admin@nona\.dev/i), {
+      target: { value: 'admin@example.com' },
+    });
+    const [pwField, confirmField] = screen.getAllByPlaceholderText(/•{4,}/);
+    fireEvent.input(pwField, { target: { value: 'short' } });
+    fireEvent.input(confirmField, { target: { value: 'short' } });
+
+    fireEvent.submit(screen.getByRole('button', { name: /create account/i }).closest('form')!);
+
+    expect(await screen.findByText(/^password must be at least 8 characters long\.$/i)).toBeInTheDocument();
+    expect(localStorage.getItem('auth_token')).toBeNull();
+  });
+
   it('stores token and navigates to /projects on successful registration', async () => {
     renderRegisterPage();
 
@@ -75,8 +91,8 @@ describe('RegisterPage', () => {
       target: { value: 'admin@example.com' },
     });
     const [pwField, confirmField] = screen.getAllByPlaceholderText(/•{4,}/);
-    fireEvent.input(pwField, { target: { value: 'password123' } });
-    fireEvent.input(confirmField, { target: { value: 'password123' } });
+    fireEvent.input(pwField, { target: { value: 'Password123!' } });
+    fireEvent.input(confirmField, { target: { value: 'Password123!' } });
 
     fireEvent.submit(screen.getByRole('button', { name: /create account/i }).closest('form')!);
 
@@ -97,8 +113,8 @@ describe('RegisterPage', () => {
       target: { value: 'existing@example.com' },
     });
     const [pwField, confirmField] = screen.getAllByPlaceholderText(/•{4,}/);
-    fireEvent.input(pwField, { target: { value: 'password123' } });
-    fireEvent.input(confirmField, { target: { value: 'password123' } });
+    fireEvent.input(pwField, { target: { value: 'Password123!' } });
+    fireEvent.input(confirmField, { target: { value: 'Password123!' } });
 
     fireEvent.submit(screen.getByRole('button', { name: /create account/i }).closest('form')!);
 
@@ -125,8 +141,8 @@ describe('RegisterPage', () => {
       target: { value: 'admin@example.com' },
     });
     const [pwField, confirmField] = screen.getAllByPlaceholderText(/•{4,}/);
-    fireEvent.input(pwField, { target: { value: 'password123' } });
-    fireEvent.input(confirmField, { target: { value: 'password123' } });
+    fireEvent.input(pwField, { target: { value: 'Password123!' } });
+    fireEvent.input(confirmField, { target: { value: 'Password123!' } });
 
     fireEvent.submit(screen.getByRole('button', { name: /create account/i }).closest('form')!);
 
