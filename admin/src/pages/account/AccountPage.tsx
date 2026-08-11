@@ -4,6 +4,7 @@ import { createSignal, Show } from "solid-js";
 import { authService } from "../../entities/auth/api/auth.service";
 import { ApiRequestError } from "../../shared/api/client";
 import { MSG } from "../../shared/lib/messages";
+import { validateNewPassword } from "../../shared/lib/password-policy";
 import { Button } from "../../shared/ui/button";
 import { MIcon } from "../../shared/ui/icons";
 import { QueryErrorBanner } from "../../shared/ui/QueryGuard";
@@ -43,8 +44,9 @@ export default function AccountPage() {
   const handleSubmit = (event: Event) => {
     event.preventDefault();
     setError("");
-    if (newPassword() !== confirmPassword()) {
-      setError(MSG.PASSWORD_MISMATCH);
+    const passwordError = validateNewPassword(newPassword(), confirmPassword());
+    if (passwordError) {
+      setError(passwordError);
       return;
     }
     if (newPassword() === currentPassword()) {

@@ -88,6 +88,23 @@ describe('AccountPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(/current password is incorrect/i);
   });
 
+  it('rejects a weak new password before changing it', async () => {
+    renderPage();
+
+    fireEvent.input(await screen.findByLabelText(/current password/i), {
+      target: { value: 'current' },
+    });
+    fireEvent.input(screen.getByLabelText(/^new password$/i), {
+      target: { value: 'short' },
+    });
+    fireEvent.input(screen.getByLabelText(/confirm new password/i), {
+      target: { value: 'short' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /^change password$/i }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/at least 8 characters/i);
+  });
+
   it('changes the password, clears the form, and keeps the session', async () => {
     renderPage();
 

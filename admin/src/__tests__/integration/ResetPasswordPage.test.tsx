@@ -54,6 +54,21 @@ describe('ResetPasswordPage', () => {
     expect(await screen.findByText(/passwords do not match/i)).toBeInTheDocument();
   });
 
+  it('rejects a weak password before resetting', async () => {
+    renderPage();
+
+    fireEvent.input(await screen.findByLabelText(/^new password$/i), {
+      target: { value: 'short' },
+    });
+    fireEvent.input(screen.getByLabelText(/confirm password/i), {
+      target: { value: 'short' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /set new password/i }));
+
+    expect(await screen.findByText(/^password must be at least 8 characters long\.$/i)).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/reset-password/valid-token');
+  });
+
   it('returns to login with confirmation after resetting', async () => {
     renderPage();
 

@@ -7,6 +7,7 @@ import { authStore } from "../../entities/auth/model/store";
 import { getActiveProjectHref } from "../../entities/project/model/active-project";
 import { ApiRequestError } from "../../shared/api/client";
 import { MSG } from "../../shared/lib/messages";
+import { validateNewPassword } from "../../shared/lib/password-policy";
 import { Button } from "../../shared/ui/button";
 import { MIcon } from "../../shared/ui/icons";
 import { AuthCard } from "../../widgets/auth-shell/AuthCard";
@@ -44,8 +45,9 @@ export default function ResetPasswordPage() {
   const handleSubmit = (event: Event) => {
     event.preventDefault();
     setError("");
-    if (password() !== confirmPassword()) {
-      setError(MSG.PASSWORD_MISMATCH);
+    const passwordError = validateNewPassword(password(), confirmPassword());
+    if (passwordError) {
+      setError(passwordError);
       return;
     }
 
