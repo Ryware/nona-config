@@ -52,7 +52,7 @@ describe('AccountPage', () => {
         HttpResponse.json({
           email: 'sso@example.com',
           name: 'SSO User',
-          role: 'viewer',
+          role: 'member',
           passwordEnabled: false,
         }),
       ),

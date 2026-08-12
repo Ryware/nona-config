@@ -35,6 +35,7 @@ public class ListProjectsQueryTests
 
         // Assert
         await Assert.That(result.Count).IsEqualTo(3);
+        await Assert.That(result.All(project => project.AccessLevel == "admin")).IsTrue();
     }
 
     [Test]
@@ -101,6 +102,7 @@ public class ListProjectsQueryTests
         // Assert
         await Assert.That(result.Count).IsEqualTo(1);
         await Assert.That(result[0].Name).IsEqualTo(assignedProjectName);
+        await Assert.That(result[0].AccessLevel).IsEqualTo("editor");
     }
 
     [Test]
@@ -140,6 +142,7 @@ public class ListProjectsQueryTests
         // Assert
         await Assert.That(result.Count).IsEqualTo(1);
         await Assert.That(result[0].Name).IsEqualTo(assignedProjectName);
+        await Assert.That(result[0].AccessLevel).IsEqualTo("viewer");
     }
 
     [Test]
@@ -150,7 +153,7 @@ public class ListProjectsQueryTests
         var username = "multiuser";
         fixture.CurrentUserService.Username.Returns(username);
         fixture.UserAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
-            .Returns(new User { Email = username, Name = username, Role = UserRole.Viewer });
+            .Returns(new User { Email = username, Name = username, Role = UserRole.Member });
 
         var projects = new List<Project>
         {
@@ -183,6 +186,10 @@ public class ListProjectsQueryTests
         var projectNames = result.Select(p => p.Name).ToList();
         await Assert.That(projectNames).Contains("project1");
         await Assert.That(projectNames).Contains("project3");
+        await Assert.That(result.Single(project => project.Name == "project1").AccessLevel)
+            .IsEqualTo("editor");
+        await Assert.That(result.Single(project => project.Name == "project3").AccessLevel)
+            .IsEqualTo("viewer");
     }
 
     [Test]
@@ -193,7 +200,7 @@ public class ListProjectsQueryTests
         var username = "noassignments";
         fixture.CurrentUserService.Username.Returns(username);
         fixture.UserAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
-            .Returns(new User { Email = username, Name = username, Role = UserRole.Viewer });
+            .Returns(new User { Email = username, Name = username, Role = UserRole.Member });
 
         var projects = new List<Project>
         {
@@ -250,11 +257,11 @@ public class ListProjectsQueryTests
     }
 
     [Test]
-    public async Task Editor_CanListAllProjects()
+    public async Task Member_WithoutAssignments_CannotListProjects()
     {
         var fixture = new TestFixture();
         fixture.UserAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
-            .Returns(new User { Email = "editor@example.com", Name = "Editor", Role = UserRole.Editor });
+            .Returns(new User { Email = "member@example.com", Name = "Member", Role = UserRole.Member });
 
         var projects = new List<Project>
         {
@@ -271,8 +278,8 @@ public class ListProjectsQueryTests
 
         var result = await handler.Handle(new ListProjectsQuery(), CancellationToken.None);
 
-        await Assert.That(result.Count).IsEqualTo(2);
-        await fixture.ProjectMemberRepository.DidNotReceive()
-            .ListByUserAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await Assert.That(result).IsEmpty();
+        await fixture.ProjectMemberRepository.Received(1)
+            .ListByUserAsync("member@example.com", Arg.Any<CancellationToken>());
     }
 }

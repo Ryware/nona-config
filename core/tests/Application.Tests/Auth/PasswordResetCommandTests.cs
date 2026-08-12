@@ -21,7 +21,7 @@ public class PasswordResetCommandTests
         var authorization = Substitute.For<IUserAuthorizationService>();
         var dateTime = Substitute.For<IDateTime>();
         var admin = User("admin@example.com", UserRole.Admin, "admin-hash");
-        var target = User("user@example.com", UserRole.Viewer, "password-hash");
+        var target = User("user@example.com", UserRole.Member, "password-hash");
         authorization.GetCurrentUserAsync(Arg.Any<CancellationToken>()).Returns(admin);
         repository.GetByIdAsync(target.Id, Arg.Any<CancellationToken>()).Returns(target);
         dateTime.NowUtc.Returns(Now);
@@ -41,23 +41,23 @@ public class PasswordResetCommandTests
     }
 
     [Test]
-    public async Task Generate_RejectsEditorAndPasswordlessAccount()
+    public async Task Generate_RejectsMemberAndPasswordlessAccount()
     {
         var repository = Substitute.For<IUserRepository>();
         var authorization = Substitute.For<IUserAuthorizationService>();
         var dateTime = Substitute.For<IDateTime>();
-        var target = User("user@example.com", UserRole.Viewer, null);
+        var target = User("user@example.com", UserRole.Member, null);
         authorization.GetCurrentUserAsync(Arg.Any<CancellationToken>())
-            .Returns(User("editor@example.com", UserRole.Editor, "hash"));
+            .Returns(User("member@example.com", UserRole.Member, "hash"));
         repository.GetByIdAsync(target.Id, Arg.Any<CancellationToken>()).Returns(target);
         var handler = new GeneratePasswordResetCommandHandler(repository, authorization, dateTime);
 
-        var editorResult = await handler.Handle(
+        var memberResult = await handler.Handle(
             new GeneratePasswordResetCommand(target.Id),
             CancellationToken.None);
 
-        await Assert.That(editorResult.Success).IsFalse();
-        await Assert.That(editorResult.Error).IsEqualTo("Access denied");
+        await Assert.That(memberResult.Success).IsFalse();
+        await Assert.That(memberResult.Error).IsEqualTo("Access denied");
 
         authorization.GetCurrentUserAsync(Arg.Any<CancellationToken>())
             .Returns(User("admin@example.com", UserRole.Admin, "hash"));
@@ -96,7 +96,7 @@ public class PasswordResetCommandTests
         var repository = Substitute.For<IUserRepository>();
         var dateTime = Substitute.For<IDateTime>();
         dateTime.NowUtc.Returns(Now);
-        var expiredUser = User("user@example.com", UserRole.Viewer, "hash");
+        var expiredUser = User("user@example.com", UserRole.Member, "hash");
         expiredUser.PasswordResetTokenHash = "token-hash";
         expiredUser.PasswordResetTokenExpiresAt = Now;
         repository.GetByPasswordResetTokenHashAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
@@ -116,7 +116,7 @@ public class PasswordResetCommandTests
         var passwordHasher = Substitute.For<IPasswordHasher>();
         var dateTime = Substitute.For<IDateTime>();
         var auditLogService = Substitute.For<IAuditLogService>();
-        var user = User("user@example.com", UserRole.Viewer, "old-hash");
+        var user = User("user@example.com", UserRole.Member, "old-hash");
         user.PasswordResetTokenHash = "token-hash";
         user.PasswordResetTokenExpiresAt = Now.AddHours(1);
         repository.GetByPasswordResetTokenHashAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())

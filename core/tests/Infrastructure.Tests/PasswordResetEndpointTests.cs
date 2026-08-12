@@ -24,7 +24,7 @@ public class PasswordResetEndpointTests
         await using var app = await StartAppAsync();
         var client = app.GetTestClient();
         var admin = await RegisterAdminAsync(client);
-        var user = await CreateUserAsync(client, admin.Token, "viewer", completeInvitation: true);
+        var user = await CreateUserAsync(client, admin.Token, "member", completeInvitation: true);
 
         using var generateResponse = await SendAuthorizedAsync(
             client,
@@ -84,22 +84,22 @@ public class PasswordResetEndpointTests
     }
 
     [Test]
-    public async Task EditorIsForbiddenAndPendingAccountIsRejected()
+    public async Task MemberIsForbiddenAndPendingAccountIsRejected()
     {
         await using var app = await StartAppAsync();
         var client = app.GetTestClient();
         var admin = await RegisterAdminAsync(client);
-        var editor = await CreateUserAsync(client, admin.Token, "editor", completeInvitation: true);
-        var localUser = await CreateUserAsync(client, admin.Token, "viewer", completeInvitation: true);
-        var pendingUser = await CreateUserAsync(client, admin.Token, "viewer", completeInvitation: false);
+        var member = await CreateUserAsync(client, admin.Token, "member", completeInvitation: true);
+        var localUser = await CreateUserAsync(client, admin.Token, "member", completeInvitation: true);
+        var pendingUser = await CreateUserAsync(client, admin.Token, "member", completeInvitation: false);
 
-        using (var editorResponse = await SendAuthorizedAsync(
+        using (var memberResponse = await SendAuthorizedAsync(
             client,
             HttpMethod.Post,
             $"/admin/users/{localUser.Id}/password-reset",
-            editor.Token!))
+            member.Token!))
         {
-            await Assert.That(editorResponse.StatusCode).IsEqualTo(HttpStatusCode.Forbidden);
+            await Assert.That(memberResponse.StatusCode).IsEqualTo(HttpStatusCode.Forbidden);
         }
 
         using (var pendingResponse = await SendAuthorizedAsync(

@@ -73,6 +73,7 @@ public class RenameProjectCommandHandler(
                 project.Id,
                 request.NewName,
                 project.UrlSlug,
+                "admin",
                 environments.Select(environment => environment.Name).ToList(),
                 project.CreatedAt,
                 updatedAt),

@@ -4,9 +4,11 @@ import { Navigate, Route, Router, useLocation } from "@solidjs/router";
 import { QueryClientProvider } from "@tanstack/solid-query";
 import { type JSX, lazy, onMount, Show, Suspense } from "solid-js";
 import { authService } from "../entities/auth/api/auth.service";
+import { canManageUsers } from "../entities/auth/model/permissions";
 import { authStore } from "../entities/auth/model/store";
 import { getActiveProjectHref } from "../entities/project/model/active-project";
 import { ThemeProvider } from "../shared/hooks/useTheme";
+import { AccessDenied } from "../shared/ui/AccessDenied";
 import { RouteLoader } from "../shared/ui/Skeleton";
 import { ToastProvider } from "../shared/ui/toast";
 import { queryClient } from "./query-client";
@@ -93,15 +95,17 @@ export default function App(): JSX.Element {
                   <Route path="/projects/:slug/api-keys" component={ApiKeysSection} />
                   <Route path="/projects/:slug/releases" component={ReleasesSection} />
                   <Route path="/projects/:slug" component={ParametersSection} />
-                  <Route path="/users" component={lazy(() => import("../pages/users/UsersPage"))} />
                   <Route
                     path="/account"
                     component={lazy(() => import("../pages/account/AccountPage"))}
                   />
-                  <Route
-                    path="/audit-logs"
-                    component={lazy(() => import("../pages/audit-logs/AuditLogsPage"))}
-                  />
+                  <Route component={AdminRoute}>
+                    <Route path="/users" component={lazy(() => import("../pages/users/UsersPage"))} />
+                    <Route
+                      path="/audit-logs"
+                      component={lazy(() => import("../pages/audit-logs/AuditLogsPage"))}
+                    />
+                  </Route>
                 </Route>
               </Router>
             </Suspense>
@@ -134,6 +138,10 @@ function ProtectedRoute(props: { children?: JSX.Element }) {
       <AppLayout>{props.children}</AppLayout>
     </Show>
   );
+}
+
+function AdminRoute(props: { children?: JSX.Element }) {
+  return <Show when={canManageUsers()} fallback={<AccessDenied />}>{props.children}</Show>;
 }
 
 const AuthLayout = lazy(() =>

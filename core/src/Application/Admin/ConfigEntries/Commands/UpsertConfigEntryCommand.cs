@@ -14,7 +14,11 @@ namespace Nona.Application.Admin.ConfigEntries.Commands;
 public record UpsertConfigEntryRequest(string Value, string? ContentType, string? Scope);
 public record UpsertConfigEntryCommand(string ProjectId, string EnvironmentName, string Key, string Value, string? ContentType, string? Scope) : IRequest<UpsertConfigEntryResult>;
 
-public record UpsertConfigEntryResult(bool Success, ConfigEntryDto? ConfigEntry, string? Error);
+public record UpsertConfigEntryResult(
+    bool Success,
+    ConfigEntryDto? ConfigEntry,
+    string? Error,
+    string? ErrorCode = null);
 
 public class UpsertConfigEntryCommandHandler(
     IProjectRepository projectRepository,
@@ -37,7 +41,11 @@ public class UpsertConfigEntryCommandHandler(
 
         var projectName = project.Name;
         if (!await projectAccessService.HasEditAccessAsync(projectName, cancellationToken))
-            return new UpsertConfigEntryResult(false, null, "Access denied");
+            return new UpsertConfigEntryResult(
+                false,
+                null,
+                "Access denied",
+                AuthorizationErrorCodes.AccessDenied);
 
         if (!await environmentRepository.ExistsAsync(projectName, request.EnvironmentName, cancellationToken))
             return new UpsertConfigEntryResult(false, null, "Environment not found");

@@ -78,6 +78,12 @@ internal static class SqlScriptParser
 
             if (currentChar == ';' && !inSingleQuote && !inDoubleQuote)
             {
+                if (IsIncompleteTrigger(current))
+                {
+                    current.Append(currentChar);
+                    continue;
+                }
+
                 AddStatementIfPresent(statements, current);
                 current.Clear();
                 continue;
@@ -88,6 +94,13 @@ internal static class SqlScriptParser
 
         AddStatementIfPresent(statements, current);
         return statements;
+    }
+
+    private static bool IsIncompleteTrigger(StringBuilder builder)
+    {
+        var statement = builder.ToString().Trim();
+        return statement.StartsWith("CREATE TRIGGER", StringComparison.OrdinalIgnoreCase)
+            && !statement.EndsWith("END", StringComparison.OrdinalIgnoreCase);
     }
 
     private static void AddStatementIfPresent(List<string> statements, StringBuilder builder)

@@ -9,8 +9,8 @@ using Nona.Domain.Interfaces;
 
 namespace Nona.Application.Admin.Users.Commands;
 
-public record UpdateUserRequest(string Name, string? Role, string? Scope);
-public record UpdateUserCommand(long Id, string Name, string? Role, string? Scope) : IRequest<UpdateUserResult>;
+public record UpdateUserRequest(string? Name, string? Role, string? Scope);
+public record UpdateUserCommand(long Id, string? Name, string? Role, string? Scope) : IRequest<UpdateUserResult>;
 public record UpdateUserResult(bool Success, UserDto? User, string? Error);
 
 public class UpdateUserCommandHandler(
@@ -22,40 +22,33 @@ public class UpdateUserCommandHandler(
 {
     public async ValueTask<UpdateUserResult> Handle(UpdateUserCommand request, CancellationToken cancellationToken)
     {
+        if (!await userAuthorizationService.CanManageUsersAsync(cancellationToken))
+            return new UpdateUserResult(false, null, "Access denied");
+
         var user = await userRepository.GetByIdAsync(request.Id, cancellationToken);
         if (user is null)
             return new UpdateUserResult(false, null, "User not found");
 
         var currentUser = await userAuthorizationService.GetCurrentUserAsync(cancellationToken);
-        var canManageUsers = currentUser?.Role is UserRole.Admin or UserRole.Editor;
         var isSelf = string.Equals(user.Email, currentUser?.Email, StringComparison.OrdinalIgnoreCase);
-        if (!canManageUsers)
-        {
-            if (!isSelf)
-                return new UpdateUserResult(false, null, "Access denied");
-
-            if (request.Role is not null || request.Scope is not null)
-                return new UpdateUserResult(false, null, "Access denied");
-        }
-        else if (user.Role == UserRole.Admin && currentUser?.Role != UserRole.Admin)
-        {
-            return new UpdateUserResult(false, null, "Access denied");
-        }
-
-        if (user.Role == UserRole.Admin
-            && request.Role is not null
-            && !request.Role.Equals("admin", StringComparison.OrdinalIgnoreCase))
-        {
-            return new UpdateUserResult(false, null, "Admin role cannot be modified");
-        }
 
         UserRole? role = null;
-        if (request.Role is not null && user.Role != UserRole.Admin)
+        if (request.Role is not null)
         {
             if (!EnumExtensions.TryParseApiRole(request.Role, out var parsedRole))
-                return new UpdateUserResult(false, null, "Invalid role. Must be 'viewer' or 'editor'");
+                return new UpdateUserResult(false, null, "Invalid role. Must be 'admin' or 'member'");
 
             role = parsedRole;
+        }
+
+        if (isSelf && user.Role == UserRole.Admin && role == UserRole.Member)
+            return new UpdateUserResult(false, null, "You cannot demote your own admin account");
+
+        if (user.Role == UserRole.Admin && role == UserRole.Member)
+        {
+            var users = await userRepository.ListAsync(cancellationToken);
+            if (users.Count(candidate => candidate.Role == UserRole.Admin) <= 1)
+                return new UpdateUserResult(false, null, "At least one admin is required");
         }
 
         var scope = EnumExtensions.ParseKeyScope(request.Scope);
@@ -70,7 +63,7 @@ public class UpdateUserCommandHandler(
             user.Role = role.Value;
         }
 
-        if (request.Name != user.Name && request.Name is not null)
+        if (request.Name is not null && request.Name != user.Name)
         {
             user.Name = request.Name;
             hasChanges = true;

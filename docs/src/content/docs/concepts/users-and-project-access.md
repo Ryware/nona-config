@@ -57,7 +57,7 @@ With the CLI:
 nona users create \
   --name "Jane Doe" \
   --user-email jane@example.com \
-  --role editor
+  --role member
 ```
 
 The CLI returns the invitation result so you can deliver the invite to the teammate.
@@ -66,11 +66,11 @@ The CLI returns the invitation result so you can deliver the invite to the teamm
 
 Project access is important because Nona is designed around project boundaries.
 
-That means access can follow the same boundary:
+Admins have global access. Members can have no assignments or can receive a separate permission for each project:
 
-- one team can work on one project
-- another team can work on a different project
-- operators do not need access to everything by default
+- `Viewer` can read project configuration, environments, and releases
+- `Editor` adds project configuration changes, API keys, and parameter share links
+- project creation, rename, deletion, user management, and audit logs remain Admin-only
 
 This is especially useful once one Nona instance serves multiple apps or services.
 
@@ -111,7 +111,7 @@ For a real team setup:
 
 1. create the project structure first
 2. invite users individually
-3. grant access by project boundary
+3. grant each Member Viewer or Editor access by project boundary
 4. review [Audit logs](/docs/concepts/audit-logs) after sensitive permission changes if needed
 
 ## FAQ

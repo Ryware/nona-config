@@ -19,7 +19,7 @@ public class ListUsersQueryTests
                 Id = 1,
                 Email = "first@example.com",
                 Name = "First User",
-                Role = UserRole.Viewer,
+                Role = UserRole.Member,
                 Scope = KeyScope.Frontend
             },
             new()
@@ -27,7 +27,7 @@ public class ListUsersQueryTests
                 Id = 2,
                 Email = "second@example.com",
                 Name = "Second User",
-                Role = UserRole.Editor,
+                Role = UserRole.Member,
                 Scope = KeyScope.All
             }
         };
@@ -51,13 +51,13 @@ public class ListUsersQueryTests
         var result = await handler.Handle(new ListUsersQuery(), CancellationToken.None);
 
         await Assert.That(result.Count).IsEqualTo(2);
-        await Assert.That(result[0].Role).IsEqualTo("viewer");
+        await Assert.That(result[0].Role).IsEqualTo("member");
         await Assert.That(result[0].Scope).IsEqualTo("client");
         await Assert.That(result[0].Projects.Select(project => project.ProjectName))
             .IsEquivalentTo(["alpha", "beta"]);
         await Assert.That(result[0].Projects.Select(project => project.Role))
             .IsEquivalentTo(["editor", "viewer"]);
-        await Assert.That(result[1].Role).IsEqualTo("editor");
+        await Assert.That(result[1].Role).IsEqualTo("member");
         await Assert.That(result[1].Projects.Single().ProjectName).IsEqualTo("gamma");
 
         await fixture.ProjectMemberRepository.Received(1).ListByUsersAsync(

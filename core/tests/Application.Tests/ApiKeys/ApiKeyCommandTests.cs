@@ -154,6 +154,25 @@ public class ApiKeyCommandTests
     }
 
     [Test]
+    public async Task ProjectViewer_CannotListApiKeys()
+    {
+        var fixture = new TestFixture();
+        fixture.SetupAsProjectUser("viewer", ProjectName);
+        SetupProject(fixture);
+        var handler = new ListApiKeysQueryHandler(
+            fixture.ProjectRepository,
+            fixture.ApiKeyRepository,
+            fixture.ProjectAccessService);
+
+        var result = await handler.Handle(new ListApiKeysQuery(ProjectName), CancellationToken.None);
+
+        await Assert.That(result.Success).IsFalse();
+        await Assert.That(result.Error).IsEqualTo("Access denied");
+        await fixture.ApiKeyRepository.DidNotReceive()
+            .ListByProjectAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Test]
     public async Task DeleteApiKey_DeletesMatchingProjectKey()
     {
         var fixture = new TestFixture();

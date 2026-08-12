@@ -36,8 +36,7 @@ export function UsersFilters(props: UsersFiltersProps) {
           options={[
             { value: "all", label: "All Roles" },
             { value: "admin", label: "Admin" },
-            { value: "editor", label: "Editor" },
-            { value: "viewer", label: "Viewer" }
+            { value: "member", label: "Member" }
           ]}
         />
       </div>

@@ -54,7 +54,6 @@ public class TestFixture
     public void SetupAsSystemAdmin(string username = "admin")
     {
         CurrentUserService.Username.Returns(username);
-        CurrentUserService.Role.Returns(UserRole.Admin);
         UserAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
             .Returns(new User { Email = username, Name = username, Role = UserRole.Admin });
         UserAuthorizationService.CanManageUsersAsync(Arg.Any<CancellationToken>()).Returns(true);
@@ -66,9 +65,8 @@ public class TestFixture
     public void SetupAsProjectAdmin(string username, string projectName)
     {
         CurrentUserService.Username.Returns(username);
-        CurrentUserService.Role.Returns(UserRole.Viewer);
         UserAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
-            .Returns(new User { Email = username, Name = username, Role = UserRole.Viewer });
+            .Returns(new User { Email = username, Name = username, Role = UserRole.Member });
         UserAuthorizationService.CanManageUsersAsync(Arg.Any<CancellationToken>()).Returns(false);
         UserAuthorizationService.HasGlobalProjectAccessAsync(Arg.Any<CancellationToken>()).Returns(false);
         ProjectAccessService.HasViewAccessAsync(projectName, Arg.Any<CancellationToken>()).Returns(true);
@@ -81,9 +79,8 @@ public class TestFixture
     public void SetupAsProjectUser(string username, string projectName)
     {
         CurrentUserService.Username.Returns(username);
-        CurrentUserService.Role.Returns(UserRole.Viewer);
         UserAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
-            .Returns(new User { Email = username, Name = username, Role = UserRole.Viewer });
+            .Returns(new User { Email = username, Name = username, Role = UserRole.Member });
         UserAuthorizationService.CanManageUsersAsync(Arg.Any<CancellationToken>()).Returns(false);
         UserAuthorizationService.HasGlobalProjectAccessAsync(Arg.Any<CancellationToken>()).Returns(false);
         ProjectAccessService.HasViewAccessAsync(projectName, Arg.Any<CancellationToken>()).Returns(true);
@@ -96,9 +93,8 @@ public class TestFixture
     public void SetupAsUserWithNoProjectAccess(string username, string projectName)
     {
         CurrentUserService.Username.Returns(username);
-        CurrentUserService.Role.Returns(UserRole.Viewer);
         UserAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
-            .Returns(new User { Email = username, Name = username, Role = UserRole.Viewer });
+            .Returns(new User { Email = username, Name = username, Role = UserRole.Member });
         UserAuthorizationService.CanManageUsersAsync(Arg.Any<CancellationToken>()).Returns(false);
         UserAuthorizationService.HasGlobalProjectAccessAsync(Arg.Any<CancellationToken>()).Returns(false);
         ProjectAccessService.HasViewAccessAsync(projectName, Arg.Any<CancellationToken>()).Returns(false);

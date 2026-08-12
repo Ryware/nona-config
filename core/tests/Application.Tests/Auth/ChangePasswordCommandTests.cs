@@ -123,7 +123,7 @@ public class ChangePasswordCommandTests
         Id = 42,
         Email = "user@example.com",
         Name = "User",
-        Role = UserRole.Viewer,
+        Role = UserRole.Member,
         PasswordHash = passwordHash,
         CreatedAt = Now,
         UpdatedAt = Now

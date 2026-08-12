@@ -3,6 +3,7 @@ import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { setActiveEnvironmentName } from '../../entities/project/model/active-environment';
+import { mockProjects } from '../mocks/data';
 import { server } from '../mocks/server';
 import {
   renderProjectSections,
@@ -20,6 +21,23 @@ describe('ProjectApiKeysSection', () => {
     expect(await screen.findByTestId('project-api-keys-heading')).toBeInTheDocument();
     expect(await screen.findByText('Web Client')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /add environment/i })).not.toBeInTheDocument();
+  });
+
+  it('denies project Viewers direct access to API keys', async () => {
+    localStorage.setItem(
+      'auth_session',
+      JSON.stringify({ email: 'viewer@example.com', role: 'member' }),
+    );
+    server.use(
+      http.get('http://localhost:5027/admin/projects', () =>
+        HttpResponse.json([{ ...mockProjects[0], accessLevel: 'viewer' }]),
+      ),
+    );
+
+    renderProjectSections('/projects/my-app/api-keys');
+
+    expect(await screen.findByTestId('access-denied')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /add api key/i })).not.toBeInTheDocument();
   });
 
   it('opens the API key form when the add button is clicked', async () => {

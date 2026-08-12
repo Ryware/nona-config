@@ -94,6 +94,6 @@ internal static class Fixtures
         """;
 
     internal const string CreateUserResponseJson = """
-        {"user":{"id":1,"email":"user@example.com","name":"Test User","role":"editor","scope":"all"},"invitationToken":"inv_token_abc123"}
+        {"user":{"id":1,"email":"user@example.com","name":"Test User","role":"member","scope":"all"},"invitationToken":"inv_token_abc123"}
         """;
 }

@@ -84,6 +84,7 @@ public class CreateProjectCommandHandler(
             project.Id,
             project.Name,
             project.UrlSlug,
+            "admin",
             project.Environments,
             project.CreatedAt,
             project.UpdatedAt);

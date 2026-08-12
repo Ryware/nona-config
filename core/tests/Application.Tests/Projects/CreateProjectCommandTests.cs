@@ -117,7 +117,6 @@ public class CreateProjectCommandTests
     public async Task SystemAdmin_IsAuthorizedFromPersistedUser()
     {
         var fixture = new TestFixture();
-        fixture.CurrentUserService.Role.Returns(UserRole.Viewer);
         fixture.UserAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
             .Returns(new User
             {

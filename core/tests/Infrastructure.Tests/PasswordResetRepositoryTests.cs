@@ -27,7 +27,7 @@ public class PasswordResetRepositoryTests
             PasswordSalt = "password-salt",
             PasswordResetTokenHash = "utc-token-hash",
             PasswordResetTokenExpiresAt = expiresAt,
-            Role = UserRole.Viewer,
+            Role = UserRole.Member,
             Scope = KeyScope.All,
             CreatedAt = createdAt,
             UpdatedAt = updatedAt
@@ -61,7 +61,7 @@ public class PasswordResetRepositoryTests
             PasswordSalt = "old-salt",
             PasswordResetTokenHash = "token-hash",
             PasswordResetTokenExpiresAt = now.AddHours(1),
-            Role = UserRole.Viewer,
+            Role = UserRole.Member,
             Scope = KeyScope.All,
             CreatedAt = now,
             UpdatedAt = now

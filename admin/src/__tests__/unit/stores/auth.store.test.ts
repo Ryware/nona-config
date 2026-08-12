@@ -16,13 +16,13 @@ describe("authStore", () => {
     });
   });
 
-  it("normalizes a legacy viewer admin session to the explicit role", () => {
+  it("rejects legacy organization roles", () => {
     localStorage.setItem("auth_token", "opaque-token");
     localStorage.setItem(
       "auth_session",
       JSON.stringify({ email: "admin@example.com", role: "viewer", isAdmin: true })
     );
 
-    expect(authStore.getSession()?.role).toBe("admin");
+    expect(authStore.getSession()).toBeNull();
   });
 });

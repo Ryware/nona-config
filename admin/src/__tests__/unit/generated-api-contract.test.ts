@@ -21,7 +21,12 @@ type AccountDetails =
 type ChangePasswordBody =
   paths["/auth/password"]["put"]["requestBody"]["content"]["application/json"];
 
-describe("generated audit API contract", () => {
+describe("generated API contract", () => {
+  it("includes project access levels", () => {
+    expectTypeOf<components["schemas"]["ProjectDto"]["accessLevel"]>()
+      .toEqualTypeOf<string>();
+  });
+
   it("uses numbers for pagination queries and response counts", () => {
     expectTypeOf<AuditLogQuery["page"]>().toEqualTypeOf<
       number | undefined

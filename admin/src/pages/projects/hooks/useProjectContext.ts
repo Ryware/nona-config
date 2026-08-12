@@ -2,7 +2,6 @@ import { useParams } from "@solidjs/router";
 import { useQuery } from "@tanstack/solid-query";
 import { createEffect, createMemo } from "solid-js";
 
-import { canManageProjectResources } from "../../../entities/auth/model/permissions";
 import { environmentService } from "../../../entities/project/api/environment.service";
 import { projectService } from "../../../entities/project/api/project.service";
 import {
@@ -12,8 +11,6 @@ import {
 } from "../../../entities/project/model/active-environment";
 import { setActiveProjectSlug } from "../../../entities/project/model/active-project";
 import { projectKeys } from "../../../entities/project/queries/keys";
-import { userService } from "../../../entities/user/api/user.service";
-import { userKeys } from "../../../entities/user/queries/keys";
 import type { Project } from "../../../types";
 
 
@@ -77,17 +74,8 @@ export function useProjectContext() {
     project() && activeEnvName() ? `${project()!.urlSlug}:${activeEnvName()}` : ""
   );
 
-  const usersQuery = useQuery(() => ({
-    queryKey: userKeys.list(),
-    queryFn: () => userService.getAll(),
-    enabled: !!project()
-  }));
-
   const canManageProject = createMemo(() =>
-    canManageProjectResources(
-      projectId(),
-      usersQuery.status === "success" ? (usersQuery.data ?? []) : []
-    )
+    project()?.accessLevel === "admin" || project()?.accessLevel === "editor"
   );
 
   return {
@@ -99,7 +87,6 @@ export function useProjectContext() {
     environmentsQuery,
     activeEnvironment,
     activeEnvironmentKey,
-    usersQuery,
     canManageProject
   };
 }

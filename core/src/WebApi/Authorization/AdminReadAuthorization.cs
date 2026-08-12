@@ -8,13 +8,9 @@ namespace Nona.WebApi.Authorization;
 public static class AdminReadAuthorizationPolicies
 {
     public const string Manage = "ManageAdminReads";
-    public const string SelfOrManageUser = "SelfOrManageUser";
 }
 
-public sealed class AdminReadAuthorizationRequirement(bool allowSelf) : IAuthorizationRequirement
-{
-    public bool AllowSelf { get; } = allowSelf;
-}
+public sealed class AdminReadAuthorizationRequirement : IAuthorizationRequirement;
 
 public sealed class AdminReadAuthorizationHandler(IUserAuthorizationService userAuthorizationService)
     : AuthorizationHandler<AdminReadAuthorizationRequirement>
@@ -30,17 +26,7 @@ public sealed class AdminReadAuthorizationHandler(IUserAuthorizationService user
         if (currentUser is null)
             return;
 
-        if (currentUser.Role is UserRole.Admin or UserRole.Editor)
-        {
-            context.Succeed(requirement);
-            return;
-        }
-
-        if (!requirement.AllowSelf || httpContext is null)
-            return;
-
-        var routeId = httpContext.Request.RouteValues["id"]?.ToString();
-        if (long.TryParse(routeId, out var targetUserId) && currentUser.Id == targetUserId)
+        if (currentUser.Role == UserRole.Admin)
             context.Succeed(requirement);
     }
 }

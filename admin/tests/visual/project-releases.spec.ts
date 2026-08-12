@@ -4,6 +4,7 @@ const project = {
   id: 'proj-1',
   urlSlug: 'my-app',
   name: 'my-app',
+  accessLevel: 'admin',
   description: 'Main application config',
   environments: ['production', 'staging'],
   createdAt: '2024-01-01T00:00:00Z',

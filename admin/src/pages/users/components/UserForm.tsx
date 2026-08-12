@@ -1,7 +1,7 @@
-import { createMemo, createSignal, Show } from "solid-js";
+import { createSignal, Show } from "solid-js";
 import { Button } from "../../../shared/ui/button";
 import { MIcon } from "../../../shared/ui/icons";
-import type { Project } from "../../../types";
+import type { Project, ProjectAccess } from "../../../types";
 import { UserIdentityForm } from "./UserIdentityForm";
 import { UserProjectScope } from "./UserProjectScope";
 import { UserRoleSelector } from "./UserRoleSelector";
@@ -9,8 +9,8 @@ import { UserRoleSelector } from "./UserRoleSelector";
 export interface UserFormValue {
   name: string;
   email: string;
-  role: "admin" | "editor" | "viewer";
-  selectedProjects: string[];
+  role: "admin" | "member";
+  projectAccess: Record<string, "editor" | "viewer">;
 }
 
 interface UserFormProps {
@@ -19,11 +19,10 @@ interface UserFormProps {
     name: string;
     email: string;
     role: string;
-    projects?: string[];
+    projects?: ProjectAccess[];
   };
   projects: Project[];
-  /** Whether the current user may manage roles/scope (admins). */
-  allowManagement: boolean;
+  roleLocked?: boolean;
   isPending: boolean;
   onCancel: () => void;
   onSubmit: (value: UserFormValue) => void;
@@ -34,27 +33,20 @@ export function UserForm(props: UserFormProps) {
 
   const [name, setName] = createSignal(props.initial?.name ?? "");
   const [email, setEmail] = createSignal(props.initial?.email ?? "");
-  const [role, setRole] = createSignal<"admin" | "editor" | "viewer">(
-    props.initial?.role === "admin"
-      ? "admin"
-      : props.initial?.role === "viewer"
-        ? "viewer"
-        : "editor"
+  const [role, setRole] = createSignal<"admin" | "member">(
+    props.initial?.role === "admin" ? "admin" : "member"
   );
-  const [selectedProjects, setSelectedProjects] = createSignal<Set<string>>(
-    new Set(props.initial?.projects ?? [])
-  );
-  const assignableRole = () => (role() === "viewer" ? "viewer" : "editor");
-
-  const canEditProjectScope = createMemo(
-    () => props.allowManagement && role() === "viewer"
+  const [projectAccess, setProjectAccess] = createSignal<Record<string, "editor" | "viewer">>(
+    Object.fromEntries(
+      (props.initial?.projects ?? []).map(project => [project.projectName, project.role])
+    )
   );
 
-  const toggleProject = (id: string) => {
-    setSelectedProjects(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+  const setProjectRole = (projectName: string, projectRole: "editor" | "viewer" | null) => {
+    setProjectAccess(previous => {
+      const next = { ...previous };
+      if (projectRole) next[projectName] = projectRole;
+      else delete next[projectName];
       return next;
     });
   };
@@ -65,7 +57,7 @@ export function UserForm(props: UserFormProps) {
       name: name(),
       email: email(),
       role: role(),
-      selectedProjects: [...selectedProjects()]
+      projectAccess: projectAccess()
     });
   };
 
@@ -84,7 +76,7 @@ export function UserForm(props: UserFormProps) {
         onEmailChange={setEmail}
       />
 
-      <Show when={role() === "admin"}>
+      <Show when={props.roleLocked}>
         <section
           data-testid="user-admin-role-locked"
           class="bg-surface-container-low border-outline-variant/15 space-y-4 rounded-xl border p-4 shadow-sm sm:p-8"
@@ -96,22 +88,22 @@ export function UserForm(props: UserFormProps) {
             <div>
               <h3 class="font-headline text-on-surface text-base font-bold">Admin</h3>
               <p class="text-on-surface-variant mt-1 text-xs">
-                The first user is the system admin. This role cannot be reassigned or removed.
+                You cannot demote your own admin account.
               </p>
             </div>
           </div>
         </section>
       </Show>
 
-      <Show when={props.allowManagement && role() !== "admin"}>
-        <UserRoleSelector role={assignableRole()} onChange={setRole} />
+      <Show when={!props.roleLocked}>
+        <UserRoleSelector role={role()} onChange={setRole} />
       </Show>
 
-      <Show when={canEditProjectScope()}>
+      <Show when={role() === "member"}>
         <UserProjectScope
           projects={props.projects}
-          selectedProjects={selectedProjects()}
-          onToggleProject={toggleProject}
+          projectAccess={projectAccess()}
+          onChange={setProjectRole}
         />
       </Show>
 

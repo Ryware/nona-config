@@ -117,7 +117,7 @@ public class PasswordChangeEndpointTests
         {
             Email = $"sso-{Guid.NewGuid():N}@example.com",
             Name = "SSO User",
-            Role = UserRole.Viewer,
+            Role = UserRole.Member,
             CreatedAt = now,
             UpdatedAt = now
         };

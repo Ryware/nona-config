@@ -1,4 +1,4 @@
-import { USER_ROLES } from "./roles";
+import { USER_ROLES, type UserRole } from "./roles";
 
 /**
  * Centralized auth session management.
@@ -10,9 +10,8 @@ import { USER_ROLES } from "./roles";
 
 export interface AuthSession {
   email: string;
-  role: string;
+  role: UserRole;
   username?: string;
-  isAdmin?: boolean;
 }
 
 export const authStore = {
@@ -23,13 +22,7 @@ export const authStore = {
   saveSession(token: string, session: AuthSession, rememberMe = true): void {
     const storage = rememberMe ? localStorage : sessionStorage;
     storage.setItem("auth_token", token);
-    storage.setItem(
-      "auth_session",
-      JSON.stringify({
-        ...session,
-        role: normalizeRole(session, token)
-      })
-    );
+    storage.setItem("auth_session", JSON.stringify(session));
   },
 
   clearSession(): void {
@@ -48,10 +41,9 @@ export const authStore = {
       const raw = localStorage.getItem("auth_session") ?? sessionStorage.getItem("auth_session");
       if (raw) {
         const session = JSON.parse(raw) as AuthSession;
-        return {
-          ...session,
-          role: normalizeRole(session, this.getToken() ?? "")
-        };
+        return session.role === USER_ROLES.ADMIN || session.role === USER_ROLES.MEMBER
+          ? session
+          : null;
       }
     } catch {
       // corrupted storage — treat as logged out
@@ -98,23 +90,3 @@ export const authStore = {
     window.location.href = "/login";
   }
 };
-
-function getIsAdminClaim(token: string): boolean {
-  try {
-    const parts = token.split(".");
-    if (parts.length !== 3) return false;
-
-    const payload = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const decoded = JSON.parse(atob(payload)) as Record<string, unknown>;
-    const claim = decoded.isAdmin;
-
-    return claim === true || claim === "true";
-  } catch {
-    return false;
-  }
-}
-
-function normalizeRole(session: AuthSession, token: string): string {
-  // Sessions created before Admin became an explicit role stored viewer + isAdmin=true.
-  return session.isAdmin === true || getIsAdminClaim(token) ? USER_ROLES.ADMIN : session.role;
-}

@@ -15,7 +15,7 @@ public class User
     public string? PasswordHash { get; set; }
     public string? PasswordSalt { get; set; }
 
-    public UserRole Role { get; set; } = UserRole.Viewer;
+    public UserRole Role { get; set; } = UserRole.Member;
     public KeyScope Scope { get; set; } = KeyScope.All;
 
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
@@ -29,7 +29,6 @@ public class User
 
 public enum UserRole
 {
-    Viewer = 0,
-    Editor = 1,
+    Member = 0,
     Admin = 2
 }

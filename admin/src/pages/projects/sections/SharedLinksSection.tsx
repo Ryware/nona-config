@@ -6,6 +6,7 @@ import { Show, createSignal } from "solid-js";
 import { configEntryService } from "../../../entities/project/api/config-entry.service";
 import { projectKeys } from "../../../entities/project/queries/keys";
 import { MSG } from "../../../shared/lib/messages";
+import { AccessDenied } from "../../../shared/ui/AccessDenied";
 import { useToast } from "../../../shared/ui/toast";
 import type { ParameterShareLink } from "../../../types";
 import { ProjectShareLinks } from "../../../features/project-share-links/ProjectShareLinks";
@@ -41,7 +42,7 @@ export default function SharedLinksSection() {
             new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
         );
     },
-    enabled: !!project() && !!activeEnvName()
+    enabled: !!project() && !!activeEnvName() && canManageProject()
   }));
 
   const copyShareUrl = async (value: string) => {
@@ -85,26 +86,28 @@ export default function SharedLinksSection() {
       project={project()}
       projectLoading={projectsQuery.isLoading}
     >
-      <Show
-        when={activeEnvName()}
-        fallback={
-          <div class="border-outline-variant/15 bg-surface-container-low rounded-2xl border px-5 py-6 text-sm text-on-surface-variant">
-            Select an active environment from the header to view shared links.
-          </div>
-        }
-      >
-        <ProjectShareLinks
-          environmentName={activeEnvName()}
-          shareLinks={
-            projectShareLinksQuery.status === "success" ? (projectShareLinksQuery.data ?? []) : []
+      <Show when={canManageProject()} fallback={<AccessDenied />}>
+        <Show
+          when={activeEnvName()}
+          fallback={
+            <div class="border-outline-variant/15 bg-surface-container-low rounded-2xl border px-5 py-6 text-sm text-on-surface-variant">
+              Select an active environment from the header to view shared links.
+            </div>
           }
-          isLoading={projectShareLinksQuery.isLoading}
-          revokingId={revokingShareLinkId()}
-          canManage={canManageProject()}
-          onCopy={copyShareUrl}
-          onRevoke={link => revokeProjectShareLinkMutation.mutate(link)}
-          buildShareUrl={buildShareUrl}
-        />
+        >
+          <ProjectShareLinks
+            environmentName={activeEnvName()}
+            shareLinks={
+              projectShareLinksQuery.status === "success" ? (projectShareLinksQuery.data ?? []) : []
+            }
+            isLoading={projectShareLinksQuery.isLoading}
+            revokingId={revokingShareLinkId()}
+            canManage={canManageProject()}
+            onCopy={copyShareUrl}
+            onRevoke={link => revokeProjectShareLinkMutation.mutate(link)}
+            buildShareUrl={buildShareUrl}
+          />
+        </Show>
       </Show>
     </ProjectSectionLayout>
   );

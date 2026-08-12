@@ -2,13 +2,13 @@
 
 export interface ProjectAccess {
   projectName: string;
-  role: string;
+  role: "editor" | "viewer";
 }
 
 export interface User {
   id: string;
   email: string;
-  role: string;
+  role: "admin" | "member";
   name: string;
   scope?: string;
   projects?: ProjectAccess[];
@@ -20,7 +20,7 @@ export interface User {
 export interface CreateUserRequest {
   name: string;
   email: string;
-  role?: string;
+  role?: "admin" | "member";
   scope?: string;
 }
 

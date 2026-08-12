@@ -66,7 +66,7 @@ public class CompleteInvitationWithSsoCommandTests
             Id = 99,
             Email = email,
             Name = "Invited User",
-            Role = UserRole.Viewer,
+            Role = UserRole.Member,
             Scope = KeyScope.All,
             InviteTokenHash = "invite-hash",
             CreatedAt = new DateTime(2026, 4, 23, 9, 0, 0, DateTimeKind.Utc),
