@@ -9,6 +9,12 @@ on:
       - v*
   pull_request:
   workflow_dispatch:
+    inputs:
+      publish_image:
+        description: Publish image to Docker Hub
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -218,7 +224,7 @@ jobs:
 
   deploy:
     name: Publish container image
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+    if: github.event_name == 'workflow_dispatch' && inputs.publish_image == true && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/development')
     needs:
       - verify-generated-clients
       - test-admin-frontend
