@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@solidjs/testing-library';
 import { Router, Route } from '@solidjs/router';
 import { QueryClient, QueryClientProvider } from '@tanstack/solid-query';
 import { MetaProvider } from '@solidjs/meta';
+import { ThemeProvider } from '../../shared/hooks/useTheme';
 import { ToastProvider } from '../../shared/ui/toast';
 import SharedParameterPage from '../../pages/shared/SharedParameterPage';
 
@@ -15,13 +16,15 @@ function renderSharedPage(token = 'AbCdEf1234567890') {
 
   return render(() => (
     <MetaProvider>
-      <QueryClientProvider client={queryClient}>
-        <ToastProvider>
-          <Router>
-            <Route path="/share/:token" component={SharedParameterPage} />
-          </Router>
-        </ToastProvider>
-      </QueryClientProvider>
+      <ThemeProvider>
+        <QueryClientProvider client={queryClient}>
+          <ToastProvider>
+            <Router>
+              <Route path="/share/:token" component={SharedParameterPage} />
+            </Router>
+          </ToastProvider>
+        </QueryClientProvider>
+      </ThemeProvider>
     </MetaProvider>
   ));
 }
@@ -30,6 +33,7 @@ describe('SharedParameterPage', () => {
   beforeEach(() => {
     localStorage.clear();
     sessionStorage.clear();
+    document.cookie = 'nona_theme=; Max-Age=0; Path=/';
     window.history.pushState({}, '', '/');
   });
 
@@ -44,6 +48,16 @@ describe('SharedParameterPage', () => {
       'content',
       'noindex,nofollow',
     );
+
+    const themeToggle = screen.getByRole('button', { name: 'Switch to dark theme' });
+    expect(document.documentElement).toHaveAttribute('data-theme', 'light');
+
+    fireEvent.click(themeToggle);
+
+    await waitFor(() => {
+      expect(document.documentElement).toHaveAttribute('data-theme', 'dark');
+      expect(themeToggle).toHaveAccessibleName('Switch to light theme');
+    });
   });
 
   it('updates an editable shared parameter', async () => {
@@ -66,5 +80,6 @@ describe('SharedParameterPage', () => {
     expect(await screen.findByTestId('shared-parameter-error')).toHaveTextContent(
       'This share link has been revoked.',
     );
+    expect(screen.getByRole('button', { name: /Switch to (dark|light) theme/ })).toBeInTheDocument();
   });
 });
