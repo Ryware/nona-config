@@ -190,9 +190,10 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
                       class="bg-surface-container-lowest/30 border-outline-variant/10 border-t px-4 py-4"
                     >
                       <ProjectParamEditDrawer
-                       {...props}
+                        {...props}
                         entry={props.editingEntry}
                         onClose={props.onCloseEntry}
+                        historyLayout="mobile"
                       />
                     </div>
                   </Show>
@@ -213,7 +214,7 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
       <Show when={!isMobile()}>
         <div class="bg-surface-container-low border-outline-variant/15 overflow-hidden rounded-xl border">
         <div class="overflow-x-auto">
-        <table class="w-full border-collapse text-left text-[12px]">
+        <table class="w-full table-fixed border-collapse text-left text-[12px]">
           <thead class="sticky top-0 z-10">
             <tr class="border-outline-variant/15 bg-surface-container-lowest/50 border-b">
               <th class="text-outline px-6 py-3 text-[11px] font-medium tracking-[0.05em] uppercase">
@@ -382,6 +383,7 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
                               isHistoryLoading={props.isHistoryLoading}
                               isRollingBack={props.isRollingBack}
                               onRollbackVersion={props.onRollbackVersion}
+                              historyLayout="desktop"
                               isReadOnly={props.isReadOnly}
                               releaseVersion={props.releaseVersion}
                             />

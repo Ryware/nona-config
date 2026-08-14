@@ -2,6 +2,7 @@ import { useParams } from "@solidjs/router";
 import { useQuery } from "@tanstack/solid-query";
 import { createEffect, createMemo } from "solid-js";
 
+import { canManageProjects } from "../../../entities/auth/model/permissions";
 import { environmentService } from "../../../entities/project/api/environment.service";
 import { projectService } from "../../../entities/project/api/project.service";
 import {
@@ -12,7 +13,6 @@ import {
 import { setActiveProjectSlug } from "../../../entities/project/model/active-project";
 import { projectKeys } from "../../../entities/project/queries/keys";
 import type { Project } from "../../../types";
-
 
 export function useProjectContext() {
   const params = useParams<{ slug: string }>();
@@ -74,8 +74,11 @@ export function useProjectContext() {
     project() && activeEnvName() ? `${project()!.urlSlug}:${activeEnvName()}` : ""
   );
 
-  const canManageProject = createMemo(() =>
-    project()?.accessLevel === "admin" || project()?.accessLevel === "editor"
+  const canManageProject = createMemo(
+    () =>
+      canManageProjects() ||
+      project()?.accessLevel === "admin" ||
+      project()?.accessLevel === "editor"
   );
 
   return {
