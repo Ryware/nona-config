@@ -52,6 +52,20 @@ describe('ProjectParametersSection', () => {
     expect(screen.queryByTestId('parameter-share-API_URL')).not.toBeInTheDocument();
   });
 
+  it('keeps global admins manageable when the compatibility API omits accessLevel', async () => {
+    server.use(
+      http.get('http://localhost:5027/admin/projects', () => {
+        const { accessLevel: _accessLevel, ...projectWithoutAccessLevel } = mockProjects[0];
+        return HttpResponse.json([projectWithoutAccessLevel]);
+      }),
+    );
+
+    renderProjectSections('/projects/my-app');
+
+    expect(await screen.findByRole('button', { name: /add parameter/i })).toBeInTheDocument();
+    expect(await screen.findByTestId('parameter-share-API_URL')).toBeInTheDocument();
+  });
+
   it('opens parameter details inline as an accordion', async () => {
     renderProjectSections('/projects/my-app');
 
