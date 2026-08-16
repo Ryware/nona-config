@@ -146,7 +146,7 @@ Call `getAllValues()` again to poll for changes. The client automatically sends 
 
 ## Pin a release version
 
-By default, reads use the active release selected for the environment.
+By default, reads use the active release selected for the environment. If none is active, unversioned reads use its working parameters even when historical releases exist.
 
 Pin a client to an exact release or release line with `releaseVersion`:
 
@@ -234,7 +234,7 @@ Keep the TTL short for operational flags and kill switches unless you are sure l
 If a JavaScript read fails:
 
 1. confirm `environmentId` matches the environment name in Nona
-2. confirm the environment has an active release, or configure `releaseVersion`
+2. confirm the expected release is active, configure `releaseVersion`, or verify the working parameter when none is active
 3. confirm the API key belongs to the same project as the parameter
 4. confirm the parameter scope is readable by that key
 5. try the same key once with [HTTP](/docs/clients/http) to isolate client-code issues

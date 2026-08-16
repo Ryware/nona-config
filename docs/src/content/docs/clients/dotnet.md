@@ -114,7 +114,7 @@ This is helpful for optional settings or for gradual rollout of new keys across 
 
 ## Pin a release version
 
-By default, reads use the active release selected for the environment.
+By default, reads use the active release selected for the environment. If none is active, unversioned reads use its working parameters even when historical releases exist.
 
 Set `ReleaseVersion` to pin the client to an exact release or release line:
 
@@ -202,7 +202,7 @@ Use `AllowStaleCache` carefully. It can improve resilience and smooth over trans
 If a .NET read fails:
 
 1. confirm the `EnvironmentId` matches the Nona environment name
-2. confirm the environment has an active release, or configure `ReleaseVersion`
+2. confirm the expected release is active, configure `ReleaseVersion`, or verify the working parameter when none is active
 3. confirm the API key belongs to the same project as the entry
 4. confirm the key scope can read the entry scope
 5. try the same entry once with [HTTP](/docs/clients/http) to separate transport issues from application code

@@ -10,7 +10,7 @@ GET /api/{environmentId}/{key}
 X-Api-Key: <api-key>
 ```
 
-The API key is bound to one project. The request only includes the environment and key. Without a `version` query parameter, Nona reads the environment's active release.
+The API key is bound to one project. The request only includes the environment and key. Without a `version` query parameter, Nona reads the environment's active release. If none is active, Nona falls back to its editable working parameters even when historical releases exist.
 
 Important scope note: this endpoint does not evaluate per-user context. Parameters or headers such as `userId`, `X-User-Id`, segments, cohorts, or percentage-rollout hints are not part of the Nona HTTP read model.
 
@@ -170,7 +170,7 @@ If a request fails:
 1. confirm the environment name is correct
 2. confirm the key exists in that environment
 3. confirm the key is URL-encoded
-4. confirm the environment has an active release, or pass `version`
+4. confirm the expected release is active, pass `version`, or verify the current working parameter when none is active
 5. confirm the API key belongs to the correct project
 6. confirm the API key scope can read the entry scope
 

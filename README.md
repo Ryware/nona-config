@@ -161,7 +161,7 @@ See [client/javascript-openfeature-provider/README.md](client/javascript-openfea
 
 ### Any language (plain HTTP)
 
-No SDK needed. A single GET request returns one config value from the environment's active release, or from a pinned release version:
+No SDK needed. A single GET request returns one config value from the environment's active release, from its working parameters when no release is active, or from a pinned release version:
 
 ```bash
 # curl
@@ -209,7 +209,7 @@ CLI packages:
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/api/{environmentId}/{key}` | Fetch one key from the active release |
+| `GET` | `/api/{environmentId}/{key}` | Fetch one key from the active release, or working parameters when none is active |
 | `GET` | `/api/{environmentId}/{key}?version=1.1.0` | Fetch one key from an exact release |
 | `GET` | `/api/{environmentId}/{key}?version=1.1.x` | Fetch one key from the highest patch in a release line |
 | `GET` | `/api/{environmentId}` | Fetch all client-visible keys with ETag support |
