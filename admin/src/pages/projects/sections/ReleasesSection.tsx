@@ -133,7 +133,7 @@ export default function ReleasesSection() {
           <>
             Remove the active release from the{" "}
             <span class="text-on-surface font-medium">{activeEnvName()}</span> environment? Clients
-            will no longer resolve to a pinned release until another one is activated.
+            will use the current working parameters until another release is activated.
           </>
         }
         confirmLabel="Clear Active Release"
