@@ -15,6 +15,7 @@ public record GetConfigEntryValueResult(bool Success, string? Value, string? Log
 public class GetConfigEntryValueQueryHandler(
     IApiKeyRepository apiKeyRepository,
     IEnvironmentRepository environmentRepository,
+    IConfigEntryRepository configEntryRepository,
     IConfigReleaseRepository configReleaseRepository,
     IApiKeyService apiKeyService)
     : IRequestHandler<GetConfigEntryValueQuery, GetConfigEntryValueResult>
@@ -41,6 +42,20 @@ public class GetConfigEntryValueQueryHandler(
         if (environment is null)
             return new GetConfigEntryValueResult(false, null, null, "Environment not found");
 
+        if (string.IsNullOrWhiteSpace(request.Version)
+            && string.IsNullOrWhiteSpace(environment.ActiveReleaseVersion))
+        {
+            var workingEntry = await configEntryRepository.GetAsync(
+                project.Name,
+                request.EnvironmentId,
+                request.Key,
+                cancellationToken);
+            if (workingEntry is null || (workingEntry.Scope & apiKeyScope) == 0)
+                return new GetConfigEntryValueResult(false, null, null, "Config entry not found");
+
+            return Success(workingEntry.Value, workingEntry.ContentType);
+        }
+
         var lookup = await ResolveEntryAsync(
             project.Name,
             request.EnvironmentId,
@@ -56,10 +71,7 @@ public class GetConfigEntryValueQueryHandler(
         if (configEntry is null)
             return new GetConfigEntryValueResult(false, null, null, "Config entry not found");
 
-        var contentType = ConfigEntryContentTypes.Normalize(configEntry.ContentType)
-            ?? ConfigEntryContentTypes.Infer(configEntry.Value);
-
-        return new GetConfigEntryValueResult(true, configEntry.Value, contentType, null);
+        return Success(configEntry.Value, configEntry.ContentType);
     }
 
     private async Task<(ConfigReleaseEntryLookupResult? Result, string? Error)> ResolveEntryAsync(
@@ -73,15 +85,10 @@ public class GetConfigEntryValueQueryHandler(
     {
         if (string.IsNullOrWhiteSpace(requestedVersion))
         {
-            if (string.IsNullOrWhiteSpace(activeReleaseVersion))
-            {
-                return (null, "Active release not configured");
-            }
-
             var activeReleaseEntry = await configReleaseRepository.GetEntryAsync(
                 projectName,
                 environmentName,
-                activeReleaseVersion,
+                activeReleaseVersion!,
                 key,
                 requiredScope,
                 cancellationToken);
@@ -117,4 +124,11 @@ public class GetConfigEntryValueQueryHandler(
             ? (null, "Release not found")
             : (releaseEntry, null);
     }
+
+    private static GetConfigEntryValueResult Success(string value, string contentType) =>
+        new(
+            true,
+            value,
+            ConfigEntryContentTypes.Normalize(contentType) ?? ConfigEntryContentTypes.Infer(value),
+            null);
 }

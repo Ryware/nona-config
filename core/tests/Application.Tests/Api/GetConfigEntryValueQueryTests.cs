@@ -310,18 +310,103 @@ public class GetConfigEntryValueQueryTests
     }
 
     [Test]
-    public async Task GetConfigEntryValue_WithNoVersionAndNoActiveRelease_ReturnsError()
+    public async Task GetConfigEntryValue_WithNoActiveRelease_ReadsWorkingEntry()
     {
         SetupValidBackendScopedApiKey();
         SetupEnvironmentExists(activeReleaseVersion: null);
+        _configEntryRepository.GetAsync(
+                ProjectName,
+                EnvironmentName,
+                ConfigKey,
+                Arg.Any<CancellationToken>())
+            .Returns(new ConfigEntry
+            {
+                Project = ProjectName,
+                Environment = EnvironmentName,
+                Key = ConfigKey,
+                Value = "working-value",
+                ContentType = "text",
+                Scope = KeyScope.Backend
+            });
 
         var handler = CreateHandler();
         var query = new GetConfigEntryValueQuery(EnvironmentName, ConfigKey);
 
         var result = await handler.Handle(query, CancellationToken.None);
 
+        await Assert.That(result.Success).IsTrue();
+        await Assert.That(result.Value).IsEqualTo("working-value");
+    }
+
+    [Test]
+    public async Task GetConfigEntryValue_WithPublishedReleaseAndNoActiveRelease_ReadsWorkingEntry()
+    {
+        SetupValidBackendScopedApiKey();
+        SetupEnvironmentExists(activeReleaseVersion: null);
+        _configReleaseRepository.ListAsync(
+                ProjectName,
+                EnvironmentName,
+                Arg.Any<CancellationToken>())
+            .Returns([new ConfigRelease
+            {
+                Project = ProjectName,
+                Environment = EnvironmentName,
+                Version = "1.0.0",
+                Major = 1,
+                Minor = 0,
+                Patch = 0
+            }]);
+        _configEntryRepository.GetAsync(
+                ProjectName,
+                EnvironmentName,
+                ConfigKey,
+                Arg.Any<CancellationToken>())
+            .Returns(new ConfigEntry
+            {
+                Project = ProjectName,
+                Environment = EnvironmentName,
+                Key = ConfigKey,
+                Value = "latest-working-value",
+                Scope = KeyScope.Backend
+            });
+
+        var result = await CreateHandler().Handle(
+            new GetConfigEntryValueQuery(EnvironmentName, ConfigKey),
+            CancellationToken.None);
+
+        await Assert.That(result.Success).IsTrue();
+        await Assert.That(result.Value).IsEqualTo("latest-working-value");
+        await _configReleaseRepository.DidNotReceive().ListAsync(
+            ProjectName,
+            EnvironmentName,
+            Arg.Any<CancellationToken>());
+    }
+
+    [Test]
+    public async Task GetConfigEntryValue_WorkingFallbackHonorsApiKeyScope()
+    {
+        SetupValidFrontendScopedApiKey();
+        SetupEnvironmentExists(activeReleaseVersion: null);
+        _configEntryRepository.GetAsync(
+                ProjectName,
+                EnvironmentName,
+                ConfigKey,
+                Arg.Any<CancellationToken>())
+            .Returns(new ConfigEntry
+            {
+                Project = ProjectName,
+                Environment = EnvironmentName,
+                Key = ConfigKey,
+                Value = "server-secret",
+                Scope = KeyScope.Backend
+            });
+
+        var result = await CreateHandler().Handle(
+            new GetConfigEntryValueQuery(EnvironmentName, ConfigKey),
+            CancellationToken.None);
+
         await Assert.That(result.Success).IsFalse();
-        await Assert.That(result.Error).IsEqualTo("Active release not configured");
+        await Assert.That(result.Error).IsEqualTo("Config entry not found");
     }
 
     [Test]
@@ -495,6 +580,7 @@ public class GetConfigEntryValueQueryTests
         return new GetConfigEntryValueQueryHandler(
             _apiKeyRepository,
             _environmentRepository,
+            _configEntryRepository,
             _configReleaseRepository,
             _apiKeyService);
     }

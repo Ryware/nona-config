@@ -15,6 +15,7 @@ public class GetAllConfigValuesQueryTests
 
     private IApiKeyRepository _apiKeyRepository = null!;
     private IEnvironmentRepository _environmentRepository = null!;
+    private IConfigEntryRepository _configEntryRepository = null!;
     private IConfigReleaseRepository _configReleaseRepository = null!;
     private IApiKeyService _apiKeyService = null!;
 
@@ -23,8 +24,106 @@ public class GetAllConfigValuesQueryTests
     {
         _apiKeyRepository = Substitute.For<IApiKeyRepository>();
         _environmentRepository = Substitute.For<IEnvironmentRepository>();
+        _configEntryRepository = Substitute.For<IConfigEntryRepository>();
         _configReleaseRepository = Substitute.For<IConfigReleaseRepository>();
         _apiKeyService = Substitute.For<IApiKeyService>();
+    }
+
+    [Test]
+    public async Task NoActiveRelease_ReturnsClientVisibleWorkingEntries()
+    {
+        SetupApiKey(KeyScope.Frontend);
+        _environmentRepository.GetAsync(ProjectName, EnvironmentName, Arg.Any<CancellationToken>())
+            .Returns(new ProjectEnvironment
+            {
+                Project = ProjectName,
+                Name = EnvironmentName,
+                ActiveReleaseVersion = null
+            });
+        _configEntryRepository.ListAsync(
+                ProjectName,
+                EnvironmentName,
+                Arg.Any<CancellationToken>())
+            .Returns([
+                WorkingEntry("client-only", "true", "bool", KeyScope.Frontend),
+                WorkingEntry("server-only", "secret", "text", KeyScope.Backend),
+                WorkingEntry("shared", "42", "number", KeyScope.All)
+            ]);
+
+        var result = await CreateHandler().Handle(
+            new GetAllConfigValuesQuery(EnvironmentName),
+            CancellationToken.None);
+
+        await Assert.That(result.Success).IsTrue();
+        await Assert.That(result.Values!.Count).IsEqualTo(2);
+        await Assert.That(result.Values.ContainsKey("client-only")).IsTrue();
+        await Assert.That(result.Values.ContainsKey("shared")).IsTrue();
+        await Assert.That(result.Values.ContainsKey("server-only")).IsFalse();
+        await Assert.That(result.Etag).IsNotNull();
+    }
+
+    [Test]
+    public async Task PublishedReleaseAndNoActiveRelease_ReturnsWorkingEntries()
+    {
+        SetupApiKey(KeyScope.Frontend);
+        _environmentRepository.GetAsync(ProjectName, EnvironmentName, Arg.Any<CancellationToken>())
+            .Returns(new ProjectEnvironment
+            {
+                Project = ProjectName,
+                Name = EnvironmentName,
+                ActiveReleaseVersion = null
+            });
+        _configReleaseRepository.ListAsync(
+                ProjectName,
+                EnvironmentName,
+                Arg.Any<CancellationToken>())
+            .Returns([CreateReleaseMetadata("1.0.0", 1, 0, 0)]);
+        _configEntryRepository.ListAsync(
+                ProjectName,
+                EnvironmentName,
+                Arg.Any<CancellationToken>())
+            .Returns([WorkingEntry("working", "current", "text", KeyScope.Frontend)]);
+
+        var result = await CreateHandler().Handle(
+            new GetAllConfigValuesQuery(EnvironmentName),
+            CancellationToken.None);
+
+        await Assert.That(result.Success).IsTrue();
+        await Assert.That(result.Values!["working"].Value).IsEqualTo("current");
+        await _configReleaseRepository.DidNotReceive().ListAsync(
+            ProjectName,
+            EnvironmentName,
+            Arg.Any<CancellationToken>());
+    }
+
+    [Test]
+    public async Task WorkingFallback_MatchingEtagReturnsNotModified()
+    {
+        SetupApiKey(KeyScope.Frontend);
+        _environmentRepository.GetAsync(ProjectName, EnvironmentName, Arg.Any<CancellationToken>())
+            .Returns(new ProjectEnvironment
+            {
+                Project = ProjectName,
+                Name = EnvironmentName,
+                ActiveReleaseVersion = null
+            });
+        _configEntryRepository.ListAsync(
+                ProjectName,
+                EnvironmentName,
+                Arg.Any<CancellationToken>())
+            .Returns([WorkingEntry("client-only", "true", "bool", KeyScope.Frontend)]);
+
+        var first = await CreateHandler().Handle(
+            new GetAllConfigValuesQuery(EnvironmentName),
+            CancellationToken.None);
+        var second = await CreateHandler().Handle(
+            new GetAllConfigValuesQuery(EnvironmentName, IfNoneMatch: first.Etag),
+            CancellationToken.None);
+
+        await Assert.That(second.Success).IsTrue();
+        await Assert.That(second.NotModified).IsTrue();
+        await Assert.That(second.Values is null).IsTrue();
+        await Assert.That(second.Etag).IsEqualTo(first.Etag);
     }
 
     [Test]
@@ -234,6 +333,7 @@ public class GetAllConfigValuesQueryTests
     private GetAllConfigValuesQueryHandler CreateHandler() => new(
         _apiKeyRepository,
         _environmentRepository,
+        _configEntryRepository,
         _configReleaseRepository,
         _apiKeyService);
 
@@ -303,6 +403,20 @@ public class GetAllConfigValuesQueryTests
             Project = ProjectName,
             Environment = EnvironmentName,
             ReleaseVersion = "1.0.0",
+            Key = key,
+            Value = value,
+            ContentType = contentType,
+            Scope = scope
+        };
+
+    private static ConfigEntry WorkingEntry(
+        string key,
+        string value,
+        string contentType,
+        KeyScope scope) => new()
+        {
+            Project = ProjectName,
+            Environment = EnvironmentName,
             Key = key,
             Value = value,
             ContentType = contentType,

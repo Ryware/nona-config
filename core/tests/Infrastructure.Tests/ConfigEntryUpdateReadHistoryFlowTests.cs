@@ -72,6 +72,7 @@ public class ConfigEntryUpdateReadHistoryFlowTests
         var publicReadHandler = new GetConfigEntryValueQueryHandler(
             apiKeyRepository,
             environmentRepository,
+            configEntryRepository,
             configReleaseRepository,
             new FixedApiKeyService(apiKeyValue));
         var publicRead = await publicReadHandler.Handle(
@@ -153,6 +154,7 @@ public class ConfigEntryUpdateReadHistoryFlowTests
         var publicReadHandler = new GetConfigEntryValueQueryHandler(
             apiKeyRepository,
             environmentRepository,
+            configEntryRepository,
             configReleaseRepository,
             new FixedApiKeyService(apiKeyValue));
 
@@ -181,12 +183,32 @@ public class ConfigEntryUpdateReadHistoryFlowTests
             new GetConfigEntryValueQuery(environmentName, configKey),
             CancellationToken.None);
 
+        clock.NowUtcValue = new DateTime(2026, 7, 1, 12, 0, 0, DateTimeKind.Utc);
+        await upsertHandler.Handle(
+            new UpsertConfigEntryCommand(projectName, environmentName, configKey, "working", "text", "client"),
+            CancellationToken.None);
+        var clearActiveHandler = new SetActiveConfigReleaseCommandHandler(
+            projectRepository,
+            environmentRepository,
+            configReleaseRepository,
+            accessService,
+            clock);
+        var clearActive = await clearActiveHandler.Handle(
+            new SetActiveConfigReleaseCommand(projectName, environmentName, null),
+            CancellationToken.None);
+        var workingFallback = await publicReadHandler.Handle(
+            new GetConfigEntryValueQuery(environmentName, configKey),
+            CancellationToken.None);
+
         await Assert.That(exactOld.Success).IsTrue();
         await Assert.That(exactOld.Value).IsEqualTo("false");
         await Assert.That(lineLatest.Success).IsTrue();
         await Assert.That(lineLatest.Value).IsEqualTo("true");
         await Assert.That(active.Success).IsTrue();
         await Assert.That(active.Value).IsEqualTo("true");
+        await Assert.That(clearActive.Success).IsTrue();
+        await Assert.That(workingFallback.Success).IsTrue();
+        await Assert.That(workingFallback.Value).IsEqualTo("working");
     }
 
     private sealed class AllowAllProjectAccessService : IProjectAccessService
