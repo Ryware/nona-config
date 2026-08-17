@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@solidjs/testing-library';
 import { Router, Route } from '@solidjs/router';
 import { QueryClient, QueryClientProvider } from '@tanstack/solid-query';
 import { MetaProvider } from '@solidjs/meta';
-import { delay, http, HttpResponse } from 'msw';
+import { http, HttpResponse } from 'msw';
 import { server } from '../mocks/server';
 import { ToastProvider } from '../../shared/ui/toast';
 import UsersPage from '../../pages/users/UsersPage';
@@ -265,14 +265,16 @@ describe('UsersPage', () => {
   });
 
   it('reopens user settings with the saved values', async () => {
-    let savedUser = { ...mockUsers[1] };
+    let savedUser = { ...mockUsers[1], id: 2 };
     let detailRequests = 0;
     server.use(
       http.get('http://localhost:5027/admin/users', () =>
         HttpResponse.json([mockUsers[0], savedUser]),
       ),
-      http.get('http://localhost:5027/admin/users/:id', async () => {
-        if (++detailRequests > 1) await delay(100);
+      http.get('http://localhost:5027/admin/users/:id', () => {
+        if (++detailRequests > 1) {
+          return HttpResponse.json({ detail: 'Refresh unavailable' }, { status: 503 });
+        }
         return HttpResponse.json(savedUser);
       }),
       http.put('http://localhost:5027/admin/users/:id', async ({ request }) => {
@@ -292,6 +294,8 @@ describe('UsersPage', () => {
     fireEvent.click(screen.getByTestId(`team-row-${savedUser.id}`));
 
     expect(await screen.findByTestId('invite-name-input')).toHaveValue('Updated Member');
+    await waitFor(() => expect(detailRequests).toBe(2));
+    expect(screen.getByTestId('invite-name-input')).toHaveValue('Updated Member');
   });
 
   it('protects deletion of the last admin', async () => {

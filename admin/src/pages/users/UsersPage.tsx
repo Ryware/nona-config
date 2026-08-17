@@ -106,7 +106,7 @@ export default function UsersPage() {
     mutationFn: async (payload: { user: User; value: UserFormValue }) => {
       const { user, value } = payload;
       const updates: UpdateUserRequest = { name: value.name, role: value.role };
-      await userService.update(user.id, updates);
+      const updatedUser = await userService.update(user.id, updates);
 
       if (value.role === "member") {
         const original = new Map((user.projects ?? []).map(project => [project.projectName, project.role]));
@@ -120,7 +120,12 @@ export default function UsersPage() {
         ]);
       }
 
-      return userService.getById(user.id);
+      return {
+        ...updatedUser,
+        projects: value.role === "member"
+          ? Object.entries(value.projectAccess).map(([projectName, role]) => ({ projectName, role }))
+          : updatedUser.projects
+      };
     },
     onSuccess: updatedUser => {
       queryClient.setQueryData(userKeys.detail(updatedUser.id), updatedUser);
