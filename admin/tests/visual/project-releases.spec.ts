@@ -197,7 +197,7 @@ test('header fits constrained desktop viewports', async ({ page }, testInfo) => 
   await page.goto('/projects/my-app/releases');
   await expect(page.getByTestId('project-releases-section')).toBeVisible();
 
-  for (const width of [1100, 1280, 1359, 1360, 1440]) {
+  for (const width of [1100, 1280, 1360, 1439, 1440]) {
     await test.step(`${width}px`, async () => {
       await page.setViewportSize({ width, height: 400 });
       await expectNoHorizontalOverflow(page);

@@ -149,7 +149,7 @@ export function Header(props: HeaderProps) {
 
         <Breadcrumbs />
 
-        <div class="hidden min-w-0 flex-[2] min-[1360px]:flex min-[1360px]:items-center min-[1360px]:justify-end min-[1360px]:gap-5">
+        <div class="hidden min-w-0 flex-[2] min-[1440px]:flex min-[1440px]:items-center min-[1440px]:justify-end min-[1440px]:gap-5">
           <div class="flex min-w-0 max-w-[36rem] flex-[1.15] items-center gap-3">
             <span class="shrink-0 text-[11px] font-semibold uppercase tracking-[0.08em] text-on-surface-variant">
               Active Project
@@ -211,7 +211,7 @@ export function Header(props: HeaderProps) {
         </div>
       </div>
 
-      <div class="space-y-3 border-t border-outline-variant/10 px-5 py-3 md:px-7 min-[1360px]:hidden">
+      <div class="space-y-3 border-t border-outline-variant/10 px-5 py-3 md:px-7 min-[1440px]:hidden">
         <div class="grid gap-3 sm:grid-cols-2">
           <div class="space-y-1.5">
             <span class="block text-[11px] font-semibold uppercase tracking-[0.08em] text-on-surface-variant">
