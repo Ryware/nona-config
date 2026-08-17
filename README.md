@@ -2,6 +2,7 @@
 
 **Self-hosted feature flags and remote configuration for web, mobile, and backend apps.**
 
+[![Live demo](https://img.shields.io/badge/Live_demo-demo.nonaconfig.com-5b6ef5?style=flat-square&logo=googlechrome&logoColor=white)](https://demo.nonaconfig.com)
 [![Docker Pulls](https://img.shields.io/docker/pulls/rywaredev/nona?style=flat-square&logo=docker)](https://hub.docker.com/r/rywaredev/nona)
 [![npm](https://img.shields.io/npm/v/nona-client?style=flat-square&logo=npm)](https://www.npmjs.com/package/nona-client)
 [![NuGet](https://img.shields.io/nuget/v/Nona.Client?style=flat-square&logo=nuget)](https://www.nuget.org/packages/Nona.Client)
@@ -15,6 +16,12 @@ Nona gives you the same feature flag and remote config capabilities as Firebase 
 - Update **mobile app config** (iOS, Android, React Native, Flutter) without an app store release
 - Use **kill switches** to disable broken features in seconds
 - Fetch everything via **one REST API call** — no SDK required in any language
+
+### ▶ [Try the live demo](https://demo.nonaconfig.com)
+
+A real Nona instance with sample projects, environments and releases. You are signed in
+automatically as an administrator — no account, no install. Everything resets nightly,
+so change whatever you like.
 
 > 🌐 [nonaconfig.com](https://nonaconfig.com) &nbsp;·&nbsp; 🐳 [Docker Hub](https://hub.docker.com/r/rywaredev/nona) &nbsp;·&nbsp; 📦 [npm](https://www.npmjs.com/package/nona-client) &nbsp;·&nbsp; 📦 [NuGet](https://www.nuget.org/packages/Nona.Client)
 
@@ -60,6 +67,8 @@ Nona runs as a single Docker container with SQLite in standalone mode and embedd
 ---
 
 ## Quick Start
+
+Want to look around before installing anything? [Try the live demo](https://demo.nonaconfig.com).
 
 ```bash
 docker run -d \
