@@ -1,4 +1,5 @@
 import { type Component, type JSX, Show } from "solid-js";
+import { NonaMark } from "../../shared/ui/logo";
 
 interface AuthCardProps {
   title: string;
@@ -21,12 +22,7 @@ export const AuthCard: Component<AuthCardProps> = props => {
           {/* Brand Header */}
           <div class="mb-8 flex flex-col items-start gap-3 text-left sm:items-center sm:text-center">
             <div class="bg-primary/10 border-primary/20 text-primary flex h-11 w-11 items-center justify-center rounded-2xl border shadow-[0_0_15px_rgba(99,102,241,0.15)] sm:h-10 sm:w-10 sm:rounded-xl">
-              <span
-                class="material-symbols-outlined text-lg font-bold"
-                style={{ "font-variation-settings": "'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}
-              >
-                terminal
-              </span>
+              <NonaMark class="h-6 w-6 sm:h-5.5 sm:w-5.5" />
             </div>
             <span class="font-headline text-on-surface text-xl font-bold tracking-tight">
               Nona Config

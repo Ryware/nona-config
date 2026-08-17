@@ -7,6 +7,7 @@ import { authStore } from "../../entities/auth/model/store";
 import { projectService } from "../../entities/project/api/project.service";
 import { getActiveProjectHref, getActiveProjectSlug } from "../../entities/project/model/active-project";
 import { projectKeys } from "../../entities/project/queries/keys";
+import { NonaMark } from "../../shared/ui/logo";
 
 function getUser(): { email: string; role: string } {
   const session = authStore.getSession();
@@ -154,12 +155,7 @@ export const Sidebar = (props: {
             class="flex items-center gap-3 group"
           >
             <div class="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center bg-primary/15 border border-primary/20 shadow-[0_0_12px_rgba(96,165,250,0.18)] group-hover:shadow-[0_0_20px_rgba(52,211,153,0.24)] transition-shadow duration-300">
-              <span
-                class="material-symbols-outlined text-primary text-[18px]"
-                style={{ "font-variation-settings": "'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}
-              >
-                settings_input_component
-              </span>
+              <NonaMark class="h-4.5 w-4.5 text-primary" />
             </div>
             <Show when={!props.collapsed}>
               <div class="min-w-0">

@@ -3,10 +3,26 @@ import { defineConfig } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
 import starlight from '@astrojs/starlight';
 
+// The docs are served under a sub-path. Starlight prefixes `favicon` with the
+// base itself, but hand-written `head` tags are emitted verbatim — so they have
+// to carry the prefix explicitly.
+const BASE = '/docs';
+
+/**
+ * @param {string} rel
+ * @param {string} href
+ * @param {Record<string, string>} [attrs]
+ * @returns {{ tag: 'link', attrs: Record<string, string> }}
+ */
+const icon = (rel, href, attrs = {}) => ({
+	tag: 'link',
+	attrs: { rel, href: `${BASE}${href}`, ...attrs },
+});
+
 // https://astro.build/config
 export default defineConfig({
 	site: 'https://nonaconfig.com',
-	base: '/docs',
+	base: BASE,
 	trailingSlash: 'never',
 	vite: {
 		server: {
@@ -17,6 +33,19 @@ export default defineConfig({
 		sitemap(),
 		starlight({
 			title: 'Nona Docs',
+			logo: {
+				// The Nona mark is a 9 (NONA = nine); one fill per colour scheme.
+				light: './src/assets/nona-mark-light.svg',
+				dark: './src/assets/nona-mark-dark.svg',
+				alt: 'Nona',
+			},
+			favicon: '/favicon.svg',
+			head: [
+				icon('icon', '/favicon-32x32.png', { type: 'image/png', sizes: '32x32' }),
+				icon('icon', '/favicon-16x16.png', { type: 'image/png', sizes: '16x16' }),
+				icon('apple-touch-icon', '/apple-touch-icon.png', { sizes: '180x180' }),
+				{ tag: 'meta', attrs: { name: 'theme-color', content: '#070A13' } },
+			],
 			components: {
 				Footer: './src/components/Footer.astro',
 			},
