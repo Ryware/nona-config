@@ -119,11 +119,12 @@ export default function UsersPage() {
             .map(projectName => userService.removeProject(user.id, projectName))
         ]);
       }
+
+      return userService.getById(user.id);
     },
-    onSuccess: () => {
-      const id = editingUserId();
+    onSuccess: updatedUser => {
+      queryClient.setQueryData(userKeys.detail(updatedUser.id), updatedUser);
       queryClient.invalidateQueries({ queryKey: userKeys.list() });
-      if (id) queryClient.invalidateQueries({ queryKey: userKeys.detail(id) });
       addToast(MSG.MEMBER_UPDATED, "success");
       setEditingUserId(null);
     },

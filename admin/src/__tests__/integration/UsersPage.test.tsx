@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@solidjs/testing-library';
 import { Router, Route } from '@solidjs/router';
 import { QueryClient, QueryClientProvider } from '@tanstack/solid-query';
 import { MetaProvider } from '@solidjs/meta';
-import { http, HttpResponse } from 'msw';
+import { delay, http, HttpResponse } from 'msw';
 import { server } from '../mocks/server';
 import { ToastProvider } from '../../shared/ui/toast';
 import UsersPage from '../../pages/users/UsersPage';
@@ -262,6 +262,36 @@ describe('UsersPage', () => {
     await waitFor(() => {
       expect(emailInput.value).toBe(mockUsers[0].email);
     });
+  });
+
+  it('reopens user settings with the saved values', async () => {
+    let savedUser = { ...mockUsers[1] };
+    let detailRequests = 0;
+    server.use(
+      http.get('http://localhost:5027/admin/users', () =>
+        HttpResponse.json([mockUsers[0], savedUser]),
+      ),
+      http.get('http://localhost:5027/admin/users/:id', async () => {
+        if (++detailRequests > 1) await delay(100);
+        return HttpResponse.json(savedUser);
+      }),
+      http.put('http://localhost:5027/admin/users/:id', async ({ request }) => {
+        savedUser = { ...savedUser, ...(await request.json() as Partial<typeof savedUser>) };
+        return HttpResponse.json(savedUser);
+      }),
+    );
+    renderWithProviders(() => <UsersPage />);
+
+    fireEvent.click(await screen.findByTestId(`team-row-${savedUser.id}`));
+    fireEvent.input(await screen.findByTestId('invite-name-input'), {
+      target: { value: 'Updated Member' },
+    });
+    fireEvent.click(screen.getByTestId('user-edit-submit-button'));
+    await waitFor(() => expect(screen.queryByTestId('user-edit-form')).not.toBeInTheDocument());
+
+    fireEvent.click(screen.getByTestId(`team-row-${savedUser.id}`));
+
+    expect(await screen.findByTestId('invite-name-input')).toHaveValue('Updated Member');
   });
 
   it('protects deletion of the last admin', async () => {
