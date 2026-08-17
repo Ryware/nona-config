@@ -28,11 +28,15 @@ function auditPage(items: object[]) {
   };
 }
 
-function renderAuditLogsPage() {
+function renderAuditLogsPage(
+  queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  }),
+) {
   window.history.pushState({}, '', '/audit-logs');
   return render(() => (
     <MetaProvider>
-      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })}>
+      <QueryClientProvider client={queryClient}>
         <ToastProvider>
           <Router>
             <Route path="*" component={AuditLogsPage} />
@@ -80,6 +84,47 @@ describe('AuditLogsPage', () => {
   it('renders the Audit Logs heading', async () => {
     renderAuditLogsPage();
     expect(await screen.findByRole('heading', { name: /audit logs/i })).toBeInTheDocument();
+  });
+
+  it('refreshes cached audit logs when the page is reopened', async () => {
+    let target = 'before-refresh';
+    let requests = 0;
+    server.use(
+      http.get('http://localhost:5027/admin/audit-logs', () => {
+        requests++;
+        return HttpResponse.json(
+          auditPage([
+            {
+              id: target,
+              actor: 'audit.user@example.test',
+              actorIsSystem: false,
+              actionKind: 'update',
+              action: 'Updated Parameter',
+              target,
+              project: 'sample-project',
+              environment: 'production',
+              createdAt: '2026-07-29T12:00:00Z',
+            },
+          ]),
+        );
+      }),
+    );
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false, staleTime: 5 * 60 * 1000 },
+        mutations: { retry: false },
+      },
+    });
+
+    const firstRender = renderAuditLogsPage(queryClient);
+    expect(await screen.findByText('before-refresh')).toBeInTheDocument();
+    firstRender.unmount();
+    target = 'after-refresh';
+
+    renderAuditLogsPage(queryClient);
+
+    expect(await screen.findByText('after-refresh')).toBeInTheDocument();
+    expect(requests).toBe(2);
   });
 
   it('renders a "Created Project" entry for each project', async () => {

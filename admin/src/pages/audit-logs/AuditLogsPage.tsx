@@ -113,6 +113,7 @@ export default function AuditLogsPage() {
     return {
       queryKey: auditLogKeys.list(parameters),
       queryFn: () => auditLogService.getPage(parameters),
+      refetchOnMount: "always",
       placeholderData: previous => previous
     };
   });
