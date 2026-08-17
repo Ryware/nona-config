@@ -458,6 +458,9 @@ export default function ParametersSection() {
       queryClient.invalidateQueries({
         queryKey: projectKeys.configEntryShareLinks(params.slug, activeEnvName(), shareLink.key)
       });
+      queryClient.invalidateQueries({
+        queryKey: projectKeys.environmentShareLinks(params.slug, activeEnvName())
+      });
       setGeneratedShareUrl(buildShareUrl(shareLink.token));
       addToast(MSG.SHARE_LINK_CREATED, "success");
     },
@@ -483,6 +486,9 @@ export default function ParametersSection() {
       if (entry) {
         queryClient.invalidateQueries({
           queryKey: projectKeys.configEntryShareLinks(params.slug, activeEnvName(), entry.key)
+        });
+        queryClient.invalidateQueries({
+          queryKey: projectKeys.environmentShareLinks(params.slug, activeEnvName())
         });
       }
       addToast(MSG.SHARE_LINK_REVOKED, "success");

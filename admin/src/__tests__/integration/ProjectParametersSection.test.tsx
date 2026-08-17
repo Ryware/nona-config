@@ -3,6 +3,7 @@ import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { setActiveEnvironmentName } from '../../entities/project/model/active-environment';
+import { projectKeys } from '../../entities/project/queries/keys';
 import { mockProjects } from '../mocks/data';
 import { server } from '../mocks/server';
 import {
@@ -248,8 +249,9 @@ describe('ProjectParametersSection', () => {
     expect(await screen.findByText('STAGING_ONLY_KEY')).toBeInTheDocument();
   });
 
-  it('generates a shareable link for a parameter', async () => {
-    renderProjectSections('/projects/my-app');
+  it('generates a shareable link and refreshes the shared links page', async () => {
+    const { queryClient } = renderProjectSections('/projects/my-app');
+    const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries');
 
     expect(await screen.findByText('API_URL')).toBeInTheDocument();
 
@@ -260,6 +262,9 @@ describe('ProjectParametersSection', () => {
 
     const generatedUrl = await screen.findByTestId('parameter-share-generated-url');
     expect(generatedUrl).toHaveValue(`${window.location.origin}/share/AbCdEf1234567890`);
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: projectKeys.environmentShareLinks('my-app', 'production'),
+    });
   });
 
   it('asks before exiting release parameter changes', async () => {
