@@ -9,7 +9,7 @@ public class CreateEnvironmentRequestValidator : AbstractValidator<CreateEnviron
         RuleFor(x => x.Name)
             .NotEmpty()
             .WithMessage("Name is required")
-            .Matches(@"^[a-zA-Z0-9-]+$")
+            .Matches(@"^[a-zA-Z0-9][a-zA-Z0-9-]*$")
             .WithMessage("Name must be alphanumeric with hyphens only");
     }
 }
