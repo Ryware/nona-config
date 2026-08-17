@@ -394,5 +394,7 @@ describe('ProjectParametersSection', () => {
         `${window.location.origin}/share/HistoryToken1234`,
       );
     });
+    const toast = await screen.findByText('Copied to clipboard');
+    expect(toast.closest('[role="status"]')).toHaveClass('z-[110]');
   });
 });
