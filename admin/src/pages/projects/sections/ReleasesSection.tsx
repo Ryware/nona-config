@@ -188,7 +188,6 @@ export default function ReleasesSection() {
         placeholder="1.2"
         validationMessage="Use major.minor."
         versionFormat="majorMinor"
-        normalizeVersion={version => `${version}.0`}
         onConfirm={version => {
           setCreateVersionOpen(false);
           navigate(`/projects/${params.slug}?release=${encodeURIComponent(version)}`);
