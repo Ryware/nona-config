@@ -3,8 +3,9 @@ import { createSignal } from "solid-js";
 import { Portal } from "solid-js/web";
 import { Button } from "../../shared/ui/button";
 import { MIcon } from "../../shared/ui/icons";
+import { TooltipLabel } from "../../shared/ui/tooltip";
+import { tooltipCopy } from "../../shared/lib/tooltip-copy";
 import { Input } from "../../shared/ui/input";
-import { Label } from "../../shared/ui/label";
 import { parseReleaseVersion, type ReleaseVersionFormat } from "./release-version";
 
 interface ReleaseVersionDialogProps {
@@ -80,7 +81,7 @@ export function ReleaseVersionDialog(props: ReleaseVersionDialogProps) {
             </Show>
 
             <div>
-              <Label for="release-version-input">Version</Label>
+              <TooltipLabel for="release-version-input" content={tooltipCopy.version}>Version</TooltipLabel>
               <Input
                 data-testid="release-version-input"
                 id="release-version-input"

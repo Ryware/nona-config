@@ -2,6 +2,8 @@ import { Show } from "solid-js";
 
 import { MIcon } from "../../shared/ui/icons";
 import type { ConfigRelease } from "../../types";
+import { Tooltip, TooltipTrigger } from "../../shared/ui/tooltip";
+import { tooltipCopy } from "../../shared/lib/tooltip-copy";
 
 export interface ReleaseRowActions {
   canManage: boolean;
@@ -27,9 +29,7 @@ export function ReleaseRow(props: ReleaseRowProps) {
             {props.release.version}
           </span>
           <Show when={props.release.isActive}>
-            <span class="bg-primary/10 text-primary rounded-md px-2 py-0.5 text-[11px] font-bold">
-              Active
-            </span>
+            <Tooltip content={tooltipCopy.activeRelease}><TooltipTrigger as="span" tabindex="0" data-tooltip-trigger class="bg-primary/10 text-primary rounded-md px-2 py-0.5 text-[11px] font-bold">Active</TooltipTrigger></Tooltip>
           </Show>
         </div>
         <p class="text-on-surface-variant mt-1 text-[12px]">
@@ -39,53 +39,49 @@ export function ReleaseRow(props: ReleaseRowProps) {
       </div>
 
       <div class="flex flex-wrap items-center justify-end gap-2">
-        <button
+        <Tooltip content={`View the immutable parameters in release ${props.release.version}.`}><TooltipTrigger as="button"
           data-testid={`release-view-${props.release.version}`}
           type="button"
           onClick={() => props.onView(props.release.version)}
           aria-label={`View parameters for release ${props.release.version}`}
-          title={`View parameters for release ${props.release.version}`}
+          data-tooltip-trigger
           class="bg-surface-container-high text-on-surface hover:bg-surface-bright inline-flex h-9 w-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-0 px-0 text-[12px] font-semibold disabled:cursor-default disabled:opacity-50 md:w-auto md:px-3"
         >
           <MIcon name="visibility" class="text-[15px]" />
           <span class="hidden md:inline">View parameters</span>
-        </button>
+        </TooltipTrigger></Tooltip>
         <Show when={props.canManage}>
-          <button
+          <Tooltip content={props.release.isActive ? "This release is already active." : `Make ${props.release.version} the default for unversioned clients.`}><TooltipTrigger as="button"
             type="button"
             onClick={() => props.onActivate(props.release.version)}
             disabled={props.isActivating || props.release.isActive}
             aria-label={`Activate release ${props.release.version}`}
-            title={`Activate release ${props.release.version}`}
+            data-tooltip-trigger
             class="bg-surface-container-high text-on-surface hover:bg-surface-bright inline-flex h-9 w-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-0 px-0 text-[12px] font-semibold disabled:cursor-default disabled:opacity-50 md:w-auto md:px-3"
           >
             <MIcon name="check_circle" class="text-[15px]" />
             <span class="hidden md:inline">Activate</span>
-          </button>
-          <button
+          </TooltipTrigger></Tooltip>
+          <Tooltip content={tooltipCopy.amend}><TooltipTrigger as="button"
             data-testid={`release-amend-${props.release.version}`}
             type="button"
             onClick={() => props.onAmend(props.release.version)}
             disabled={props.amendingVersion !== null}
             aria-label={`Amend release ${props.release.version}`}
             class="bg-surface-container-high text-on-surface hover:bg-surface-bright inline-flex h-9 w-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-0 px-0 text-[12px] font-semibold md:w-auto md:px-3"
-            title={`Amend release ${props.release.version} as a new patch`}
+            data-tooltip-trigger
           >
             <MIcon name="edit" class="text-[15px]" />
             <span class="hidden md:inline">
               {props.amendingVersion === props.release.version ? "Amending" : "Amend"}
             </span>
-          </button>
-          <button
+          </TooltipTrigger></Tooltip>
+          <Tooltip content={props.release.isActive ? "Clear the active release before deleting it." : `Delete release ${props.release.version}.`}><TooltipTrigger as="button"
             data-testid={`release-delete-${props.release.version}`}
             type="button"
             onClick={() => props.onDelete(props.release.version)}
             disabled={props.release.isActive || props.deletingVersion !== null}
-            title={
-              props.release.isActive
-                ? "Clear the active release before deleting it"
-                : `Delete release ${props.release.version}`
-            }
+            data-tooltip-trigger
             aria-label={`Delete release ${props.release.version}`}
             class="bg-error-container/10 text-error hover:bg-error-container/20 inline-flex h-9 w-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-0 px-0 text-[12px] font-semibold disabled:cursor-default disabled:opacity-50 md:w-auto md:px-3"
           >
@@ -93,7 +89,7 @@ export function ReleaseRow(props: ReleaseRowProps) {
             <span class="hidden md:inline">
               {props.deletingVersion === props.release.version ? "Deleting" : "Delete"}
             </span>
-          </button>
+          </TooltipTrigger></Tooltip>
         </Show>
       </div>
     </div>

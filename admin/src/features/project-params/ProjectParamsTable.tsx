@@ -4,6 +4,8 @@ import { ProjectParamEditDrawer } from "../project-param-edit/ProjectParamEditDr
 import { MIcon } from "../../shared/ui/icons";
 import { cn } from "../../shared/lib/utils";
 import type { ConfigEntry, ConfigEntryVersion } from "../../types";
+import { Tooltip, TooltipTrigger } from "../../shared/ui/tooltip";
+import { tooltipCopy } from "../../shared/lib/tooltip-copy";
 
 export type ParameterViewDensity = "comfortable" | "compact";
 
@@ -300,7 +302,7 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
                   isCompact() ? "px-2.5 py-2" : "px-4 py-3"
                 )}
               >
-                Type
+                <Tooltip content={tooltipCopy.datatype}><TooltipTrigger as="span" tabindex="0" data-tooltip-trigger class="cursor-help border-b border-dotted border-outline/60">Type</TooltipTrigger></Tooltip>
               </th>
               <th
                 class={cn(
@@ -308,7 +310,7 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
                   isCompact() ? "px-2.5 py-2" : "px-4 py-3"
                 )}
               >
-                Scope
+                <Tooltip content={tooltipCopy.scope}><TooltipTrigger as="span" tabindex="0" data-tooltip-trigger class="cursor-help border-b border-dotted border-outline/60">Scope</TooltipTrigger></Tooltip>
               </th>
               <th
                 class={cn(

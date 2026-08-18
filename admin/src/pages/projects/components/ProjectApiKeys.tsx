@@ -2,10 +2,11 @@ import { createMemo, createSignal, For, Show } from "solid-js";
 import type { ApiKey, CreateApiKeyRequest } from "../../../types";
 import { useClipboard } from "../../../shared/hooks/useClipboard";
 import { Button } from "../../../shared/ui/button";
-import { Label } from "../../../shared/ui/label";
 import { Select } from "../../../shared/ui/select";
 import { MIcon } from "../../../shared/ui/icons";
 import { FormField } from "../../../widgets/auth-shell/FormField";
+import { Tooltip, TooltipLabel, TooltipTrigger } from "../../../shared/ui/tooltip";
+import { scopeTooltip, tooltipCopy } from "../../../shared/lib/tooltip-copy";
 
 interface ProjectApiKeysProps {
   apiKeys: ApiKey[];
@@ -36,9 +37,11 @@ function ScopeBadge(props: { scope: ApiKey["scope"] }) {
     })[props.scope];
 
   return (
-    <span class={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${className()}`}>
-      {props.scope}
-    </span>
+    <Tooltip content={scopeTooltip(props.scope)}>
+      <TooltipTrigger as="span" tabindex="0" data-tooltip-trigger class={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${className()}`}>
+        {props.scope}
+      </TooltipTrigger>
+    </Tooltip>
   );
 }
 
@@ -127,7 +130,7 @@ export function ProjectApiKeys(props: ProjectApiKeysProps) {
               required
             />
             <div>
-              <Label>Scope</Label>
+              <TooltipLabel content={tooltipCopy.apiKeyScope}>Scope</TooltipLabel>
               <Select
                 value={scope()}
                 onChange={value => setScope(value as ApiKey["scope"])}
@@ -194,37 +197,40 @@ export function ProjectApiKeys(props: ProjectApiKeysProps) {
                   </code>
 
                   <div class="flex items-center justify-end gap-1">
-                    <button
+                    <Tooltip content={revealed()[apiKey.id] ? "Hide API key" : "Reveal API key"}><TooltipTrigger as="button"
                       data-testid={`api-key-toggle-${apiKey.id}`}
                       type="button"
                       onClick={() => toggleReveal(apiKey.id)}
                       class="text-outline hover:text-on-surface hover:bg-surface-bright cursor-pointer rounded-lg border-0 p-1.5 transition-all"
-                      title={revealed()[apiKey.id] ? "Hide" : "Show"}
+                      aria-label={revealed()[apiKey.id] ? "Hide API key" : "Reveal API key"}
+                      data-tooltip-trigger
                     >
                       <MIcon
                         name={revealed()[apiKey.id] ? "visibility_off" : "visibility"}
                         class="text-[16px]"
                       />
-                    </button>
-                    <button
+                    </TooltipTrigger></Tooltip>
+                    <Tooltip content="Copy API key"><TooltipTrigger as="button"
                       type="button"
                       onClick={() => handleCopy(apiKey.key)}
                       class="text-outline hover:text-on-surface hover:bg-surface-bright cursor-pointer rounded-lg border-0 p-1.5 transition-all"
-                      title="Copy"
+                      aria-label="Copy API key"
+                      data-tooltip-trigger
                     >
                       <MIcon name="content_copy" class="text-[16px]" />
-                    </button>
+                    </TooltipTrigger></Tooltip>
                     <Show when={props.canManage}>
-                      <button
+                      <Tooltip content={props.deletingId === apiKey.id ? "Deleting API key" : "Delete API key"}><TooltipTrigger as="button"
                         data-testid={`api-key-delete-${apiKey.id}`}
                         type="button"
                         onClick={() => props.onDelete(apiKey.id)}
                         disabled={props.deletingId === apiKey.id}
                         class="text-outline hover:text-error hover:bg-error/10 cursor-pointer rounded-lg border-0 p-1.5 transition-all disabled:opacity-40"
-                        title="Delete API key"
+                        aria-label="Delete API key"
+                        data-tooltip-trigger
                       >
                         <MIcon name="delete" class="text-[16px]" />
-                      </button>
+                      </TooltipTrigger></Tooltip>
                     </Show>
                   </div>
                 </div>

@@ -5,6 +5,8 @@ import { MIcon } from "../../shared/ui/icons";
 import { Input } from "../../shared/ui/input";
 import { Label } from "../../shared/ui/label";
 import { Select } from "../../shared/ui/select";
+import { TooltipLabel } from "../../shared/ui/tooltip";
+import { tooltipCopy } from "../../shared/lib/tooltip-copy";
 import type { ConfigReleaseEntry } from "../../types";
 
 const TYPE_OPTIONS = [
@@ -181,11 +183,11 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
               />
             </div>
             <div class="w-full md:w-28">
-              <Label for="amend-new-type">Type</Label>
+              <TooltipLabel for="amend-new-type" content={tooltipCopy.datatype}>Type</TooltipLabel>
               <Select value={newType()} onChange={setNewType} options={TYPE_OPTIONS} class="h-10" />
             </div>
             <div class="w-full md:w-28">
-              <Label for="amend-new-scope">Scope</Label>
+              <TooltipLabel for="amend-new-scope" content={tooltipCopy.scope}>Scope</TooltipLabel>
               <Select
                 value={newScope()}
                 onChange={setNewScope}

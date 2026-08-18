@@ -8,6 +8,8 @@ import type { ConfigEntry } from "../../types";
 import { FormField } from "../../widgets/auth-shell/FormField";
 import { MIcon } from "../../shared/ui/icons";
 import { isValidConfigEntryValue } from "./config-entry-value";
+import { TooltipLabel } from "../../shared/ui/tooltip";
+import { tooltipCopy } from "../../shared/lib/tooltip-copy";
 
 type ConfigEntryContentType = "text" | "number" | "boolean" | "json";
 type ConfigEntryScope = "client" | "server" | "all";
@@ -100,7 +102,7 @@ export function ProjectParamCreateForm(props: ProjectParamCreateFormProps) {
             </Show>
           </div>
           <div>
-            <Label>Datatype</Label>
+            <TooltipLabel content={tooltipCopy.datatype}>Datatype</TooltipLabel>
             <Select
               value={cfgType()}
               onChange={(val: string) => {
@@ -111,7 +113,7 @@ export function ProjectParamCreateForm(props: ProjectParamCreateFormProps) {
             />
           </div>
           <div>
-            <Label>Scope</Label>
+            <TooltipLabel content={tooltipCopy.scope}>Scope</TooltipLabel>
             <Select
               value={cfgScope()}
               onChange={(val: string) => setCfgScope(val as ConfigEntryScope)}

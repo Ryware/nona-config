@@ -2,7 +2,6 @@ import { createEffect, createSignal, For, Show } from "solid-js";
 import { Portal } from "solid-js/web";
 import { Button } from "../../shared/ui/button";
 import { Input } from "../../shared/ui/input";
-import { Label } from "../../shared/ui/label";
 import { MIcon } from "../../shared/ui/icons";
 import { Select } from "../../shared/ui/select";
 import type {
@@ -10,6 +9,8 @@ import type {
   CreateParameterShareLinkRequest,
   ParameterShareLink
 } from "../../types";
+import { TooltipLabel } from "../../shared/ui/tooltip";
+import { tooltipCopy } from "../../shared/lib/tooltip-copy";
 
 type ExpirationOption = NonNullable<CreateParameterShareLinkRequest["expiration"]>;
 
@@ -101,7 +102,7 @@ export function ParameterShareDialog(props: ParameterShareDialogProps) {
             <div class="flex-1 space-y-5 overflow-y-auto pr-1">
               <div class="grid gap-3 sm:grid-cols-2">
                 <div class="space-y-2">
-                  <Label class="mb-0">Expiration</Label>
+                  <TooltipLabel class="mb-0" content={tooltipCopy.shareExpiration}>Expiration</TooltipLabel>
                   <Select
                     value={expiration()}
                     onChange={value => setExpiration(value as ExpirationOption)}
@@ -109,7 +110,7 @@ export function ParameterShareDialog(props: ParameterShareDialogProps) {
                   />
                 </div>
                 <div class="space-y-2">
-                  <Label class="mb-0">Permission</Label>
+                  <TooltipLabel class="mb-0" content={tooltipCopy.sharePermission}>Permission</TooltipLabel>
                   <Select
                     value={permission()}
                     onChange={value => setPermission(value as "edit" | "view")}

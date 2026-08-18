@@ -1,5 +1,7 @@
 import { For, Show } from "solid-js";
 import type { Project } from "../../../types";
+import { Tooltip, TooltipTrigger } from "../../../shared/ui/tooltip";
+import { tooltipCopy } from "../../../shared/lib/tooltip-copy";
 
 interface UserProjectScopeProps {
   projects: Project[];
@@ -14,7 +16,9 @@ export function UserProjectScope(props: UserProjectScopeProps) {
         <div class="bg-primary/10 border-primary/20 text-primary flex h-7 w-7 shrink-0 items-center justify-center rounded-full border font-mono text-xs font-bold shadow-[0_0_12px_rgba(99,102,241,0.15)]">
           03
         </div>
-        <h3 class="font-headline text-on-surface text-lg font-bold">Project Scope</h3>
+        <Tooltip content={`${tooltipCopy.viewer} ${tooltipCopy.editor}`}>
+          <TooltipTrigger as="h3" tabindex="0" data-tooltip-trigger class="font-headline text-on-surface cursor-help border-b border-dotted border-outline/60 text-lg font-bold">Project Scope</TooltipTrigger>
+        </Tooltip>
       </div>
       <div class="bg-surface-container-low border-outline-variant/15 overflow-hidden rounded-xl border">
         <div class="bg-surface-container-low border-outline-variant/15 text-outline hidden grid-cols-2 border-b px-6 py-3.5 text-[10px] font-bold tracking-widest uppercase sm:grid">

@@ -1,5 +1,6 @@
 import { For, Show } from "solid-js";
 import { cn } from "../../../shared/lib/utils";
+import { tooltipCopy } from "../../../shared/lib/tooltip-copy";
 
 interface UserRoleSelectorProps {
   role: "admin" | "member";
@@ -12,13 +13,13 @@ export function UserRoleSelector(props: UserRoleSelectorProps) {
       value: "admin" as const,
       icon: "admin_panel_settings",
       label: "Admin",
-      desc: "Global project access plus user management and audit logs."
+      desc: tooltipCopy.admin
     },
     {
       value: "member" as const,
       icon: "person",
       label: "Member",
-      desc: "Access only to assigned projects, with Viewer or Editor permission per project."
+      desc: tooltipCopy.member
     }
   ];
 

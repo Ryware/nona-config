@@ -9,6 +9,8 @@ import { Select } from "../../shared/ui/select";
 import { VisualJsonEditor } from "../../shared/ui/visual-json-editor";
 import type { ConfigEntry, ConfigEntryVersion } from "../../types";
 import { isValidConfigEntryValue } from "./config-entry-value";
+import { TooltipLabel, Tooltip, TooltipTrigger } from "../../shared/ui/tooltip";
+import { scopeTooltip, tooltipCopy } from "../../shared/lib/tooltip-copy";
 
 interface ProjectParamEditDrawerProps {
   entry: ConfigEntry | null;
@@ -39,12 +41,11 @@ interface FieldRowProps {
 
 function FieldRow(props: FieldRowProps): JSX.Element {
   return (
-    <span
-      title={props.value || undefined}
-      class={`text-on-surface block min-w-0 truncate text-[10px] leading-tight md:text-[11px] ${props.mono ? "font-mono" : ""}`}
-    >
-      {props.value ? props.value : <span class="text-outline/40 italic">-</span>}
-    </span>
+    <Tooltip content={props.value || "No value"}>
+      <TooltipTrigger as="span" tabindex="0" data-tooltip-trigger class={`text-on-surface block min-w-0 truncate text-[10px] leading-tight md:text-[11px] ${props.mono ? "font-mono" : ""}`}>
+        {props.value ? props.value : <span class="text-outline/40 italic">-</span>}
+      </TooltipTrigger>
+    </Tooltip>
   );
 }
 
@@ -61,12 +62,13 @@ function HistoryValueField(props: HistoryValueFieldProps): JSX.Element {
       data-testid={`parameter-history-value-v${props.version}`}
       class="bg-surface-container-lowest/60 flex w-full min-w-0 items-center gap-1.5 rounded-lg px-2 py-1.5"
     >
-      <span
-        title={props.value || undefined}
+      <Tooltip content={props.value || "No value"}>
+      <TooltipTrigger as="span" tabindex="0" data-tooltip-trigger
         class="text-on-surface min-w-0 flex-1 truncate font-mono text-[10px] leading-tight md:text-[11px]"
       >
         {props.value || <span class="text-outline/40 italic">-</span>}
-      </span>
+      </TooltipTrigger>
+      </Tooltip>
       <button
         type="button"
         onClick={event => {
@@ -218,7 +220,7 @@ export function ProjectParamEditDrawer(props: ProjectParamEditDrawerProps) {
 
                     <div class="grid gap-4 sm:grid-cols-2">
                       <div class="space-y-2">
-                        <Label class="mb-0">Datatype</Label>
+                        <TooltipLabel class="mb-0" content={tooltipCopy.datatype}>Datatype</TooltipLabel>
                         <div class="text-primary bg-primary/5 border-primary/15 inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 font-mono text-[11px]">
                           <MIcon name="data_object" class="text-[14px]" />
                           {entry.contentType}
@@ -226,7 +228,7 @@ export function ProjectParamEditDrawer(props: ProjectParamEditDrawerProps) {
                       </div>
 
                       <div class="space-y-2">
-                        <Label class="mb-0">Scope</Label>
+                        <TooltipLabel class="mb-0" content={scopeTooltip(entry.scope)}>Scope</TooltipLabel>
                         <div class="text-secondary bg-secondary/5 border-secondary/15 inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 font-mono text-[11px]">
                           <MIcon name="public" class="text-[14px]" />
                           {entry.scope}
@@ -278,7 +280,7 @@ export function ProjectParamEditDrawer(props: ProjectParamEditDrawerProps) {
 
                     <div class="grid gap-4 sm:grid-cols-2">
                       <div class="space-y-2">
-                        <Label class="mb-0">Datatype</Label>
+                        <TooltipLabel class="mb-0" content={tooltipCopy.datatype}>Datatype</TooltipLabel>
                         <Select
                           id="config-entry-edit-content-type"
                           aria-label="Datatype"
@@ -293,7 +295,7 @@ export function ProjectParamEditDrawer(props: ProjectParamEditDrawerProps) {
                       </div>
 
                       <div class="space-y-2">
-                        <Label class="mb-0">Scope</Label>
+                        <TooltipLabel class="mb-0" content={tooltipCopy.scope}>Scope</TooltipLabel>
                         <Select
                           value={editScope()}
                           onChange={val => setEditScope(val as ConfigEntry["scope"])}
