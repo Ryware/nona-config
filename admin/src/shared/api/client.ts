@@ -26,6 +26,38 @@ export class ApiRequestError extends Error {
   }
 }
 
+function getValidationErrorMessage(payload: unknown): string | undefined {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return undefined;
+
+  const errors = (payload as { errors?: unknown }).errors;
+  if (!errors || typeof errors !== "object" || Array.isArray(errors)) return undefined;
+
+  const messages = Object.entries(errors)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .flatMap(([field, values]) =>
+      Array.isArray(values)
+        ? values
+            .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+            .map(value => `${field}: ${value}`)
+        : []
+    );
+
+  return messages.length > 0 ? messages.join("; ") : undefined;
+}
+
+function getErrorMessage(payload: unknown): string {
+  const validationMessage = getValidationErrorMessage(payload);
+  if (validationMessage) return validationMessage;
+
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return "Request failed";
+
+  const error = payload as Record<string, unknown>;
+  const fallbackFields = [error.detail, error.error, error.message, error.title];
+  return fallbackFields.find(
+    (value): value is string => typeof value === "string" && value.trim().length > 0
+  ) ?? "Request failed";
+}
+
 export class ApiClient {
   private getAuthHeader(): HeadersInit {
     const token = localStorage.getItem("auth_token") || sessionStorage.getItem("auth_token");
@@ -55,7 +87,7 @@ export class ApiClient {
         .json()
         .catch(() => ({ detail: "An error occurred" }));
       throw new ApiRequestError(
-        error.detail || error.error || error.message || error.title || "Request failed",
+        getErrorMessage(error),
         error.errorCode,
       );
     }

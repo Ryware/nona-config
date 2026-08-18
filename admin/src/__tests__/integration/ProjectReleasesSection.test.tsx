@@ -134,6 +134,66 @@ describe('ProjectReleasesSection', () => {
     expect(draftCalls).toEqual([]);
   });
 
+  it('shows field-level validation details when amended JSON is invalid', async () => {
+    let publishRequest: { entries?: Array<{ key: string; value: string }> } | undefined;
+    server.use(
+      http.get(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/releases/:version',
+        ({ params }) =>
+          HttpResponse.json({
+            project: params.projectId,
+            environment: params.envName,
+            version: params.version,
+            entryCount: 1,
+            isActive: false,
+            createdAt: '2024-01-01T00:00:00Z',
+            actor: 'alice',
+            entries: [
+              {
+                key: 'json.settings',
+                value: '{"enabled":true}',
+                contentType: 'json',
+                scope: 'client',
+              },
+            ],
+          }),
+      ),
+      http.post(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/releases',
+        async ({ request }) => {
+          publishRequest = (await request.json()) as typeof publishRequest;
+          return HttpResponse.json(
+            {
+              title: 'One or more validation errors occurred.',
+              status: 400,
+              detail: 'One or more validation errors occurred.',
+              errors: {
+                'Entries[0].Value': ["Value must be valid JSON when contentType is 'json'."],
+              },
+            },
+            { status: 400 },
+          );
+        },
+      ),
+    );
+
+    renderProjectSections('/projects/my-app/releases');
+
+    fireEvent.click(await screen.findByTestId('release-amend-1.1.0'));
+    fireEvent.input(await screen.findByTestId('amend-value-json.settings'), {
+      target: { value: '{"enabled":' },
+    });
+    fireEvent.click(screen.getByTestId('release-amend-confirm-button'));
+
+    expect(
+      await screen.findByText(
+        "Entries[0].Value: Value must be valid JSON when contentType is 'json'.",
+      ),
+    ).toBeInTheDocument();
+    expect(publishRequest?.entries?.[0].value).toBe('{"enabled":');
+    expect(screen.getByTestId('release-amend-panel')).toBeInTheDocument();
+  });
+
   it('activates a configuration release', async () => {
     const activeRequests: Array<{ version: string | null }> = [];
     server.use(
