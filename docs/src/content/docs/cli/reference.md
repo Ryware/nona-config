@@ -373,6 +373,7 @@ nona migrate [command] [options]
 **Commands**
 
 - `firebase` Import Firebase Remote Config into Nona.
+- `parameter-store` Import AWS Parameter Store values referenced by an ECS task definition into Nona.
 
 ## `nona migrate firebase`
 
@@ -394,6 +395,31 @@ nona migrate firebase [options]
 --bearer-token, --token <bearer-token>    Admin bearer token.
 --email <email>                           Admin email used by the migrator when no token is supplied.
 --password <password>                     Admin password used by the migrator when no token is supplied.
+```
+
+## `nona migrate parameter-store`
+
+Import AWS Parameter Store values referenced by an ECS task definition into Nona.
+
+**Usage**
+
+```text
+nona migrate parameter-store [options]
+```
+
+**Options**
+
+```text
+--task-definition <task-definition> (REQUIRED)  Local ECS task definition JSON path.
+--environment <environment> (REQUIRED)          Target Nona environment.
+--region <region>                               AWS region for non-ARN Parameter Store references.
+--profile <profile>                             AWS shared credentials profile.
+--dry-run                                       Preview changes without applying them.
+--api-url, --base-url <base-url>                Nona base URL.
+--project, --project-name <project-name>        Nona project name.
+--bearer-token, --token <bearer-token>          Admin bearer token.
+--email <email>                                 Admin email used by the migrator when no token is supplied.
+--password <password>                           Admin password used by the migrator when no token is supplied.
 ```
 
 ## `nona keys`

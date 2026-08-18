@@ -134,6 +134,21 @@ Run a Firebase Remote Config migration:
 nona migrate firebase --config ./nona.migration.json --base-url https://nona.example.com --email admin@example.com --password secret
 ```
 
+Import string parameters referenced by an ECS task definition:
+
+```bash
+nona migrate parameter-store \
+  --task-definition ./task-definition.json \
+  --environment production \
+  --profile my-aws-profile \
+  --base-url https://nona.example.com \
+  --project backend-service \
+  --token "$NONA_ADMIN_TOKEN" \
+  --dry-run
+```
+
+The Parameter Store migrator uses ECS `secrets[].name` as the Nona key and imports only parameters whose AWS type is exactly `String`. Entries are written as server-scoped text. `SecureString`, `StringList`, Secrets Manager references, and plaintext ECS `environment` entries are skipped. Run without `--dry-run` to apply the upserts.
+
 ## On-Prem
 
 For on-prem deployments, point the CLI at the local API host:

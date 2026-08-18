@@ -213,6 +213,32 @@ public sealed class CliValueResolverTests
     }
 
     [Test]
+    public async Task BuildParameterStoreArgs_IncludesSourceAwsAndNonaOptions()
+    {
+        var args = new CliValueResolver(CliDefaults.Empty).BuildParameterStoreArgs(
+            "task-definition.json",
+            "prod",
+            "eu-central-1",
+            "production-admin",
+            true,
+            "https://nona.example.com",
+            "cms",
+            "token-123",
+            null,
+            null);
+        var rendered = string.Join(' ', args);
+
+        await Assert.That(rendered).Contains("--task-definition task-definition.json");
+        await Assert.That(rendered).Contains("--environment prod");
+        await Assert.That(rendered).Contains("--region eu-central-1");
+        await Assert.That(rendered).Contains("--profile production-admin");
+        await Assert.That(rendered).Contains("--dry-run");
+        await Assert.That(rendered).Contains("--base-url https://nona.example.com");
+        await Assert.That(rendered).Contains("--project cms");
+        await Assert.That(rendered).Contains("--token token-123");
+    }
+
+    [Test]
     public async Task NormalizeConfigSettingName_NormalizesAliases()
     {
         await Assert.That(CliValueResolver.NormalizeConfigSettingName("api-url")).IsEqualTo("base-url");

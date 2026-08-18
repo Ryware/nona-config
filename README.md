@@ -36,7 +36,7 @@ so change whatever you like.
 - [Client Libraries](#client-libraries)
 - [API](#api)
 - [Docker Compose](#docker-compose)
-- [Migrate from Firebase Remote Config](#migrate-from-firebase-remote-config)
+- [Migrate existing configuration](#migrate-existing-configuration)
 - [Performance](#performance)
 - [Architecture](#architecture)
 
@@ -287,7 +287,7 @@ docker run -d \
 
 ---
 
-## Migrate from Firebase Remote Config
+## Migrate existing configuration
 
 The Nona CLI includes a built-in Firebase Remote Config migration command that imports your existing parameters using a migration config file.
 
@@ -302,6 +302,16 @@ nona migrate firebase \
 ```
 
 See [`cli/src/Nona.Cli/README.md`](cli/src/Nona.Cli/README.md) for the full CLI reference.
+
+The CLI can also import AWS Parameter Store `String` values referenced by an ECS task definition:
+
+```bash
+nona migrate parameter-store \
+  --task-definition ./task-definition.json \
+  --environment production \
+  --project backend-service \
+  --dry-run
+```
 
 ---
 

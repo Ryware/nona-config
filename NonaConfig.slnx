@@ -61,10 +61,12 @@
   </Folder>
   <Folder Name="/migrator/" />
   <Folder Name="/migrator/src/">
+    <Project Path="migrator/src/AwsParameterStoreMigrator/Migrator.AwsParameterStore.csproj" />
     <Project Path="migrator/src/ConfigMigrator.Core/Migrator.Core.csproj" />
     <Project Path="migrator/src/FirebaseRemoteConfigMigrator/Migrator.FirebaseRemoteConfig.csproj" />
   </Folder>
   <Folder Name="/migrator/tests/">
+    <Project Path="migrator/tests/AwsParameterStoreMigrator.Tests/Migrator.AwsParameterStore.Tests.csproj" />
     <Project Path="migrator/tests/FirebaseRemoteConfigMigrator.Tests/Migrator.FirebaseRemoteConfig.Tests.csproj" />
   </Folder>
 </Solution>
