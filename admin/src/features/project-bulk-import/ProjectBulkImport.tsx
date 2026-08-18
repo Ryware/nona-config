@@ -1,7 +1,29 @@
-import { createSignal, Show, For } from "solid-js";
+import { Content, Item, Portal, Root, Trigger } from "@kobalte/core/dropdown-menu";
+import { createSignal, For, Show } from "solid-js";
 import { Button } from "../../shared/ui/button";
 import { MIcon } from "../../shared/ui/icons";
 import type { ConfigEntry } from "../../types";
+
+const CSV_IMPORT_EXAMPLE = `key,value,contentType,scope
+WELCOME_MESSAGE,"Hello world",text,client
+FEATURE_ENABLED,true,boolean,all`;
+
+const JSON_IMPORT_EXAMPLE = `[
+  {
+    "key": "WELCOME_MESSAGE",
+    "value": "Hello world",
+    "contentType": "text",
+    "scope": "client"
+  },
+  {
+    "key": "FEATURE_ENABLED",
+    "value": "true",
+    "contentType": "boolean",
+    "scope": "all"
+  }
+]`;
+
+type ImportExampleFormat = "csv" | "json";
 
 export interface ParsedImport {
   key: string;
@@ -30,6 +52,10 @@ export function ProjectBulkImport(props: ProjectBulkImportProps) {
   const [dragActive, setDragActive] = createSignal(false);
   const [parsedImports, setParsedImports] = createSignal<ParsedImport[]>([]);
   const [importLoading, setImportLoading] = createSignal(false);
+  const [selectedExample, setSelectedExample] = createSignal<ImportExampleFormat | null>(null);
+
+  const selectedExampleText = () =>
+    selectedExample() === "csv" ? CSV_IMPORT_EXAMPLE : JSON_IMPORT_EXAMPLE;
 
   function parseCSV(text: string): Omit<ParsedImport, "alreadyExists" | "selected">[] {
     const lines = text.split(/\r?\n/);
@@ -221,6 +247,58 @@ export function ProjectBulkImport(props: ProjectBulkImportProps) {
         <MIcon name="cloud_upload" class="text-[36px] mb-2 block" />
         <p class="text-xs font-semibold text-on-surface">Drag & Drop configuration file here or click to select</p>
         <p class="text-[10px] text-outline mt-1">Supports JSON (flat key-values or entries list) and CSV (key,value)</p>
+
+        <div class="mt-4 flex justify-center">
+          <Root placement="bottom" gutter={6}>
+            <Trigger
+              data-testid="bulk-import-examples-trigger"
+              aria-label="View file examples"
+              class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-outline-variant/15 bg-surface-container-high px-3 py-1.5 text-[11px] font-medium text-on-surface-variant transition-all hover:bg-surface-bright"
+            >
+              <MIcon name="description" class="text-[15px]" />
+              View file examples
+              <MIcon name="arrow_drop_down" class="text-[16px]" />
+            </Trigger>
+            <Portal>
+              <Content class="z-50 min-w-44 overflow-hidden rounded-lg border border-outline-variant/20 bg-surface-container-low shadow-xl outline-none animate-fade-in">
+                <Item
+                  data-testid="bulk-import-example-csv"
+                  onSelect={() => setSelectedExample("csv")}
+                  class="flex w-full cursor-pointer items-center gap-2.5 border-0 bg-transparent px-4 py-2.5 text-[13px] text-on-surface outline-none transition-colors hover:bg-surface-container-high data-[highlighted]:bg-surface-container-high data-[highlighted]:ring-2 data-[highlighted]:ring-inset data-[highlighted]:ring-primary/40"
+                >
+                  <MIcon name="table_view" class="text-[16px] text-outline" />
+                  CSV example
+                </Item>
+                <Item
+                  data-testid="bulk-import-example-json"
+                  onSelect={() => setSelectedExample("json")}
+                  class="flex w-full cursor-pointer items-center gap-2.5 border-0 bg-transparent px-4 py-2.5 text-[13px] text-on-surface outline-none transition-colors hover:bg-surface-container-high data-[highlighted]:bg-surface-container-high data-[highlighted]:ring-2 data-[highlighted]:ring-inset data-[highlighted]:ring-primary/40"
+                >
+                  <MIcon name="data_object" class="text-[16px] text-outline" />
+                  JSON example
+                </Item>
+              </Content>
+            </Portal>
+          </Root>
+        </div>
+
+        <Show when={selectedExample()}>
+          {format => (
+            <div class="mx-auto mt-3 max-w-2xl text-left">
+              <p class="mb-1 text-[10px] font-semibold uppercase tracking-[0.05em] text-outline">
+                {format().toUpperCase()} example
+              </p>
+              <pre
+                data-testid="bulk-import-example-snippet"
+                data-format={format()}
+                aria-label={`${format().toUpperCase()} import file example`}
+                class="max-h-56 overflow-auto rounded-lg border border-outline-variant/20 bg-surface-container-lowest px-3 py-2.5 font-mono text-[11px] leading-relaxed text-on-surface whitespace-pre"
+              >
+                {selectedExampleText()}
+              </pre>
+            </div>
+          )}
+        </Show>
         
         <input
           type="file"
@@ -231,7 +309,7 @@ export function ProjectBulkImport(props: ProjectBulkImportProps) {
         />
         <label
           for="bulk-file-upload-input"
-          class="inline-block mt-4 px-4 py-2 rounded-lg text-[11px] font-medium bg-surface-container-high text-on-surface-variant hover:bg-surface-bright cursor-pointer transition-all border border-outline-variant/15"
+          class="mt-4 inline-block cursor-pointer rounded-lg border border-outline-variant/15 bg-surface-container-high px-4 py-2 text-[11px] font-medium text-on-surface-variant transition-all hover:bg-surface-bright"
         >
           Browse Files
         </label>
