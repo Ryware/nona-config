@@ -5,6 +5,8 @@ import { MIcon } from "../../shared/ui/icons";
 import { cn } from "../../shared/lib/utils";
 import type { ConfigEntry, ConfigEntryVersion } from "../../types";
 
+export type ParameterViewDensity = "comfortable" | "compact";
+
 export interface ProjectParamsTableProps {
   isLoading: boolean;
   projectId: string;
@@ -38,6 +40,7 @@ export interface ProjectParamsTableProps {
   search: string;
   isReadOnly?: boolean;
   releaseVersion?: string;
+  density?: ParameterViewDensity;
 }
 
 const TYPE_STYLE: Record<string, string> = {
@@ -55,14 +58,26 @@ const SCOPE_STYLE: Record<string, string> = {
 
 export function ProjectParamsTable(props: ProjectParamsTableProps) {
   const isMobile = createMediaQuery("(max-width: 767px)");
+  const isCompact = () => props.density === "compact";
 
   return (
-    <div class="space-y-3">
+    <div
+      data-testid="parameter-table"
+      data-density={props.density ?? "comfortable"}
+      class={isCompact() ? "space-y-1.5" : "space-y-3"}
+    >
       <Show when={isMobile()}>
-        <div class="space-y-3">
+        <div class={isCompact() ? "space-y-1.5" : "space-y-3"}>
         <Show when={props.isLoading}>
           <For each={[1, 2, 3]}>
-            {() => <div class="skeleton h-36 w-full rounded-2xl" />}
+            {() => (
+              <div
+                class={cn(
+                  "skeleton w-full",
+                  isCompact() ? "h-24 rounded-xl" : "h-36 rounded-2xl"
+                )}
+              />
+            )}
           </For>
         </Show>
 
@@ -75,7 +90,12 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
               const isExpanded = () => props.editingEntry?.key === entry.key;
 
               return (
-                <article class="bg-surface-container border-outline-variant/10 overflow-hidden rounded-2xl border">
+                <article
+                  class={cn(
+                    "bg-surface-container border-outline-variant/10 overflow-hidden border",
+                    isCompact() ? "rounded-xl" : "rounded-2xl"
+                  )}
+                >
                   <div
                     data-testid={`parameter-row-${entry.key}`}
                     role="button"
@@ -87,18 +107,23 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
                         props.onSelectEntry(entry);
                       }
                     }}
-                    class="w-full cursor-pointer border-0 bg-transparent p-4 text-left"
+                    class={cn(
+                      "w-full cursor-pointer border-0 bg-transparent text-left",
+                      isCompact() ? "p-3" : "p-4"
+                    )}
                   >
-                    <div class="flex items-start gap-3">
+                    <div class={cn("flex items-start", isCompact() ? "gap-2" : "gap-3")}>
                       <div
-                        class={`bg-surface-container-high text-outline mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-transform ${
-                          isExpanded() ? "rotate-180" : ""
-                        }`}
+                        class={cn(
+                          "bg-surface-container-high text-outline mt-0.5 flex shrink-0 items-center justify-center transition-transform",
+                          isCompact() ? "h-6 w-6 rounded-md" : "h-7 w-7 rounded-lg",
+                          isExpanded() && "rotate-180"
+                        )}
                       >
                         <MIcon name="expand_more" class="text-[16px]" />
                       </div>
 
-                      <div class="min-w-0 flex-1 space-y-3">
+                      <div class={cn("min-w-0 flex-1", isCompact() ? "space-y-1.5" : "space-y-3")}>
                         <div class="min-w-0">
                           <span
                             data-testid={`parameter-display-${entry.key}`}
@@ -108,16 +133,20 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
                           </span>
                           <span
                             data-testid={`parameter-key-${entry.key}`}
-                            class="text-outline mt-0.5 block font-mono text-[10px] tracking-tight break-all"
+                            class={cn(
+                              "text-outline block font-mono text-[10px] tracking-tight break-all",
+                              !isCompact() && "mt-0.5"
+                            )}
                           >
                             {entry.key}
                           </span>
                         </div>
 
-                        <div class="flex flex-wrap gap-2">
+                        <div class={cn("flex flex-wrap", isCompact() ? "gap-1.5" : "gap-2")}>
                           <span
                             class={cn(
-                              "rounded-full px-2 py-0.5 text-[9px] font-bold tracking-wider uppercase",
+                              "rounded-full text-[9px] font-bold tracking-wider uppercase",
+                              isCompact() ? "px-1.5 py-0" : "px-2 py-0.5",
                               TYPE_STYLE[entry.contentType] ?? ""
                             )}
                           >
@@ -125,7 +154,8 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
                           </span>
                           <span
                             class={cn(
-                              "rounded-full px-2 py-0.5 text-[9px] font-bold tracking-wider uppercase",
+                              "rounded-full text-[9px] font-bold tracking-wider uppercase",
+                              isCompact() ? "px-1.5 py-0" : "px-2 py-0.5",
                               SCOPE_STYLE[entry.scope] ?? ""
                             )}
                           >
@@ -134,7 +164,10 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
                         </div>
 
                         <div
-                          class="bg-surface-container-lowest/60 flex items-center gap-2 rounded-xl px-3 py-2"
+                          class={cn(
+                            "bg-surface-container-lowest/60 flex items-center gap-2",
+                            isCompact() ? "rounded-lg px-2 py-1" : "rounded-xl px-3 py-2"
+                          )}
                           onClick={e => e.stopPropagation()}
                         >
                           <span
@@ -160,7 +193,12 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
                   </div>
 
                   <Show when={props.canManage}>
-                    <div class="border-outline-variant/10 flex justify-end gap-1 border-t px-4 py-2">
+                    <div
+                      class={cn(
+                        "border-outline-variant/10 flex justify-end gap-1 border-t",
+                        isCompact() ? "px-3 py-1" : "px-4 py-2"
+                      )}
+                    >
                       <button
                         data-testid={`parameter-share-${entry.key}`}
                         type="button"
@@ -187,7 +225,10 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
                   <Show when={isExpanded()}>
                     <div
                       data-testid={`parameter-accordion-${entry.key}`}
-                      class="bg-surface-container-lowest/30 border-outline-variant/10 border-t px-4 py-4"
+                      class={cn(
+                        "bg-surface-container-lowest/30 border-outline-variant/10 border-t",
+                        isCompact() ? "px-3 py-2.5" : "px-4 py-4"
+                      )}
                     >
                       <ProjectParamEditDrawer
                         {...props}
@@ -204,7 +245,12 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
         </Show>
 
         <Show when={!props.isLoading && props.search && props.filteredConfig.length === 0}>
-          <div class="text-on-surface-variant py-10 text-center text-sm">
+          <div
+            class={cn(
+              "text-on-surface-variant text-center text-sm",
+              isCompact() ? "py-6" : "py-10"
+            )}
+          >
             No parameters match "<span class="text-on-surface font-medium">{props.search}</span>"
           </div>
         </Show>
@@ -212,7 +258,12 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
       </Show>
 
       <Show when={!isMobile()}>
-        <div class="bg-surface-container-low border-outline-variant/15 overflow-hidden rounded-xl border">
+        <div
+          class={cn(
+            "bg-surface-container-low border-outline-variant/15 overflow-hidden border",
+            isCompact() ? "rounded-lg" : "rounded-xl"
+          )}
+        >
         <div class="overflow-x-auto">
         <table
           data-testid="parameter-desktop-table"
@@ -227,19 +278,44 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
           </colgroup>
           <thead class="sticky top-0 z-10">
             <tr class="border-outline-variant/15 bg-surface-container-lowest/50 border-b">
-              <th class="text-outline px-4 py-3 text-[11px] font-medium tracking-[0.05em] uppercase">
+              <th
+                class={cn(
+                  "text-outline text-[11px] font-medium tracking-[0.05em] uppercase",
+                  isCompact() ? "px-2.5 py-2" : "px-4 py-3"
+                )}
+              >
                 Parameter
               </th>
-              <th class="text-outline px-4 py-3 text-[11px] font-medium tracking-[0.05em] uppercase">
+              <th
+                class={cn(
+                  "text-outline text-[11px] font-medium tracking-[0.05em] uppercase",
+                  isCompact() ? "px-2.5 py-2" : "px-4 py-3"
+                )}
+              >
                 Value
               </th>
-              <th class="text-outline px-4 py-3 text-[11px] font-medium tracking-[0.05em] uppercase">
+              <th
+                class={cn(
+                  "text-outline text-[11px] font-medium tracking-[0.05em] uppercase",
+                  isCompact() ? "px-2.5 py-2" : "px-4 py-3"
+                )}
+              >
                 Type
               </th>
-              <th class="text-outline px-4 py-3 text-[11px] font-medium tracking-[0.05em] uppercase">
+              <th
+                class={cn(
+                  "text-outline text-[11px] font-medium tracking-[0.05em] uppercase",
+                  isCompact() ? "px-2.5 py-2" : "px-4 py-3"
+                )}
+              >
                 Scope
               </th>
-              <th class="text-outline px-4 py-3 text-right text-[11px] font-medium tracking-[0.05em] uppercase">
+              <th
+                class={cn(
+                  "text-outline text-right text-[11px] font-medium tracking-[0.05em] uppercase",
+                  isCompact() ? "px-2.5 py-2" : "px-4 py-3"
+                )}
+              >
                 <Show when={!props.isReadOnly} fallback={<>Details</>}>
                   Actions
                 </Show>
@@ -251,19 +327,19 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
               <For each={[1, 2, 3]}>
                 {() => (
                   <tr>
-                    <td class="px-4 py-4">
+                    <td class={isCompact() ? "px-2.5 py-2" : "px-4 py-4"}>
                       <div class="skeleton h-4 w-40 rounded" />
                     </td>
-                    <td class="px-4 py-4">
+                    <td class={isCompact() ? "px-2.5 py-2" : "px-4 py-4"}>
                       <div class="skeleton h-4 w-32 rounded" />
                     </td>
-                    <td class="px-4 py-4">
+                    <td class={isCompact() ? "px-2.5 py-2" : "px-4 py-4"}>
                       <div class="skeleton h-5 w-14 rounded-full" />
                     </td>
-                    <td class="px-4 py-4">
+                    <td class={isCompact() ? "px-2.5 py-2" : "px-4 py-4"}>
                       <div class="skeleton h-5 w-14 rounded-full" />
                     </td>
-                    <td class="px-4 py-4" />
+                    <td class={isCompact() ? "px-2.5 py-2" : "px-4 py-4"} />
                   </tr>
                 )}
               </For>
@@ -288,12 +364,24 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
                             : "hover:bg-surface-container-high/40"
                         )}
                       >
-                        <td class="min-w-0 overflow-hidden px-4 py-4">
-                          <div class="flex min-w-0 items-center gap-3">
+                        <td
+                          class={cn(
+                            "min-w-0 overflow-hidden",
+                            isCompact() ? "px-2.5 py-2" : "px-4 py-4"
+                          )}
+                        >
+                          <div
+                            class={cn(
+                              "flex min-w-0 items-center",
+                              isCompact() ? "gap-2" : "gap-3"
+                            )}
+                          >
                             <div
-                              class={`bg-surface-container-high text-outline flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-transform ${
-                                isExpanded() ? "rotate-180" : ""
-                              }`}
+                              class={cn(
+                                "bg-surface-container-high text-outline flex shrink-0 items-center justify-center transition-transform",
+                                isCompact() ? "h-6 w-6 rounded-md" : "h-7 w-7 rounded-lg",
+                                isExpanded() && "rotate-180"
+                              )}
                             >
                               <MIcon name="expand_more" class="text-[16px]" />
                             </div>
@@ -315,7 +403,12 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
                             </div>
                           </div>
                         </td>
-                        <td class="min-w-0 overflow-hidden px-4 py-4">
+                        <td
+                          class={cn(
+                            "min-w-0 overflow-hidden",
+                            isCompact() ? "px-2.5 py-2" : "px-4 py-4"
+                          )}
+                        >
                           <div
                             class="flex w-full min-w-0 items-center gap-2"
                             onClick={e => e.stopPropagation()}
@@ -339,29 +432,52 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
                             </button>
                           </div>
                         </td>
-                        <td class="overflow-hidden px-4 py-4 font-mono">
+                        <td
+                          class={cn(
+                            "overflow-hidden font-mono",
+                            isCompact() ? "px-2.5 py-2" : "px-4 py-4"
+                          )}
+                        >
                           <span
                             class={cn(
-                              "rounded-full px-2 py-0.5 text-[9px] font-bold tracking-wider uppercase",
+                              "rounded-full text-[9px] font-bold tracking-wider uppercase",
+                              isCompact() ? "px-1.5 py-0" : "px-2 py-0.5",
                               TYPE_STYLE[entry.contentType] ?? ""
                             )}
                           >
                             {entry.contentType}
                           </span>
                         </td>
-                        <td class="overflow-hidden px-4 py-4 font-mono">
+                        <td
+                          class={cn(
+                            "overflow-hidden font-mono",
+                            isCompact() ? "px-2.5 py-2" : "px-4 py-4"
+                          )}
+                        >
                           <span
                             class={cn(
-                              "rounded-full px-2 py-0.5 text-[9px] font-bold tracking-wider uppercase",
+                              "rounded-full text-[9px] font-bold tracking-wider uppercase",
+                              isCompact() ? "px-1.5 py-0" : "px-2 py-0.5",
                               SCOPE_STYLE[entry.scope] ?? ""
                             )}
                           >
                             {entry.scope}
                           </span>
                         </td>
-                        <td class="overflow-hidden px-4 py-4 text-right" onClick={e => e.stopPropagation()}>
+                        <td
+                          class={cn(
+                            "overflow-hidden text-right",
+                            isCompact() ? "px-2.5 py-2" : "px-4 py-4"
+                          )}
+                          onClick={e => e.stopPropagation()}
+                        >
                           <Show when={props.canManage}>
-                            <div class="flex justify-end gap-1">
+                            <div
+                              class={cn(
+                                "flex justify-end",
+                                isCompact() ? "gap-0.5" : "gap-1"
+                              )}
+                            >
                               <button
                                 data-testid={`parameter-share-${entry.key}`}
                                 onClick={() => props.onShareEntry(entry)}
@@ -386,7 +502,13 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
                       </tr>
                       <Show when={isExpanded()}>
                         <tr data-testid={`parameter-accordion-${entry.key}`}>
-                          <td colSpan={5} class="bg-surface-container-lowest/30 px-6 py-4">
+                          <td
+                            colSpan={5}
+                            class={cn(
+                              "bg-surface-container-lowest/30",
+                              isCompact() ? "px-3 py-2.5" : "px-6 py-4"
+                            )}
+                          >
                             <ProjectParamEditDrawer
                               entry={props.editingEntry}
                               activeEnvName={props.activeEnvName}
@@ -413,7 +535,13 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
             </Show>
             <Show when={!props.isLoading && props.search && props.filteredConfig.length === 0}>
               <tr>
-                <td colSpan={5} class="text-on-surface-variant py-10 text-center text-sm">
+                <td
+                  colSpan={5}
+                  class={cn(
+                    "text-on-surface-variant text-center text-sm",
+                    isCompact() ? "py-6" : "py-10"
+                  )}
+                >
                   No parameters match "
                   <span class="text-on-surface font-medium">{props.search}</span>"
                 </td>
