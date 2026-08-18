@@ -1,4 +1,5 @@
 using Nona.Application.Admin.ConfigEntries.Commands;
+using Nona.Application.Common;
 using Nona.Application.Tests.Common;
 using Nona.Domain;
 
@@ -109,6 +110,7 @@ public class UpsertConfigEntryCommandTests
         // Assert
         await Assert.That(result.Success).IsFalse();
         await Assert.That(result.Error).IsEqualTo("Access denied");
+        await Assert.That(result.ErrorCode).IsEqualTo(AuthorizationErrorCodes.AccessDenied);
     }
 
     [Test]

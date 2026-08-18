@@ -2,6 +2,7 @@
 
 **Self-hosted feature flags and remote configuration for web, mobile, and backend apps.**
 
+[![Live demo](https://img.shields.io/badge/Live_demo-demo.nonaconfig.com-5b6ef5?style=flat-square&logo=googlechrome&logoColor=white)](https://demo.nonaconfig.com)
 [![Docker Pulls](https://img.shields.io/docker/pulls/rywaredev/nona?style=flat-square&logo=docker)](https://hub.docker.com/r/rywaredev/nona)
 [![npm](https://img.shields.io/npm/v/nona-client?style=flat-square&logo=npm)](https://www.npmjs.com/package/nona-client)
 [![NuGet](https://img.shields.io/nuget/v/Nona.Client?style=flat-square&logo=nuget)](https://www.nuget.org/packages/Nona.Client)
@@ -15,6 +16,12 @@ Nona gives you the same feature flag and remote config capabilities as Firebase 
 - Update **mobile app config** (iOS, Android, React Native, Flutter) without an app store release
 - Use **kill switches** to disable broken features in seconds
 - Fetch everything via **one REST API call** — no SDK required in any language
+
+### ▶ [Try the live demo](https://demo.nonaconfig.com)
+
+A real Nona instance with sample projects, environments and releases. You are signed in
+automatically as an administrator — no account, no install. Everything resets nightly,
+so change whatever you like.
 
 > 🌐 [nonaconfig.com](https://nonaconfig.com) &nbsp;·&nbsp; 🐳 [Docker Hub](https://hub.docker.com/r/rywaredev/nona) &nbsp;·&nbsp; 📦 [npm](https://www.npmjs.com/package/nona-client) &nbsp;·&nbsp; 📦 [NuGet](https://www.nuget.org/packages/Nona.Client)
 
@@ -60,6 +67,8 @@ Nona runs as a single Docker container with SQLite in standalone mode and embedd
 ---
 
 ## Quick Start
+
+Want to look around before installing anything? [Try the live demo](https://demo.nonaconfig.com).
 
 ```bash
 docker run -d \
@@ -161,7 +170,7 @@ See [client/javascript-openfeature-provider/README.md](client/javascript-openfea
 
 ### Any language (plain HTTP)
 
-No SDK needed. A single GET request returns one config value from the environment's active release, or from a pinned release version:
+No SDK needed. A single GET request returns one config value from the environment's active release, from its working parameters when no release is active, or from a pinned release version:
 
 ```bash
 # curl
@@ -209,7 +218,7 @@ CLI packages:
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/api/{environmentId}/{key}` | Fetch one key from the active release |
+| `GET` | `/api/{environmentId}/{key}` | Fetch one key from the active release, or working parameters when none is active |
 | `GET` | `/api/{environmentId}/{key}?version=1.1.0` | Fetch one key from an exact release |
 | `GET` | `/api/{environmentId}/{key}?version=1.1.x` | Fetch one key from the highest patch in a release line |
 | `GET` | `/api/{environmentId}` | Fetch all client-visible keys with ETag support |
@@ -256,7 +265,7 @@ docker compose -f primary-replica-prod.yml up -d
 | `nona-primary` | `18081` | `19080` | `15001` |
 | `nona-replica` | `18082` | `19082` | — |
 
-The replica connects to the primary over gRPC and syncs automatically. Reads served from the replica are **10–15× faster** for remote clients (see [Performance](#performance)).
+The replica connects to the primary over gRPC and syncs automatically.
 
 ### JWT Settings
 
@@ -295,31 +304,31 @@ See [`cli/src/Nona.Cli/README.md`](cli/src/Nona.Cli/README.md) for the full CLI 
 
 ## Performance
 
-All measurements from production-equivalent environments.
+The following results measure full runtime API reads using SQLite. "Users"
+means concurrent, closed-loop HTTP clients.
 
-### Single-node (SQLite local)
+### Full environment
 
-Dataset: **10,000 rows**, p95 latency:
+Each request used `GET /api/{environment}` and consumed the complete response
+body.
 
-| Scenario | p95 (ms) | req/s |
-|----------|----------|-------|
-| Point lookup — 1 key | 0.154 | 11,248 |
-| Point lookup — 100 keys | 0.712 | 1,616 |
-| Range query — 1,000 rows | 3.703 | 289 |
+| Keys returned | Users | Average (ms) | p50 (ms) | p95 (ms) | p99 (ms) | req/s |
+|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 1 | 0.731 | 0.725 | 0.812 | 0.930 | 1,361.6 |
+| 1 | 50 | 5.950 | 5.658 | 8.763 | 11.522 | 8,397.7 |
+| 100 | 1 | 1.351 | 1.314 | 1.537 | 2.043 | 738.6 |
+| 100 | 50 | 7.723 | 6.812 | 12.451 | 23.230 | 6,469.5 |
 
-All targets pass with 0% error rate under load.
+### Single key
 
-### Primary / Replica (remote client)
+Each request used `GET /api/{environment}/{key}` to read one fixed key from an
+environment containing 10,000 keys.
 
-| Scenario | Primary p95 | Replica p95 |
-|----------|-------------|-------------|
-| 1 key, c1 | 50.0 ms | **2.6 ms** |
-| 100 keys, c1 | 56.8 ms | **6.6 ms** |
-| 1,000 rows, c1 | 263.2 ms | **42.9 ms** |
-
-Replica reads are **10–15× faster** for geographically distant clients.
-
-> **Note:** Replication is asynchronous. Immediate read-after-write consistency is not guaranteed — replicas are best for read-heavy workloads where eventual consistency is acceptable.
+| Keys returned | Users | Average (ms) | p50 (ms) | p95 (ms) | p99 (ms) | req/s |
+|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 1 | 0.664 | 0.644 | 0.749 | 1.410 | 1,501.2 |
+| 1 | 50 | 5.250 | 4.900 | 7.969 | 13.302 | 9,516.8 |
+| 1 | 100 | 10.189 | 9.884 | 15.238 | 21.706 | 9,804.9 |
 
 ---
 

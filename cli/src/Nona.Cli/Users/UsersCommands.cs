@@ -20,14 +20,14 @@ internal sealed class UsersCommands(CliContext ctx) : ICliCommandGroup
         var tokenOpt = new Option<string?>(["--token", "--bearer-token"], "Admin bearer token.");
         var nameOpt = new Option<string>("--name", "Full name of the new user.") { IsRequired = true };
         var userEmailOpt = new Option<string>("--user-email", "Email address of the new user.") { IsRequired = true };
-        var roleOpt = new Option<string?>("--role", "User role: viewer or editor.");
+        var roleOpt = new Option<string?>("--role", "User role: admin or member.");
         var scopeOpt = new Option<string?>("--scope", "User scope: client, server, or all.");
 
         roleOpt.AddValidator(result =>
         {
             var v = result.GetValueOrDefault<string>();
-            if (v is not null && v is not "viewer" and not "editor")
-                result.ErrorMessage = $"Unknown role '{v}'. Valid roles: viewer, editor.";
+            if (v is not null && v is not "admin" and not "member")
+                result.ErrorMessage = $"Unknown role '{v}'. Valid roles: admin, member.";
         });
         scopeOpt.AddValidator(result =>
         {

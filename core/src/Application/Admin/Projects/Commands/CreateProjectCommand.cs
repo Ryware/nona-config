@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Nona.Application.Admin.Projects.DTOs;
 using Nona.Application.Common.Interfaces;
 using Nona.Domain.Entities;
+using Nona.Domain.Enums;
 using Nona.Domain.Interfaces;
 
 namespace Nona.Application.Admin.Projects.Commands;
@@ -23,7 +24,7 @@ public class CreateProjectCommandHandler(
     public async ValueTask<CreateProjectResult> Handle(CreateProjectCommand request, CancellationToken cancellationToken)
     {
         var currentUser = await userAuthorizationService.GetCurrentUserAsync(cancellationToken);
-        if (currentUser?.IsAdmin != true)
+        if (currentUser?.Role != UserRole.Admin)
             return new CreateProjectResult(false, null, "Access denied. Only admin users can create projects.");
 
         if (await projectRepository.ExistsAsync(request.Name, cancellationToken))
@@ -72,6 +73,7 @@ public class CreateProjectCommandHandler(
         if (auditLogService is not null)
         {
             await auditLogService.WriteAsync(
+                AuditActionKind.Create,
                 "Created Project",
                 project.Name,
                 project: project.Name,
@@ -82,6 +84,7 @@ public class CreateProjectCommandHandler(
             project.Id,
             project.Name,
             project.UrlSlug,
+            "admin",
             project.Environments,
             project.CreatedAt,
             project.UpdatedAt);

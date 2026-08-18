@@ -1,6 +1,6 @@
 using Mediator;
+using Nona.Application.Admin.Users;
 using Nona.Application.Admin.Users.DTOs;
-using Nona.Application.Common;
 using Nona.Domain.Interfaces;
 
 namespace Nona.Application.Admin.Users.Queries;
@@ -19,18 +19,7 @@ public class GetUserQueryHandler(IUserRepository userRepository, IProjectMemberR
             return new GetUserResult(false, null, "User not found");
 
         var members = await projectMemberRepository.ListByUserAsync(user.Email, cancellationToken);
-        var projects = members.Select(m => new ProjectAccessDto(m.ProjectId, m.Role.ToApiString())).ToList();
-
-        var dto = new UserDto(
-            user.Id,
-            user.Email,
-            user.Name,
-            user.Role.ToApiString(),
-            user.Scope.ToApiString(),
-            user.IsAdmin,
-            projects,
-            user.CreatedAt,
-            user.UpdatedAt);
+        var dto = UserDtoMapping.ToDto(user, members);
 
         return new GetUserResult(true, dto, null);
     }

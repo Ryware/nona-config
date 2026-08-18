@@ -7,6 +7,7 @@ import { VisualJsonEditor } from "../../shared/ui/visual-json-editor";
 import type { ConfigEntry } from "../../types";
 import { FormField } from "../../widgets/auth-shell/FormField";
 import { MIcon } from "../../shared/ui/icons";
+import { isValidConfigEntryValue } from "./config-entry-value";
 
 type ConfigEntryContentType = "text" | "number" | "boolean" | "json";
 type ConfigEntryScope = "client" | "server" | "all";
@@ -22,34 +23,6 @@ interface ProjectParamCreateFormProps {
   }) => void;
   isPending: boolean;
   existingEntries: ConfigEntry[];
-}
-
-export function isValidConfigEntryValue(contentType: ConfigEntryContentType, value: string): boolean {
-  const trimmed = value.trim();
-
-  if (trimmed.length === 0) {
-    return false;
-  }
-
-  if (contentType === "text") {
-    return true;
-  }
-
-  try {
-    const parsed = JSON.parse(trimmed) as unknown;
-
-    if (contentType === "json") {
-      return true;
-    }
-
-    if (contentType === "number") {
-      return typeof parsed === "number" && Number.isFinite(parsed);
-    }
-
-    return typeof parsed === "boolean";
-  } catch {
-    return false;
-  }
 }
 
 export function ProjectParamCreateForm(props: ProjectParamCreateFormProps) {

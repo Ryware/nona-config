@@ -1,23 +1,14 @@
 import { createMemo, For, Show } from "solid-js";
-
-interface Requirement {
-  label: string;
-  test: (p: string) => boolean;
-}
+import { PASSWORD_REQUIREMENTS } from "../../shared/lib/password-policy";
 
 interface PasswordStrengthMeterProps {
   password: string;
 }
 
 export function PasswordStrengthMeter(props: PasswordStrengthMeterProps) {
-  const REQUIREMENTS: Requirement[] = [
-    { label: "At least 8 characters", test: (p) => p.length >= 8 },
-    { label: "One uppercase letter", test: (p) => /[A-Z]/.test(p) },
-    { label: "One number", test: (p) => /[0-9]/.test(p) },
-    { label: "One special character", test: (p) => /[^A-Za-z0-9]/.test(p) },
-  ];
-
-  const metCount = createMemo(() => REQUIREMENTS.filter((r) => r.test(props.password || "")).length);
+  const metCount = createMemo(
+    () => PASSWORD_REQUIREMENTS.filter(requirement => requirement.test(props.password || "")).length
+  );
 
   const strengthLabel = createMemo(() => {
     const n = metCount();
@@ -32,7 +23,7 @@ export function PasswordStrengthMeter(props: PasswordStrengthMeterProps) {
     <Show when={(props.password || "").length > 0}>
       <div class="space-y-2 mt-1">
         <div class="flex gap-1">
-          <For each={REQUIREMENTS}>
+          <For each={PASSWORD_REQUIREMENTS}>
             {(_, i) => (
               <div
                 class={`h-1 flex-1 rounded-full transition-all duration-300 ${
@@ -44,7 +35,7 @@ export function PasswordStrengthMeter(props: PasswordStrengthMeterProps) {
         </div>
         <div class="flex items-center justify-between">
           <div class="space-y-0.5">
-            <For each={REQUIREMENTS}>
+            <For each={PASSWORD_REQUIREMENTS}>
               {(req) => (
                 <div
                   class={`flex items-center gap-1.5 text-[10px] transition-colors ${

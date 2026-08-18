@@ -1,6 +1,7 @@
 using Mediator;
 using Nona.Application.Admin.Projects;
 using Nona.Application.Common.Interfaces;
+using Nona.Domain.Enums;
 using Nona.Domain.Interfaces;
 
 namespace Nona.Application.Admin.ConfigEntries.Commands;
@@ -40,6 +41,7 @@ public class DeleteConfigEntryCommandHandler(
         if (auditLogService is not null)
         {
             await auditLogService.WriteAsync(
+                AuditActionKind.Delete,
                 "Deleted Key",
                 request.Key,
                 project: projectName,

@@ -8,7 +8,7 @@ Once you have:
 - a project
 - an environment
 - a config entry
-- an active release
+- either an active release or a working parameter to use as the fallback
 - an API key
 
 you can read a value over HTTP.
@@ -68,7 +68,7 @@ The request includes:
 - an optional `version` query parameter
 - an API key in the header
 
-The project is implied by the API key, which is why it is not part of this request path. If `version` is omitted, Nona resolves the environment's active release.
+The project is implied by the API key, which is why it is not part of this request path. If `version` is omitted, Nona resolves the environment's active release. If none is active, it falls back to the working parameters.
 
 ## Example
 
@@ -106,7 +106,7 @@ If the request fails:
 1. confirm the environment name is correct
 2. confirm the key exists in that environment
 3. confirm the key path is URL-encoded
-4. confirm an active release is selected, or pass `version`
+4. confirm the expected release is active, pass `version`, or verify the working parameter when none is active
 5. confirm the API key belongs to the same project
 6. confirm the API key scope can read the entry scope
 

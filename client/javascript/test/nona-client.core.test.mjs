@@ -1,7 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createNonaClient, NonaClientError } from "../dist/index.js";
+import {
+  createNonaClient,
+  NonaClientError,
+  NonaProjectRoles,
+  NonaUserRoles
+} from "../dist/index.js";
 import { capture, configValueResponse, jsonResponse } from "./helpers.mjs";
+
+test("exports organization and project roles separately", () => {
+  assert.deepEqual(NonaUserRoles, { Admin: "admin", Member: "member" });
+  assert.deepEqual(NonaProjectRoles, { Viewer: "viewer", Editor: "editor" });
+});
 
 test("getConfigValue sends API key and parses the value", async () => {
   const calls = [];

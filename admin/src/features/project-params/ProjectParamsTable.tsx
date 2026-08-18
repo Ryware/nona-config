@@ -27,6 +27,7 @@ export interface ProjectParamsTableProps {
   onSaveSettings: (data: {
     value: string;
     description: string;
+    contentType: ConfigEntry["contentType"];
     scope: ConfigEntry["scope"];
   }) => void;
   isSaving: boolean;
@@ -189,9 +190,10 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
                       class="bg-surface-container-lowest/30 border-outline-variant/10 border-t px-4 py-4"
                     >
                       <ProjectParamEditDrawer
-                       {...props}
+                        {...props}
                         entry={props.editingEntry}
                         onClose={props.onCloseEntry}
+                        historyLayout="mobile"
                       />
                     </div>
                   </Show>
@@ -212,22 +214,32 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
       <Show when={!isMobile()}>
         <div class="bg-surface-container-low border-outline-variant/15 overflow-hidden rounded-xl border">
         <div class="overflow-x-auto">
-        <table class="w-full border-collapse text-left text-[12px]">
+        <table
+          data-testid="parameter-desktop-table"
+          class="w-full min-w-[48rem] table-fixed border-collapse text-left text-[12px]"
+        >
+          <colgroup>
+            <col class="w-[17rem]" />
+            <col />
+            <col class="w-28" />
+            <col class="w-28" />
+            <col class="w-24" />
+          </colgroup>
           <thead class="sticky top-0 z-10">
             <tr class="border-outline-variant/15 bg-surface-container-lowest/50 border-b">
-              <th class="text-outline px-6 py-3 text-[11px] font-medium tracking-[0.05em] uppercase">
+              <th class="text-outline px-4 py-3 text-[11px] font-medium tracking-[0.05em] uppercase">
                 Parameter
               </th>
-              <th class="text-outline px-6 py-3 text-[11px] font-medium tracking-[0.05em] uppercase">
+              <th class="text-outline px-4 py-3 text-[11px] font-medium tracking-[0.05em] uppercase">
                 Value
               </th>
-              <th class="text-outline px-6 py-3 text-[11px] font-medium tracking-[0.05em] uppercase">
+              <th class="text-outline px-4 py-3 text-[11px] font-medium tracking-[0.05em] uppercase">
                 Type
               </th>
-              <th class="text-outline px-6 py-3 text-[11px] font-medium tracking-[0.05em] uppercase">
+              <th class="text-outline px-4 py-3 text-[11px] font-medium tracking-[0.05em] uppercase">
                 Scope
               </th>
-              <th class="text-outline w-24 px-6 py-3 text-right text-[11px] font-medium tracking-[0.05em] uppercase">
+              <th class="text-outline px-4 py-3 text-right text-[11px] font-medium tracking-[0.05em] uppercase">
                 <Show when={!props.isReadOnly} fallback={<>Details</>}>
                   Actions
                 </Show>
@@ -239,19 +251,19 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
               <For each={[1, 2, 3]}>
                 {() => (
                   <tr>
-                    <td class="px-6 py-4">
+                    <td class="px-4 py-4">
                       <div class="skeleton h-4 w-40 rounded" />
                     </td>
-                    <td class="px-6 py-4">
+                    <td class="px-4 py-4">
                       <div class="skeleton h-4 w-32 rounded" />
                     </td>
-                    <td class="px-6 py-4">
+                    <td class="px-4 py-4">
                       <div class="skeleton h-5 w-14 rounded-full" />
                     </td>
-                    <td class="px-6 py-4">
+                    <td class="px-4 py-4">
                       <div class="skeleton h-5 w-14 rounded-full" />
                     </td>
-                    <td class="px-6 py-4" />
+                    <td class="px-4 py-4" />
                   </tr>
                 )}
               </For>
@@ -276,8 +288,8 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
                             : "hover:bg-surface-container-high/40"
                         )}
                       >
-                        <td class="px-6 py-4">
-                          <div class="flex items-center gap-3">
+                        <td class="min-w-0 overflow-hidden px-4 py-4">
+                          <div class="flex min-w-0 items-center gap-3">
                             <div
                               class={`bg-surface-container-high text-outline flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-transform ${
                                 isExpanded() ? "rotate-180" : ""
@@ -285,27 +297,33 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
                             >
                               <MIcon name="expand_more" class="text-[16px]" />
                             </div>
-                            <div class="flex flex-col gap-0.5">
+                            <div class="flex min-w-0 flex-1 flex-col gap-0.5">
                               <span
                                 data-testid={`parameter-display-${entry.key}`}
-                                class="text-on-surface text-[13.5px] font-bold"
+                                title={meta().displayName}
+                                class="text-on-surface block min-w-0 truncate text-[13.5px] font-bold"
                               >
                                 {meta().displayName}
                               </span>
                               <span
                                 data-testid={`parameter-key-${entry.key}`}
-                                class="text-outline font-mono text-[10px] tracking-tight"
+                                title={entry.key}
+                                class="text-outline block min-w-0 truncate font-mono text-[10px] tracking-tight"
                               >
                                 {entry.key}
                               </span>
                             </div>
                           </div>
                         </td>
-                        <td class="px-6 py-4">
-                          <div class="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                        <td class="min-w-0 overflow-hidden px-4 py-4">
+                          <div
+                            class="flex w-full min-w-0 items-center gap-2"
+                            onClick={e => e.stopPropagation()}
+                          >
                             <span
                               data-testid={`parameter-value-${entry.key}`}
-                              class="text-on-surface-variant block max-w-45 truncate font-mono"
+                              title={entry.value || undefined}
+                              class="text-on-surface-variant block min-w-0 flex-1 truncate font-mono"
                             >
                               {entry.value}
                             </span>
@@ -321,7 +339,7 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
                             </button>
                           </div>
                         </td>
-                        <td class="px-6 py-4 font-mono">
+                        <td class="overflow-hidden px-4 py-4 font-mono">
                           <span
                             class={cn(
                               "rounded-full px-2 py-0.5 text-[9px] font-bold tracking-wider uppercase",
@@ -331,7 +349,7 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
                             {entry.contentType}
                           </span>
                         </td>
-                        <td class="px-6 py-4 font-mono">
+                        <td class="overflow-hidden px-4 py-4 font-mono">
                           <span
                             class={cn(
                               "rounded-full px-2 py-0.5 text-[9px] font-bold tracking-wider uppercase",
@@ -341,7 +359,7 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
                             {entry.scope}
                           </span>
                         </td>
-                        <td class="px-6 py-4 text-right" onClick={e => e.stopPropagation()}>
+                        <td class="overflow-hidden px-4 py-4 text-right" onClick={e => e.stopPropagation()}>
                           <Show when={props.canManage}>
                             <div class="flex justify-end gap-1">
                               <button
@@ -381,6 +399,7 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
                               isHistoryLoading={props.isHistoryLoading}
                               isRollingBack={props.isRollingBack}
                               onRollbackVersion={props.onRollbackVersion}
+                              historyLayout="desktop"
                               isReadOnly={props.isReadOnly}
                               releaseVersion={props.releaseVersion}
                             />

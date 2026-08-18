@@ -3,6 +3,7 @@
 using Microsoft.Kiota.Abstractions.Extensions;
 using Microsoft.Kiota.Abstractions.Serialization;
 using Microsoft.Kiota.Abstractions;
+using Nona.Cli.Generated.Admin.AuditLogs.Export;
 using Nona.Cli.Generated.Models;
 using System.Collections.Generic;
 using System.IO;
@@ -17,12 +18,17 @@ namespace Nona.Cli.Generated.Admin.AuditLogs
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
     public partial class AuditLogsRequestBuilder : BaseRequestBuilder
     {
+        /// <summary>The export property</summary>
+        public global::Nona.Cli.Generated.Admin.AuditLogs.Export.ExportRequestBuilder Export
+        {
+            get => new global::Nona.Cli.Generated.Admin.AuditLogs.Export.ExportRequestBuilder(PathParameters, RequestAdapter);
+        }
         /// <summary>
         /// Instantiates a new <see cref="global::Nona.Cli.Generated.Admin.AuditLogs.AuditLogsRequestBuilder"/> and sets the default values.
         /// </summary>
         /// <param name="pathParameters">Path parameters for the request</param>
         /// <param name="requestAdapter">The request adapter to use to execute the requests.</param>
-        public AuditLogsRequestBuilder(Dictionary<string, object> pathParameters, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/admin/audit-logs", pathParameters)
+        public AuditLogsRequestBuilder(Dictionary<string, object> pathParameters, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/admin/audit-logs{?action*,dateFrom*,dateTo*,environment*,page*,pageSize*,search*}", pathParameters)
         {
         }
         /// <summary>
@@ -30,20 +36,20 @@ namespace Nona.Cli.Generated.Admin.AuditLogs
         /// </summary>
         /// <param name="rawUrl">The raw URL to use for the request builder.</param>
         /// <param name="requestAdapter">The request adapter to use to execute the requests.</param>
-        public AuditLogsRequestBuilder(string rawUrl, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/admin/audit-logs", rawUrl)
+        public AuditLogsRequestBuilder(string rawUrl, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/admin/audit-logs{?action*,dateFrom*,dateTo*,environment*,page*,pageSize*,search*}", rawUrl)
         {
         }
-        /// <returns>A List&lt;global::Nona.Cli.Generated.Models.AuditLogDto&gt;</returns>
+        /// <returns>A <see cref="global::Nona.Cli.Generated.Models.AuditLogPageDto"/></returns>
         /// <param name="cancellationToken">Cancellation token to use when cancelling requests</param>
         /// <param name="requestConfiguration">Configuration for the request such as headers, query parameters, and middleware options.</param>
         /// <exception cref="global::Nona.Cli.Generated.Models.ApiProblemDetails">When receiving a 4XX or 5XX status code</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
-        public async Task<List<global::Nona.Cli.Generated.Models.AuditLogDto>?> GetAsync(Action<RequestConfiguration<DefaultQueryParameters>>? requestConfiguration = default, CancellationToken cancellationToken = default)
+        public async Task<global::Nona.Cli.Generated.Models.AuditLogPageDto?> GetAsync(Action<RequestConfiguration<global::Nona.Cli.Generated.Admin.AuditLogs.AuditLogsRequestBuilder.AuditLogsRequestBuilderGetQueryParameters>>? requestConfiguration = default, CancellationToken cancellationToken = default)
         {
 #nullable restore
 #else
-        public async Task<List<global::Nona.Cli.Generated.Models.AuditLogDto>> GetAsync(Action<RequestConfiguration<DefaultQueryParameters>> requestConfiguration = default, CancellationToken cancellationToken = default)
+        public async Task<global::Nona.Cli.Generated.Models.AuditLogPageDto> GetAsync(Action<RequestConfiguration<global::Nona.Cli.Generated.Admin.AuditLogs.AuditLogsRequestBuilder.AuditLogsRequestBuilderGetQueryParameters>> requestConfiguration = default, CancellationToken cancellationToken = default)
         {
 #endif
             var requestInfo = ToGetRequestInformation(requestConfiguration);
@@ -51,18 +57,17 @@ namespace Nona.Cli.Generated.Admin.AuditLogs
             {
                 { "XXX", global::Nona.Cli.Generated.Models.ApiProblemDetails.CreateFromDiscriminatorValue },
             };
-            var collectionResult = await RequestAdapter.SendCollectionAsync<global::Nona.Cli.Generated.Models.AuditLogDto>(requestInfo, global::Nona.Cli.Generated.Models.AuditLogDto.CreateFromDiscriminatorValue, errorMapping, cancellationToken).ConfigureAwait(false);
-            return collectionResult?.AsList();
+            return await RequestAdapter.SendAsync<global::Nona.Cli.Generated.Models.AuditLogPageDto>(requestInfo, global::Nona.Cli.Generated.Models.AuditLogPageDto.CreateFromDiscriminatorValue, errorMapping, cancellationToken).ConfigureAwait(false);
         }
         /// <returns>A <see cref="RequestInformation"/></returns>
         /// <param name="requestConfiguration">Configuration for the request such as headers, query parameters, and middleware options.</param>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
-        public RequestInformation ToGetRequestInformation(Action<RequestConfiguration<DefaultQueryParameters>>? requestConfiguration = default)
+        public RequestInformation ToGetRequestInformation(Action<RequestConfiguration<global::Nona.Cli.Generated.Admin.AuditLogs.AuditLogsRequestBuilder.AuditLogsRequestBuilderGetQueryParameters>>? requestConfiguration = default)
         {
 #nullable restore
 #else
-        public RequestInformation ToGetRequestInformation(Action<RequestConfiguration<DefaultQueryParameters>> requestConfiguration = default)
+        public RequestInformation ToGetRequestInformation(Action<RequestConfiguration<global::Nona.Cli.Generated.Admin.AuditLogs.AuditLogsRequestBuilder.AuditLogsRequestBuilderGetQueryParameters>> requestConfiguration = default)
         {
 #endif
             var requestInfo = new RequestInformation(Method.GET, UrlTemplate, PathParameters);
@@ -79,12 +84,53 @@ namespace Nona.Cli.Generated.Admin.AuditLogs
         {
             return new global::Nona.Cli.Generated.Admin.AuditLogs.AuditLogsRequestBuilder(rawUrl, RequestAdapter);
         }
+        [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
+        #pragma warning disable CS1591
+        public partial class AuditLogsRequestBuilderGetQueryParameters 
+        #pragma warning restore CS1591
+        {
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
+#nullable enable
+            [QueryParameter("action")]
+            public string? Action { get; set; }
+#nullable restore
+#else
+            [QueryParameter("action")]
+            public string Action { get; set; }
+#endif
+            [QueryParameter("dateFrom")]
+            public Date? DateFrom { get; set; }
+            [QueryParameter("dateTo")]
+            public Date? DateTo { get; set; }
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
+#nullable enable
+            [QueryParameter("environment")]
+            public string? Environment { get; set; }
+#nullable restore
+#else
+            [QueryParameter("environment")]
+            public string Environment { get; set; }
+#endif
+            [QueryParameter("page")]
+            public int? Page { get; set; }
+            [QueryParameter("pageSize")]
+            public int? PageSize { get; set; }
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
+#nullable enable
+            [QueryParameter("search")]
+            public string? Search { get; set; }
+#nullable restore
+#else
+            [QueryParameter("search")]
+            public string Search { get; set; }
+#endif
+        }
         /// <summary>
         /// Configuration for the request such as headers, query parameters, and middleware options.
         /// </summary>
         [Obsolete("This class is deprecated. Please use the generic RequestConfiguration class generated by the generator.")]
         [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
-        public partial class AuditLogsRequestBuilderGetRequestConfiguration : RequestConfiguration<DefaultQueryParameters>
+        public partial class AuditLogsRequestBuilderGetRequestConfiguration : RequestConfiguration<global::Nona.Cli.Generated.Admin.AuditLogs.AuditLogsRequestBuilder.AuditLogsRequestBuilderGetQueryParameters>
         {
         }
     }

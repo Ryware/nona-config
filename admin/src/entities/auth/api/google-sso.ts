@@ -1,9 +1,3 @@
-import type { SsoProvider } from "./sso-provider";
-
-type GoogleCredentialResponse = {
-  credential?: string;
-};
-
 type GooglePromptError = {
   type?: string;
 };
@@ -11,12 +5,21 @@ type GooglePromptError = {
 type GoogleAccountsId = {
   initialize: (options: {
     client_id: string;
-    callback: (response: GoogleCredentialResponse) => void;
+    callback?: (response: { credential?: string }) => void;
+    login_uri?: string;
     ux_mode?: "popup" | "redirect";
     cancel_on_tap_outside?: boolean;
     error_callback?: (error: GooglePromptError) => void;
   }) => void;
-  renderButton: (element: HTMLElement, options: Record<string, unknown>) => void;
+  renderButton: (element: HTMLElement, options: {
+    theme: string;
+    size: string;
+    text: string;
+    shape: string;
+    width: number;
+    state: string;
+    click_listener: () => void;
+  }) => void;
   cancel: () => void;
 };
 
@@ -37,7 +40,8 @@ let googleScriptPromise: Promise<GoogleRuntime> | null = null;
 export async function renderGoogleSsoButton(
   container: HTMLElement,
   clientId: string,
-  onCredential: (idToken: string) => void | Promise<void>,
+  flowId: string,
+  onRedirectStart: () => void,
   onError: (message: string) => void,
 ) {
   const google = await loadGoogleRuntime();
@@ -45,16 +49,8 @@ export async function renderGoogleSsoButton(
   container.replaceChildren();
   google.accounts.id.initialize({
     client_id: clientId,
-    ux_mode: "popup",
-    cancel_on_tap_outside: true,
-    callback: (response) => {
-      if (!response.credential) {
-        onError("Google sign-in did not return a token.");
-        return;
-      }
-
-      void onCredential(response.credential);
-    },
+    ux_mode: "redirect",
+    login_uri: new URL("/auth/sso/google/callback", window.location.origin).toString(),
     error_callback: (error) => {
       onError(mapGoogleError(error.type));
     },
@@ -66,6 +62,8 @@ export async function renderGoogleSsoButton(
     text: "continue_with",
     shape: "rectangular",
     width: 320,
+    state: flowId,
+    click_listener: onRedirectStart,
   });
 
   return () => {
@@ -118,24 +116,28 @@ async function loadGoogleRuntime(): Promise<GoogleRuntime> {
 
 function mapGoogleError(type?: string) {
   switch (type) {
-    case "popup_failed_to_open":
-      return "Google sign-in popup was blocked. Please allow popups and try again.";
-    case "popup_closed":
-      return "Google sign-in was cancelled.";
     default:
       return "Google sign-in is unavailable right now. Please try again.";
   }
 }
 
-/**
- * Creates a {@link SsoProvider} that signs in via a Google one-tap button rendered into `container`.
- * The returned `signIn()` waits until the user completes the Google flow.
- */
-export function createGoogleSsoProvider(container: HTMLElement, clientId: string): SsoProvider {
-  return {
-    signIn: () =>
-      new Promise<string>((resolve, reject) => {
-        void renderGoogleSsoButton(container, clientId, resolve, (msg) => reject(new Error(msg)));
-      }),
-  };
+export async function consumeGoogleRedirectCredential(flowId: string) {
+  const response = await fetch(
+    `/auth/sso/google/credential?flow=${encodeURIComponent(flowId)}`,
+    {
+      credentials: "same-origin",
+      headers: { Accept: "application/json" },
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error("Google sign-in could not be completed. Please try again.");
+  }
+
+  const body = await response.json() as { idToken?: string };
+  if (!body.idToken) {
+    throw new Error("Google sign-in did not return a token.");
+  }
+
+  return body.idToken;
 }

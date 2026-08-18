@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en" class="dark" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Nona Demo</title>
+<meta name="robots" content="noindex" />
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; display: grid; place-items: center;
+    background: #0f1115; color: #e6e8ee;
+    font: 15px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    padding: 24px;
+  }
+  .card {
+    width: 100%; max-width: 400px; text-align: center;
+    background: #161922; border: 1px solid #262b38; border-radius: 16px;
+    padding: 40px 32px;
+  }
+  h1 { margin: 0 0 6px; font-size: 19px; font-weight: 600; letter-spacing: -0.01em; }
+  p  { margin: 0; color: #98a0b3; font-size: 13px; }
+  .spinner {
+    width: 30px; height: 30px; margin: 0 auto 22px;
+    border: 2.5px solid #2b3142; border-top-color: #5b6ef5; border-radius: 50%;
+    animation: spin 0.75s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .note {
+    margin-top: 22px; padding-top: 18px; border-top: 1px solid #262b38;
+    font-size: 11.5px; color: #6f7688;
+  }
+  a { color: #8b9bff; }
+  .error { display: none; }
+  .error code {
+    display: block; margin: 12px 0 16px; padding: 9px 11px;
+    background: #0f1115; border: 1px solid #262b38; border-radius: 8px;
+    font-size: 12px; color: #c8cdda;
+  }
+  .btn {
+    display: inline-block; margin-top: 4px; padding: 9px 18px;
+    background: #5b6ef5; color: #fff; border-radius: 9px;
+    font-size: 13px; font-weight: 500; text-decoration: none;
+  }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+  <main class="card">
+    <div id="loading">
+      <div class="spinner"></div>
+      <h1>Opening the demo</h1>
+      <p>Signing you in as a demo administrator…</p>
+    </div>
+
+    <div id="failed" class="error">
+      <h1>Could not sign you in automatically</h1>
+      <p>Use these credentials on the login page:</p>
+      <code id="creds"></code>
+      <a class="btn" href="/login">Go to login</a>
+    </div>
+
+    <div class="note">
+      Public sandbox — everything you change is wiped nightly.
+      <br />
+      <a href="https://nonaconfig.com/docs" target="_blank" rel="noopener">Docs</a> ·
+      <a href="https://github.com/ryware/nona-config" target="_blank" rel="noopener">Source</a>
+    </div>
+  </main>
+
+<script>
+  var EMAIL = "__DEMO_EMAIL__";
+  var PASSWORD = "__DEMO_PASSWORD__";
+
+  function isAdminFromToken(token) {
+    try {
+      var parts = token.split(".");
+      if (parts.length !== 3) return false;
+      var claim = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"))).isAdmin;
+      return claim === true || claim === "true";
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function saveSession(login) {
+    localStorage.setItem("auth_token", login.token);
+    localStorage.setItem("auth_session", JSON.stringify({
+      email: login.username || EMAIL,
+      role: login.role,
+      isAdmin: isAdminFromToken(login.token)
+    }));
+  }
+
+  function fail() {
+    document.getElementById("creds").textContent = EMAIL + "  /  " + PASSWORD;
+    document.getElementById("loading").hidden = true;
+    document.getElementById("failed").style.display = "block";
+  }
+
+  fetch("/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: EMAIL, password: PASSWORD })
+  })
+    .then(function (response) {
+      if (!response.ok) throw new Error("login failed: " + response.status);
+      return response.json();
+    })
+    .then(function (login) {
+      if (!login || !login.token) throw new Error("no token in response");
+      saveSession(login);
+      // replace() so Back does not bounce the visitor through this page again.
+      location.replace("/projects");
+    })
+    .catch(function (error) {
+      console.error(error);
+      fail();
+    });
+</script>
+</body>
+</html>

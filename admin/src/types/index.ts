@@ -11,9 +11,10 @@ export type {
   SsoProviderConfig,
   SsoConfig,
   RegisterRequest,
-  ForgotPasswordRequest,
-  ResetPasswordRequest,
   InvitationDetails,
+  PasswordResetDetails,
+  AccountDetails,
+  ChangePasswordRequest,
 } from "../entities/auth/model/types";
 
 export type {
@@ -46,10 +47,15 @@ export type {
   User,
   CreateUserRequest,
   CreateUserResponse,
+  GeneratePasswordResetResponse,
   DashboardCounts,
 } from "../entities/user/model/types";
 
-export type { AuditLog } from "../entities/audit-log/model/types";
+export type {
+  AuditLog,
+  AuditLogPage,
+  AuditLogQuery,
+} from "../entities/audit-log/model/types";
 
 // Cross-domain shared types (not entity-specific)
 export interface ApiError {

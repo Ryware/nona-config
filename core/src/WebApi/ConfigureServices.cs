@@ -1,8 +1,10 @@
 ﻿using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using Nona.Application.Common.Interfaces;
 using Nona.WebApi.Authentication;
+using Nona.WebApi.Authorization;
 using Nona.WebApi.Endpoints;
 using Nona.WebApi.Services;
 using System.Text;
@@ -18,6 +20,7 @@ public static class ConfigureServices
 
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IApiKeyService, ApiKeyService>();
+        services.AddScoped<IAuthorizationHandler, AdminReadAuthorizationHandler>();
         services.AddProblemDetails();
         services.AddExceptionHandler<ApiExceptionHandler>();
 
@@ -63,7 +66,10 @@ public static class ConfigureServices
         services.AddAuthorizationBuilder()
             .AddPolicy(ApiKeyAuthenticationHandler.SchemeName, policy => policy
                 .AddAuthenticationSchemes(ApiKeyAuthenticationHandler.SchemeName)
-                .RequireAuthenticatedUser());
+                .RequireAuthenticatedUser())
+            .AddPolicy(AdminReadAuthorizationPolicies.Manage, policy => policy
+                .RequireAuthenticatedUser()
+                .AddRequirements(new AdminReadAuthorizationRequirement()));
 
         return services;
     }

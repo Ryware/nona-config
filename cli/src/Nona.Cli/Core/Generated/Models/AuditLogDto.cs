@@ -20,6 +20,14 @@ namespace Nona.Cli.Generated.Models
 #else
         public string Action { get; set; }
 #endif
+        /// <summary>The actionKind property</summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
+#nullable enable
+        public string? ActionKind { get; set; }
+#nullable restore
+#else
+        public string ActionKind { get; set; }
+#endif
         /// <summary>The actor property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
@@ -92,6 +100,7 @@ namespace Nona.Cli.Generated.Models
             return new Dictionary<string, Action<IParseNode>>
             {
                 { "action", n => { Action = n.GetStringValue(); } },
+                { "actionKind", n => { ActionKind = n.GetStringValue(); } },
                 { "actor", n => { Actor = n.GetStringValue(); } },
                 { "actorIsSystem", n => { ActorIsSystem = n.GetBoolValue(); } },
                 { "createdAt", n => { CreatedAt = n.GetDateTimeOffsetValue(); } },
@@ -109,6 +118,7 @@ namespace Nona.Cli.Generated.Models
         {
             if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));
             writer.WriteStringValue("action", Action);
+            writer.WriteStringValue("actionKind", ActionKind);
             writer.WriteStringValue("actor", Actor);
             writer.WriteBoolValue("actorIsSystem", ActorIsSystem);
             writer.WriteDateTimeOffsetValue("createdAt", CreatedAt);

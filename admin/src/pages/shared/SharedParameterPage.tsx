@@ -9,6 +9,7 @@ import { Input } from "../../shared/ui/input";
 import { Label } from "../../shared/ui/label";
 import { MIcon } from "../../shared/ui/icons";
 import { Select } from "../../shared/ui/select";
+import { ThemeToggle } from "../../shared/ui/ThemeToggle";
 import { useToast } from "../../shared/ui/toast";
 import { VisualJsonEditor } from "../../shared/ui/visual-json-editor";
 import type { SharedParameter } from "../../types";
@@ -103,7 +104,9 @@ export default function SharedParameterPage() {
     <>
       <Title>Shared Parameter | Nona</Title>
       <Meta name="robots" content="noindex,nofollow" />
-      <main class="bg-surface text-on-surface flex min-h-screen items-center justify-center px-4 py-8">
+      <main class="bg-surface text-on-surface relative flex min-h-screen items-center justify-center px-4 py-8">
+        <ThemeToggle class="absolute right-4 top-4 z-20" />
+
         <div class="w-full max-w-xl">
           <Show when={query.isLoading}>
             <div class="bg-surface-container-low border-outline-variant/15 rounded-2xl border p-6 shadow-xl">

@@ -1,4 +1,5 @@
 using Nona.Domain.Entities;
+using Nona.Domain.Enums;
 using Nona.Domain.Interfaces;
 
 namespace Nona.Infrastructure.Services;
@@ -9,6 +10,7 @@ public sealed class AuditLogService(
     IDateTime dateTime) : IAuditLogService
 {
     public Task WriteAsync(
+        AuditActionKind actionKind,
         string action,
         string target,
         string? project = null,
@@ -21,6 +23,7 @@ public sealed class AuditLogService(
         return WriteAsAsync(
             isSystem ? "System" : actor!,
             isSystem,
+            actionKind,
             action,
             target,
             project,
@@ -31,6 +34,7 @@ public sealed class AuditLogService(
     public Task WriteAsAsync(
         string actor,
         bool actorIsSystem,
+        AuditActionKind actionKind,
         string action,
         string target,
         string? project = null,
@@ -42,6 +46,7 @@ public sealed class AuditLogService(
             {
                 Actor = string.IsNullOrWhiteSpace(actor) ? "System" : actor,
                 ActorIsSystem = actorIsSystem,
+                ActionKind = actionKind,
                 Action = action,
                 Target = target,
                 Project = project,

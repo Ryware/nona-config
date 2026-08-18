@@ -1,0 +1,11 @@
+[Unit]
+Description=Nightly reset of the Nona demo
+
+[Timer]
+# Local time; startup-script pins the VM to Asia/Jerusalem, so DST tracks.
+OnCalendar=*-*-* 00:00:00
+Persistent=true
+RandomizedDelaySec=120
+
+[Install]
+WantedBy=timers.target

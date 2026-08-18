@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Nona.Application.Auth.DTOs;
+using Nona.Application.Common;
 using Nona.Application.Common.Interfaces;
 using Nona.Domain.Entities;
 using Nona.Domain.Interfaces;
@@ -167,7 +168,7 @@ internal static class SsoLoginWorkflow
         var response = new LoginResponse(
             token,
             user.Email,
-            user.Role.ToString().ToLowerInvariant(),
+            user.Role.ToApiString(),
             expiresAt);
 
         return new LoginResult(true, response, null);

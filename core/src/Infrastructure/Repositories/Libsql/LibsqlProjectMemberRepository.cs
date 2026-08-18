@@ -46,6 +46,34 @@ public sealed class LibsqlProjectMemberRepository : IProjectMemberRepository
         return result.Rows.Select(Map).ToList();
     }
 
+    public async Task<IReadOnlyList<ProjectMember>> ListByUsersAsync(
+        IReadOnlyCollection<string> usernames,
+        CancellationToken ct = default)
+    {
+        var distinctUsernames = usernames
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        if (distinctUsernames.Length == 0)
+            return [];
+
+        var parameters = distinctUsernames
+            .Select((username, index) => ($"Username{index}", (object?)username))
+            .ToArray();
+        var placeholders = string.Join(", ", parameters.Select(parameter => $"@{parameter.Item1}"));
+        var result = await _client.ExecuteAsync(
+            $"""
+            SELECT Username, ProjectName AS ProjectId, Role, CreatedAt
+            FROM ProjectMembers
+            WHERE Username COLLATE NOCASE IN ({placeholders})
+            ORDER BY Username, ProjectName
+            """,
+            LibsqlParameters.Create(parameters),
+            ct);
+
+        return result.Rows.Select(Map).ToList();
+    }
+
     public async Task<IReadOnlyList<ProjectMember>> ListByProjectAsync(string projectName, CancellationToken ct = default)
     {
         var result = await _client.ExecuteAsync(

@@ -2,11 +2,7 @@ import { writeClipboard } from "@solid-primitives/clipboard";
 import { Title } from "@solidjs/meta";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/solid-query";
 import { createMemo, createSignal, Show } from "solid-js";
-import {
-  canManageUsers,
-  canManageUsersFor,
-  isCurrentUser
-} from "../../entities/auth/model/permissions";
+import { canResetPasswords } from "../../entities/auth/model/permissions";
 import { authStore } from "../../entities/auth/model/store";
 import { projectService } from "../../entities/project/api/project.service";
 import { projectKeys } from "../../entities/project/queries/keys";
@@ -19,10 +15,11 @@ import { MIcon } from "../../shared/ui/icons";
 import { Input } from "../../shared/ui/input";
 import { QueryErrorBanner } from "../../shared/ui/QueryGuard";
 import { useToast } from "../../shared/ui/toast";
-import type { CreateUserResponse, User } from "../../types";
+import type { CreateUserResponse, GeneratePasswordResetResponse, User } from "../../types";
 
 import { UserForm, type UserFormValue } from "./components/UserForm";
 import { UserInviteDialog } from "./components/UserInviteDialog";
+import { PasswordResetDialog } from "./components/PasswordResetDialog";
 import { UsersFilters } from "./components/UsersFilters";
 import { UsersStats } from "./components/UsersStats";
 import { UsersTable } from "./components/UsersTable";
@@ -38,7 +35,12 @@ export default function UsersPage() {
   const [editingUserId, setEditingUserId] = createSignal<string | null>(null);
   const [createdInvite, setCreatedInvite] = createSignal<CreateUserResponse | null>(null);
   const [copyFeedback, setCopyFeedback] = createSignal("");
-  const sessionAllowsUserManagement = canManageUsers();
+  const [createdPasswordReset, setCreatedPasswordReset] = createSignal<{
+    user: User;
+    response: GeneratePasswordResetResponse;
+  } | null>(null);
+  const [passwordResetCopyFeedback, setPasswordResetCopyFeedback] = createSignal("");
+  const sessionAllowsPasswordReset = canResetPasswords();
 
   const usersQuery = useQuery(() => ({
     queryKey: userKeys.list(),
@@ -59,15 +61,6 @@ export default function UsersPage() {
   const users = () => (usersQuery.status === "success" ? (usersQuery.data ?? []) : []);
   const projects = () => (projectsQuery.status === "success" ? (projectsQuery.data ?? []) : []);
   const currentUserEmail = () => authStore.getSession()?.email ?? "";
-  const currentUser = createMemo(() =>
-    users().find(user => user.email.toLowerCase() === currentUserEmail().toLowerCase())
-  );
-  const allowUserManagement = createMemo(() =>
-    usersQuery.status === "success"
-      ? canManageUsersFor(currentUser())
-      : sessionAllowsUserManagement
-  );
-
   const filteredUsers = createMemo(() => {
     const q = search().toLowerCase().trim();
     const role = roleFilter();
@@ -80,8 +73,7 @@ export default function UsersPage() {
   });
 
   const adminCount = () => users().filter((u: User) => u.role === "admin").length;
-  const editorsCount = () => users().filter((u: User) => u.role === "editor").length;
-  const viewersCount = () => users().filter((u: User) => u.role === "viewer").length;
+  const memberCount = () => users().filter((u: User) => u.role === "member").length;
 
   const createMutation = useMutation(() => ({
     mutationFn: async (value: UserFormValue) => {
@@ -91,10 +83,11 @@ export default function UsersPage() {
         role: value.role
       });
       const newUserId = String(response.user.id);
-      const projectsToAdd = value.role === "viewer" ? value.selectedProjects : [];
-      if (projectsToAdd.length > 0) {
-        await Promise.allSettled(
-          projectsToAdd.map(projectName => userService.addProject(newUserId, projectName, "viewer"))
+      if (value.role === "member") {
+        await Promise.all(
+          Object.entries(value.projectAccess).map(([projectName, role]) =>
+            userService.addProject(newUserId, projectName, role)
+          )
         );
       }
       return response;
@@ -106,35 +99,37 @@ export default function UsersPage() {
       setCopyFeedback("");
       addToast(MSG.INVITE_GENERATED, "success");
     },
-    onError: (error: Error) => addToast(error.message || "Failed to invite member", "error")
+    onError: (error: Error) => addToast(error.message || "Failed to invite user", "error")
   }));
 
   const updateMutation = useMutation(() => ({
     mutationFn: async (payload: { user: User; value: UserFormValue }) => {
       const { user, value } = payload;
-      if (!allowUserManagement()) {
-        await userService.update(user.id, { name: value.name });
-        return;
-      }
       const updates: UpdateUserRequest = { name: value.name, role: value.role };
-      await userService.update(user.id, updates);
+      const updatedUser = await userService.update(user.id, updates);
 
-      const canScope = value.role === "viewer" && user.isAdmin !== true;
-      if (canScope) {
-        const original = new Set((user.projects ?? []).map(p => p.projectName));
-        const current = new Set(value.selectedProjects);
-        const toAdd = [...current].filter(s => !original.has(s));
-        const toRemove = [...original].filter(s => !current.has(s));
-        await Promise.allSettled([
-          ...toAdd.map(projectName => userService.addProject(user.id, projectName, "viewer")),
-          ...toRemove.map(projectName => userService.removeProject(user.id, projectName))
+      if (value.role === "member") {
+        const original = new Map((user.projects ?? []).map(project => [project.projectName, project.role]));
+        await Promise.all([
+          ...Object.entries(value.projectAccess)
+            .filter(([projectName, role]) => original.get(projectName) !== role)
+            .map(([projectName, role]) => userService.addProject(user.id, projectName, role)),
+          ...[...original.keys()]
+            .filter(projectName => !value.projectAccess[projectName])
+            .map(projectName => userService.removeProject(user.id, projectName))
         ]);
       }
+
+      return {
+        ...updatedUser,
+        projects: value.role === "member"
+          ? Object.entries(value.projectAccess).map(([projectName, role]) => ({ projectName, role }))
+          : updatedUser.projects
+      };
     },
-    onSuccess: () => {
-      const id = editingUserId();
+    onSuccess: updatedUser => {
+      queryClient.setQueryData(userKeys.detail(updatedUser.id), updatedUser);
       queryClient.invalidateQueries({ queryKey: userKeys.list() });
-      if (id) queryClient.invalidateQueries({ queryKey: userKeys.detail(id) });
       addToast(MSG.MEMBER_UPDATED, "success");
       setEditingUserId(null);
     },
@@ -149,6 +144,20 @@ export default function UsersPage() {
       addToast(MSG.MEMBER_REMOVED, "success");
     },
     onError: () => addToast(MSG.MEMBER_REMOVE_FAILED, "error")
+  }));
+
+  const passwordResetMutation = useMutation(() => ({
+    mutationFn: async (user: User) => ({
+      user,
+      response: await userService.generatePasswordReset(user.id)
+    }),
+    onSuccess: result => {
+      setCreatedPasswordReset(result);
+      setPasswordResetCopyFeedback("");
+      addToast(MSG.PASSWORD_RESET_GENERATED, "success");
+    },
+    onError: (error: Error) =>
+      addToast(error.message || "Failed to generate password reset link", "error")
   }));
 
   const toggleInvite = () => {
@@ -178,6 +187,26 @@ export default function UsersPage() {
     }
   };
 
+  const passwordResetUrl = () => {
+    const reset = createdPasswordReset();
+    if (!reset) return "";
+    return new URL(
+      `/reset-password/${reset.response.passwordResetToken}`,
+      window.location.origin
+    ).toString();
+  };
+
+  const copyPasswordResetUrl = async () => {
+    try {
+      await writeClipboard(passwordResetUrl());
+      setPasswordResetCopyFeedback("Password reset link copied");
+      addToast(MSG.PASSWORD_RESET_COPIED, "success");
+    } catch {
+      setPasswordResetCopyFeedback("Copy failed. You can still copy the URL manually.");
+      addToast(MSG.PASSWORD_RESET_COPY_FAILED, "error");
+    }
+  };
+
   return (
     <>
       <Title>Team Management | Nona Config Admin</Title>
@@ -196,9 +225,9 @@ export default function UsersPage() {
               </h2>
               <div class="mt-1">
                 <UsersStats
-                  totalMembers={users().length}
-                  editorsAdminsCount={editorsCount() + adminCount()}
-                  viewersCount={viewersCount()}
+                  totalUsers={users().length}
+                  adminCount={adminCount()}
+                  memberCount={memberCount()}
                 />
               </div>
             </div>
@@ -215,20 +244,18 @@ export default function UsersPage() {
                 leftIcon="search"
                 wrapperStyle="min-w-0 flex-1 md:w-auto md:flex-none"
               />
-              <Show when={allowUserManagement()}>
-                <button
-                  data-testid="team-invite-button"
-                  onClick={toggleInvite}
-                  aria-label={showInvite() ? "Cancel invite" : "Invite Member"}
-                  title={showInvite() ? "Cancel invite" : "Invite Member"}
-                  class="bg-primary text-on-primary inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-lg border-0 px-0 text-[13px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] md:h-10 md:w-auto md:px-4"
-                >
-                  <MIcon name={showInvite() ? "close" : "person_add"} class="text-[17px]" />
-                  <span class="hidden md:inline">
-                    {showInvite() ? "Cancel" : "Invite Member"}
-                  </span>
-                </button>
-              </Show>
+              <button
+                data-testid="team-invite-button"
+                onClick={toggleInvite}
+                aria-label={showInvite() ? "Cancel invite" : "Invite User"}
+                title={showInvite() ? "Cancel invite" : "Invite User"}
+                class="bg-primary text-on-primary inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-lg border-0 px-0 text-[13px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] md:h-10 md:w-auto md:px-4"
+              >
+                <MIcon name={showInvite() ? "close" : "person_add"} class="text-[17px]" />
+                <span class="hidden md:inline">
+                  {showInvite() ? "Cancel" : "Invite User"}
+                </span>
+              </button>
             </div>
           </div>
 
@@ -250,11 +277,10 @@ export default function UsersPage() {
           />
 
           {/* Inline invite form */}
-          <Show when={allowUserManagement() && showInvite()}>
+          <Show when={showInvite()}>
             <UserForm
               mode="create"
               projects={projects()}
-              allowManagement={allowUserManagement()}
               isPending={createMutation.isPending}
               onCancel={() => setShowInvite(false)}
               onSubmit={value => createMutation.mutate(value)}
@@ -267,12 +293,12 @@ export default function UsersPage() {
             totalUsersCount={users().length}
             filteredUsers={filteredUsers()}
             currentUserEmail={currentUserEmail()}
-            canManageUsers={allowUserManagement()}
-            onEdit={user => {
-              if (allowUserManagement() || isCurrentUser(user.email)) openEdit(user);
-            }}
+            adminCount={adminCount()}
+            canResetPasswords={sessionAllowsPasswordReset}
+            onEdit={openEdit}
             onDelete={user => setDeleteTarget(user)}
-            onInvite={allowUserManagement() ? () => setShowInvite(true) : undefined}
+            onResetPassword={user => passwordResetMutation.mutate(user)}
+            onInvite={() => setShowInvite(true)}
             editingUserId={editingUserId()}
             editingUser={editUserQuery.data ?? null}
             isEditLoading={editUserQuery.isLoading}
@@ -297,6 +323,16 @@ export default function UsersPage() {
         onClose={() => setCreatedInvite(null)}
       />
 
+      <PasswordResetDialog
+        open={createdPasswordReset() !== null}
+        email={createdPasswordReset()?.user.email ?? ""}
+        resetUrl={passwordResetUrl()}
+        expiresAt={createdPasswordReset()?.response.expiresAt}
+        copyFeedback={passwordResetCopyFeedback()}
+        onCopy={copyPasswordResetUrl}
+        onClose={() => setCreatedPasswordReset(null)}
+      />
+
       {/* Delete confirmation */}
       <ConfirmDialog
         open={deleteTarget() !== null}
@@ -313,7 +349,7 @@ export default function UsersPage() {
             </p>
           </>
         }
-        confirmLabel="Remove Member"
+        confirmLabel="Remove User"
         cancelLabel="Cancel"
         isLoading={deleteMutation.isPending}
         onConfirm={() => deleteMutation.mutate(deleteTarget()!.id)}

@@ -1,8 +1,10 @@
 using Mediator;
 using Nona.Application.Common;
 using Nona.Application.Common.Interfaces;
+using Nona.Application.Shared.ParameterShareLinks;
 using Nona.Application.Shared.ParameterShareLinks.DTOs;
 using Nona.Domain.Entities;
+using Nona.Domain.Enums;
 using Nona.Domain.Interfaces;
 
 namespace Nona.Application.Shared.ParameterShareLinks.Commands;
@@ -87,7 +89,7 @@ public class UpdateSharedParameterCommandHandler(
 
         var savedEntry = await configEntryRepository.AddVersionAsync(
             updatedEntry,
-            ResolveSharedActor(shareLink),
+            SharedParameterMapping.ResolveActor(shareLink),
             cancellationToken);
 
         if (savedEntry is null)
@@ -98,8 +100,9 @@ public class UpdateSharedParameterCommandHandler(
         if (auditLogService is not null)
         {
             await auditLogService.WriteAsAsync(
-                ResolveSharedActor(shareLink),
+                SharedParameterMapping.ResolveActor(shareLink),
                 true,
+                AuditActionKind.Update,
                 "Parameter Updated Via Shared Link",
                 shareLink.Key,
                 project: shareLink.Project,
@@ -109,21 +112,7 @@ public class UpdateSharedParameterCommandHandler(
 
         return new UpdateSharedParameterResult(
             true,
-            ToDto(savedEntry, shareLink.CanEdit, shareLink.ExpiresAt),
+            SharedParameterMapping.ToDto(savedEntry, shareLink.CanEdit, shareLink.ExpiresAt),
             null);
-    }
-
-    private static string ResolveSharedActor(ParameterShareLink shareLink)
-        => $"Shared link #{shareLink.Id}";
-
-    private static SharedParameterDto ToDto(ConfigEntry entry, bool canEdit, DateTime expiresAt)
-    {
-        return new SharedParameterDto(
-            entry.Environment,
-            entry.Key,
-            entry.Value,
-            entry.ContentType,
-            canEdit,
-            expiresAt);
     }
 }

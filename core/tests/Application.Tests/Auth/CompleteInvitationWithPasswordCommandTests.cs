@@ -70,7 +70,7 @@ public class CompleteInvitationWithPasswordCommandTests
             Id = 55,
             Email = "invitee@example.com",
             Name = "Invited User",
-            Role = UserRole.Viewer,
+            Role = UserRole.Member,
             Scope = KeyScope.All,
             InviteTokenHash = "invite-hash",
             CreatedAt = new DateTime(2026, 4, 23, 10, 0, 0, DateTimeKind.Utc),

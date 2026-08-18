@@ -13,7 +13,7 @@ public sealed class UsersHandlerTests
     public async Task CreateUserCommandHandler_ReturnsZero_OnSuccess()
     {
         var result = await new CreateUserCommandHandler(MockHttp(HttpStatusCode.Created, CreateUserResponseJson))
-            .HandleAsync(new CreateUserCommand(TestConnection, "Test User", "user@example.com", "editor", "all"),
+            .HandleAsync(new CreateUserCommand(TestConnection, "Test User", "user@example.com", "member", "all"),
                 CancellationToken.None);
         await Assert.That(result).IsEqualTo(0);
     }

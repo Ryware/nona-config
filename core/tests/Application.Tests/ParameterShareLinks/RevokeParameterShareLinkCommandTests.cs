@@ -2,6 +2,7 @@ using Nona.Application.Admin.ParameterShareLinks.Commands;
 using Nona.Application.Common.Interfaces;
 using Nona.Application.Tests.Common;
 using Nona.Domain.Entities;
+using Nona.Domain.Enums;
 using Nona.Domain.Interfaces;
 using NSubstitute;
 
@@ -53,6 +54,7 @@ public class RevokeParameterShareLinkCommandTests
         await Assert.That(result.Success).IsTrue();
         await shareLinkRepository.Received(1).RevokeAsync(7, now, Arg.Any<CancellationToken>());
         await auditLogService.Received(1).WriteAsync(
+            AuditActionKind.Update,
             "Share Link Revoked",
             ConfigKey,
             ProjectName,

@@ -13,12 +13,10 @@ public class SetProjectAccessCommandTests
     private const string ProjectName = "alpha";
 
     [Test]
-    public async Task SetProjectAccess_AllowsEditorRole()
+    public async Task SetProjectAccess_AdminCanAssignEditorRole()
     {
         var fixture = new TestFixture();
-        fixture.CurrentUserService.Role.Returns(UserRole.Editor);
-        fixture.UserAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
-            .Returns(new User { Id = 7, Email = "editor@example.com", Name = "Editor", Role = UserRole.Editor });
+        fixture.UserAuthorizationService.CanManageUsersAsync(Arg.Any<CancellationToken>()).Returns(true);
         fixture.UserRepository.GetByIdAsync(UserId, Arg.Any<CancellationToken>())
             .Returns(new User
             {
@@ -52,12 +50,10 @@ public class SetProjectAccessCommandTests
     }
 
     [Test]
-    public async Task SetProjectAccess_RejectsViewer()
+    public async Task SetProjectAccess_RejectsMember()
     {
         var fixture = new TestFixture();
-        fixture.CurrentUserService.Role.Returns(UserRole.Viewer);
-        fixture.UserAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
-            .Returns(new User { Id = 7, Email = "viewer@example.com", Name = "Viewer", Role = UserRole.Viewer });
+        fixture.UserAuthorizationService.CanManageUsersAsync(Arg.Any<CancellationToken>()).Returns(false);
 
         var handler = new SetProjectAccessCommandHandler(
             fixture.UserRepository,
@@ -80,9 +76,7 @@ public class SetProjectAccessCommandTests
     public async Task SetProjectAccess_UsesPersistedRoleAfterSelfDemotion()
     {
         var fixture = new TestFixture();
-        fixture.CurrentUserService.Role.Returns(UserRole.Editor);
-        fixture.UserAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
-            .Returns(new User { Id = 7, Email = "viewer@example.com", Name = "Former Editor", Role = UserRole.Viewer });
+        fixture.UserAuthorizationService.CanManageUsersAsync(Arg.Any<CancellationToken>()).Returns(false);
 
         var handler = new SetProjectAccessCommandHandler(
             fixture.UserRepository,
@@ -102,18 +96,17 @@ public class SetProjectAccessCommandTests
     }
 
     [Test]
-    public async Task SetProjectAccess_RejectsEditorModifyingSystemAdmin()
+    public async Task SetProjectAccess_RejectsModifyingAdminMemberships()
     {
         var fixture = new TestFixture();
-        fixture.UserAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
-            .Returns(new User { Id = 7, Email = "editor@example.com", Name = "Editor", Role = UserRole.Editor });
+        fixture.UserAuthorizationService.CanManageUsersAsync(Arg.Any<CancellationToken>()).Returns(true);
         fixture.UserRepository.GetByIdAsync(UserId, Arg.Any<CancellationToken>())
             .Returns(new User
             {
                 Id = UserId,
                 Email = "admin@example.com",
                 Name = "Admin",
-                IsAdmin = true
+                Role = UserRole.Admin
             });
 
         var handler = new SetProjectAccessCommandHandler(
@@ -127,7 +120,7 @@ public class SetProjectAccessCommandTests
             CancellationToken.None);
 
         await Assert.That(result.Success).IsFalse();
-        await Assert.That(result.Error).IsEqualTo("Access denied");
+        await Assert.That(result.Error).IsEqualTo("Admin project access cannot be modified");
         await fixture.ProjectMemberRepository.DidNotReceive().AddAsync(
             Arg.Any<ProjectMember>(),
             Arg.Any<CancellationToken>());
@@ -138,8 +131,7 @@ public class SetProjectAccessCommandTests
     {
         var fixture = new TestFixture();
         const string slug = "alpha-slug";
-        fixture.UserAuthorizationService.GetCurrentUserAsync(Arg.Any<CancellationToken>())
-            .Returns(new User { Id = 7, Email = "editor@example.com", Name = "Editor", Role = UserRole.Editor });
+        fixture.UserAuthorizationService.CanManageUsersAsync(Arg.Any<CancellationToken>()).Returns(true);
         fixture.UserRepository.GetByIdAsync(UserId, Arg.Any<CancellationToken>())
             .Returns(new User
             {

@@ -3,8 +3,8 @@ import type { Project } from "../../../types";
 
 interface UserProjectScopeProps {
   projects: Project[];
-  selectedProjects: Set<string>;
-  onToggleProject: (id: string) => void;
+  projectAccess: Record<string, "editor" | "viewer">;
+  onChange: (projectName: string, role: "editor" | "viewer" | null) => void;
 }
 
 export function UserProjectScope(props: UserProjectScopeProps) {
@@ -28,40 +28,35 @@ export function UserProjectScope(props: UserProjectScopeProps) {
           <For each={props.projects}>
             {project => {
               const projectName = project.name || project.urlSlug;
-              const isGiven = () => props.selectedProjects.has(projectName);
               return (
                 <div
                   data-testid={`invite-project-row-${project.urlSlug}`}
-                  class="hover:bg-surface-container-high/40 border-outline-variant/10 grid cursor-pointer gap-3 border-b px-4 py-4 transition-colors last:border-b-0 sm:grid-cols-2 sm:items-center sm:px-6"
-                  onClick={() => props.onToggleProject(projectName)}
+                  class="hover:bg-surface-container-high/40 border-outline-variant/10 grid gap-3 border-b px-4 py-4 transition-colors last:border-b-0 sm:grid-cols-2 sm:items-center sm:px-6"
                 >
                   <div class="flex items-center gap-3">
-                    <input
-                      data-testid={`invite-project-${project.urlSlug}`}
-                      type="checkbox"
-                      checked={isGiven()}
-                      onChange={() => props.onToggleProject(projectName)}
-                      onClick={e => e.stopPropagation()}
-                      aria-label={`Toggle access for project ${project.name || project.urlSlug}`}
-                      class="bg-surface-container-low border-outline-variant/20 focus:ring-primary/30 text-primary accent-primary h-4 w-4 cursor-pointer rounded border focus:ring-1"
-                    />
                     <span class="text-on-surface font-mono text-sm font-semibold">
                       {project.urlSlug}
                     </span>
                   </div>
                   <div class="sm:text-right">
-                    <Show
-                      when={isGiven()}
-                      fallback={
-                        <span class="bg-surface-container-high text-outline border-outline-variant/15 rounded-full border px-2.5 py-0.5 text-[9px] font-bold tracking-wider uppercase">
-                          None
-                        </span>
+                    <select
+                      data-testid={`invite-project-${project.urlSlug}`}
+                      aria-label={`Access level for project ${project.name || project.urlSlug}`}
+                      value={props.projectAccess[projectName] ?? "none"}
+                      onChange={event =>
+                        props.onChange(
+                          projectName,
+                          event.currentTarget.value === "none"
+                            ? null
+                            : (event.currentTarget.value as "editor" | "viewer")
+                        )
                       }
+                      class="bg-surface-container-low border-outline-variant/20 text-on-surface h-9 rounded-lg border px-3 text-sm"
                     >
-                      <span class="bg-primary/10 text-primary border-primary/20 rounded-full border px-2.5 py-0.5 text-[9px] font-bold tracking-wider uppercase">
-                        Inherited
-                      </span>
-                    </Show>
+                      <option value="none">None</option>
+                      <option value="viewer">Viewer</option>
+                      <option value="editor">Editor</option>
+                    </select>
                   </div>
                 </div>
               );

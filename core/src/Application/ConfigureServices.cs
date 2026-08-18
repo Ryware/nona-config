@@ -38,14 +38,17 @@ public static class ConfigureServices
         services.AddScoped<IValidator<SetActiveConfigReleaseRequest>, SetActiveConfigReleaseRequestValidator>();
         services.AddScoped<IValidator<UpsertConfigEntryRequest>, UpsertConfigEntryRequestValidator>();
         services.AddScoped<IValidator<CreateEnvironmentRequest>, CreateEnvironmentRequestValidator>();
+        services.AddScoped<IValidator<RenameEnvironmentRequest>, RenameEnvironmentRequestValidator>();
         services.AddScoped<IValidator<CreateProjectRequest>, CreateProjectRequestValidator>();
+        services.AddScoped<IValidator<RenameProjectRequest>, RenameProjectRequestValidator>();
         services.AddScoped<IValidator<CreateUserRequest>, CreateUserRequestValidator>();
         services.AddScoped<IValidator<UpdateUserRequest>, UpdateUserRequestValidator>();
         services.AddScoped<IValidator<ProjectAccessRequest>, ProjectAccessRequestValidator>();
         services.AddScoped<IValidator<CompleteInvitationPasswordRequest>, CompleteInvitationPasswordRequestValidator>();
+        services.AddScoped<IValidator<ResetPasswordRequest>, ResetPasswordRequestValidator>();
+        services.AddScoped<IValidator<ChangePasswordRequest>, ChangePasswordRequestValidator>();
         services.AddScoped<IValidator<LoginRequest>, LoginRequestValidator>();
         services.AddScoped<IValidator<RegisterCommand>, RegisterCommandValidator>();
-        services.AddScoped<IValidator<RequestPasswordResetCommand>, RequestPasswordResetCommandValidator>();
 
         services.AddScoped<IProjectAccessService, ProjectAccessService>();
         services.AddScoped<IUserAuthorizationService, UserAuthorizationService>();

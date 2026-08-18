@@ -1,7 +1,7 @@
 using Mediator;
 using Nona.Application.Admin.Projects;
+using Nona.Application.Admin.Users;
 using Nona.Application.Admin.Users.DTOs;
-using Nona.Application.Common;
 using Nona.Application.Common.Interfaces;
 using Nona.Domain.Entities;
 using Nona.Domain.Interfaces;
@@ -20,17 +20,15 @@ public class SetProjectAccessCommandHandler(
 {
     public async ValueTask<SetProjectAccessResult> Handle(SetProjectAccessCommand request, CancellationToken cancellationToken)
     {
-        var currentUser = await userAuthorizationService.GetCurrentUserAsync(cancellationToken);
-        var canManageUsers = currentUser?.IsAdmin == true || currentUser?.Role == UserRole.Editor;
-        if (!canManageUsers)
+        if (!await userAuthorizationService.CanManageUsersAsync(cancellationToken))
             return new SetProjectAccessResult(false, null, "Access denied");
 
         var user = await userRepository.GetByIdAsync(request.UserId, cancellationToken);
         if (user is null)
             return new SetProjectAccessResult(false, null, "User not found");
 
-        if (user.IsAdmin && currentUser?.IsAdmin != true)
-            return new SetProjectAccessResult(false, null, "Access denied");
+        if (user.Role == UserRole.Admin)
+            return new SetProjectAccessResult(false, null, "Admin project access cannot be modified");
 
         var project = await ProjectResolution.ResolveProjectAsync(
             projectRepository,
@@ -61,7 +59,7 @@ public class SetProjectAccessCommandHandler(
 
         await projectMemberRepository.AddAsync(member, cancellationToken);
 
-        var dto = new ProjectAccessDto(member.ProjectId, member.Role.ToApiString());
+        var dto = UserDtoMapping.ToProjectAccessDto(member);
         return new SetProjectAccessResult(true, dto, null);
     }
 

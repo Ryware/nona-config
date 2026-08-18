@@ -23,10 +23,26 @@ public static class EnumExtensions
 
     public static string ToApiString(this UserRole role) => role switch
     {
-        UserRole.Viewer => "viewer",
-        UserRole.Editor => "editor",
+        UserRole.Member => "member",
+        UserRole.Admin => "admin",
         _ => role.ToString().ToLowerInvariant()
     };
+
+    public static bool TryParseApiRole(string? value, out UserRole role)
+    {
+        switch (value?.ToLowerInvariant())
+        {
+            case "member":
+                role = UserRole.Member;
+                return true;
+            case "admin":
+                role = UserRole.Admin;
+                return true;
+            default:
+                role = default;
+                return false;
+        }
+    }
 
     public static string ToApiString(this ProjectRole role) => role switch
     {

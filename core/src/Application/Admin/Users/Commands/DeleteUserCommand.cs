@@ -1,13 +1,15 @@
 using Mediator;
+using Nona.Application.Common;
 using Nona.Application.Common.Interfaces;
 using Nona.Domain.Entities;
+using Nona.Domain.Enums;
 using Nona.Domain.Interfaces;
 
 namespace Nona.Application.Admin.Users.Commands;
 
 public record DeleteUserCommand(long Id) : IRequest<DeleteUserResult>;
 
-public record DeleteUserResult(bool Success, string? Error);
+public record DeleteUserResult(bool Success, string? Error, string? ErrorCode = null);
 
 public class DeleteUserCommandHandler(
     IUserRepository userRepository,
@@ -17,6 +19,9 @@ public class DeleteUserCommandHandler(
 {
     public async ValueTask<DeleteUserResult> Handle(DeleteUserCommand request, CancellationToken cancellationToken)
     {
+        if (!await userAuthorizationService.CanManageUsersAsync(cancellationToken))
+            return new DeleteUserResult(false, "Access denied", AuthorizationErrorCodes.AccessDenied);
+
         var user = await userRepository.GetByIdAsync(request.Id, cancellationToken);
         if (user is null)
             return new DeleteUserResult(false, "User not found");
@@ -26,9 +31,12 @@ public class DeleteUserCommandHandler(
         if (string.Equals(user.Email, currentUser?.Email, StringComparison.OrdinalIgnoreCase))
             return new DeleteUserResult(false, "You cannot delete your own user account");
 
-        var canManageUsers = currentUser?.IsAdmin == true || currentUser?.Role == UserRole.Editor;
-        if (!canManageUsers || (user.IsAdmin && currentUser?.IsAdmin != true))
-            return new DeleteUserResult(false, "Access denied");
+        if (user.Role == UserRole.Admin)
+        {
+            var users = await userRepository.ListAsync(cancellationToken);
+            if (users.Count(candidate => candidate.Role == UserRole.Admin) <= 1)
+                return new DeleteUserResult(false, "At least one admin is required");
+        }
 
         await projectMemberRepository.DeleteByUserAsync(user.Email, cancellationToken);
         await userRepository.DeleteAsync(user.Email, cancellationToken);
@@ -36,6 +44,7 @@ public class DeleteUserCommandHandler(
         if (auditLogService is not null)
         {
             await auditLogService.WriteAsync(
+                AuditActionKind.Delete,
                 "Deleted User",
                 user.Email,
                 cancellationToken: cancellationToken);

@@ -1,6 +1,8 @@
 using FluentValidation;
 using Mediator;
 using Microsoft.AspNetCore.Http.HttpResults;
+using System.Security.Cryptography;
+using System.Text;
 using Nona.Application.Admin.ApiKeys.Commands;
 using Nona.Application.Admin.ApiKeys.DTOs;
 using Nona.Application.Admin.ApiKeys.Queries;
@@ -39,11 +41,16 @@ using Nona.Application.Shared.ParameterShareLinks.DTOs;
 using Nona.Application.Shared.ParameterShareLinks.Queries;
 using Nona.Domain;
 using Nona.WebApi.Authentication;
+using Nona.WebApi.Authorization;
 
 namespace Nona.WebApi.Endpoints;
 
 public static class NonaEndpointRouteBuilderExtensions
 {
+    private const string GoogleRedirectCookiePrefix = "nona.google.sso.";
+    private const string GoogleRedirectFrontendPath = "/sso/callback/google";
+    private static readonly TimeSpan GoogleRedirectCookieLifetime = TimeSpan.FromMinutes(5);
+
     public static IEndpointRouteBuilder MapNonaEndpoints(this IEndpointRouteBuilder app)
     {
         MapAuthEndpoints(app.MapGroup("/auth"));
@@ -62,6 +69,11 @@ public static class NonaEndpointRouteBuilderExtensions
             .Produces<SsoPublicConfigResponse>();
         auth.MapPost("/sso/google", LoginWithGoogleAsync)
             .Produces<LoginResponse>();
+        auth.MapPost("/sso/google/callback", HandleGoogleRedirectCallbackAsync)
+            .ExcludeFromDescription();
+        auth.MapGet("/sso/google/credential", GetGoogleRedirectCredential)
+            .Produces<SsoRedirectCredentialResponse>()
+            .ExcludeFromDescription();
         auth.MapPost("/sso/microsoft", LoginWithMicrosoftAsync)
             .Produces<LoginResponse>();
         auth.MapGet("/first-time", CheckIfAnyUsersExistAsync)
@@ -71,14 +83,29 @@ public static class NonaEndpointRouteBuilderExtensions
             .Produces<ApiValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")
             .Produces<ApiProblemDetails>(StatusCodes.Status403Forbidden, "application/problem+json")
             .Produces<ApiProblemDetails>(StatusCodes.Status409Conflict, "application/problem+json");
-        auth.MapPost("/forgot-password", RequestPasswordResetAsync)
-            .Produces(StatusCodes.Status204NoContent);
         auth.MapGet("/invitations/{token}", GetInvitationAsync)
             .Produces<InvitationDetailsResponse>();
         auth.MapPost("/invitations/{token}/password", CompleteInvitationWithPasswordAsync)
             .Produces<LoginResponse>();
         auth.MapPost("/invitations/{token}/sso/{provider}", CompleteInvitationWithSsoAsync)
             .Produces<LoginResponse>();
+        auth.MapGet("/password-resets/{token}", GetPasswordResetAsync)
+            .Produces<PasswordResetDetailsResponse>()
+            .Produces<ApiProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json");
+        auth.MapPost("/password-resets/{token}/password", CompletePasswordResetAsync)
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces<ApiValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")
+            .Produces<ApiProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json");
+        auth.MapGet("/me", GetCurrentAccountAsync)
+            .Produces<AccountDetailsResponse>()
+            .Produces<ApiProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")
+            .RequireAuthorization();
+        auth.MapPut("/password", ChangePasswordAsync)
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces<ApiValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")
+            .Produces<ApiProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")
+            .Produces<ApiProblemDetails>(StatusCodes.Status409Conflict, "application/problem+json")
+            .RequireAuthorization();
     }
 
     private static void MapAdminEndpoints(RouteGroupBuilder admin)
@@ -88,6 +115,9 @@ public static class NonaEndpointRouteBuilderExtensions
             .Produces<ProjectDto>(StatusCodes.Status201Created);
         projects.MapGet("/", ListProjectsAsync)
             .Produces<IReadOnlyList<ProjectDto>>();
+        projects.MapPut("/{projectId}", RenameProjectAsync)
+            .Accepts<RenameProjectRequest>("application/json")
+            .Produces<ProjectDto>();
         projects.MapDelete("/{projectId}", DeleteProjectAsync);
 
         var environments = projects.MapGroup("/{projectId}/environments");
@@ -95,6 +125,9 @@ public static class NonaEndpointRouteBuilderExtensions
             .Produces<EnvironmentDto>(StatusCodes.Status201Created);
         environments.MapGet("/", ListEnvironmentsAsync)
             .Produces<IReadOnlyList<EnvironmentDto>>();
+        environments.MapPut("/{environmentId}", RenameEnvironmentAsync)
+            .Accepts<RenameEnvironmentRequest>("application/json")
+            .Produces<EnvironmentDto>();
         environments.MapDelete("/{environmentId}", DeleteEnvironmentAsync);
 
         var configReleases = projects.MapGroup("/{projectId}/environments/{environmentName}/releases");
@@ -161,7 +194,8 @@ public static class NonaEndpointRouteBuilderExtensions
             async (string projectId, string environmentName, string key, long shareLinkId, IMediator mediator, CancellationToken cancellationToken) =>
                 await RevokeParameterShareLinkAsync(projectId, environmentName, key, shareLinkId, mediator, cancellationToken));
 
-        var users = admin.MapGroup("/users");
+        var users = admin.MapGroup("/users")
+            .RequireAuthorization(AdminReadAuthorizationPolicies.Manage);
         users.MapPost("/", CreateUserAsync)
             .Produces<CreateUserResponse>(StatusCodes.Status201Created);
         users.MapGet("/", ListUsersAsync)
@@ -176,11 +210,23 @@ public static class NonaEndpointRouteBuilderExtensions
         users.MapPut("/{id}/projects/{projectName}", SetProjectAccessAsync)
             .Produces<ProjectAccessDto>();
         users.MapDelete("/{id}/projects/{projectName}", RemoveProjectAccessAsync);
+        users.MapPost("/{id}/password-reset", GeneratePasswordResetAsync)
+            .Produces<GeneratePasswordResetResponse>()
+            .Produces<ApiProblemDetails>(StatusCodes.Status403Forbidden, "application/problem+json")
+            .Produces<ApiProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")
+            .Produces<ApiProblemDetails>(StatusCodes.Status409Conflict, "application/problem+json");
 
+        admin.MapGet("/audit-logs/export", ExportAuditLogsAsync)
+            .Produces(StatusCodes.Status200OK, contentType: "text/csv")
+            .Produces(StatusCodes.Status200OK, contentType: "application/json")
+            .Produces<ApiProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")
+            .RequireAuthorization(AdminReadAuthorizationPolicies.Manage);
         admin.MapGet("/audit-logs", ListAuditLogsAsync)
-            .Produces<IReadOnlyList<AuditLogDto>>();
+            .Produces<AuditLogPageDto>()
+            .RequireAuthorization(AdminReadAuthorizationPolicies.Manage);
         admin.MapGet("/dashboard/counts", GetDashboardCountsAsync)
-            .Produces<DashboardCountDto>();
+            .Produces<DashboardCountDto>()
+            .RequireAuthorization(AdminReadAuthorizationPolicies.Manage);
     }
 
     private static void MapConfigApiEndpoints(RouteGroupBuilder api)
@@ -244,6 +290,127 @@ public static class NonaEndpointRouteBuilderExtensions
         return LoginWithSsoAsync(SsoProviders.Microsoft, request, mediator, cancellationToken);
     }
 
+    private static async Task<IResult> HandleGoogleRedirectCallbackAsync(
+        HttpContext httpContext,
+        CancellationToken cancellationToken)
+    {
+        IFormCollection form;
+        try
+        {
+            form = await httpContext.Request.ReadFormAsync(cancellationToken);
+        }
+        catch (InvalidDataException)
+        {
+            return GoogleRedirectError(null, "missing_credential");
+        }
+
+        var flowId = form["state"].ToString();
+        if (!IsValidSsoFlowId(flowId))
+        {
+            return GoogleRedirectError(null, "invalid_flow");
+        }
+
+        var postedCsrfToken = form["g_csrf_token"].ToString();
+        var hasCsrfCookie = httpContext.Request.Cookies.TryGetValue("g_csrf_token", out var cookieCsrfToken);
+        if (
+            !hasCsrfCookie ||
+            string.IsNullOrEmpty(postedCsrfToken) ||
+            string.IsNullOrEmpty(cookieCsrfToken) ||
+            !FixedTimeEquals(postedCsrfToken, cookieCsrfToken)
+        )
+        {
+            return GoogleRedirectError(flowId, "csrf");
+        }
+
+        var credential = form["credential"].ToString();
+        if (string.IsNullOrWhiteSpace(credential) || credential.Length > 3500)
+        {
+            return GoogleRedirectError(flowId, "missing_credential");
+        }
+
+        httpContext.Response.Cookies.Append(
+            GoogleRedirectCookiePrefix + flowId,
+            credential,
+            CreateGoogleRedirectCookieOptions(httpContext.Request.IsHttps));
+
+        return Results.Redirect(BuildGoogleRedirectLocation(flowId));
+    }
+
+    private static IResult GetGoogleRedirectCredential(HttpContext httpContext, string? flow)
+    {
+        httpContext.Response.Headers.CacheControl = "no-store";
+
+        if (!IsValidSsoFlowId(flow))
+        {
+            return BadRequest("Invalid Google SSO redirect flow.");
+        }
+
+        var cookieName = GoogleRedirectCookiePrefix + flow;
+        if (!httpContext.Request.Cookies.TryGetValue(cookieName, out var credential) ||
+            string.IsNullOrWhiteSpace(credential))
+        {
+            return Unauthorized("Google SSO redirect credential is missing or expired.");
+        }
+
+        httpContext.Response.Cookies.Delete(
+            cookieName,
+            CreateGoogleRedirectCookieOptions(httpContext.Request.IsHttps));
+
+        return Results.Ok(new SsoRedirectCredentialResponse(credential));
+    }
+
+    private static IResult GoogleRedirectError(string? flowId, string error)
+    {
+        return Results.Redirect(BuildGoogleRedirectLocation(flowId, error));
+    }
+
+    private static string BuildGoogleRedirectLocation(string? flowId, string? error = null)
+    {
+        var query = new List<string>();
+        if (!string.IsNullOrEmpty(flowId))
+        {
+            query.Add($"flow={Uri.EscapeDataString(flowId)}");
+        }
+
+        if (!string.IsNullOrEmpty(error))
+        {
+            query.Add($"error={Uri.EscapeDataString(error)}");
+        }
+
+        return query.Count == 0
+            ? GoogleRedirectFrontendPath
+            : $"{GoogleRedirectFrontendPath}?{string.Join("&", query)}";
+    }
+
+    private static CookieOptions CreateGoogleRedirectCookieOptions(bool secure)
+    {
+        return new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = secure,
+            SameSite = SameSiteMode.Lax,
+            IsEssential = true,
+            MaxAge = GoogleRedirectCookieLifetime,
+            Path = "/auth/sso/google"
+        };
+    }
+
+    private static bool IsValidSsoFlowId(string? flowId)
+    {
+        return flowId is { Length: 32 } &&
+            flowId.All(character =>
+                character is >= '0' and <= '9' ||
+                character is >= 'a' and <= 'f');
+    }
+
+    private static bool FixedTimeEquals(string left, string right)
+    {
+        var leftBytes = Encoding.UTF8.GetBytes(left);
+        var rightBytes = Encoding.UTF8.GetBytes(right);
+        return leftBytes.Length == rightBytes.Length &&
+            CryptographicOperations.FixedTimeEquals(leftBytes, rightBytes);
+    }
+
     private static async Task<IResult> CheckIfAnyUsersExistAsync(IMediator mediator, CancellationToken cancellationToken)
     {
         return Results.Ok(await mediator.Send(new AnyUsersQuery(), cancellationToken));
@@ -272,21 +439,6 @@ public static class NonaEndpointRouteBuilderExtensions
             AuthErrorCodes.RegistrationDisabled => Forbidden(result.Error ?? "Registration is disabled", result.ErrorCode),
             _ => BadRequest(result.Error ?? "Registration failed", result.ErrorCode)
         };
-    }
-
-    private static async Task<IResult> RequestPasswordResetAsync(
-        RequestPasswordResetCommand command,
-        IValidator<RequestPasswordResetCommand> validator,
-        IMediator mediator,
-        CancellationToken cancellationToken)
-    {
-        if (await ValidateRequestAsync(command, validator, cancellationToken) is { } validationResult)
-        {
-            return validationResult;
-        }
-
-        await mediator.Send(command, cancellationToken);
-        return Results.NoContent();
     }
 
     private static async Task<IResult> GetInvitationAsync(
@@ -347,6 +499,76 @@ public static class NonaEndpointRouteBuilderExtensions
             : Unauthorized(result.Error ?? "Authentication failed", result.ErrorCode);
     }
 
+    private static async Task<IResult> GetPasswordResetAsync(
+        string token,
+        IMediator mediator,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new GetPasswordResetQuery(token), cancellationToken);
+        return result.Success
+            ? Results.Ok(result.PasswordReset)
+            : NotFound(result.Error ?? "Password reset link not found", result.ErrorCode);
+    }
+
+    private static async Task<IResult> CompletePasswordResetAsync(
+        string token,
+        ResetPasswordRequest request,
+        IValidator<ResetPasswordRequest> validator,
+        IMediator mediator,
+        CancellationToken cancellationToken)
+    {
+        if (await ValidateRequestAsync(request, validator, cancellationToken) is { } validationResult)
+        {
+            return validationResult;
+        }
+
+        var result = await mediator.Send(
+            new CompletePasswordResetCommand(token, request.NewPassword),
+            cancellationToken);
+        return result.Success
+            ? Results.NoContent()
+            : NotFound(result.Error ?? "Password reset link not found", result.ErrorCode);
+    }
+
+    private static async Task<IResult> GetCurrentAccountAsync(
+        IMediator mediator,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new GetCurrentAccountQuery(), cancellationToken);
+        return result.Success
+            ? Results.Ok(result.Account)
+            : NotFound(result.Error ?? "User not found");
+    }
+
+    private static async Task<IResult> ChangePasswordAsync(
+        ChangePasswordRequest request,
+        IValidator<ChangePasswordRequest> validator,
+        IMediator mediator,
+        CancellationToken cancellationToken)
+    {
+        if (await ValidateRequestAsync(request, validator, cancellationToken) is { } validationResult)
+        {
+            return validationResult;
+        }
+
+        var result = await mediator.Send(
+            new ChangePasswordCommand(request.CurrentPassword, request.NewPassword),
+            cancellationToken);
+        if (result.Success)
+        {
+            return Results.NoContent();
+        }
+
+        return result.ErrorCode switch
+        {
+            AuthErrorCodes.PasswordChangeUnavailable =>
+                Conflict(result.Error ?? "Password change is unavailable", result.ErrorCode),
+            AuthErrorCodes.CurrentPasswordInvalid or AuthErrorCodes.NewPasswordMustDiffer =>
+                BadRequest(result.Error ?? "Password could not be changed", result.ErrorCode),
+            _ => NotFound(result.Error ?? "User not found")
+        };
+    }
+
     private static async Task<IResult> LoginWithSsoAsync(
         string provider,
         SsoLoginRequest request,
@@ -376,9 +598,12 @@ public static class NonaEndpointRouteBuilderExtensions
             return Results.Created("/admin/projects", result.Project);
         }
 
-        return result.Error == "Project already exists"
-            ? Conflict(result.Error)
-            : BadRequest(result.Error ?? "Project could not be created");
+        return result.Error switch
+        {
+            "Access denied. Only admin users can create projects." => Forbidden(result.Error),
+            "Project already exists" => Conflict(result.Error),
+            _ => BadRequest(result.Error ?? "Project could not be created")
+        };
     }
 
     private static async Task<IResult> ListProjectsAsync(IMediator mediator, CancellationToken cancellationToken)
@@ -394,7 +619,40 @@ public static class NonaEndpointRouteBuilderExtensions
         var result = await mediator.Send(new DeleteProjectCommand(projectId), cancellationToken);
         return result.Success
             ? Results.NoContent()
-            : NotFound(result.Error ?? "Project not found");
+            : result.Error switch
+            {
+                "Access denied. Only admin users can delete projects." => Forbidden(result.Error),
+                _ => NotFound(result.Error ?? "Project not found")
+            };
+    }
+
+    private static async Task<IResult> RenameProjectAsync(
+        string projectId,
+        RenameProjectRequest request,
+        IValidator<RenameProjectRequest> validator,
+        IMediator mediator,
+        CancellationToken cancellationToken)
+    {
+        if (await ValidateRequestAsync(request, validator, cancellationToken) is { } validationResult)
+        {
+            return validationResult;
+        }
+
+        var result = await mediator.Send(
+            new RenameProjectCommand(projectId, request.Name),
+            cancellationToken);
+        if (result.Success)
+        {
+            return Results.Ok(result.Project);
+        }
+
+        return result.Error switch
+        {
+            "Access denied. Only admin users can rename projects." => Forbidden(result.Error),
+            "Project not found" => NotFound(result.Error),
+            "Project already exists" => Conflict(result.Error),
+            _ => BadRequest(result.Error ?? "Project could not be renamed")
+        };
     }
 
     private static async Task<IResult> CreateEnvironmentAsync(
@@ -417,6 +675,7 @@ public static class NonaEndpointRouteBuilderExtensions
 
         return result.Error switch
         {
+            "Access denied" => Forbidden(result.Error),
             "Project not found" => NotFound(result.Error),
             "Environment already exists" => Conflict(result.Error),
             _ => BadRequest(result.Error ?? "Environment could not be created")
@@ -431,7 +690,9 @@ public static class NonaEndpointRouteBuilderExtensions
         var result = await mediator.Send(new ListEnvironmentsQuery(projectId), cancellationToken);
         return result.Success
             ? Results.Ok(result.Environments)
-            : NotFound(result.Error ?? "Project not found");
+            : result.Error == "Access denied"
+                ? Forbidden(result.Error)
+                : NotFound(result.Error ?? "Project not found");
     }
 
     private static async Task<IResult> DeleteEnvironmentAsync(
@@ -443,7 +704,39 @@ public static class NonaEndpointRouteBuilderExtensions
         var result = await mediator.Send(new DeleteEnvironmentCommand(projectId, environmentId), cancellationToken);
         return result.Success
             ? Results.NoContent()
-            : NotFound(result.Error ?? "Environment not found");
+            : result.Error == "Access denied"
+                ? Forbidden(result.Error)
+                : NotFound(result.Error ?? "Environment not found");
+    }
+
+    private static async Task<IResult> RenameEnvironmentAsync(
+        string projectId,
+        string environmentId,
+        RenameEnvironmentRequest request,
+        IValidator<RenameEnvironmentRequest> validator,
+        IMediator mediator,
+        CancellationToken cancellationToken)
+    {
+        if (await ValidateRequestAsync(request, validator, cancellationToken) is { } validationResult)
+        {
+            return validationResult;
+        }
+
+        var result = await mediator.Send(
+            new RenameEnvironmentCommand(projectId, environmentId, request.Name),
+            cancellationToken);
+        if (result.Success)
+        {
+            return Results.Ok(result.Environment);
+        }
+
+        return result.Error switch
+        {
+            "Access denied" => Forbidden(result.Error),
+            "Project not found" or "Environment not found" => NotFound(result.Error),
+            "Environment already exists" => Conflict(result.Error),
+            _ => BadRequest(result.Error ?? "Environment could not be renamed")
+        };
     }
 
     private static async Task<IResult> ListConfigReleasesAsync(
@@ -665,7 +958,9 @@ public static class NonaEndpointRouteBuilderExtensions
         var result = await mediator.Send(new GetConfigEntriesQuery(projectId, environmentName), cancellationToken);
         return result.Success
             ? Results.Ok(result.ConfigEntries)
-            : NotFound(result.Error ?? "Config entries not found");
+            : result.Error == "Access denied"
+                ? Forbidden(result.Error)
+                : NotFound(result.Error ?? "Config entries not found");
     }
 
     private static async Task<IResult> GetConfigEntryAsync(
@@ -678,7 +973,9 @@ public static class NonaEndpointRouteBuilderExtensions
         var result = await mediator.Send(new GetConfigEntryQuery(projectId, environmentName, key), cancellationToken);
         return result.Success
             ? Results.Ok(result.ConfigEntry)
-            : NotFound(result.Error ?? "Config entry not found");
+            : result.Error == "Access denied"
+                ? Forbidden(result.Error)
+                : NotFound(result.Error ?? "Config entry not found");
     }
 
     private static async Task<IResult> GetConfigEntryHistoryAsync(
@@ -691,7 +988,9 @@ public static class NonaEndpointRouteBuilderExtensions
         var result = await mediator.Send(new ListConfigEntryVersionsQuery(projectId, environmentName, key), cancellationToken);
         return result.Success
             ? Results.Ok(result.Versions)
-            : NotFound(result.Error ?? "Config entry history not found");
+            : result.Error == "Access denied"
+                ? Forbidden(result.Error)
+                : NotFound(result.Error ?? "Config entry history not found");
     }
 
     private static async Task<IResult> UpsertConfigEntryAsync(
@@ -720,6 +1019,11 @@ public static class NonaEndpointRouteBuilderExtensions
         if (result.Success)
         {
             return Results.Ok(result.ConfigEntry);
+        }
+
+        if (result.ErrorCode == AuthorizationErrorCodes.AccessDenied)
+        {
+            return Forbidden(result.Error ?? "Access denied", result.ErrorCode);
         }
 
         return result.Error switch
@@ -753,6 +1057,7 @@ public static class NonaEndpointRouteBuilderExtensions
 
         return result.Error switch
         {
+            "Access denied" => Forbidden(result.Error),
             "Project not found" or "Environment not found" or "Config entry not found" or "Version not found" => NotFound(result.Error),
             _ => BadRequest(result.Error ?? "Config entry could not be rolled back")
         };
@@ -849,7 +1154,9 @@ public static class NonaEndpointRouteBuilderExtensions
         var result = await mediator.Send(new DeleteConfigEntryCommand(projectId, environmentName, key), cancellationToken);
         return result.Success
             ? Results.NoContent()
-            : NotFound(result.Error ?? "Config entry not found");
+            : result.Error == "Access denied"
+                ? Forbidden(result.Error)
+                : NotFound(result.Error ?? "Config entry not found");
     }
 
     private static async Task<IResult> CreateUserAsync(
@@ -921,9 +1228,33 @@ public static class NonaEndpointRouteBuilderExtensions
             return Results.NoContent();
         }
 
-        return result.Error == "User not found"
-            ? NotFound(result.Error)
-            : BadRequest(result.Error ?? "User could not be deleted");
+        return result.ErrorCode == AuthorizationErrorCodes.AccessDenied
+            ? Forbidden(result.Error ?? "Access denied", result.ErrorCode)
+            : result.Error == "User not found"
+                ? NotFound(result.Error)
+                : BadRequest(result.Error ?? "User could not be deleted");
+    }
+
+    private static async Task<IResult> GeneratePasswordResetAsync(
+        long id,
+        IMediator mediator,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new GeneratePasswordResetCommand(id), cancellationToken);
+        if (result.Success)
+        {
+            return Results.Ok(result.Response);
+        }
+
+        return result.Error switch
+        {
+            "Access denied" => Forbidden(result.Error),
+            "User not found" => NotFound(result.Error),
+            _ when result.ErrorCode is AuthErrorCodes.PasswordResetUnavailable
+                or AuthErrorCodes.PasswordResetSelfNotAllowed =>
+                Conflict(result.Error ?? "Password reset is unavailable", result.ErrorCode),
+            _ => BadRequest(result.Error ?? "Password reset link could not be generated", result.ErrorCode)
+        };
     }
 
     private static async Task<IResult> GetUserProjectsAsync(long id, IMediator mediator, CancellationToken cancellationToken)
@@ -969,12 +1300,79 @@ public static class NonaEndpointRouteBuilderExtensions
         var result = await mediator.Send(new RemoveProjectAccessCommand(id, projectName), cancellationToken);
         return result.Success
             ? Results.NoContent()
-            : NotFound(result.Error ?? "Project access not found");
+            : result.ErrorCode == AuthorizationErrorCodes.AccessDenied
+                ? Forbidden(result.Error ?? "Access denied", result.ErrorCode)
+                : NotFound(result.Error ?? "Project access not found");
     }
 
-    private static async Task<IResult> ListAuditLogsAsync(IMediator mediator, CancellationToken cancellationToken)
+    private static async Task<IResult> ListAuditLogsAsync(
+        int? page,
+        int? pageSize,
+        string? search,
+        string? action,
+        string? environment,
+        DateOnly? dateFrom,
+        DateOnly? dateTo,
+        IMediator mediator,
+        CancellationToken cancellationToken)
     {
-        return Results.Ok(await mediator.Send(new Nona.Application.Admin.AuditLogs.Queries.ListAuditLogsQuery(), cancellationToken));
+        return Results.Ok(await mediator.Send(
+            new Nona.Application.Admin.AuditLogs.Queries.ListAuditLogsQuery(
+                page ?? 1,
+                pageSize ?? Nona.Application.Admin.AuditLogs.Queries.ListAuditLogsQueryHandler.DefaultPageSize,
+                search,
+                action,
+                environment,
+                dateFrom,
+                dateTo),
+            cancellationToken));
+    }
+
+    private static IResult ExportAuditLogsAsync(
+        string? format,
+        string? search,
+        string? action,
+        string? environment,
+        DateOnly? dateFrom,
+        DateOnly? dateTo,
+        IMediator mediator,
+        CancellationToken cancellationToken)
+    {
+        var normalizedFormat = string.IsNullOrWhiteSpace(format)
+            ? "csv"
+            : format.Trim().ToLowerInvariant();
+        if (normalizedFormat is not ("csv" or "json"))
+        {
+            return BadRequest("Export format must be csv or json.");
+        }
+
+        var logs = mediator.CreateStream(
+            new Nona.Application.Admin.AuditLogs.Queries.ExportAuditLogsQuery(
+                search,
+                action,
+                environment,
+                dateFrom,
+                dateTo),
+            cancellationToken);
+        var contentType = normalizedFormat == "csv"
+            ? "text/csv; charset=utf-8"
+            : "application/json; charset=utf-8";
+        var fileName = $"audit-logs-{DateTime.UtcNow:yyyy-MM-dd}.{normalizedFormat}";
+
+        return Results.Stream(
+            async output =>
+            {
+                if (normalizedFormat == "csv")
+                {
+                    await AuditLogExportWriter.WriteCsvAsync(output, logs, cancellationToken);
+                }
+                else
+                {
+                    await AuditLogExportWriter.WriteJsonAsync(output, logs, cancellationToken);
+                }
+            },
+            contentType,
+            fileName);
     }
 
     private static async Task<IResult> GetDashboardCountsAsync(IMediator mediator, CancellationToken cancellationToken)
@@ -1081,9 +1479,9 @@ public static class NonaEndpointRouteBuilderExtensions
         return ApiProblemResults.BadRequest(error, errorCode);
     }
 
-    private static IResult Conflict(string error)
+    private static IResult Conflict(string error, string? errorCode = null)
     {
-        return ApiProblemResults.Conflict(error);
+        return ApiProblemResults.Conflict(error, errorCode);
     }
 
     private static IResult NotFound(string error, string? errorCode = null)

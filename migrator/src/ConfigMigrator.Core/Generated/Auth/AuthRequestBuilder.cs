@@ -3,9 +3,11 @@
 using Microsoft.Kiota.Abstractions.Extensions;
 using Microsoft.Kiota.Abstractions;
 using Nona.Migrator.Core.Generated.Auth.FirstTime;
-using Nona.Migrator.Core.Generated.Auth.ForgotPassword;
 using Nona.Migrator.Core.Generated.Auth.Invitations;
 using Nona.Migrator.Core.Generated.Auth.Login;
+using Nona.Migrator.Core.Generated.Auth.Me;
+using Nona.Migrator.Core.Generated.Auth.Password;
+using Nona.Migrator.Core.Generated.Auth.PasswordResets;
 using Nona.Migrator.Core.Generated.Auth.Register;
 using Nona.Migrator.Core.Generated.Auth.Sso;
 using System.Collections.Generic;
@@ -25,11 +27,6 @@ namespace Nona.Migrator.Core.Generated.Auth
         {
             get => new global::Nona.Migrator.Core.Generated.Auth.FirstTime.FirstTimeRequestBuilder(PathParameters, RequestAdapter);
         }
-        /// <summary>The forgotPassword property</summary>
-        public global::Nona.Migrator.Core.Generated.Auth.ForgotPassword.ForgotPasswordRequestBuilder ForgotPassword
-        {
-            get => new global::Nona.Migrator.Core.Generated.Auth.ForgotPassword.ForgotPasswordRequestBuilder(PathParameters, RequestAdapter);
-        }
         /// <summary>The invitations property</summary>
         public global::Nona.Migrator.Core.Generated.Auth.Invitations.InvitationsRequestBuilder Invitations
         {
@@ -39,6 +36,21 @@ namespace Nona.Migrator.Core.Generated.Auth
         public global::Nona.Migrator.Core.Generated.Auth.Login.LoginRequestBuilder Login
         {
             get => new global::Nona.Migrator.Core.Generated.Auth.Login.LoginRequestBuilder(PathParameters, RequestAdapter);
+        }
+        /// <summary>The me property</summary>
+        public global::Nona.Migrator.Core.Generated.Auth.Me.MeRequestBuilder Me
+        {
+            get => new global::Nona.Migrator.Core.Generated.Auth.Me.MeRequestBuilder(PathParameters, RequestAdapter);
+        }
+        /// <summary>The password property</summary>
+        public global::Nona.Migrator.Core.Generated.Auth.Password.PasswordRequestBuilder Password
+        {
+            get => new global::Nona.Migrator.Core.Generated.Auth.Password.PasswordRequestBuilder(PathParameters, RequestAdapter);
+        }
+        /// <summary>The passwordResets property</summary>
+        public global::Nona.Migrator.Core.Generated.Auth.PasswordResets.PasswordResetsRequestBuilder PasswordResets
+        {
+            get => new global::Nona.Migrator.Core.Generated.Auth.PasswordResets.PasswordResetsRequestBuilder(PathParameters, RequestAdapter);
         }
         /// <summary>The register property</summary>
         public global::Nona.Migrator.Core.Generated.Auth.Register.RegisterRequestBuilder Register

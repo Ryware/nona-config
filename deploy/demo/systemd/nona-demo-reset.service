@@ -1,0 +1,10 @@
+[Unit]
+Description=Wipe and reseed the Nona demo
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/nona/demo/reset.sh
+# Container restart plus ~60 API calls; ceiling so a bad night fails, not hangs.
+TimeoutStartSec=900

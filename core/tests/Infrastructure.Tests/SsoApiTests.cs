@@ -80,6 +80,8 @@ public class SsoApiTests
             using var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
             var baseUrl = $"http://127.0.0.1:{port}";
 
+            await AssertGoogleRedirectHandoffAsync(baseUrl);
+
             using (var ssoConfig = await SendJsonAsync(httpClient, HttpMethod.Get, $"{baseUrl}/auth/sso/config"))
             {
                 await Assert.That(ssoConfig.RootElement.GetProperty("google").GetProperty("enabled").GetBoolean()).IsTrue();
@@ -640,6 +642,71 @@ public class SsoApiTests
     {
         await using var stream = await response.Content.ReadAsStreamAsync();
         return await JsonDocument.ParseAsync(stream);
+    }
+
+    private static async Task AssertGoogleRedirectHandoffAsync(string baseUrl)
+    {
+        const string flowId = "0123456789abcdef0123456789abcdef";
+        const string csrfToken = "google-csrf-token";
+        const string idToken = "google-id-token";
+
+        var cookies = new CookieContainer();
+        cookies.Add(new Uri(baseUrl), new Cookie("g_csrf_token", csrfToken, "/"));
+
+        using var handler = new HttpClientHandler
+        {
+            AllowAutoRedirect = false,
+            CookieContainer = cookies,
+            UseCookies = true
+        };
+        using var client = new HttpClient(handler);
+
+        using (var callbackRequest = new HttpRequestMessage(
+            HttpMethod.Post,
+            $"{baseUrl}/auth/sso/google/callback"))
+        {
+            callbackRequest.Content = new FormUrlEncodedContent(
+            [
+                new KeyValuePair<string, string>("credential", idToken),
+                new KeyValuePair<string, string>("g_csrf_token", csrfToken),
+                new KeyValuePair<string, string>("state", flowId)
+            ]);
+
+            using var callbackResponse = await client.SendAsync(callbackRequest);
+            await Assert.That(callbackResponse.StatusCode).IsEqualTo(HttpStatusCode.Redirect);
+            await Assert.That(callbackResponse.Headers.Location?.OriginalString)
+                .IsEqualTo($"/sso/callback/google?flow={flowId}");
+        }
+
+        using (var credentialResponse = await client.GetAsync(
+            $"{baseUrl}/auth/sso/google/credential?flow={flowId}"))
+        {
+            credentialResponse.EnsureSuccessStatusCode();
+            using var body = await ParseJsonAsync(credentialResponse);
+            await Assert.That(body.RootElement.GetProperty("idToken").GetString()).IsEqualTo(idToken);
+            await Assert.That(credentialResponse.Headers.CacheControl?.NoStore).IsTrue();
+        }
+
+        using (var reusedCredentialResponse = await client.GetAsync(
+            $"{baseUrl}/auth/sso/google/credential?flow={flowId}"))
+        {
+            await Assert.That(reusedCredentialResponse.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
+        }
+
+        using var invalidCsrfRequest = new HttpRequestMessage(
+            HttpMethod.Post,
+            $"{baseUrl}/auth/sso/google/callback");
+        invalidCsrfRequest.Content = new FormUrlEncodedContent(
+        [
+            new KeyValuePair<string, string>("credential", idToken),
+            new KeyValuePair<string, string>("g_csrf_token", "different-token"),
+            new KeyValuePair<string, string>("state", flowId)
+        ]);
+
+        using var invalidCsrfResponse = await client.SendAsync(invalidCsrfRequest);
+        await Assert.That(invalidCsrfResponse.StatusCode).IsEqualTo(HttpStatusCode.Redirect);
+        await Assert.That(invalidCsrfResponse.Headers.Location?.OriginalString)
+            .IsEqualTo($"/sso/callback/google?flow={flowId}&error=csrf");
     }
 
     private static async Task<int> CountExternalIdentitiesAsync(string libsqlUrl)

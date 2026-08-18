@@ -1,6 +1,8 @@
 using Mediator;
+using Nona.Application.Admin.Projects;
 using Nona.Application.Common.Interfaces;
 using Nona.Domain.Entities;
+using Nona.Domain.Enums;
 using Nona.Domain.Interfaces;
 
 namespace Nona.Application.Admin.Projects.Commands;
@@ -21,14 +23,16 @@ public class DeleteProjectCommandHandler(
 {
     public async ValueTask<DeleteProjectResult> Handle(DeleteProjectCommand request, CancellationToken cancellationToken)
     {
-        // Resolve the project by name, id, or slug
-        var project = await ResolveProjectAsync(request.ProjectId, cancellationToken);
+        var project = await ProjectResolution.ResolveProjectAsync(
+            projectRepository,
+            request.ProjectId,
+            cancellationToken);
         if (project is null)
             return new DeleteProjectResult(false, "Project not found");
 
         // Only admin users can delete projects
         var currentUser = await userAuthorizationService.GetCurrentUserAsync(cancellationToken);
-        if (currentUser?.IsAdmin != true)
+        if (currentUser?.Role != UserRole.Admin)
             return new DeleteProjectResult(false, "Access denied. Only admin users can delete projects.");
 
         var projectName = project.Name;
@@ -48,6 +52,7 @@ public class DeleteProjectCommandHandler(
         if (auditLogService is not null)
         {
             await auditLogService.WriteAsync(
+                AuditActionKind.Delete,
                 "Deleted Project",
                 projectName,
                 project: projectName,
@@ -72,25 +77,5 @@ public class DeleteProjectCommandHandler(
         {
             await configEntryRepository.DeleteAsync(entry.Project, entry.Environment, entry.Key, cancellationToken);
         }
-    }
-
-    private async Task<Project?> ResolveProjectAsync(string idOrNameOrSlug, CancellationToken cancellationToken)
-    {
-        // Try direct name lookup
-        var project = await projectRepository.GetByNameAsync(idOrNameOrSlug, cancellationToken);
-        if (project != null)
-            return project;
-
-        var projects = await projectRepository.ListAsync(cancellationToken);
-
-        if (long.TryParse(idOrNameOrSlug, out var numericId))
-        {
-            var byId = projects.FirstOrDefault(p => p.Id == numericId);
-            if (byId != null)
-                return byId;
-        }
-
-        var bySlug = projects.FirstOrDefault(p => !string.IsNullOrEmpty(p.UrlSlug) && string.Equals(p.UrlSlug, idOrNameOrSlug, StringComparison.OrdinalIgnoreCase));
-        return bySlug;
     }
 }

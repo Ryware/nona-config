@@ -4,10 +4,11 @@ import type {
   LoginRequest,
   LoginResponse,
   RegisterRequest,
-  ForgotPasswordRequest,
-  ResetPasswordRequest,
   SsoConfig,
   InvitationDetails,
+  PasswordResetDetails,
+  AccountDetails,
+  ChangePasswordRequest,
 } from "../model/types";
 
 export const authService = {
@@ -17,17 +18,6 @@ export const authService = {
 
   async register(data: RegisterRequest): Promise<LoginResponse> {
     return apiClient.post<LoginResponse>("/auth/register", data);
-  },
-
-  async requestPasswordReset(data: ForgotPasswordRequest): Promise<void> {
-    await apiClient.post('/auth/forgot-password', data);
-  },
-
-  async resetPassword(_data: ResetPasswordRequest): Promise<void> {
-    // TODO: Implement when backend endpoint is ready
-    throw new Error(
-      "Password reset functionality is not yet implemented on the backend"
-    );
   },
 
   logout() {
@@ -73,6 +63,22 @@ export const authService = {
 
   async completeInvitationWithMicrosoft(token: string, idToken: string): Promise<LoginResponse> {
     return apiClient.post<LoginResponse>(`/auth/invitations/${token}/sso/microsoft`, { idToken });
+  },
+
+  async getPasswordReset(token: string): Promise<PasswordResetDetails> {
+    return apiClient.get(`/auth/password-resets/${token}`);
+  },
+
+  async completePasswordReset(token: string, newPassword: string): Promise<void> {
+    await apiClient.post(`/auth/password-resets/${token}/password`, { newPassword });
+  },
+
+  async getCurrentAccount(): Promise<AccountDetails> {
+    return apiClient.get("/auth/me");
+  },
+
+  async changePassword(data: ChangePasswordRequest): Promise<void> {
+    await apiClient.put("/auth/password", data);
   },
 };
 

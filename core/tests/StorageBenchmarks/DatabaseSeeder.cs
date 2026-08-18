@@ -7,23 +7,23 @@ internal static class DatabaseSeeder
 {
     public const string ProjectName = "bench-project";
     public const string ProjectSlug = "bench-project";
-    public const string ApiKey = "BENCH-SCOPED-KEY";
+    public const string ApiKey = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
     public const string ReleaseVersion = "1.0.0";
 
     public static readonly IReadOnlyDictionary<DatasetSize, int> DatasetRows = new Dictionary<DatasetSize, int>
     {
         [DatasetSize.Small] = 1,
-        [DatasetSize.Medium] = 10_000,
-        [DatasetSize.Large] = 1_000_000
+        [DatasetSize.Medium] = 100,
+        [DatasetSize.Large] = 10_000
     };
 
     public static string GetEnvironmentName(DatasetSize dataset)
     {
         return dataset switch
         {
-            DatasetSize.Small => "small",
-            DatasetSize.Medium => "medium",
-            DatasetSize.Large => "large",
+            DatasetSize.Small => "keys-1",
+            DatasetSize.Medium => "keys-100",
+            DatasetSize.Large => "keys-10000",
             _ => throw new ArgumentOutOfRangeException(nameof(dataset), dataset, null)
         };
     }

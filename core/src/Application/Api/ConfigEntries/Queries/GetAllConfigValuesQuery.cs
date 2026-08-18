@@ -29,6 +29,7 @@ public record GetAllConfigValuesResult(
 public class GetAllConfigValuesQueryHandler(
     IApiKeyRepository apiKeyRepository,
     IEnvironmentRepository environmentRepository,
+    IConfigEntryRepository configEntryRepository,
     IConfigReleaseRepository configReleaseRepository,
     IApiKeyService apiKeyService)
     : IRequestHandler<GetAllConfigValuesQuery, GetAllConfigValuesResult>
@@ -64,6 +65,33 @@ public class GetAllConfigValuesQueryHandler(
             cancellationToken);
         if (environment is null)
             return Failure("Environment not found");
+
+        if (string.IsNullOrWhiteSpace(request.Version)
+            && string.IsNullOrWhiteSpace(environment.ActiveReleaseVersion))
+        {
+            var workingEntries = await configEntryRepository.ListAsync(
+                project.Name,
+                environment.Name,
+                cancellationToken);
+            var workingValues = workingEntries
+                .Where(entry => (entry.Scope & KeyScope.Frontend) != 0)
+                .OrderBy(entry => entry.Key, StringComparer.Ordinal)
+                .ToDictionary(
+                    entry => entry.Key,
+                    entry => new ClientConfigValueDto(
+                        entry.Value,
+                        ConfigEntryContentTypes.Normalize(entry.ContentType)
+                            ?? ConfigEntryContentTypes.Infer(entry.Value)),
+                    StringComparer.Ordinal);
+            var workingEtag = CreateWorkingConfigEtag(
+                project.Name,
+                environment.Name,
+                workingValues);
+
+            return MatchesIfNoneMatch(request.IfNoneMatch, workingEtag)
+                ? new GetAllConfigValuesResult(true, null, null, workingEtag, true)
+                : new GetAllConfigValuesResult(true, workingValues, null, workingEtag);
+        }
 
         var release = await ResolveReleaseAsync(
             project.Name,
@@ -108,13 +136,10 @@ public class GetAllConfigValuesQueryHandler(
     {
         if (string.IsNullOrWhiteSpace(requestedVersion))
         {
-            if (string.IsNullOrWhiteSpace(activeReleaseVersion))
-                return (null, "Active release not configured");
-
             var activeRelease = await configReleaseRepository.GetMetadataAsync(
                 projectName,
                 environmentName,
-                activeReleaseVersion,
+                activeReleaseVersion!,
                 cancellationToken);
 
             return activeRelease is null
@@ -156,6 +181,25 @@ public class GetAllConfigValuesQueryHandler(
             canonical,
             release.CreatedAt.ToUniversalTime().Ticks.ToString(CultureInfo.InvariantCulture));
         AppendEtagPart(canonical, release.EntryCount.ToString(CultureInfo.InvariantCulture));
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(canonical.ToString()));
+        return $"\"{Convert.ToHexString(hash).ToLowerInvariant()}\"";
+    }
+
+    private static string CreateWorkingConfigEtag(
+        string projectName,
+        string environmentName,
+        IReadOnlyDictionary<string, ClientConfigValueDto> values)
+    {
+        var canonical = new StringBuilder("client-config-working-v1");
+        AppendEtagPart(canonical, projectName);
+        AppendEtagPart(canonical, environmentName);
+        foreach (var pair in values.OrderBy(pair => pair.Key, StringComparer.Ordinal))
+        {
+            AppendEtagPart(canonical, pair.Key);
+            AppendEtagPart(canonical, pair.Value.Value);
+            AppendEtagPart(canonical, pair.Value.ContentType);
+        }
+
         var hash = SHA256.HashData(Encoding.UTF8.GetBytes(canonical.ToString()));
         return $"\"{Convert.ToHexString(hash).ToLowerInvariant()}\"";
     }

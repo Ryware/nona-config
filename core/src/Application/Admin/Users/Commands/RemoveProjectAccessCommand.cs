@@ -1,5 +1,6 @@
 using Mediator;
 using Nona.Application.Admin.Projects;
+using Nona.Application.Common;
 using Nona.Application.Common.Interfaces;
 using Nona.Domain.Entities;
 using Nona.Domain.Interfaces;
@@ -7,7 +8,7 @@ using Nona.Domain.Interfaces;
 namespace Nona.Application.Admin.Users.Commands;
 
 public record RemoveProjectAccessCommand(long UserId, string ProjectId) : IRequest<RemoveProjectAccessResult>;
-public record RemoveProjectAccessResult(bool Success, string? Error);
+public record RemoveProjectAccessResult(bool Success, string? Error, string? ErrorCode = null);
 
 public class RemoveProjectAccessCommandHandler(
     IUserRepository userRepository,
@@ -17,17 +18,15 @@ public class RemoveProjectAccessCommandHandler(
 {
     public async ValueTask<RemoveProjectAccessResult> Handle(RemoveProjectAccessCommand request, CancellationToken cancellationToken)
     {
-        var currentUser = await userAuthorizationService.GetCurrentUserAsync(cancellationToken);
-        var canManageUsers = currentUser?.IsAdmin == true || currentUser?.Role == UserRole.Editor;
-        if (!canManageUsers)
-            return new RemoveProjectAccessResult(false, "Access denied");
+        if (!await userAuthorizationService.CanManageUsersAsync(cancellationToken))
+            return new RemoveProjectAccessResult(false, "Access denied", AuthorizationErrorCodes.AccessDenied);
 
         var user = await userRepository.GetByIdAsync(request.UserId, cancellationToken);
         if (user is null)
             return new RemoveProjectAccessResult(false, "User not found");
 
-        if (user.IsAdmin && currentUser?.IsAdmin != true)
-            return new RemoveProjectAccessResult(false, "Access denied");
+        if (user.Role == UserRole.Admin)
+            return new RemoveProjectAccessResult(false, "Admin project access cannot be modified");
 
         var project = await ProjectResolution.ResolveProjectAsync(
             projectRepository,

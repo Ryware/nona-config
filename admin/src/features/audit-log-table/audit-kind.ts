@@ -1,12 +1,3 @@
-export type ActionKind = "create" | "update" | "delete" | "system";
-
-export function getActionKind(action: string): ActionKind {
-  if (action.includes("Created") || action.includes("Invited")) return "create";
-  if (action.includes("Updated") || action.includes("changed")) return "update";
-  if (action.includes("Deleted") || action.includes("Deleted Key")) return "delete";
-  return "system";
-}
-
 export function truncate(str: string | undefined, max = 28): string {
   if (!str) return "";
   return str.length > max ? str.slice(0, max) + "…" : str;

@@ -1,5 +1,7 @@
 // Auth domain types — source of truth for auth-related contracts
 
+export type OrganizationRole = "admin" | "member";
+
 export interface LoginRequest {
   email: string;
   password: string;
@@ -8,7 +10,7 @@ export interface LoginRequest {
 export interface LoginResponse {
   token: string;
   username?: string;
-  role: string;
+  role: OrganizationRole;
   expiresAt: string;
 }
 
@@ -29,16 +31,25 @@ export interface RegisterRequest {
   password: string;
 }
 
-export interface ForgotPasswordRequest {
-  email: string;
-}
-
-export interface ResetPasswordRequest {
-  token: string;
-  newPassword: string;
-}
-
 export interface InvitationDetails {
   email: string;
   name: string;
+}
+
+export interface PasswordResetDetails {
+  email: string;
+  name: string;
+  expiresAt: string;
+}
+
+export interface AccountDetails {
+  email: string;
+  name: string;
+  role: string;
+  passwordEnabled: boolean;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
 }

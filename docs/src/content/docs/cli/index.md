@@ -198,7 +198,7 @@ Use client-scoped API keys for frontend/mobile apps and server-scoped keys for b
 ## Invite a user
 
 ```bash
-nona users create --name "Jane Doe" --user-email jane@example.com --role editor
+nona users create --name "Jane Doe" --user-email jane@example.com --role member
 ```
 
 The CLI returns the invitation result so you can hand the invite link or token to the teammate who needs access.

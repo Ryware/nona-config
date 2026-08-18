@@ -8,18 +8,17 @@ import { http, HttpResponse } from 'msw';
 import { server } from '../mocks/server';
 import type { JSX } from 'solid-js';
 
-const microsoftPopupMock = vi.fn();
+const microsoftRedirectMock = vi.fn();
 const googleRenderMock = vi.fn(async (
   container: HTMLElement,
   _clientId: string,
-  onCredential: (token: string) => void,
+  _flowId: string,
+  onRedirectStart: () => void,
 ) => {
   const button = document.createElement('button');
   button.textContent = 'Continue with Google';
   button.type = 'button';
-  button.onclick = () => {
-    void onCredential('google-valid-token');
-  };
+  button.onclick = onRedirectStart;
   container.appendChild(button);
 
   return () => {
@@ -32,10 +31,14 @@ vi.mock('../../entities/auth/api/google-sso', () => ({
 }));
 
 vi.mock('../../entities/auth/api/microsoft-sso', () => ({
-  signInWithMicrosoftPopup: (...args: Parameters<typeof microsoftPopupMock>) => microsoftPopupMock(...args),
+  signInWithMicrosoftRedirect: (...args: Parameters<typeof microsoftRedirectMock>) => microsoftRedirectMock(...args),
 }));
 
 import InvitePage from '../../pages/auth/InvitePage';
+import {
+  beginSsoRedirect,
+  completeSsoRedirect,
+} from '../../entities/auth/api/sso-redirect';
 
 function renderWithProviders(path: string, ui: () => JSX.Element) {
   window.history.pushState({}, '', path);
@@ -60,8 +63,9 @@ function renderWithProviders(path: string, ui: () => JSX.Element) {
 describe('InvitePage', () => {
   beforeEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
     googleRenderMock.mockClear();
-    microsoftPopupMock.mockReset();
+    microsoftRedirectMock.mockReset();
     server.use(
       http.get('http://localhost:5027/auth/sso/config', () =>
         HttpResponse.json({
@@ -102,14 +106,27 @@ describe('InvitePage', () => {
     });
   });
 
-  it('auto-logs in after successful Google SSO', async () => {
+  it('rejects a weak password before accepting the invitation', async () => {
     renderWithProviders('/invite/invite-token-123', InvitePage);
 
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /continue with google/i })).toBeInTheDocument();
+    fireEvent.input(await screen.findByLabelText(/create password/i), {
+      target: { value: 'short' },
     });
+    fireEvent.input(screen.getByLabelText(/confirm password/i), {
+      target: { value: 'short' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /set password and continue/i }));
 
-    fireEvent.click(screen.getByRole('button', { name: /continue with google/i }));
+    expect(await screen.findByText(/^password must be at least 8 characters long\.$/i)).toBeInTheDocument();
+    expect(localStorage.getItem('auth_token')).toBeNull();
+  });
+
+  it('auto-logs in after successful Google SSO', async () => {
+    window.history.replaceState({}, '', '/invite/invite-token-123');
+    const flowId = beginSsoRedirect('google');
+    completeSsoRedirect('google', flowId, { idToken: 'google-valid-token' });
+
+    renderWithProviders('/invite/invite-token-123', InvitePage);
 
     await waitFor(() => {
       expect(localStorage.getItem('auth_token')).toBeTruthy();
@@ -125,31 +142,11 @@ describe('InvitePage', () => {
   });
 
   it('shows SSO email mismatch errors', async () => {
-    googleRenderMock.mockImplementationOnce(async (
-      container: HTMLElement,
-      _clientId: string,
-      onCredential: (token: string) => void,
-    ) => {
-      const button = document.createElement('button');
-      button.textContent = 'Continue with Google';
-      button.type = 'button';
-      button.onclick = () => {
-        void onCredential('google-mismatch-token');
-      };
-      container.appendChild(button);
-
-      return () => {
-        container.replaceChildren();
-      };
-    });
+    window.history.replaceState({}, '', '/invite/invite-token-123');
+    const flowId = beginSsoRedirect('google');
+    completeSsoRedirect('google', flowId, { idToken: 'google-mismatch-token' });
 
     renderWithProviders('/invite/invite-token-123', InvitePage);
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /continue with google/i })).toBeInTheDocument();
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: /continue with google/i }));
 
     await waitFor(() => {
       expect(screen.getByText(/does not match the invited account email/i)).toBeInTheDocument();

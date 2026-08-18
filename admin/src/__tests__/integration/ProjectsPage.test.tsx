@@ -30,7 +30,7 @@ function renderWithProviders(ui: () => JSX.Element) {
 describe('ProjectsPage', () => {
   beforeEach(() => {
     localStorage.setItem('auth_token', mockToken);
-    localStorage.setItem('auth_session', JSON.stringify({ email: 'admin@example.com', role: 'admin', isAdmin: true }));
+    localStorage.setItem('auth_session', JSON.stringify({ email: 'admin@example.com', role: 'admin' }));
     vi.restoreAllMocks();
   });
 
@@ -61,6 +61,19 @@ describe('ProjectsPage', () => {
       expect(screen.getAllByText(/no projects yet/i).length).toBeGreaterThanOrEqual(1);
     });
     expect(screen.getByLabelText(/project name/i)).toBeInTheDocument();
+  });
+
+  it('shows projectless Members guidance without project creation', async () => {
+    localStorage.setItem('auth_session', JSON.stringify({ email: 'member@example.com', role: 'member' }));
+    server.use(
+      http.get('http://localhost:5027/admin/projects', () => HttpResponse.json([])),
+    );
+
+    renderWithProviders(() => <ProjectsPage />);
+
+    expect(await screen.findByText(/contact an admin for access/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /new project/i })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/project name/i)).not.toBeInTheDocument();
   });
 
   it('shows the create project form when "Create New Project" is clicked', async () => {

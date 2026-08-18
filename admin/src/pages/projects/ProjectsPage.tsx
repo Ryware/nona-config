@@ -2,13 +2,10 @@ import { Title } from "@solidjs/meta";
 import { useLocation, useNavigate } from "@solidjs/router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/solid-query";
 import { createEffect, createMemo, createSignal, Show } from "solid-js";
-import { canManageProjects, canManageProjectsFor } from "../../entities/auth/model/permissions";
-import { authStore } from "../../entities/auth/model/store";
+import { canManageProjects } from "../../entities/auth/model/permissions";
 import { projectService } from "../../entities/project/api/project.service";
 import { syncActiveProject } from "../../entities/project/model/active-project";
 import { projectKeys } from "../../entities/project/queries/keys";
-import { userService } from "../../entities/user/api/user.service";
-import { userKeys } from "../../entities/user/queries/keys";
 import { MSG } from "../../shared/lib/messages";
 import { ConfirmDialog } from "../../shared/ui/confirm-dialog";
 import { MIcon } from "../../shared/ui/icons";
@@ -30,16 +27,11 @@ export default function ProjectsPage() {
   const [hasAutoOpenedCreate, setHasAutoOpenedCreate] = createSignal(false);
   const [deleteTarget, setDeleteTarget] = createSignal<Project | null>(null);
   const [search, setSearch] = createSignal("");
-  const sessionAllowsProjectManagement = canManageProjects();
+  const allowProjectManagement = canManageProjects();
 
   const projectsQuery = useQuery(() => ({
     queryKey: projectKeys.list(),
     queryFn: () => projectService.getAll()
-  }));
-
-  const usersQuery = useQuery(() => ({
-    queryKey: userKeys.list(),
-    queryFn: () => userService.getAll()
   }));
 
   const createMutation = useMutation(() => ({
@@ -63,17 +55,6 @@ export default function ProjectsPage() {
   }));
 
   const allProjects = () => (projectsQuery.status === "success" ? (projectsQuery.data ?? []) : []);
-  const currentUser = createMemo(() => {
-    const email = authStore.getSession()?.email?.toLowerCase() ?? "";
-    const users = usersQuery.status === "success" ? (usersQuery.data ?? []) : [];
-    return users.find(user => user.email.toLowerCase() === email);
-  });
-  const allowProjectManagement = createMemo(
-    () =>
-      usersQuery.status === "success"
-        ? canManageProjectsFor(currentUser())
-        : sessionAllowsProjectManagement
-  );
   const filteredProjects = createMemo(() => {
     const q = search().toLowerCase().trim();
     if (!q) return allProjects();
@@ -94,7 +75,7 @@ export default function ProjectsPage() {
   createEffect(() => {
     const shouldAutoOpen =
       projectsQuery.status === "success" &&
-      allowProjectManagement() &&
+      allowProjectManagement &&
       allProjects().length === 0;
 
     if (shouldAutoOpen && !hasAutoOpenedCreate()) {
@@ -110,7 +91,7 @@ export default function ProjectsPage() {
 
   createEffect(() => {
     if (new URLSearchParams(location.search).get("new") === "1") {
-      setShowCreate(allowProjectManagement());
+      setShowCreate(allowProjectManagement);
       navigate("/projects", { replace: true });
     }
   });
@@ -154,7 +135,7 @@ export default function ProjectsPage() {
                   wrapperStyle="min-w-0 flex-1 md:w-auto md:flex-none"
                 />
               </Show>
-              <Show when={allowProjectManagement()}>
+              <Show when={allowProjectManagement}>
                 <button
                   data-testid="projects-new-button"
                   onClick={() => setShowCreate(!showCreate())}
@@ -178,7 +159,7 @@ export default function ProjectsPage() {
           </Show>
 
           {/* Create form */}
-          <Show when={allowProjectManagement() && showCreate()}>
+          <Show when={allowProjectManagement && showCreate()}>
             <ProjectCreateForm
               onCancel={() => setShowCreate(false)}
               onSubmit={data => createMutation.mutate(data)}
@@ -197,8 +178,8 @@ export default function ProjectsPage() {
             onNavigate={slug => navigate(`/projects/${slug}`)}
             onDeleteTarget={setDeleteTarget}
             onCreateClick={() => setShowCreate(true)}
-            canCreateProjects={allowProjectManagement()}
-            canDeleteProjects={allowProjectManagement()}
+            canCreateProjects={allowProjectManagement}
+            canDeleteProjects={allowProjectManagement}
           />
         </section>
 

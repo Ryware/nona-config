@@ -152,7 +152,7 @@ class LocalParamMetadataService {
       return {
         displayName: dict[keyPath].displayName || autoFormatKey(key),
         description:
-          dict[keyPath].description || `Configuration setting for ${key}.`,
+          dict[keyPath].description ?? `Configuration setting for ${key}.`,
       };
     }
 

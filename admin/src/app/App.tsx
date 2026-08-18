@@ -4,9 +4,11 @@ import { Navigate, Route, Router, useLocation } from "@solidjs/router";
 import { QueryClientProvider } from "@tanstack/solid-query";
 import { type JSX, lazy, onMount, Show, Suspense } from "solid-js";
 import { authService } from "../entities/auth/api/auth.service";
+import { canManageUsers } from "../entities/auth/model/permissions";
 import { authStore } from "../entities/auth/model/store";
 import { getActiveProjectHref } from "../entities/project/model/active-project";
 import { ThemeProvider } from "../shared/hooks/useTheme";
+import { AccessDenied } from "../shared/ui/AccessDenied";
 import { RouteLoader } from "../shared/ui/Skeleton";
 import { ToastProvider } from "../shared/ui/toast";
 import { queryClient } from "./query-client";
@@ -49,10 +51,22 @@ export default function App(): JSX.Element {
                   component={lazy(() => import("../pages/auth/CliLoginPage"))}
                 />
 
+                <Route
+                  path="/sso/callback/:provider"
+                  component={lazy(() => import("../pages/auth/SsoCallbackPage"))}
+                />
+
                 <Route component={InvitationRoute}>
                   <Route
                     path="/invite/:token"
                     component={lazy(() => import("../pages/auth/InvitePage"))}
+                  />
+                </Route>
+
+                <Route component={InvitationRoute}>
+                  <Route
+                    path="/reset-password/:token"
+                    component={lazy(() => import("../pages/auth/ResetPasswordPage"))}
                   />
                 </Route>
 
@@ -72,20 +86,26 @@ export default function App(): JSX.Element {
                   />
                   <Route
                     path="/projects/:slug/environments"
-                    component={ProjectEnvironmentsPage}
+                    component={EnvironmentsSection}
                   />
                   <Route
                     path="/projects/:slug/shared-links"
-                    component={ProjectShareLinksPage}
+                    component={SharedLinksSection}
                   />
-                  <Route path="/projects/:slug/api-keys" component={ProjectApiKeysPage} />
-                  <Route path="/projects/:slug/releases" component={ProjectReleasesPage} />
-                  <Route path="/projects/:slug" component={ProjectPage} />
-                  <Route path="/users" component={lazy(() => import("../pages/users/UsersPage"))} />
+                  <Route path="/projects/:slug/api-keys" component={ApiKeysSection} />
+                  <Route path="/projects/:slug/releases" component={ReleasesSection} />
+                  <Route path="/projects/:slug" component={ParametersSection} />
                   <Route
-                    path="/audit-logs"
-                    component={lazy(() => import("../pages/audit-logs/AuditLogsPage"))}
+                    path="/account"
+                    component={lazy(() => import("../pages/account/AccountPage"))}
                   />
+                  <Route component={AdminRoute}>
+                    <Route path="/users" component={lazy(() => import("../pages/users/UsersPage"))} />
+                    <Route
+                      path="/audit-logs"
+                      component={lazy(() => import("../pages/audit-logs/AuditLogsPage"))}
+                    />
+                  </Route>
                 </Route>
               </Router>
             </Suspense>
@@ -96,21 +116,11 @@ export default function App(): JSX.Element {
   );
 }
 
-// The project detail page and its section variants all live in one module, so
-// they share a single lazily-loaded chunk (the dynamic import is cached).
-const ProjectPage = lazy(() => import("../pages/projects/ProjectPage"));
-const ProjectEnvironmentsPage = lazy(() =>
-  import("../pages/projects/ProjectPage").then(module => ({ default: module.ProjectEnvironmentsPage }))
-);
-const ProjectApiKeysPage = lazy(() =>
-  import("../pages/projects/ProjectPage").then(module => ({ default: module.ProjectApiKeysPage }))
-);
-const ProjectShareLinksPage = lazy(() =>
-  import("../pages/projects/ProjectPage").then(module => ({ default: module.ProjectShareLinksPage }))
-);
-const ProjectReleasesPage = lazy(() =>
-  import("../pages/projects/ProjectPage").then(module => ({ default: module.ProjectReleasesPage }))
-);
+const ParametersSection = lazy(() => import("../pages/projects/sections/ParametersSection"));
+const EnvironmentsSection = lazy(() => import("../pages/projects/sections/EnvironmentsSection"));
+const ApiKeysSection = lazy(() => import("../pages/projects/sections/ApiKeysSection"));
+const SharedLinksSection = lazy(() => import("../pages/projects/sections/SharedLinksSection"));
+const ReleasesSection = lazy(() => import("../pages/projects/sections/ReleasesSection"));
 
 const AppLayout = lazy(() =>
   import("../widgets/app-shell/AppLayout").then(module => ({ default: module.AppLayout }))
@@ -128,6 +138,10 @@ function ProtectedRoute(props: { children?: JSX.Element }) {
       <AppLayout>{props.children}</AppLayout>
     </Show>
   );
+}
+
+function AdminRoute(props: { children?: JSX.Element }) {
+  return <Show when={canManageUsers()} fallback={<AccessDenied />}>{props.children}</Show>;
 }
 
 const AuthLayout = lazy(() =>

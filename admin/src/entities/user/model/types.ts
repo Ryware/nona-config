@@ -2,17 +2,17 @@
 
 export interface ProjectAccess {
   projectName: string;
-  role: string;
+  role: "editor" | "viewer";
 }
 
 export interface User {
   id: string;
   email: string;
-  isAdmin: boolean;
-  role: string;
+  role: "admin" | "member";
   name: string;
   scope?: string;
   projects?: ProjectAccess[];
+  passwordEnabled: boolean;
   createdAt: string;
   updatedAt?: string;
 }
@@ -20,13 +20,18 @@ export interface User {
 export interface CreateUserRequest {
   name: string;
   email: string;
-  role?: string;
+  role?: "admin" | "member";
   scope?: string;
 }
 
 export interface CreateUserResponse {
   user: User;
   invitationToken: string;
+}
+
+export interface GeneratePasswordResetResponse {
+  passwordResetToken: string;
+  expiresAt: string;
 }
 
 export interface DashboardCounts {

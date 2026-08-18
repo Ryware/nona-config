@@ -4,6 +4,7 @@ const project = {
   id: 'proj-1',
   urlSlug: 'my-app',
   name: 'my-app',
+  accessLevel: 'admin',
   description: 'Main application config',
   environments: ['production', 'staging'],
   createdAt: '2024-01-01T00:00:00Z',
@@ -15,7 +16,6 @@ const users = [
     id: 'user-1',
     email: 'admin@example.com',
     name: 'Admin User',
-    isAdmin: true,
     role: 'admin',
     scope: 'all',
     createdAt: '2024-01-01T00:00:00Z',
@@ -178,7 +178,7 @@ async function signIn(page: Page) {
     localStorage.setItem('auth_token', 'visual-test-token');
     localStorage.setItem(
       'auth_session',
-      JSON.stringify({ email: 'admin@example.com', role: 'admin', isAdmin: true }),
+      JSON.stringify({ email: 'admin@example.com', role: 'admin' }),
     );
     localStorage.setItem('sidebar_collapsed', 'true');
   });
@@ -187,6 +187,23 @@ async function signIn(page: Page) {
 test.beforeEach(async ({ page }) => {
   await signIn(page);
   await mockApi(page);
+});
+
+test('header fits constrained desktop viewports', async ({ page }, testInfo) => {
+  test.skip(!testInfo.project.name.includes('desktop'), 'Desktop breakpoint coverage');
+  await page.setViewportSize({ width: 1100, height: 400 });
+  await page.addInitScript(() => localStorage.setItem('sidebar_collapsed', 'false'));
+
+  await page.goto('/projects/my-app/releases');
+  await expect(page.getByTestId('project-releases-section')).toBeVisible();
+
+  for (const width of [1100, 1280, 1360, 1439, 1440]) {
+    await test.step(`${width}px`, async () => {
+      await page.setViewportSize({ width, height: 400 });
+      await expectNoHorizontalOverflow(page);
+      await expectNoHeaderElementOverlap(page);
+    });
+  }
 });
 
 test('project release page matches approved screenshot', async ({ page }, testInfo) => {
@@ -260,4 +277,30 @@ async function expectNoHorizontalOverflow(page: Page) {
     () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
   );
   expect(hasOverflow).toBe(false);
+}
+
+async function expectNoHeaderElementOverlap(page: Page) {
+  const overlaps = await page.locator('header').evaluate(header => {
+    const elements = [...header.querySelectorAll<HTMLElement>('button, a, span')].filter(element => {
+      const box = element.getBoundingClientRect();
+      return box.width > 0 && box.height > 0;
+    });
+
+    return elements.flatMap((left, index) =>
+      elements.slice(index + 1).flatMap(right => {
+        if (left.contains(right) || right.contains(left)) return [];
+
+        const leftBox = left.getBoundingClientRect();
+        const rightBox = right.getBoundingClientRect();
+        const overlapWidth = Math.min(leftBox.right, rightBox.right) - Math.max(leftBox.left, rightBox.left);
+        const overlapHeight = Math.min(leftBox.bottom, rightBox.bottom) - Math.max(leftBox.top, rightBox.top);
+
+        return overlapWidth > 1 && overlapHeight > 1
+          ? [`${left.textContent?.trim()} / ${right.textContent?.trim()}`]
+          : [];
+      }),
+    );
+  });
+
+  expect(overlaps).toEqual([]);
 }

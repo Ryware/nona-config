@@ -376,7 +376,7 @@ const PAGE_FAQS: Record<string, FaqItem[]> = {
 		{
 			question: 'Does editing parameters immediately affect clients?',
 			answer:
-				'No. Editing changes the working configuration only. Clients read releases, either the active release or an explicitly requested version.',
+				'Not while a release is active. If none is active, unversioned clients use the working configuration and see edits on their next fetch.',
 		},
 		{
 			question: 'Why does Create a version ask for 1.2 instead of 1.2.0?',

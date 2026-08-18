@@ -20,7 +20,7 @@ Think of the environment in two layers:
 - the **Parameters** page is the editable working configuration
 - the **Releases** page is the history of immutable snapshots
 
-Applications read from releases, not directly from the editable working configuration.
+Applications normally read from releases. When no release is active, an unversioned read falls back to the editable working configuration.
 
 That means you can change parameters, review them, and only publish a release when you are ready.
 
@@ -28,7 +28,7 @@ That means you can change parameters, review them, and only publish a release wh
 
 Public reads work like this:
 
-- no `version` parameter reads the environment's active release
+- no `version` parameter reads the environment's active release, or the working configuration if none is active
 - `version=1.2.0` reads that exact release
 - `version=1.2.x` reads the highest patch in the `1.2` line
 
@@ -36,14 +36,17 @@ This gives you a stable exact-version path and a practical major-minor line path
 
 ## Working configuration vs active release
 
-Editing a parameter does **not** automatically change what clients receive.
+When a release is active, editing a parameter does **not** automatically change what clients receive.
 
 The editable working configuration is where operators prepare the next release.
 
 Clients only see:
 
+- the working configuration when no release is active
 - the active release when they omit `version`
 - the exact or line-matched release when they request one explicitly
+
+Clearing the active release deliberately switches unversioned clients back to the current working configuration. Exact and line-version requests continue to resolve immutable releases.
 
 That separation is one of the main safety properties of the release system.
 
@@ -171,9 +174,7 @@ That keeps release lines explicit and understandable.
 
 ### Does editing parameters immediately affect clients?
 
-No.
-
-Editing changes the working configuration only. Clients read releases.
+Not while a release is active. If no release is active, unversioned clients use the working configuration and see edits on their next fetch.
 
 ### Why does Create a version ask for `1.2` instead of `1.2.0`?
 

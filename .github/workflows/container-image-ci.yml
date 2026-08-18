@@ -9,6 +9,12 @@ on:
       - v*
   pull_request:
   workflow_dispatch:
+    inputs:
+      publish_image:
+        description: Publish image to Docker Hub
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -68,6 +74,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Run TypeScript typecheck
+        run: npm run typecheck
 
       - name: Run unit and integration tests
         run: npm run test:run
@@ -215,7 +224,7 @@ jobs:
 
   deploy:
     name: Publish container image
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'workflow_dispatch' && inputs.publish_image == true && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/development')
     needs:
       - verify-generated-clients
       - test-admin-frontend

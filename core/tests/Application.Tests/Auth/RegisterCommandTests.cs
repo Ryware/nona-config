@@ -31,7 +31,7 @@ public class RegisterCommandTests
             .Send(Arg.Any<LoginCommand>(), Arg.Any<CancellationToken>())
             .Returns(ValueTask.FromResult(new LoginResult(
                 true,
-                new LoginResponse("jwt-token", "admin@example.com", "editor", new DateTime(2026, 6, 4, 12, 0, 0, DateTimeKind.Utc)),
+                new LoginResponse("jwt-token", "admin@example.com", "admin", new DateTime(2026, 6, 4, 12, 0, 0, DateTimeKind.Utc)),
                 null)));
 
         var handler = new RegisterCommandHandler(_mediator, _userRepository, _dateTime, _passwordHasher);
@@ -43,7 +43,7 @@ public class RegisterCommandTests
         await Assert.That(result.Response!.Token).IsEqualTo("jwt-token");
         await _userRepository.Received(1).AddAsync(Arg.Is<User>(user =>
             user.Email == "admin@example.com" &&
-            user.IsAdmin &&
+            user.Role == UserRole.Admin &&
             user.PasswordHash == "hashed-password"), Arg.Any<CancellationToken>());
     }
 

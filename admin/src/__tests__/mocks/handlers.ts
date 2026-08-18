@@ -102,7 +102,7 @@ export const handlers = [
       return HttpResponse.json({ detail: 'Password is required' }, { status: 400 });
     }
 
-    return HttpResponse.json({ token: mockToken, role: 'viewer', expiresAt: '2099-01-01T00:00:00Z' });
+    return HttpResponse.json({ token: mockToken, role: 'member', expiresAt: '2099-01-01T00:00:00Z' });
   }),
 
   http.post(`${BASE}/auth/invitations/:token/sso/google`, async ({ params, request }) => {
@@ -115,7 +115,7 @@ export const handlers = [
 
     const body = await request.json() as { idToken?: string };
     if (body.idToken === 'google-valid-token') {
-      return HttpResponse.json({ token: mockToken, role: 'viewer', expiresAt: '2099-01-01T00:00:00Z' });
+      return HttpResponse.json({ token: mockToken, role: 'member', expiresAt: '2099-01-01T00:00:00Z' });
     }
 
     if (body.idToken === 'google-mismatch-token') {
@@ -138,10 +138,71 @@ export const handlers = [
 
     const body = await request.json() as { idToken?: string };
     if (body.idToken === 'microsoft-valid-token') {
-      return HttpResponse.json({ token: mockToken, role: 'viewer', expiresAt: '2099-01-01T00:00:00Z' });
+      return HttpResponse.json({ token: mockToken, role: 'member', expiresAt: '2099-01-01T00:00:00Z' });
     }
 
     return HttpResponse.json({ detail: 'Authentication failed' }, { status: 401 });
+  }),
+
+  http.get(`${BASE}/auth/password-resets/:token`, ({ params }) => {
+    if (params.token === 'invalid-token') {
+      return HttpResponse.json(
+        {
+          detail: 'Password reset link is invalid, expired, or has already been used.',
+          errorCode: 'password_reset_invalid_or_used',
+        },
+        { status: 404 },
+      );
+    }
+
+    return HttpResponse.json({
+      email: 'reset@example.com',
+      name: 'Reset User',
+      expiresAt: '2099-01-01T00:00:00Z',
+    });
+  }),
+
+  http.post(`${BASE}/auth/password-resets/:token/password`, ({ params }) => {
+    if (params.token === 'invalid-token') {
+      return HttpResponse.json(
+        {
+          detail: 'Password reset link is invalid, expired, or has already been used.',
+          errorCode: 'password_reset_invalid_or_used',
+        },
+        { status: 404 },
+      );
+    }
+
+    return new HttpResponse(null, { status: 204 });
+  }),
+
+  http.get(`${BASE}/auth/me`, () => {
+    return HttpResponse.json({
+      email: 'admin@example.com',
+      name: 'Admin User',
+      role: 'admin',
+      passwordEnabled: true,
+    });
+  }),
+
+  http.put(`${BASE}/auth/password`, async ({ request }) => {
+    const body = await request.json() as { currentPassword?: string; newPassword?: string };
+    if (body.currentPassword === 'wrong') {
+      return HttpResponse.json(
+        { detail: 'Current password is incorrect.', errorCode: 'current_password_invalid' },
+        { status: 400 },
+      );
+    }
+    if (body.currentPassword === body.newPassword) {
+      return HttpResponse.json(
+        {
+          detail: 'New password must be different from the current password.',
+          errorCode: 'new_password_must_differ',
+        },
+        { status: 400 },
+      );
+    }
+    return new HttpResponse(null, { status: 204 });
   }),
 
   // ── Projects ─────────────────────────────────────────────────────────────────
@@ -465,9 +526,9 @@ export const handlers = [
         id: 'user-new',
         email: body.email,
         name: body.name,
-        isAdmin: false,
-        role: body.role ?? 'viewer',
+        role: body.role ?? 'member',
         scope: 'all',
+        passwordEnabled: false,
         projects: [],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -487,6 +548,13 @@ export const handlers = [
     return new HttpResponse(null, { status: 204 });
   }),
 
+  http.post(`${BASE}/admin/users/:id/password-reset`, () => {
+    return HttpResponse.json({
+      passwordResetToken: 'password-reset-token-123',
+      expiresAt: '2099-01-01T00:00:00Z',
+    });
+  }),
+
   // ── Dashboard ────────────────────────────────────────────────────────────────
   http.get(`${BASE}/admin/dashboard/counts`, () => {
     return HttpResponse.json({
@@ -496,18 +564,15 @@ export const handlers = [
     });
   }),
 
-  // ── Forgot Password ──────────────────────────────────────────────────────────
-  http.post(`${BASE}/auth/forgot-password`, () => {
-    return new HttpResponse(null, { status: 204 });
-  }),
-
   // ── Audit Logs ───────────────────────────────────────────────────────────────
-  http.get(`${BASE}/admin/audit-logs`, () => {
-    return HttpResponse.json([
+  http.get(`${BASE}/admin/audit-logs`, ({ request }) => {
+    const globalScopeEnvironment = '__global__';
+    const auditLogs = [
       {
         id: 'log-proj-1',
         actor: 'admin@example.com',
         actorIsSystem: false,
+        actionKind: 'create',
         action: 'create_project',
         target: 'my-app',
         project: 'my-app',
@@ -518,6 +583,7 @@ export const handlers = [
         id: 'log-proj-2',
         actor: 'admin@example.com',
         actorIsSystem: false,
+        actionKind: 'create',
         action: 'create_project',
         target: 'backend-api',
         project: 'backend-api',
@@ -528,6 +594,7 @@ export const handlers = [
         id: 'log-user-1',
         actor: 'admin@example.com',
         actorIsSystem: false,
+        actionKind: 'create',
         action: 'invite_user',
         target: 'alice@example.com',
         project: null,
@@ -538,12 +605,51 @@ export const handlers = [
         id: 'log-user-2',
         actor: 'admin@example.com',
         actorIsSystem: false,
+        actionKind: 'create',
         action: 'invite_user',
         target: 'bob@example.com',
         project: null,
         environment: null,
         createdAt: '2024-01-04T00:00:00Z',
       },
-    ]);
+    ];
+    const url = new URL(request.url);
+    const search = url.searchParams.get('search')?.toLowerCase();
+    const action = url.searchParams.get('action');
+    const environment = url.searchParams.get('environment');
+    const page = Number(url.searchParams.get('page') ?? '1');
+    const pageSize = Number(url.searchParams.get('pageSize') ?? '25');
+    const filtered = auditLogs.filter(log =>
+      (!search ||
+        log.actor.toLowerCase().includes(search) ||
+        log.target.toLowerCase().includes(search) ||
+        (log.project ?? '').toLowerCase().includes(search)) &&
+      (!action || log.action === action) &&
+      (!environment ||
+        (environment === globalScopeEnvironment
+          ? !log.environment
+          : log.environment === environment))
+    );
+    const start = (page - 1) * pageSize;
+
+    return HttpResponse.json({
+      items: filtered.slice(start, start + pageSize),
+      page,
+      pageSize,
+      totalCount: filtered.length,
+      totalPages: Math.ceil(filtered.length / pageSize),
+      actions: [...new Set(auditLogs.map(log => log.action))],
+      environments: [...new Set(auditLogs.map(log => log.environment ?? globalScopeEnvironment))],
+    });
+  }),
+
+  http.get(`${BASE}/admin/audit-logs/export`, ({ request }) => {
+    const format = new URL(request.url).searchParams.get('format');
+    return new HttpResponse(format === 'json' ? '[]' : 'Time,Actor\n', {
+      headers: {
+        'Content-Type': format === 'json' ? 'application/json' : 'text/csv',
+        'Content-Disposition': `attachment; filename="audit-logs-test.${format ?? 'csv'}"`,
+      },
+    });
   }),
 ];

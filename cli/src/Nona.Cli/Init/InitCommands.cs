@@ -170,7 +170,7 @@ internal sealed class InitCommands(CliContext ctx) : ICliCommandGroup
             return InitCommandResolution.Fail("Project must be alphanumeric with hyphens only.");
 
         var environment = FirstValue(parsedEnvironment, DefaultEnvironment)!.Trim();
-        if (!IsSlug(environment))
+        if (!IsSlug(environment) || !char.IsAsciiLetterOrDigit(environment[0]))
             return InitCommandResolution.Fail("Environment must be alphanumeric with hyphens only.");
 
         var scope = FirstValue(parsedScope, "client")!.Trim().ToLowerInvariant();

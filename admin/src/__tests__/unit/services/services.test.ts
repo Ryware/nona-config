@@ -4,6 +4,7 @@ import { projectService } from '../../../entities/project/api/project.service';
 import { environmentService } from '../../../entities/project/api/environment.service';
 import { configEntryService } from '../../../entities/project/api/config-entry.service';
 import { userService } from '../../../entities/user/api/user.service';
+import { auditLogService } from '../../../entities/audit-log/api/audit-log.service';
 import { mockProjects, mockEnvironments, mockConfigEntries, mockUsers, mockToken } from '../../mocks/data';
 import { server } from '../../mocks/server';
 
@@ -11,6 +12,79 @@ const BASE = 'http://localhost:5027';
 
 beforeEach(() => {
   localStorage.setItem('auth_token', mockToken);
+});
+
+describe('auditLogService', () => {
+  it('sends pagination and active filters to the server', async () => {
+    let requestedUrl: URL | undefined;
+    server.use(
+      http.get(`${BASE}/admin/audit-logs`, ({ request }) => {
+        requestedUrl = new URL(request.url);
+        return HttpResponse.json({
+          items: [],
+          page: 3,
+          pageSize: 25,
+          totalCount: 0,
+          totalPages: 0,
+          actions: [],
+          environments: [],
+        });
+      }),
+    );
+
+    await auditLogService.getPage({
+      page: 3,
+      pageSize: 25,
+      search: 'needle value',
+      action: 'Updated Parameter',
+      environment: 'production',
+      dateFrom: '2026-07-01',
+      dateTo: '2026-07-31',
+    });
+
+    expect(requestedUrl?.searchParams.get('page')).toBe('3');
+    expect(requestedUrl?.searchParams.get('pageSize')).toBe('25');
+    expect(requestedUrl?.searchParams.get('search')).toBe('needle value');
+    expect(requestedUrl?.searchParams.get('action')).toBe('Updated Parameter');
+    expect(requestedUrl?.searchParams.get('environment')).toBe('production');
+    expect(requestedUrl?.searchParams.get('dateFrom')).toBe('2026-07-01');
+    expect(requestedUrl?.searchParams.get('dateTo')).toBe('2026-07-31');
+  });
+
+  it('downloads a filtered server-side export', async () => {
+    let requestedUrl: URL | undefined;
+    server.use(
+      http.get(`${BASE}/admin/audit-logs/export`, ({ request }) => {
+        requestedUrl = new URL(request.url);
+        return new HttpResponse('Time,Actor\n', {
+          headers: {
+            'Content-Type': 'text/csv',
+            'Content-Disposition': 'attachment; filename="audit-logs-2026-08-02.csv"',
+          },
+        });
+      }),
+    );
+
+    const result = await auditLogService.export(
+      {
+        search: 'needle value',
+        action: 'Updated Parameter',
+        environment: 'production',
+        dateFrom: '2026-07-01',
+        dateTo: '2026-07-31',
+      },
+      'csv',
+    );
+
+    expect(requestedUrl?.searchParams.get('format')).toBe('csv');
+    expect(requestedUrl?.searchParams.get('search')).toBe('needle value');
+    expect(requestedUrl?.searchParams.get('action')).toBe('Updated Parameter');
+    expect(requestedUrl?.searchParams.get('environment')).toBe('production');
+    expect(requestedUrl?.searchParams.get('dateFrom')).toBe('2026-07-01');
+    expect(requestedUrl?.searchParams.get('dateTo')).toBe('2026-07-31');
+    expect(result.fileName).toBe('audit-logs-2026-08-02.csv');
+    expect(await result.blob.text()).toBe('Time,Actor\n');
+  });
 });
 
 // ── projectService ──────────────────────────────────────────────────────────
@@ -153,7 +227,7 @@ describe('userService', () => {
   it('getById returns the matching user', async () => {
     const result = await userService.getById('user-1');
     expect(result.id).toBe('user-1');
-    expect(result.role).toBe('editor');
+    expect(result.role).toBe('admin');
   });
 
   it('getById throws 404 for unknown id', async () => {
@@ -162,12 +236,12 @@ describe('userService', () => {
 
   it('create returns new user', async () => {
     const result = await userService.create({
-      name: 'Charlie Viewer',
+      name: 'Charlie Member',
       email: 'charlie@example.com',
-      role: 'viewer',
+      role: 'member',
     });
     expect(result.user.email).toBe('charlie@example.com');
-    expect(result.user.role).toBe('viewer');
+    expect(result.user.role).toBe('member');
     expect(result.invitationToken).toBe('invite-token-123');
   });
 

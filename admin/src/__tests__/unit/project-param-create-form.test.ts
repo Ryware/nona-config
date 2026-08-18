@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isValidConfigEntryValue } from "../../features/project-param-edit/ProjectParamCreateForm";
+import { isValidConfigEntryValue } from "../../features/project-param-edit/config-entry-value";
 
 describe("isValidConfigEntryValue", () => {
   it("matches backend value validation for config entry content types", () => {

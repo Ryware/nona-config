@@ -15,21 +15,20 @@ public class User
     public string? PasswordHash { get; set; }
     public string? PasswordSalt { get; set; }
 
-    public bool IsAdmin { get; set; }
-
-    public UserRole Role { get; set; } = UserRole.Viewer;
+    public UserRole Role { get; set; } = UserRole.Member;
     public KeyScope Scope { get; set; } = KeyScope.All;
 
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
-    public string? PasswordResetToken { get; set; }
     public string? InviteTokenHash { get; set; }
+    public string? PasswordResetTokenHash { get; set; }
+    public DateTime? PasswordResetTokenExpiresAt { get; set; }
 
 }
 
 public enum UserRole
 {
-    Viewer,
-    Editor
+    Member = 0,
+    Admin = 2
 }

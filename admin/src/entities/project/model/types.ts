@@ -4,6 +4,7 @@ export interface Project {
   id: string;
   urlSlug: string;
   name: string;
+  accessLevel: "admin" | "editor" | "viewer";
   description?: string;
   environments: string[];
   createdAt: string;

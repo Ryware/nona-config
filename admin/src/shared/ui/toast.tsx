@@ -70,7 +70,7 @@ const ToastContainer: ParentComponent<{
   removeToast: (id: string) => void;
 }> = (props) => {
   return (
-    <div class="fixed bottom-5 right-5 z-50 flex flex-col gap-2" role="status" aria-live="polite">
+    <div class="fixed bottom-5 right-5 z-[110] flex flex-col gap-2" role="status" aria-live="polite">
       <For each={props.toasts}>
         {(toast) => <ToastItem toast={toast} removeToast={props.removeToast} />}
       </For>

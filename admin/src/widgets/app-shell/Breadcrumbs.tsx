@@ -44,6 +44,9 @@ function parseBreadcrumbs(pathname: string): Crumb[] {
   if (parts[0] === "audit-logs") {
     return [{ label: "Audit Logs", path: "/audit-logs" }];
   }
+  if (parts[0] === "account") {
+    return [{ label: "Account" }];
+  }
   return [];
 }
 

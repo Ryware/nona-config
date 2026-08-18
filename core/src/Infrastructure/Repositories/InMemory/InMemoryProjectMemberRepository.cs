@@ -24,6 +24,23 @@ public class InMemoryProjectMemberRepository : IProjectMemberRepository
         return Task.FromResult<IReadOnlyList<ProjectMember>>(members);
     }
 
+    public Task<IReadOnlyList<ProjectMember>> ListByUsersAsync(
+        IReadOnlyCollection<string> usernames,
+        CancellationToken ct = default)
+    {
+        if (usernames.Count == 0)
+            return Task.FromResult<IReadOnlyList<ProjectMember>>([]);
+
+        var usernamesToFind = usernames.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var members = _members.Values
+            .Where(member => usernamesToFind.Contains(member.Username))
+            .OrderBy(member => member.Username, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(member => member.ProjectId, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        return Task.FromResult<IReadOnlyList<ProjectMember>>(members);
+    }
+
     public Task<IReadOnlyList<ProjectMember>> ListByProjectAsync(string projectName, CancellationToken ct = default)
     {
         var members = _members.Values
@@ -79,5 +96,24 @@ public class InMemoryProjectMemberRepository : IProjectMemberRepository
             _members.TryRemove(key, out _);
         }
         return Task.CompletedTask;
+    }
+
+    internal void RenameProject(string currentName, string newName)
+    {
+        var matchingMembers = _members.Values
+            .Where(member => member.ProjectId.Equals(currentName, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        foreach (var member in matchingMembers)
+        {
+            _members.TryRemove(GetKey(member.Username, currentName), out _);
+            _members[GetKey(member.Username, newName)] = new ProjectMember
+            {
+                Username = member.Username,
+                ProjectId = newName,
+                Role = member.Role,
+                CreatedAt = member.CreatedAt
+            };
+        }
     }
 }

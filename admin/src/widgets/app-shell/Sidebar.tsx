@@ -2,14 +2,16 @@ import { A, useLocation } from "@solidjs/router";
 import { useQuery } from "@tanstack/solid-query";
 import { For, Show } from "solid-js";
 import { authService } from "../../entities/auth/api/auth.service";
+import { canManageProjects, canManageUsers } from "../../entities/auth/model/permissions";
 import { authStore } from "../../entities/auth/model/store";
 import { projectService } from "../../entities/project/api/project.service";
-import { getActiveProjectHref } from "../../entities/project/model/active-project";
+import { getActiveProjectHref, getActiveProjectSlug } from "../../entities/project/model/active-project";
 import { projectKeys } from "../../entities/project/queries/keys";
+import { NonaMark } from "../../shared/ui/logo";
 
 function getUser(): { email: string; role: string } {
   const session = authStore.getSession();
-  return { email: session?.email ?? "", role: session?.isAdmin ? "admin" : (session?.role ?? "") };
+  return { email: session?.email ?? "", role: session?.role ?? "" };
 }
 
 interface NavItemDef {
@@ -17,6 +19,7 @@ interface NavItemDef {
   icon: string;
   href: () => string;
   isActive: () => boolean;
+  requiresEdit?: boolean;
 }
 
 export const Sidebar = (props: {
@@ -27,6 +30,8 @@ export const Sidebar = (props: {
 }) => {
   const location = useLocation();
   const user = getUser();
+  const isAdmin = canManageUsers();
+  const canCreateProjects = canManageProjects();
   const initials = user.email ? user.email.slice(0, 2).toUpperCase() : "NA";
 
   const projectsQuery = useQuery(() => ({
@@ -35,6 +40,10 @@ export const Sidebar = (props: {
   }));
   // Once loaded, an empty instance collapses the nav to a single Create Project CTA.
   const noProjects = () => projectsQuery.isSuccess && (projectsQuery.data?.length ?? 0) === 0;
+  const activeProject = () =>
+    projectsQuery.data?.find(project => project.urlSlug === getActiveProjectSlug());
+  const canEditActiveProject = () =>
+    activeProject()?.accessLevel === "admin" || activeProject()?.accessLevel === "editor";
 
   const selectedProjectHref = () => getActiveProjectHref();
   const projectPageHref = (
@@ -66,6 +75,7 @@ export const Sidebar = (props: {
       icon: "key",
       href: () => projectPageHref("apiKeys"),
       isActive: () => location.pathname.endsWith("/api-keys"),
+      requiresEdit: true,
     },
     {
       label: "Releases",
@@ -78,6 +88,7 @@ export const Sidebar = (props: {
       icon: "link",
       href: () => projectPageHref("sharedLinks"),
       isActive: () => location.pathname.endsWith("/shared-links"),
+      requiresEdit: true,
     },
     {
       label: "Environments",
@@ -86,6 +97,8 @@ export const Sidebar = (props: {
       isActive: () => location.pathname.endsWith("/environments"),
     },
   ];
+  const visibleProjectNavItems = () =>
+    projectNavItems.filter(item => !item.requiresEdit || canEditActiveProject());
 
   const footerNavItems: NavItemDef[] = [
     {
@@ -94,18 +107,23 @@ export const Sidebar = (props: {
       href: () => "/projects",
       isActive: () => location.pathname === "/projects",
     },
-    {
-      label: "Team",
-      icon: "group",
-      href: () => "/users",
-      isActive: () => location.pathname === "/users" || location.pathname.startsWith("/user"),
-    },
-    {
-      label: "Audit Logs",
-      icon: "manage_history",
-      href: () => "/audit-logs",
-      isActive: () => location.pathname === "/audit-logs",
-    },
+    ...(isAdmin
+      ? [
+          {
+            label: "Team",
+            icon: "group",
+            href: () => "/users",
+            isActive: () =>
+              location.pathname === "/users" || location.pathname.startsWith("/user"),
+          },
+          {
+            label: "Audit Logs",
+            icon: "manage_history",
+            href: () => "/audit-logs",
+            isActive: () => location.pathname === "/audit-logs",
+          },
+        ]
+      : []),
   ];
 
   const navItem = (active: boolean, collapsed: boolean) =>
@@ -137,12 +155,7 @@ export const Sidebar = (props: {
             class="flex items-center gap-3 group"
           >
             <div class="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center bg-primary/15 border border-primary/20 shadow-[0_0_12px_rgba(96,165,250,0.18)] group-hover:shadow-[0_0_20px_rgba(52,211,153,0.24)] transition-shadow duration-300">
-              <span
-                class="material-symbols-outlined text-primary text-[18px]"
-                style={{ "font-variation-settings": "'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24" }}
-              >
-                settings_input_component
-              </span>
+              <NonaMark class="h-4.5 w-4.5 text-primary" />
             </div>
             <Show when={!props.collapsed}>
               <div class="min-w-0">
@@ -163,7 +176,7 @@ export const Sidebar = (props: {
           <Show
             when={noProjects()}
             fallback={
-              <For each={projectNavItems}>
+              <For each={visibleProjectNavItems()}>
                 {item => (
                   <A
                     href={item.href()}
@@ -188,26 +201,41 @@ export const Sidebar = (props: {
               </For>
             }
           >
-            <A
-              href="/projects?new=1"
-              onClick={() => props.onClose()}
-              title={props.collapsed ? "Create Project" : undefined}
-              aria-label="Create Project"
-              data-testid="sidebar-create-project"
-              class={`bg-primary text-on-primary flex items-center justify-center gap-2 rounded-lg text-[13px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] ${
-                props.collapsed ? "px-2.5 py-2.5" : "px-3 py-2.5"
-              }`}
+            <Show
+              when={canCreateProjects}
+              fallback={
+                <A
+                  href="/projects"
+                  onClick={() => props.onClose()}
+                  aria-label="Projects"
+                  class={navItem(location.pathname === "/projects", props.collapsed)}
+                >
+                  <span class="material-symbols-outlined text-[20px] shrink-0">folder_open</span>
+                  <Show when={!props.collapsed}>Projects</Show>
+                </A>
+              }
             >
-              <span class="material-symbols-outlined text-[18px] shrink-0">add</span>
-              <Show when={!props.collapsed}>Create Project</Show>
-            </A>
+              <A
+                href="/projects?new=1"
+                onClick={() => props.onClose()}
+                title={props.collapsed ? "Create Project" : undefined}
+                aria-label="Create Project"
+                data-testid="sidebar-create-project"
+                class={`bg-primary text-on-primary flex items-center justify-center gap-2 rounded-lg text-[13px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] ${
+                  props.collapsed ? "px-2.5 py-2.5" : "px-3 py-2.5"
+                }`}
+              >
+                <span class="material-symbols-outlined text-[18px] shrink-0">add</span>
+                <Show when={!props.collapsed}>Create Project</Show>
+              </A>
+            </Show>
           </Show>
         </div>
 
         <div class="flex-1" />
 
         <div class={`mt-auto pb-4 space-y-2 ${props.collapsed ? "px-2" : "px-3"}`}>
-          <Show when={!noProjects()}>
+          <Show when={!noProjects() || isAdmin}>
             <Show when={!props.collapsed}>
               <p class="px-1 pb-1 text-[10px] font-semibold text-outline/50 tracking-[0.08em] uppercase">
                 Admin
@@ -260,19 +288,26 @@ export const Sidebar = (props: {
 
           <Show when={authService.isAuthenticated() && !props.collapsed}>
             <div class="rounded-xl border border-outline-variant/20 bg-surface-container-low flex items-center gap-3 p-3 hover:border-outline-variant/35 transition-all">
-              <div class="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center bg-primary/20 border border-primary/20">
-                <span class="text-[11px] font-headline font-bold text-primary">
-                  {initials}
-                </span>
-              </div>
-              <div class="flex-1 min-w-0">
-                <p class="text-[12px] font-semibold text-on-surface truncate leading-tight">
-                  {user.email || "Console User"}
-                </p>
-                <p class="text-[10px] text-outline/60 mt-0.5 capitalize tracking-wide">
-                  {user.role || "editor"}
-                </p>
-              </div>
+              <A
+                href="/account"
+                data-testid="sidebar-account-link"
+                aria-label="Account settings"
+                class="flex min-w-0 flex-1 items-center gap-3 rounded-lg"
+              >
+                <div class="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center bg-primary/20 border border-primary/20">
+                  <span class="text-[11px] font-headline font-bold text-primary">
+                    {initials}
+                  </span>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-[12px] font-semibold text-on-surface truncate leading-tight">
+                    {user.email || "Console User"}
+                  </p>
+                  <p class="text-[10px] text-outline/60 mt-0.5 capitalize tracking-wide">
+                    {user.role || "member"}
+                  </p>
+                </div>
+              </A>
               <button
                 onClick={() => authService.logout()}
                 title="Sign out"
@@ -288,11 +323,16 @@ export const Sidebar = (props: {
 
           <Show when={authService.isAuthenticated() && props.collapsed}>
             <div class="flex flex-col items-center gap-1.5">
-              <div class="w-8 h-8 rounded-lg flex items-center justify-center bg-primary/20 border border-primary/20">
+              <A
+                href="/account"
+                aria-label="Account settings"
+                title="Account settings"
+                class="w-8 h-8 rounded-lg flex items-center justify-center bg-primary/20 border border-primary/20"
+              >
                 <span class="text-[11px] font-headline font-bold text-primary">
                   {initials}
                 </span>
-              </div>
+              </A>
               <button
                 onClick={() => authService.logout()}
                 title="Sign out"
