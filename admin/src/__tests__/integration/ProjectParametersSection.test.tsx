@@ -349,7 +349,11 @@ describe('ProjectParametersSection', () => {
       target: { value: 'production-draft-value' },
     });
     fireEvent.click(screen.getByTestId('amend-add-button'));
-    expect(screen.getByText('That key already exists.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Parameter key already exists. Keys are case-insensitive.', {
+        selector: '#amend-new-key-error',
+      }),
+    ).toBeInTheDocument();
 
     setActiveEnvironmentName('my-app', 'staging');
 
@@ -365,7 +369,11 @@ describe('ProjectParametersSection', () => {
     expect(screen.queryByTestId('amend-row-PRODUCTION_SECRET')).not.toBeInTheDocument();
     expect(screen.getByTestId('amend-new-key')).toHaveValue('');
     expect(screen.getByTestId('amend-new-value')).toHaveValue('');
-    expect(screen.queryByText('That key already exists.')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Parameter key already exists. Keys are case-insensitive.', {
+        selector: '#amend-new-key-error',
+      }),
+    ).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId('release-amend-confirm-button'));
 
