@@ -8,6 +8,7 @@ import { canManageUsers } from "../entities/auth/model/permissions";
 import { authStore } from "../entities/auth/model/store";
 import { getActiveProjectHref } from "../entities/project/model/active-project";
 import { ThemeProvider } from "../shared/hooks/useTheme";
+import { UnsavedChangesProvider } from "../shared/hooks/useUnsavedChanges";
 import { AccessDenied } from "../shared/ui/AccessDenied";
 import { RouteLoader } from "../shared/ui/Skeleton";
 import { ToastProvider } from "../shared/ui/toast";
@@ -135,7 +136,9 @@ function ProtectedRoute(props: { children?: JSX.Element }) {
       when={authService.isAuthenticated()}
       fallback={<Navigate href={`/login?redirect=${encodeURIComponent(location.pathname)}`} />}
     >
-      <AppLayout>{props.children}</AppLayout>
+      <UnsavedChangesProvider>
+        <AppLayout>{props.children}</AppLayout>
+      </UnsavedChangesProvider>
     </Show>
   );
 }

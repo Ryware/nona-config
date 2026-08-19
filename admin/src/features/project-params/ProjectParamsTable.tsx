@@ -28,6 +28,7 @@ export interface ProjectParamsTableProps {
   ) => { displayName: string; description: string };
   initialDescription: string;
   onCloseEntry: () => void;
+  onEditDirtyChange: (dirty: boolean) => void;
   onSaveSettings: (data: {
     value: string;
     description: string;
@@ -236,6 +237,7 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
                         {...props}
                         entry={props.editingEntry}
                         onClose={props.onCloseEntry}
+                        onDirtyChange={props.onEditDirtyChange}
                         historyLayout="mobile"
                       />
                     </div>
@@ -516,6 +518,7 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
                               activeEnvName={props.activeEnvName}
                               initialDescription={props.initialDescription}
                               onClose={props.onCloseEntry}
+                              onDirtyChange={props.onEditDirtyChange}
                               onSaveSettings={props.onSaveSettings}
                               isSaving={props.isSaving}
                               canManage={props.canManage}

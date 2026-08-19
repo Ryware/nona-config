@@ -15,6 +15,7 @@ import {
   syncActiveProject,
 } from "../../entities/project/model/active-project";
 import { projectKeys } from "../../entities/project/queries/keys";
+import { useUnsavedChanges } from "../../shared/hooks/useUnsavedChanges";
 import { Select } from "../../shared/ui/select";
 import { ThemeToggle } from "../../shared/ui/ThemeToggle";
 import { Breadcrumbs } from "./Breadcrumbs";
@@ -49,6 +50,7 @@ export function getProjectNavigationPath(pathname: string, slug: string) {
 }
 
 export function Header(props: HeaderProps) {
+  const { requestAction } = useUnsavedChanges();
   const location = useLocation();
   const navigate = useNavigate();
   const canCreateProjects = canManageProjects();
@@ -112,13 +114,15 @@ export function Header(props: HeaderProps) {
   ]);
 
   const handleProjectChange = (slug: string) => {
-    if (slug === MANAGE_PROJECTS_OPTION) {
-      navigate("/projects");
-      return;
-    }
+    requestAction(() => {
+      if (slug === MANAGE_PROJECTS_OPTION) {
+        navigate("/projects");
+        return;
+      }
 
-    setActiveProjectSlug(slug);
-    navigate(getProjectNavigationPath(location.pathname, slug));
+      setActiveProjectSlug(slug);
+      navigate(getProjectNavigationPath(location.pathname, slug));
+    });
   };
 
   const handleEnvironmentChange = (environmentName: string) => {
@@ -127,12 +131,14 @@ export function Header(props: HeaderProps) {
       return;
     }
 
-    if (environmentName === MANAGE_ENVIRONMENTS_OPTION) {
-      navigate(`/projects/${project.urlSlug}/environments`);
-      return;
-    }
+    requestAction(() => {
+      if (environmentName === MANAGE_ENVIRONMENTS_OPTION) {
+        navigate(`/projects/${project.urlSlug}/environments`);
+        return;
+      }
 
-    setActiveEnvironmentName(project.urlSlug, environmentName);
+      setActiveEnvironmentName(project.urlSlug, environmentName);
+    });
   };
 
   return (

@@ -46,6 +46,7 @@ describe("ProjectParamsTable desktop containment", () => {
         getParamMeta={() => ({ displayName: longDisplayName, description: "" })}
         initialDescription=""
         onCloseEntry={vi.fn()}
+        onEditDirtyChange={vi.fn()}
         onSaveSettings={vi.fn()}
         isSaving={false}
         historyVersions={[]}

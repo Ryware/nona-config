@@ -76,6 +76,7 @@ function renderHistory({
       activeEnvName="production"
       initialDescription="Mixed history values"
       onClose={vi.fn()}
+      onDirtyChange={vi.fn()}
       onSaveSettings={vi.fn()}
       isSaving={false}
       canManage={canManage}

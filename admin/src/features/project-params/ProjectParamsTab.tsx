@@ -27,6 +27,7 @@ interface ProjectParamsCreateFormProps {
   onCancel: () => void;
   onSubmit: (data: ProjectParamsCreateFormData) => void;
   isPending: boolean;
+  onDirtyChange: (dirty: boolean) => void;
 }
 
 interface ProjectParamsTabProps {
@@ -197,6 +198,7 @@ export function ProjectParamsTab(props: ProjectParamsTabProps) {
           onSubmit={props.createForm.onSubmit}
           isPending={props.createForm.isPending}
           existingEntries={props.configEntries}
+          onDirtyChange={props.createForm.onDirtyChange}
         />
       </Show>
 

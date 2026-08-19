@@ -1,4 +1,4 @@
-import { createMemo, createSignal, onMount, Show } from "solid-js";
+import { createEffect, createMemo, createSignal, onCleanup, onMount, Show } from "solid-js";
 import { Button } from "../../shared/ui/button";
 import { Input } from "../../shared/ui/input";
 import { Label } from "../../shared/ui/label";
@@ -25,6 +25,7 @@ interface ProjectParamCreateFormProps {
   }) => void;
   isPending: boolean;
   existingEntries: ConfigEntry[];
+  onDirtyChange: (dirty: boolean) => void;
 }
 
 export function ProjectParamCreateForm(props: ProjectParamCreateFormProps) {
@@ -60,6 +61,17 @@ export function ProjectParamCreateForm(props: ProjectParamCreateFormProps) {
       existingKeys: props.existingEntries.map((entry) => entry.key),
     }),
   );
+  const isDirty = createMemo(
+    () =>
+      cfgKey() !== "" ||
+      cfgValue() !== "" ||
+      cfgType() !== "text" ||
+      cfgScope() !== "all" ||
+      cfgDescription() !== ""
+  );
+
+  createEffect(() => props.onDirtyChange(isDirty()));
+  onCleanup(() => props.onDirtyChange(false));
 
   const keyError = () => (keyTouched() ? validation().keyError : undefined);
   const valueError = () => (valueTouched() ? validation().valueError : undefined);

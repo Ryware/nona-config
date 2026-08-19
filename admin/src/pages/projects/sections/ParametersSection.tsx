@@ -14,6 +14,10 @@ import { ParameterShareDialog } from "../../../features/project-param-share/Para
 import { ProjectParamsTab } from "../../../features/project-params/ProjectParamsTab";
 import { ReleaseAmendPanel } from "../../../features/project-releases/ReleaseAmendPanel";
 import { useEscapeKey } from "../../../shared/hooks/useEscapeKey";
+import {
+  useUnsavedChanges,
+  useUnsavedChangesBlocker
+} from "../../../shared/hooks/useUnsavedChanges";
 import { MSG } from "../../../shared/lib/messages";
 import { ConfirmDialog } from "../../../shared/ui/confirm-dialog";
 import { useToast } from "../../../shared/ui/toast";
@@ -26,6 +30,9 @@ import type {
 import { ProjectSectionLayout } from "../components/ProjectSectionLayout";
 import { useProjectContext } from "../hooks/useProjectContext";
 import { useReleaseActions } from "../hooks/useReleaseActions";
+
+const CREATE_PARAMETER_DRAFT = "parameter-create-draft";
+const EDIT_PARAMETER_DRAFT = "parameter-edit-draft";
 
 const errorMessage = (caught: unknown, fallback: string) =>
   caught instanceof Error && caught.message ? caught.message : fallback;
@@ -60,6 +67,31 @@ export default function ParametersSection() {
   const [editDescription, setEditDescription] = createSignal("");
   const [showBulkImport, setShowBulkImport] = createSignal(false);
   const [pendingReleaseExit, setPendingReleaseExit] = createSignal<(() => void) | null>(null);
+  const [createDraftDirty, setCreateDraftDirty] = createSignal(false);
+  const [editDraftDirty, setEditDraftDirty] = createSignal(false);
+  const { requestAction, isPromptOpen } = useUnsavedChanges();
+
+  const closeCreateDraft = () => {
+    setCreateDraftDirty(false);
+    setShowConfigForm(false);
+  };
+
+  const closeEditDraft = () => {
+    setEditDraftDirty(false);
+    setEditingEntry(null);
+    setEditHistoryQueryKey("");
+  };
+
+  useUnsavedChangesBlocker({
+    id: CREATE_PARAMETER_DRAFT,
+    isDirty: createDraftDirty,
+    discard: closeCreateDraft
+  });
+  useUnsavedChangesBlocker({
+    id: EDIT_PARAMETER_DRAFT,
+    isDirty: editDraftDirty,
+    discard: closeEditDraft
+  });
 
   const isViewingReleaseSnapshot = () => !!viewedReleaseVersion();
   const isAmendMode = () => !!amendSourceVersion();
@@ -289,13 +321,19 @@ export default function ParametersSection() {
     `${window.location.origin}/share/${encodeURIComponent(token)}`;
 
   useEscapeKey(() => {
-    setEditingEntry(null);
-    setEditHistoryQueryKey("");
-    setSharingEntry(null);
-    setShareLinksQueryKey("");
-    setGeneratedShareUrl(null);
-    setShowConfigForm(false);
-    setShowBulkImport(false);
+    if (isPromptOpen()) return;
+
+    requestAction(
+      () => {
+        closeEditDraft();
+        closeCreateDraft();
+        setSharingEntry(null);
+        setShareLinksQueryKey("");
+        setGeneratedShareUrl(null);
+        setShowBulkImport(false);
+      },
+      [CREATE_PARAMETER_DRAFT, EDIT_PARAMETER_DRAFT]
+    );
   });
 
   const createConfigMutation = useMutation(() => ({
@@ -323,26 +361,36 @@ export default function ParametersSection() {
   }));
 
   const handleOpenEditDrawer = (entry: ConfigEntry) => {
-    if (editingEntry()?.key === entry.key) {
-      setEditingEntry(null);
-      setEditHistoryQueryKey("");
-      return;
-    }
+    const isCurrentEntry = editingEntry()?.key === entry.key;
+    const currentProjectId = projectId();
+    const currentEnvironmentName = activeEnvName();
 
-    setEditingEntry(entry);
-    setEditHistoryQueryKey("");
-    const meta = localParamMetadataService.getMeta(projectId(), activeEnvName(), entry.key);
-    setEditDescription(meta.description);
-
-    if (isViewingReleaseSnapshot()) {
-      return;
-    }
-
-    requestAnimationFrame(() => {
-      if (editingEntry()?.key === entry.key) {
-        setEditHistoryQueryKey(entry.key);
+    requestAction(() => {
+      if (isCurrentEntry) {
+        closeEditDraft();
+        return;
       }
-    });
+
+      setEditDraftDirty(false);
+      setEditingEntry(entry);
+      setEditHistoryQueryKey("");
+      const meta = localParamMetadataService.getMeta(
+        currentProjectId,
+        currentEnvironmentName,
+        entry.key
+      );
+      setEditDescription(meta.description);
+
+      if (isViewingReleaseSnapshot()) {
+        return;
+      }
+
+      requestAnimationFrame(() => {
+        if (editingEntry()?.key === entry.key) {
+          setEditHistoryQueryKey(entry.key);
+        }
+      });
+    }, [EDIT_PARAMETER_DRAFT]);
   };
 
   const handleOpenShareDialog = (entry: ConfigEntry) => {
@@ -620,12 +668,24 @@ export default function ParametersSection() {
             paramSearch={paramSearch()}
             onParamSearch={setParamSearch}
             onToggleBulkImport={() => {
-              setShowBulkImport(!showBulkImport());
-              setShowConfigForm(false);
+              const nextShowBulkImport = !showBulkImport();
+              requestAction(() => {
+                setShowBulkImport(nextShowBulkImport);
+                closeCreateDraft();
+              }, [CREATE_PARAMETER_DRAFT]);
             }}
             onToggleConfigForm={() => {
-              setShowConfigForm(!showConfigForm());
-              setShowBulkImport(false);
+              const nextShowConfigForm = !showConfigForm();
+              const toggleForm = () => {
+                setShowConfigForm(nextShowConfigForm);
+                setShowBulkImport(false);
+              };
+
+              if (showConfigForm()) {
+                requestAction(toggleForm, [CREATE_PARAMETER_DRAFT]);
+              } else {
+                toggleForm();
+              }
             }}
             showConfigForm={showConfigForm()}
             bulkImportPanel={
@@ -643,7 +703,7 @@ export default function ParametersSection() {
             isReadOnly={isViewingReleaseSnapshot()}
             viewingReleaseVersion={viewedReleaseVersion()}
             createForm={{
-              onCancel: () => setShowConfigForm(false),
+              onCancel: () => requestAction(closeCreateDraft, [CREATE_PARAMETER_DRAFT]),
               onSubmit: data => {
                 if (!canManageProject()) return;
                 localParamMetadataService.setMeta(projectId(), activeEnvName(), data.key, {
@@ -657,7 +717,8 @@ export default function ParametersSection() {
                   scope: data.scope
                 });
               },
-              isPending: createConfigMutation.isPending
+              isPending: createConfigMutation.isPending,
+              onDirtyChange: setCreateDraftDirty
             }}
             table={{
               isLoading: parametersLoading(),
@@ -675,9 +736,9 @@ export default function ParametersSection() {
                 localParamMetadataService.getMeta(proj, env, key),
               initialDescription: editDescription(),
               onCloseEntry: () => {
-                setEditingEntry(null);
-                setEditHistoryQueryKey("");
+                requestAction(closeEditDraft, [EDIT_PARAMETER_DRAFT]);
               },
+              onEditDirtyChange: setEditDraftDirty,
               onSaveSettings: data => {
                 if (!canManageProject()) return;
                 setEditDescription(data.description);

@@ -1,5 +1,5 @@
 import type { JSX } from "solid-js";
-import { createEffect, createMemo, createSignal, For, Show } from "solid-js";
+import { createEffect, createMemo, createSignal, For, onCleanup, Show } from "solid-js";
 import { useClipboard } from "../../shared/hooks/useClipboard";
 import { Button } from "../../shared/ui/button";
 import { MIcon } from "../../shared/ui/icons";
@@ -32,6 +32,7 @@ interface ProjectParamEditDrawerProps {
   historyLayout: "mobile" | "desktop";
   isReadOnly?: boolean;
   releaseVersion?: string;
+  onDirtyChange: (dirty: boolean) => void;
 }
 
 interface FieldRowProps {
@@ -136,6 +137,20 @@ export function ProjectParamEditDrawer(props: ProjectParamEditDrawerProps) {
   });
 
   const isEditInvalid = () => !isValidConfigEntryValue(editContentType(), editVal());
+  const isDirty = createMemo(() => {
+    const entry = props.entry;
+    if (!entry || props.isReadOnly) return false;
+
+    return (
+      editVal() !== entry.value ||
+      editDescription() !== props.initialDescription ||
+      editContentType() !== entry.contentType ||
+      editScope() !== entry.scope
+    );
+  });
+
+  createEffect(() => props.onDirtyChange(isDirty()));
+  onCleanup(() => props.onDirtyChange(false));
 
   const handleSave = () => {
     if (!props.canManage) return;
