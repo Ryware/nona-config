@@ -107,7 +107,7 @@ export const UnsavedChangesProvider: ParentComponent = props => {
       <ConfirmDialog
         open={isPromptOpen()}
         title="Discard Unsaved Changes?"
-        message="You have unsaved parameter changes. Discard them and continue?"
+        message="You have unsaved changes. Discard them and continue?"
         confirmLabel="Discard Changes"
         cancelLabel="Keep Editing"
         variant="warning"

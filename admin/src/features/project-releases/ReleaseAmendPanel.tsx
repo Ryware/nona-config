@@ -7,6 +7,7 @@ import { Label } from "../../shared/ui/label";
 import { Select } from "../../shared/ui/select";
 import { Tooltip, TooltipLabel, TooltipTrigger } from "../../shared/ui/tooltip";
 import { tooltipCopy } from "../../shared/lib/tooltip-copy";
+import { useUnsavedChangesBlocker } from "../../shared/hooks/useUnsavedChanges";
 import type { ConfigReleaseEntry } from "../../types";
 import {
   type ConfigEntryContentType,
@@ -25,6 +26,21 @@ const SCOPE_OPTIONS = [
   { value: "server", label: "Server" },
   { value: "all", label: "All" }
 ];
+
+const RELEASE_AMEND_DRAFT = "release-amend-draft";
+
+function entriesMatch(left: ConfigReleaseEntry[], right: ConfigReleaseEntry[]) {
+  return (
+    left.length === right.length &&
+    left.every(
+      (entry, index) =>
+        entry.key === right[index]?.key &&
+        entry.value === right[index]?.value &&
+        entry.contentType === right[index]?.contentType &&
+        entry.scope === right[index]?.scope
+    )
+  );
+}
 
 interface ReleaseAmendPanelProps {
   projectId: string;
@@ -86,6 +102,27 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
   const hasVisibleFieldError = () => !!keyError() || !!valueError();
   const actionStatus = () =>
     addValidation().disabledReason ?? "Parameter is ready to add to this release.";
+
+  const isDirty = createMemo(
+    () =>
+      isBufferReady() &&
+      (!entriesMatch(rows, props.sourceEntries) ||
+        newKey() !== "" ||
+        newValue() !== "" ||
+        newType() !== "text" ||
+        newScope() !== "all")
+  );
+
+  const discardDraft = () => {
+    setRows(props.sourceEntries.map(entry => ({ ...entry })));
+    resetAddRowState();
+  };
+
+  useUnsavedChangesBlocker({
+    id: RELEASE_AMEND_DRAFT,
+    isDirty,
+    discard: discardDraft
+  });
 
   createEffect(() => {
     const identity = currentIdentity();
