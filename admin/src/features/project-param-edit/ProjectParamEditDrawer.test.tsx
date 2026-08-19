@@ -113,10 +113,15 @@ describe("ProjectParamEditDrawer history", () => {
     }
   });
 
-  it("retains full long values as hover text and rolls back the selected revision", () => {
+  it("retains full long values as hover text and rolls back the selected revision", async () => {
     const onRollbackVersion = renderHistory();
 
-    expect(screen.getByTitle(longJson)).toBeInTheDocument();
+    const valueTrigger = within(screen.getByTestId("parameter-history-value-v5")).getByText(
+      longJson
+    );
+    expect(valueTrigger).toHaveAttribute("data-tooltip-trigger");
+    fireEvent.focus(valueTrigger);
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(longJson);
     fireEvent.click(screen.getByRole("button", { name: "Rollback to v4" }));
     expect(onRollbackVersion).toHaveBeenCalledWith(versions[1]);
   });
@@ -137,7 +142,7 @@ describe("ProjectParamEditDrawer history", () => {
     expect(valueField).toHaveClass("w-full", "rounded-lg");
     expect(valueField.parentElement).toHaveClass("min-w-0", "pr-12");
     expect(valueField).not.toHaveClass("md:w-1/2");
-    expect(within(valueField).getByTitle(longJson)).toHaveClass("truncate");
+    expect(within(valueField).getByText(longJson)).toHaveClass("truncate");
 
     fireEvent.click(screen.getByRole("button", { name: "Copy value from v5" }));
     await waitFor(() => expect(writeClipboard).toHaveBeenCalledWith(longJson));
@@ -181,7 +186,7 @@ describe("ProjectParamEditDrawer history", () => {
 
     const activePanel = screen.getByTestId("parameter-history-mobile-panel-v5");
     const activeValue = screen.getByTestId("parameter-history-value-v5");
-    expect(within(activeValue).getByTitle(longJson)).toHaveClass("truncate");
+    expect(within(activeValue).getByText(longJson)).toHaveClass("truncate");
     fireEvent.click(within(activeValue).getByRole("button", { name: "Copy value from v5" }));
     await waitFor(() => expect(writeClipboard).toHaveBeenCalledWith(longJson));
     expect(
