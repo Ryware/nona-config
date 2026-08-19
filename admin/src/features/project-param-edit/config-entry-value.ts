@@ -1,32 +1,116 @@
 import type { ConfigEntry } from "../../types";
 
-export function isValidConfigEntryValue(
-  contentType: ConfigEntry["contentType"],
-  value: string,
-): boolean {
-  const trimmed = value.trim();
+export type ConfigEntryContentType = ConfigEntry["contentType"];
 
-  if (trimmed.length === 0) {
-    return false;
+export interface ConfigEntryDraftValidation {
+  isValid: boolean;
+  keyError?: string;
+  valueError?: string;
+  disabledReason?: string;
+}
+
+interface ConfigEntryDraft {
+  key: string;
+  value: string;
+  contentType: ConfigEntryContentType;
+  existingKeys?: readonly string[];
+}
+
+const CONFIG_ENTRY_KEY_ERROR =
+  "Key must contain an ASCII letter or digit and may only contain ASCII letters, digits, colons, dots, underscores, and dashes.";
+
+function validateConfigEntryKey(
+  key: string,
+  existingKeys: readonly string[],
+): string | undefined {
+  const trimmedKey = key.trim();
+
+  if (!trimmedKey) {
+    return "Parameter key is required.";
   }
 
+  if (!/[A-Za-z0-9]/.test(trimmedKey) || !/^[A-Za-z0-9:._-]+$/.test(trimmedKey)) {
+    return CONFIG_ENTRY_KEY_ERROR;
+  }
+
+  if (existingKeys.some((existingKey) => existingKey.toLowerCase() === trimmedKey.toLowerCase())) {
+    return "Parameter key already exists. Keys are case-insensitive.";
+  }
+
+  return undefined;
+}
+
+function validateConfigEntryValue(
+  contentType: ConfigEntryContentType,
+  value: string,
+): string | undefined {
   if (contentType === "text") {
-    return true;
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    if (contentType === "boolean") {
+      return "Select True or False.";
+    }
+
+    return `Enter a ${contentType === "json" ? "JSON" : "number"} value.`;
   }
 
   try {
     const parsed = JSON.parse(trimmed) as unknown;
 
     if (contentType === "json") {
-      return true;
+      return undefined;
     }
 
     if (contentType === "number") {
-      return typeof parsed === "number" && Number.isFinite(parsed);
+      return typeof parsed === "number" && Number.isFinite(parsed)
+        ? undefined
+        : "Value must be a valid JSON number.";
     }
 
-    return typeof parsed === "boolean";
+    return typeof parsed === "boolean"
+      ? undefined
+      : "Value must be 'true' or 'false'.";
   } catch {
-    return false;
+    if (contentType === "json") {
+      return "Value must be valid JSON.";
+    }
+
+    if (contentType === "number") {
+      return "Value must be a valid JSON number.";
+    }
+
+    return "Value must be 'true' or 'false'.";
   }
+}
+
+export function validateConfigEntryDraft({
+  key,
+  value,
+  contentType,
+  existingKeys = [],
+}: ConfigEntryDraft): ConfigEntryDraftValidation {
+  const keyError = validateConfigEntryKey(key, existingKeys);
+  const valueError = validateConfigEntryValue(contentType, value);
+  const isValid = !keyError && !valueError;
+
+  return {
+    isValid,
+    keyError,
+    valueError,
+    disabledReason: isValid
+      ? undefined
+      : keyError === "Parameter key is required."
+        ? "Enter a parameter key to enable this action."
+        : keyError ?? valueError,
+  };
+}
+
+export function isValidConfigEntryValue(
+  contentType: ConfigEntry["contentType"],
+  value: string,
+): boolean {
+  return !validateConfigEntryValue(contentType, value);
 }

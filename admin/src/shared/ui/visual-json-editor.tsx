@@ -11,6 +11,9 @@ interface VisualJsonEditorProps {
   value: string;
   onChange: (val: string) => void;
   id?: string;
+  "aria-label"?: string;
+  "aria-invalid"?: boolean;
+  "aria-describedby"?: string;
 }
 
 interface VisualJsonRowProps {
@@ -265,7 +268,14 @@ export function VisualJsonEditor(props: VisualJsonEditorProps) {
   });
 
   return (
-    <div class="space-y-3">
+    <div
+      id={props.id}
+      role="group"
+      aria-label={props["aria-label"]}
+      aria-invalid={props["aria-invalid"]}
+      aria-describedby={props["aria-describedby"]}
+      class="space-y-3"
+    >
       {/* Mode Selector Toggle */}
       <div class="flex items-center justify-between">
         <div class="flex bg-surface-container-high/60 p-0.5 rounded-lg border border-outline-variant/10">
@@ -323,7 +333,6 @@ export function VisualJsonEditor(props: VisualJsonEditorProps) {
         fallback={
           <div class="relative">
             <textarea
-              id={props.id}
               value={props.value}
               onInput={handleRawChange}
               rows={6}

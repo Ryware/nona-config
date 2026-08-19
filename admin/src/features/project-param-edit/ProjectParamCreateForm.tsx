@@ -1,4 +1,4 @@
-import { createSignal, onMount, Show } from "solid-js";
+import { createMemo, createSignal, onMount, Show } from "solid-js";
 import { Button } from "../../shared/ui/button";
 import { Input } from "../../shared/ui/input";
 import { Label } from "../../shared/ui/label";
@@ -7,8 +7,8 @@ import { VisualJsonEditor } from "../../shared/ui/visual-json-editor";
 import type { ConfigEntry } from "../../types";
 import { FormField } from "../../widgets/auth-shell/FormField";
 import { MIcon } from "../../shared/ui/icons";
-import { isValidConfigEntryValue } from "./config-entry-value";
-import { TooltipLabel } from "../../shared/ui/tooltip";
+import { validateConfigEntryDraft } from "./config-entry-value";
+import { Tooltip, TooltipLabel, TooltipTrigger } from "../../shared/ui/tooltip";
 import { tooltipCopy } from "../../shared/lib/tooltip-copy";
 
 type ConfigEntryContentType = "text" | "number" | "boolean" | "json";
@@ -34,7 +34,13 @@ export function ProjectParamCreateForm(props: ProjectParamCreateFormProps) {
   const [cfgScope, setCfgScope] = createSignal<ConfigEntryScope>("all");
   const [cfgDescription, setCfgDescription] = createSignal("");
   const [createError, setCreateError] = createSignal("");
+  const [keyTouched, setKeyTouched] = createSignal(false);
+  const [valueTouched, setValueTouched] = createSignal(false);
   let keyInputRef: HTMLInputElement | undefined;
+
+  const keyErrorId = "config-entry-key-error";
+  const valueErrorId = "config-entry-value-error";
+  const actionStatusId = "config-entry-create-status";
 
   onMount(() => {
     keyInputRef?.focus();
@@ -46,24 +52,35 @@ export function ProjectParamCreateForm(props: ProjectParamCreateFormProps) {
     }
   };
 
-  const isAddInvalid = () => !isValidConfigEntryValue(cfgType(), cfgValue());
+  const validation = createMemo(() =>
+    validateConfigEntryDraft({
+      key: cfgKey(),
+      value: cfgValue(),
+      contentType: cfgType(),
+      existingKeys: props.existingEntries.map((entry) => entry.key),
+    }),
+  );
+
+  const keyError = () => (keyTouched() ? validation().keyError : undefined);
+  const valueError = () => (valueTouched() ? validation().valueError : undefined);
+  const isActionDisabled = () => props.isPending || !validation().isValid;
+  const actionStatus = () => {
+    if (props.isPending) return "Creating the parameter…";
+    return validation().disabledReason ?? "Parameter is ready to create.";
+  };
 
   const handleSubmit = (e: Event) => {
     e.preventDefault();
+    setKeyTouched(true);
+    setValueTouched(true);
+    if (!validation().isValid) return;
+
     const trimmedKey = cfgKey().trim();
-    if (!trimmedKey) {
-      setCreateError("Parameter key is required.");
-      return;
-    }
-    if (props.existingEntries.some(entry => entry.key === trimmedKey)) {
-      setCreateError("Parameter key already exists.");
-      return;
-    }
     setCreateError("");
 
     props.onSubmit({
       key: trimmedKey,
-      value: cfgValue().trim(),
+      value: cfgValue(),
       contentType: cfgType(),
       scope: cfgScope(),
       description: cfgDescription().trim()
@@ -88,33 +105,48 @@ export function ProjectParamCreateForm(props: ProjectParamCreateFormProps) {
               onKeyDown={onKeyDownConfigKey}
               onInput={(e: InputEvent & { currentTarget: HTMLInputElement }) => {
                 setCfgKey(e.currentTarget.value);
+                setKeyTouched(true);
                 if (createError()) setCreateError("");
               }}
+              onBlur={() => setKeyTouched(true)}
               required
+              aria-invalid={!!keyError()}
+              aria-describedby={keyError() ? keyErrorId : undefined}
               leftIcon="code"
               testId="parameter-key-input"
               inputRef={element => {
                 keyInputRef = element;
               }}
             />
-            <Show when={createError()}>
-              <p class="text-error mt-2 text-[11px] font-bold">{createError()}</p>
+            <Show when={keyError()}>
+              <p id={keyErrorId} class="text-error mt-2 text-[11px] font-bold">
+                {keyError()}
+              </p>
             </Show>
           </div>
           <div>
-            <TooltipLabel content={tooltipCopy.datatype}>Datatype</TooltipLabel>
+            <TooltipLabel for="config-entry-type" content={tooltipCopy.datatype}>
+              Datatype
+            </TooltipLabel>
             <Select
+              id="config-entry-type"
+              aria-label="Datatype"
               value={cfgType()}
               onChange={(val: string) => {
                 setCfgType(val as ConfigEntryContentType);
                 setCfgValue("");
+                setValueTouched(true);
               }}
               options={["text", "number", "boolean", "json"]}
             />
           </div>
           <div>
-            <TooltipLabel content={tooltipCopy.scope}>Scope</TooltipLabel>
+            <TooltipLabel for="config-entry-scope" content={tooltipCopy.scope}>
+              Scope
+            </TooltipLabel>
             <Select
+              id="config-entry-scope"
+              aria-label="Scope"
               value={cfgScope()}
               onChange={(val: string) => setCfgScope(val as ConfigEntryScope)}
               options={[
@@ -148,8 +180,15 @@ export function ProjectParamCreateForm(props: ProjectParamCreateFormProps) {
         <Show when={cfgType() === "boolean"}>
           <Select
             id="config-entry-value"
+            aria-label="Value"
+            aria-invalid={!!valueError()}
+            aria-describedby={valueError() ? valueErrorId : undefined}
             value={cfgValue()}
-            onChange={setCfgValue}
+            onChange={(value) => {
+              setCfgValue(value);
+              setValueTouched(true);
+            }}
+            onBlur={() => setValueTouched(true)}
             placeholder="Select status..."
             options={[
               { value: "true", label: "True / Active" },
@@ -163,15 +202,28 @@ export function ProjectParamCreateForm(props: ProjectParamCreateFormProps) {
             id="config-entry-value"
             type="number"
             value={cfgValue()}
-            onInput={(e: InputEvent & { currentTarget: HTMLInputElement }) =>
-              setCfgValue(e.currentTarget.value)
-            }
-            required
+            onInput={(e: InputEvent & { currentTarget: HTMLInputElement }) => {
+              setCfgValue(e.currentTarget.value);
+              setValueTouched(true);
+            }}
+            onBlur={() => setValueTouched(true)}
+            aria-invalid={!!valueError()}
+            aria-describedby={valueError() ? valueErrorId : undefined}
             placeholder="0"
           />
         </Show>
         <Show when={cfgType() === "json"}>
-          <VisualJsonEditor id="config-entry-value" value={cfgValue()} onChange={setCfgValue} />
+          <VisualJsonEditor
+            id="config-entry-value"
+            aria-label="Value"
+            aria-invalid={!!valueError()}
+            aria-describedby={valueError() ? valueErrorId : undefined}
+            value={cfgValue()}
+            onChange={(value) => {
+              setCfgValue(value);
+              setValueTouched(true);
+            }}
+          />
         </Show>
         <Show when={cfgType() === "text"}>
           <Input
@@ -179,33 +231,76 @@ export function ProjectParamCreateForm(props: ProjectParamCreateFormProps) {
             id="config-entry-value"
             type="text"
             value={cfgValue()}
-            onInput={(e: InputEvent & { currentTarget: HTMLInputElement }) =>
-              setCfgValue(e.currentTarget.value)
-            }
-            required
+            onInput={(e: InputEvent & { currentTarget: HTMLInputElement }) => {
+              setCfgValue(e.currentTarget.value);
+              setValueTouched(true);
+            }}
+            onBlur={() => setValueTouched(true)}
+            aria-invalid={!!valueError()}
+            aria-describedby={valueError() ? valueErrorId : undefined}
             placeholder="Enter configuration value"
           />
         </Show>
+        <Show when={valueError()}>
+          <p id={valueErrorId} class="text-error mt-2 text-[11px] font-bold">
+            {valueError()}
+          </p>
+        </Show>
+        <Show when={createError()}>
+          <p role="alert" class="text-error mt-2 text-[11px] font-bold">
+            {createError()}
+          </p>
+        </Show>
       </div>
 
-      <div class="flex justify-end gap-3 pt-2">
-        <Button
-          data-testid="parameter-create-submit-button"
-          type="submit"
-          disabled={props.isPending || isAddInvalid()}
+      <div class="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
+        <p
+          id={actionStatusId}
+          role="status"
+          aria-live="polite"
+          class="text-on-surface-variant text-[11px]"
         >
-          <MIcon name="add" class="text-[17px]" />
-           {props.isPending ? "Creating…" : "Create"}
-        </Button>
-        <Button
-          data-testid="parameter-create-cancel-button"
-          type="button"
-          variant="outline"
-          onClick={() => props.onCancel()}
-        >
-          <MIcon name="close" class="text-[16px]" />
-          Cancel
-        </Button>
+          {actionStatus()}
+        </p>
+        <div class="flex justify-end gap-3">
+          <Show
+            when={isActionDisabled()}
+            fallback={
+              <Button data-testid="parameter-create-submit-button" type="submit">
+                <MIcon name="add" class="text-[17px]" />
+                Create
+              </Button>
+            }
+          >
+            <Tooltip content={actionStatus()}>
+              <TooltipTrigger
+                as="span"
+                tabindex="0"
+                data-tooltip-trigger
+                class="inline-flex rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              >
+                <Button
+                  data-testid="parameter-create-submit-button"
+                  type="submit"
+                  disabled
+                  aria-describedby={actionStatusId}
+                >
+                  <MIcon name="add" class="text-[17px]" />
+                  {props.isPending ? "Creating…" : "Create"}
+                </Button>
+              </TooltipTrigger>
+            </Tooltip>
+          </Show>
+          <Button
+            data-testid="parameter-create-cancel-button"
+            type="button"
+            variant="outline"
+            onClick={() => props.onCancel()}
+          >
+            <MIcon name="close" class="text-[16px]" />
+            Cancel
+          </Button>
+        </div>
       </div>
     </form>
   );

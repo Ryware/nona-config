@@ -17,6 +17,7 @@ interface FormFieldProps {
         JSX.EventHandler<HTMLInputElement, KeyboardEvent>
       >
     | undefined;
+  onBlur?: JSX.EventHandlerUnion<HTMLInputElement, FocusEvent>;
   required?: boolean;
   autofocus?: boolean;
   leftIcon?: string;
@@ -24,6 +25,8 @@ interface FormFieldProps {
   maxLength?: number;
   testId?: string;
   inputRef?: (element: HTMLInputElement) => void;
+  "aria-invalid"?: boolean;
+  "aria-describedby"?: string;
 }
 
 export const FormField: Component<FormFieldProps> = props => {
@@ -54,6 +57,9 @@ export const FormField: Component<FormFieldProps> = props => {
           required={props.required}
           autofocus={props.autofocus}
           onkeydown={props.onKeyDown}
+          onBlur={props.onBlur}
+          aria-invalid={props["aria-invalid"]}
+          aria-describedby={props["aria-describedby"]}
           autocomplete={props.autocomplete}
           maxLength={props.maxLength}
           data-testid={props.testId}

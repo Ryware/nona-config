@@ -1,13 +1,17 @@
 import { createStore } from "solid-js/store";
-import { For, Show, createEffect, createSignal } from "solid-js";
+import { For, Show, createEffect, createMemo, createSignal } from "solid-js";
 import { Button } from "../../shared/ui/button";
 import { MIcon } from "../../shared/ui/icons";
 import { Input } from "../../shared/ui/input";
 import { Label } from "../../shared/ui/label";
 import { Select } from "../../shared/ui/select";
-import { TooltipLabel } from "../../shared/ui/tooltip";
+import { Tooltip, TooltipLabel, TooltipTrigger } from "../../shared/ui/tooltip";
 import { tooltipCopy } from "../../shared/lib/tooltip-copy";
 import type { ConfigReleaseEntry } from "../../types";
+import {
+  type ConfigEntryContentType,
+  validateConfigEntryDraft,
+} from "../project-param-edit/config-entry-value";
 
 const TYPE_OPTIONS = [
   { value: "text", label: "Text" },
@@ -45,9 +49,14 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
   const [bufferEnvironmentName, setBufferEnvironmentName] = createSignal("");
   const [newKey, setNewKey] = createSignal("");
   const [newValue, setNewValue] = createSignal("");
-  const [newType, setNewType] = createSignal("text");
+  const [newType, setNewType] = createSignal<ConfigEntryContentType>("text");
   const [newScope, setNewScope] = createSignal("all");
-  const [error, setError] = createSignal("");
+  const [keyTouched, setKeyTouched] = createSignal(false);
+  const [valueTouched, setValueTouched] = createSignal(false);
+
+  const keyErrorId = "amend-new-key-error";
+  const valueErrorId = "amend-new-value-error";
+  const actionStatusId = "amend-add-status";
 
   const currentIdentity = () =>
     JSON.stringify([props.projectId, props.environmentName, props.sourceVersion]);
@@ -57,10 +66,25 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
     setNewValue("");
     setNewType("text");
     setNewScope("all");
-    setError("");
+    setKeyTouched(false);
+    setValueTouched(false);
   };
 
   const isBufferReady = () => !props.isLoading && seededIdentity() === currentIdentity();
+
+  const addValidation = createMemo(() =>
+    validateConfigEntryDraft({
+      key: newKey(),
+      value: newValue(),
+      contentType: newType(),
+      existingKeys: rows.map((row) => row.key),
+    }),
+  );
+
+  const keyError = () => (keyTouched() ? addValidation().keyError : undefined);
+  const valueError = () => (valueTouched() ? addValidation().valueError : undefined);
+  const actionStatus = () =>
+    addValidation().disabledReason ?? "Parameter is ready to add to this release.";
 
   createEffect(() => {
     const identity = currentIdentity();
@@ -86,15 +110,11 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
   };
 
   const addRow = () => {
+    setKeyTouched(true);
+    setValueTouched(true);
+    if (!addValidation().isValid) return;
+
     const key = newKey().trim();
-    if (!key) {
-      setError("Key is required.");
-      return;
-    }
-    if (rows.some(row => row.key.toLowerCase() === key.toLowerCase())) {
-      setError("That key already exists.");
-      return;
-    }
     setRows(currentRows => [
       ...currentRows,
       { key, value: newValue(), contentType: newType(), scope: newScope() }
@@ -103,7 +123,8 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
     setNewValue("");
     setNewType("text");
     setNewScope("all");
-    setError("");
+    setKeyTouched(false);
+    setValueTouched(false);
   };
 
   return (
@@ -165,11 +186,19 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
                 value={newKey()}
                 onInput={e => {
                   setNewKey(e.currentTarget.value);
-                  if (error()) setError("");
+                  setKeyTouched(true);
                 }}
+                onBlur={() => setKeyTouched(true)}
+                aria-invalid={!!keyError()}
+                aria-describedby={keyError() ? keyErrorId : undefined}
                 placeholder="Features:Checkout"
                 class="h-10 font-mono"
               />
+              <Show when={keyError()}>
+                <p id={keyErrorId} class="text-error mt-1.5 text-[11px] font-bold">
+                  {keyError()}
+                </p>
+              </Show>
             </div>
             <div>
               <Label for="amend-new-value">Value</Label>
@@ -177,32 +206,91 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
                 id="amend-new-value"
                 data-testid="amend-new-value"
                 value={newValue()}
-                onInput={e => setNewValue(e.currentTarget.value)}
+                onInput={e => {
+                  setNewValue(e.currentTarget.value);
+                  setValueTouched(true);
+                }}
+                onBlur={() => setValueTouched(true)}
+                aria-invalid={!!valueError()}
+                aria-describedby={valueError() ? valueErrorId : undefined}
                 placeholder="value"
                 class="h-10 font-mono"
               />
+              <Show when={valueError()}>
+                <p id={valueErrorId} class="text-error mt-1.5 text-[11px] font-bold">
+                  {valueError()}
+                </p>
+              </Show>
             </div>
             <div class="w-full md:w-28">
               <TooltipLabel for="amend-new-type" content={tooltipCopy.datatype}>Type</TooltipLabel>
-              <Select value={newType()} onChange={setNewType} options={TYPE_OPTIONS} class="h-10" />
+              <Select
+                id="amend-new-type"
+                aria-label="Type"
+                value={newType()}
+                onChange={(value) => {
+                  setNewType(value as ConfigEntryContentType);
+                  setNewValue("");
+                  setValueTouched(true);
+                }}
+                options={TYPE_OPTIONS}
+                class="h-10"
+              />
             </div>
             <div class="w-full md:w-28">
               <TooltipLabel for="amend-new-scope" content={tooltipCopy.scope}>Scope</TooltipLabel>
               <Select
+                id="amend-new-scope"
+                aria-label="Scope"
                 value={newScope()}
                 onChange={setNewScope}
                 options={SCOPE_OPTIONS}
                 class="h-10"
               />
             </div>
-            <Button data-testid="amend-add-button" type="button" variant="secondary" onClick={addRow}>
-              <MIcon name="add" class="text-[16px]" />
-              Add
-            </Button>
+            <Show
+              when={!addValidation().isValid}
+              fallback={
+                <Button
+                  data-testid="amend-add-button"
+                  type="button"
+                  variant="secondary"
+                  onClick={addRow}
+                >
+                  <MIcon name="add" class="text-[16px]" />
+                  Add
+                </Button>
+              }
+            >
+              <Tooltip content={actionStatus()}>
+                <TooltipTrigger
+                  as="span"
+                  tabindex="0"
+                  data-tooltip-trigger
+                  class="inline-flex rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                >
+                  <Button
+                    data-testid="amend-add-button"
+                    type="button"
+                    variant="secondary"
+                    disabled
+                    aria-describedby={actionStatusId}
+                  >
+                    <MIcon name="add" class="text-[16px]" />
+                    Add
+                  </Button>
+                </TooltipTrigger>
+              </Tooltip>
+            </Show>
           </div>
-          <Show when={error()}>
-            <p class="text-error text-[11px] font-bold">{error()}</p>
-          </Show>
+          <p
+            id={actionStatusId}
+            role="status"
+            aria-live="polite"
+            class="text-on-surface-variant text-[11px]"
+          >
+            {actionStatus()}
+          </p>
         </div>
 
         <Show
