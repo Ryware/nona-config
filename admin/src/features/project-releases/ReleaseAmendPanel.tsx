@@ -83,6 +83,7 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
 
   const keyError = () => (keyTouched() ? addValidation().keyError : undefined);
   const valueError = () => (valueTouched() ? addValidation().valueError : undefined);
+  const hasVisibleFieldError = () => !!keyError() || !!valueError();
   const actionStatus = () =>
     addValidation().disabledReason ?? "Parameter is ready to add to this release.";
 
@@ -177,7 +178,7 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
           <p class="text-outline font-headline text-[10px] font-bold tracking-widest uppercase">
             Add parameter
           </p>
-          <div class="grid gap-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto_auto] md:items-end">
+          <div class="grid gap-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto_auto] md:items-start">
             <div>
               <Label for="amend-new-key">Key</Label>
               <Input
@@ -248,46 +249,58 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
                 class="h-10"
               />
             </div>
-            <Show
-              when={!addValidation().isValid}
-              fallback={
-                <Button
-                  data-testid="amend-add-button"
-                  type="button"
-                  variant="secondary"
-                  onClick={addRow}
-                >
-                  <MIcon name="add" class="text-[16px]" />
-                  Add
-                </Button>
-              }
-            >
-              <Tooltip content={actionStatus()}>
-                <TooltipTrigger
-                  as="span"
-                  tabindex="0"
-                  data-tooltip-trigger
-                  class="inline-flex rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                >
+            <div>
+              <span
+                aria-hidden="true"
+                class="text-on-surface-variant invisible mb-1.5 hidden text-[11px] font-medium tracking-[0.05em] md:block"
+              >
+                Action
+              </span>
+              <Show
+                when={!addValidation().isValid}
+                fallback={
                   <Button
                     data-testid="amend-add-button"
                     type="button"
                     variant="secondary"
-                    disabled
-                    aria-describedby={actionStatusId}
+                    onClick={addRow}
                   >
                     <MIcon name="add" class="text-[16px]" />
                     Add
                   </Button>
-                </TooltipTrigger>
-              </Tooltip>
-            </Show>
+                }
+              >
+                <Tooltip content={actionStatus()}>
+                  <TooltipTrigger
+                    as="span"
+                    tabindex="0"
+                    data-tooltip-trigger
+                    class="inline-flex rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                  >
+                    <Button
+                      data-testid="amend-add-button"
+                      type="button"
+                      variant="secondary"
+                      disabled
+                      aria-describedby={actionStatusId}
+                    >
+                      <MIcon name="add" class="text-[16px]" />
+                      Add
+                    </Button>
+                  </TooltipTrigger>
+                </Tooltip>
+              </Show>
+            </div>
           </div>
           <p
             id={actionStatusId}
             role="status"
             aria-live="polite"
-            class="text-on-surface-variant text-[11px]"
+            class={
+              hasVisibleFieldError()
+                ? "sr-only"
+                : "text-on-surface-variant ml-auto w-fit max-w-full text-[11px] md:text-right"
+            }
           >
             {actionStatus()}
           </p>
