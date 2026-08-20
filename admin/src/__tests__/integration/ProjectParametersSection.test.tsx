@@ -28,6 +28,16 @@ describe('ProjectParametersSection', () => {
     expect(screen.queryByTestId('project-detail-heading')).not.toBeInTheDocument();
   });
 
+  it.each([
+    '/projects/my-app?viewRelease=1.1.0',
+    '/projects/my-app?release=1.2.0',
+    '/projects/my-app?release=1.1.1&amend=1.1.0',
+  ])('identifies release parameter workflow in the document title for %s', async path => {
+    renderProjectSections(path);
+
+    await waitFor(() => expect(document.title).toBe('my-app Releases | Nona Config Admin'));
+  });
+
   it('shows config entries when an environment is selected', async () => {
     renderProjectSections('/projects/my-app');
 

@@ -1,10 +1,9 @@
 import { Title } from "@solidjs/meta";
 import { Show, type JSX } from "solid-js";
 
+import type { ProjectPageSection } from "../../../shared/lib/project-navigation";
 import type { Project } from "../../../types";
 import { ProjectPageSkeleton } from "./ProjectPageSkeleton";
-
-export type ProjectPageSection = "environments" | "parameters" | "sharedLinks" | "apiKeys" | "releases";
 
 interface ProjectSectionLayoutProps {
   section: ProjectPageSection;

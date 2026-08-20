@@ -1,5 +1,5 @@
 import { writeClipboard } from "@solid-primitives/clipboard";
-import { useBeforeLeave, useNavigate, useParams, useSearchParams } from "@solidjs/router";
+import { useBeforeLeave, useLocation, useNavigate, useParams, useSearchParams } from "@solidjs/router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/solid-query";
 import { Show, createEffect, createMemo, createSignal, on, onCleanup } from "solid-js";
 
@@ -22,6 +22,7 @@ import {
   useUnsavedChangesBlocker
 } from "../../../shared/hooks/useUnsavedChanges";
 import { MSG } from "../../../shared/lib/messages";
+import { getProjectPageSection } from "../../../shared/lib/project-navigation";
 import { ConfirmDialog } from "../../../shared/ui/confirm-dialog";
 import { useToast } from "../../../shared/ui/toast";
 import type {
@@ -42,6 +43,7 @@ const errorMessage = (caught: unknown, fallback: string) =>
 
 export default function ParametersSection() {
   const params = useParams<{ slug: string }>();
+  const location = useLocation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
@@ -577,7 +579,7 @@ export default function ParametersSection() {
   return (
     <>
       <ProjectSectionLayout
-        section="parameters"
+        section={getProjectPageSection(location.pathname, location.search) ?? "parameters"}
         project={project()}
         projectLoading={projectsQuery.isLoading}
       >

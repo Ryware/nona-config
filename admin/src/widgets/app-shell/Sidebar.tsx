@@ -1,4 +1,4 @@
-import { A, useLocation } from "@solidjs/router";
+import { A, useLocation, useNavigate } from "@solidjs/router";
 import { useQuery } from "@tanstack/solid-query";
 import { For, Show } from "solid-js";
 import { authService } from "../../entities/auth/api/auth.service";
@@ -7,6 +7,7 @@ import { authStore } from "../../entities/auth/model/store";
 import { projectService } from "../../entities/project/api/project.service";
 import { getActiveProjectHref, getActiveProjectSlug } from "../../entities/project/model/active-project";
 import { projectKeys } from "../../entities/project/queries/keys";
+import { getProjectPageSection } from "../../shared/lib/project-navigation";
 import { NonaMark } from "../../shared/ui/logo";
 
 function getUser(): { email: string; role: string } {
@@ -29,6 +30,7 @@ export const Sidebar = (props: {
   onToggleCollapse: () => void;
 }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const user = getUser();
   const isAdmin = canManageUsers();
   const canCreateProjects = canManageProjects();
@@ -56,45 +58,41 @@ export const Sidebar = (props: {
     if (section === "sharedLinks") return `${projectHref}/shared-links`;
     return `${projectHref}/${section === "apiKeys" ? "api-keys" : "releases"}`;
   };
-  const isProjectPage = () => location.pathname.startsWith("/projects/") && location.pathname !== "/projects";
+  const activeProjectSection = () =>
+    getProjectPageSection(location.pathname, location.search);
 
   const projectNavItems: NavItemDef[] = [
     {
       label: "Parameters",
       icon: "tune",
       href: () => projectPageHref("parameters"),
-      isActive: () =>
-        isProjectPage() &&
-        !location.pathname.endsWith("/environments") &&
-        !location.pathname.endsWith("/shared-links") &&
-        !location.pathname.endsWith("/api-keys") &&
-        !location.pathname.endsWith("/releases"),
+      isActive: () => activeProjectSection() === "parameters",
     },
     {
       label: "API Keys",
       icon: "key",
       href: () => projectPageHref("apiKeys"),
-      isActive: () => location.pathname.endsWith("/api-keys"),
+      isActive: () => activeProjectSection() === "apiKeys",
       requiresEdit: true,
     },
     {
       label: "Releases",
       icon: "deployed_code_history",
       href: () => projectPageHref("releases"),
-      isActive: () => location.pathname.endsWith("/releases"),
+      isActive: () => activeProjectSection() === "releases",
     },
     {
       label: "Shared Links",
       icon: "link",
       href: () => projectPageHref("sharedLinks"),
-      isActive: () => location.pathname.endsWith("/shared-links"),
+      isActive: () => activeProjectSection() === "sharedLinks",
       requiresEdit: true,
     },
     {
       label: "Environments",
       icon: "dns",
       href: () => projectPageHref("environments"),
-      isActive: () => location.pathname.endsWith("/environments"),
+      isActive: () => activeProjectSection() === "environments",
     },
   ];
   const visibleProjectNavItems = () =>
@@ -134,6 +132,23 @@ export const Sidebar = (props: {
     }`;
 
   const w = () => (props.collapsed ? "w-16" : "w-64");
+
+  const handleProjectNavigation = (event: MouseEvent, href: string) => {
+    props.onClose();
+    if (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    navigate(href);
+  };
 
   return (
     <>
@@ -178,11 +193,12 @@ export const Sidebar = (props: {
             fallback={
               <For each={visibleProjectNavItems()}>
                 {item => (
-                  <A
+                  <a
                     href={item.href()}
-                    onClick={() => props.onClose()}
+                    onClick={event => handleProjectNavigation(event, item.href())}
                     title={props.collapsed ? item.label : undefined}
                     aria-label={item.label}
+                    aria-current={item.isActive() ? "page" : undefined}
                     class={navItem(item.isActive(), props.collapsed)}
                   >
                     <span
@@ -196,7 +212,7 @@ export const Sidebar = (props: {
                       {item.icon}
                     </span>
                     <Show when={!props.collapsed}>{item.label}</Show>
-                  </A>
+                  </a>
                 )}
               </For>
             }

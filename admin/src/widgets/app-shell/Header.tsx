@@ -16,6 +16,7 @@ import {
 } from "../../entities/project/model/active-project";
 import { projectKeys } from "../../entities/project/queries/keys";
 import { useUnsavedChanges } from "../../shared/hooks/useUnsavedChanges";
+import { getProjectPageSection } from "../../shared/lib/project-navigation";
 import { Select } from "../../shared/ui/select";
 import { ThemeToggle } from "../../shared/ui/ThemeToggle";
 import { Breadcrumbs } from "./Breadcrumbs";
@@ -29,20 +30,22 @@ interface HeaderProps {
 const MANAGE_PROJECTS_OPTION = "__manage_projects__";
 const MANAGE_ENVIRONMENTS_OPTION = "__manage_environments__";
 
-export function getProjectNavigationPath(pathname: string, slug: string) {
-  if (pathname.endsWith("/environments")) {
+export function getProjectNavigationPath(pathname: string, search: string, slug: string) {
+  const projectSection = getProjectPageSection(pathname, search);
+
+  if (projectSection === "environments") {
     return `/projects/${slug}/environments`;
   }
 
-  if (pathname.endsWith("/shared-links")) {
+  if (projectSection === "sharedLinks") {
     return `/projects/${slug}/shared-links`;
   }
 
-  if (pathname.endsWith("/api-keys")) {
+  if (projectSection === "apiKeys") {
     return `/projects/${slug}/api-keys`;
   }
 
-  if (pathname.endsWith("/releases")) {
+  if (projectSection === "releases") {
     return `/projects/${slug}/releases`;
   }
 
@@ -121,7 +124,7 @@ export function Header(props: HeaderProps) {
       }
 
       setActiveProjectSlug(slug);
-      navigate(getProjectNavigationPath(location.pathname, slug));
+      navigate(getProjectNavigationPath(location.pathname, location.search, slug));
     });
   };
 
