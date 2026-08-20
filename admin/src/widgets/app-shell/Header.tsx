@@ -144,15 +144,14 @@ export function Header(props: HeaderProps) {
   return (
     <header class="sticky top-0 z-40 w-full shrink-0 border-b border-outline-variant/15 bg-background/80 backdrop-blur-md">
       <div class="flex min-h-14 items-center gap-3 px-5 md:px-7">
-        <Tooltip content={props.isSidebarOpen ? "Close navigation menu" : "Open navigation menu"}><TooltipTrigger as="button"
+        <Tooltip content="Open navigation menu"><TooltipTrigger as="button"
           onClick={() => props.onMenuToggle()}
           class="lg:hidden -ml-1 flex items-center justify-center rounded-lg border-0 bg-transparent p-2 text-on-surface-variant cursor-pointer hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-          aria-label="Toggle navigation menu"
+          aria-label="Open navigation menu"
+          aria-expanded={props.isSidebarOpen}
           data-tooltip-trigger
         >
-          <span class="material-symbols-outlined text-2xl">
-            {props.isSidebarOpen ? "close" : "menu"}
-          </span>
+          <span class="material-symbols-outlined text-2xl">menu</span>
         </TooltipTrigger></Tooltip>
 
         <Breadcrumbs />
