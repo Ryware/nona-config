@@ -3,11 +3,11 @@ import { getConfigEntryValueError, validateConfigEntryKey } from "./config-entry
 
 describe("parameter draft validation", () => {
   it("rejects empty path segments and keys deeper than four segments", () => {
-    expect(validateConfigEntryKey("A::B")).toMatch(/empty segments/i);
-    expect(validateConfigEntryKey(":A")).toMatch(/empty segments/i);
-    expect(validateConfigEntryKey("A:B:")).toMatch(/empty segments/i);
-    expect(validateConfigEntryKey("A:B:C:D:E")).toMatch(/at most 4 segments/i);
-    expect(validateConfigEntryKey("A:B:C:D")).toBeUndefined();
+    expect(validateConfigEntryKey("A::B", [])).toMatch(/non-empty/i);
+    expect(validateConfigEntryKey(":A", [])).toMatch(/non-empty/i);
+    expect(validateConfigEntryKey("A:B:", [])).toMatch(/non-empty/i);
+    expect(validateConfigEntryKey("A:B:C:D:E", [])).toMatch(/one and four/i);
+    expect(validateConfigEntryKey("A:B:C:D", [])).toBeUndefined();
   });
 
   it("returns the native JSON parser detail", () => {

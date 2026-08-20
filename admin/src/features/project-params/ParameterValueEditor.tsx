@@ -10,6 +10,7 @@ interface ParameterValueEditorProps {
   invalid?: boolean;
   describedBy?: string;
   compact?: boolean;
+  testId?: string;
 }
 
 export function ParameterValueEditor(props: ParameterValueEditorProps) {
@@ -40,7 +41,7 @@ export function ParameterValueEditor(props: ParameterValueEditorProps) {
         fallback={
           <label class="flex min-w-0 items-center gap-2">
             <input
-              data-testid={`parameter-value-input-${props.entry.key}`}
+              data-testid={props.testId ?? `parameter-value-input-${props.entry.key}`}
               type="text"
               inputmode={props.entry.contentType === "number" ? "decimal" : undefined}
               value={props.value}
@@ -59,7 +60,7 @@ export function ParameterValueEditor(props: ParameterValueEditorProps) {
         }
       >
         <button
-          data-testid={`parameter-value-input-${props.entry.key}`}
+          data-testid={props.testId ?? `parameter-value-input-${props.entry.key}`}
           type="button"
           role="switch"
           aria-checked={props.value === "true"}

@@ -1,55 +1,60 @@
 import { makePersisted } from "@solid-primitives/storage";
+import { useQuery } from "@tanstack/solid-query";
+import { createEffect, createMemo, createSignal, Show } from "solid-js";
 import { createStore } from "solid-js/store";
-import { Show, createEffect, createMemo, createSignal } from "solid-js";
+import { configEntryService } from "../../entities/project/api/config-entry.service";
+import { useUnsavedChanges, useUnsavedChangesBlocker } from "../../shared/hooks/useUnsavedChanges";
 import { Button } from "../../shared/ui/button";
+import { ConfirmDialog } from "../../shared/ui/confirm-dialog";
 import { MIcon } from "../../shared/ui/icons";
 import { Input } from "../../shared/ui/input";
-import { Label } from "../../shared/ui/label";
-import { Select } from "../../shared/ui/select";
-import { Tooltip, TooltipLabel, TooltipTrigger } from "../../shared/ui/tooltip";
-import { tooltipCopy } from "../../shared/lib/tooltip-copy";
-import { useUnsavedChangesBlocker } from "../../shared/hooks/useUnsavedChanges";
-import type { ConfigEntry, ConfigReleaseEntry } from "../../types";
+import type { ConfigEntry, ConfigEntryVersion, ConfigReleaseEntry } from "../../types";
 import {
-  type ConfigEntryContentType,
-  validateConfigEntryDraft,
-} from "../project-param-edit/config-entry-value";
-import {
-  PARAMETER_DENSITY_STORAGE_KEY
-} from "../project-params/ProjectParamsTab";
+  ProjectParamPanel,
+  type ParameterPanelSaveData
+} from "../project-param-edit/ProjectParamPanel";
+import { PARAMETER_DENSITY_STORAGE_KEY } from "../project-params/ProjectParamsTab";
 import {
   ProjectParamsTable,
   type ParameterViewDensity
 } from "../project-params/ProjectParamsTable";
 
-const TYPE_OPTIONS = [
-  { value: "text", label: "Text" },
-  { value: "number", label: "Number" },
-  { value: "boolean", label: "Boolean" },
-  { value: "json", label: "JSON" }
-];
-
-const SCOPE_OPTIONS = [
-  { value: "client", label: "Client" },
-  { value: "server", label: "Server" },
-  { value: "all", label: "All" }
-];
-
 const RELEASE_AMEND_DRAFT = "release-amend-draft";
+const RELEASE_AMEND_PANEL_DRAFT = "release-amend-panel-draft";
 
 function entriesMatch(left: ConfigReleaseEntry[], right: ConfigReleaseEntry[]) {
-  return (
-    left.length === right.length &&
-    left.every(
-      (entry, index) =>
-        entry.key === right[index]?.key &&
-        entry.value === right[index]?.value &&
-        entry.contentType === right[index]?.contentType &&
-        entry.scope === right[index]?.scope &&
-        entry.description === right[index]?.description &&
-        entry.unit === right[index]?.unit
-    )
-  );
+  return left.length === right.length && left.every((entry, index) => {
+    const candidate = right[index];
+    return entry.key === candidate?.key
+      && entry.value === candidate.value
+      && entry.contentType === candidate.contentType
+      && entry.scope === candidate.scope
+      && entry.description === candidate.description
+      && entry.unit === candidate.unit;
+  });
+}
+
+function normalizeEntry(
+  projectId: string,
+  environmentName: string,
+  entry: ConfigReleaseEntry
+): ConfigEntry {
+  return {
+    project: projectId,
+    environment: environmentName,
+    key: entry.key,
+    value: entry.value,
+    contentType:
+      entry.contentType === "number" || entry.contentType === "boolean" || entry.contentType === "json"
+        ? entry.contentType
+        : "text",
+    scope: entry.scope === "client" || entry.scope === "server" ? entry.scope : "all",
+    description: entry.description,
+    unit: entry.unit,
+    activeVersion: 1,
+    createdAt: "",
+    updatedAt: ""
+  };
 }
 
 interface ReleaseAmendPanelProps {
@@ -58,28 +63,28 @@ interface ReleaseAmendPanelProps {
   sourceVersion: string;
   targetVersion: string;
   sourceEntries: ConfigReleaseEntry[];
+  liveEntries: ConfigEntry[];
   isLoading: boolean;
   isPublishing: boolean;
   onPublish: (environmentName: string, entries: ConfigReleaseEntry[]) => void;
   onCancel: () => void;
+  onShareEntry: (entry: ConfigEntry) => void;
 }
 
-/**
- * Edits a client-side copy of a release's parameters to publish as a new patch.
- * The environment's working configuration is never touched — publishing sends
- * this buffer to the server as an explicit payload.
- */
+/** Keeps all amendments isolated in a client-side release buffer until publish. */
 export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
   const [rows, setRows] = createStore<ConfigReleaseEntry[]>([]);
-  const [seededIdentity, setSeededIdentity] = createSignal<string | null>(null);
+  const [seededIdentity, setSeededIdentity] = createSignal("");
   const [bufferEnvironmentName, setBufferEnvironmentName] = createSignal("");
-  const [newKey, setNewKey] = createSignal("");
-  const [newValue, setNewValue] = createSignal("");
-  const [newType, setNewType] = createSignal<ConfigEntryContentType>("text");
-  const [newScope, setNewScope] = createSignal("all");
-  const [keyTouched, setKeyTouched] = createSignal(false);
-  const [valueTouched, setValueTouched] = createSignal(false);
-  const [editingEntry, setEditingEntry] = createSignal<ConfigEntry | null>(null);
+  const [selectedEntry, setSelectedEntry] = createSignal<ConfigEntry | null>(null);
+  const [creating, setCreating] = createSignal(false);
+  const [panelDirty, setPanelDirty] = createSignal(false);
+  const [historyKey, setHistoryKey] = createSignal("");
+  const [deleteKey, setDeleteKey] = createSignal<string | null>(null);
+  const [search, setSearch] = createSignal("");
+  const { requestAction } = useUnsavedChanges();
+  let panelOpener: HTMLElement | undefined;
+
   const [density, setDensity] = makePersisted(
     // eslint-disable-next-line solid/reactivity -- makePersisted intentionally wraps the signal.
     createSignal<ParameterViewDensity>("compact"),
@@ -96,381 +101,245 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
     }
   );
 
-  const keyErrorId = "amend-new-key-error";
-  const valueErrorId = "amend-new-value-error";
-  const actionStatusId = "amend-add-status";
-
-  const currentIdentity = () =>
-    JSON.stringify([props.projectId, props.environmentName, props.sourceVersion]);
-
-  const resetAddRowState = () => {
-    setNewKey("");
-    setNewValue("");
-    setNewType("text");
-    setNewScope("all");
-    setKeyTouched(false);
-    setValueTouched(false);
-  };
-
-  const isBufferReady = () => !props.isLoading && seededIdentity() === currentIdentity();
-
-  const addValidation = createMemo(() =>
-    validateConfigEntryDraft({
-      key: newKey(),
-      value: newValue(),
-      contentType: newType(),
-      existingKeys: rows.map((row) => row.key),
-    }),
-  );
-
-  const keyError = () => (keyTouched() ? addValidation().keyError : undefined);
-  const valueError = () => (valueTouched() ? addValidation().valueError : undefined);
-  const hasVisibleFieldError = () => !!keyError() || !!valueError();
-  const actionStatus = () =>
-    addValidation().disabledReason ?? "Parameter is ready to add to this release.";
-
-  const isDirty = createMemo(
-    () =>
-      isBufferReady() &&
-      (!entriesMatch(rows, props.sourceEntries) ||
-        newKey() !== "" ||
-        newValue() !== "" ||
-        newType() !== "text" ||
-        newScope() !== "all")
-  );
-
-  const discardDraft = () => {
-    setRows(props.sourceEntries.map(entry => ({ ...entry })));
-    resetAddRowState();
-  };
-
-  useUnsavedChangesBlocker({
-    id: RELEASE_AMEND_DRAFT,
-    isDirty,
-    discard: discardDraft
+  const identity = () => JSON.stringify([props.projectId, props.environmentName, props.sourceVersion]);
+  const isBufferReady = () => !props.isLoading && seededIdentity() === identity();
+  const normalizedRows = createMemo(() => rows.map(row =>
+    normalizeEntry(props.projectId, bufferEnvironmentName() || props.environmentName, row)
+  ));
+  const filteredRows = createMemo(() => {
+    const query = search().trim().toLowerCase();
+    if (!query) return normalizedRows();
+    return normalizedRows().filter(entry =>
+      entry.key.toLowerCase().includes(query)
+      || entry.value.toLowerCase().includes(query)
+      || (entry.description ?? "").toLowerCase().includes(query)
+      || (entry.unit ?? "").toLowerCase().includes(query)
+    );
   });
+  const isReleaseDirty = createMemo(() =>
+    isBufferReady() && !entriesMatch(rows, props.sourceEntries)
+  );
+
+  const returnFocus = () => {
+    const opener = panelOpener;
+    panelOpener = undefined;
+    requestAnimationFrame(() => opener?.focus({ preventScroll: true }));
+  };
+
+  const closePanel = () => {
+    setPanelDirty(false);
+    setCreating(false);
+    setSelectedEntry(null);
+    setHistoryKey("");
+    returnFocus();
+  };
+
+  const resetRelease = () => {
+    setRows(props.sourceEntries.map(entry => ({ ...entry })));
+    closePanel();
+  };
+
+  useUnsavedChangesBlocker({ id: RELEASE_AMEND_DRAFT, isDirty: isReleaseDirty, discard: resetRelease });
+  useUnsavedChangesBlocker({ id: RELEASE_AMEND_PANEL_DRAFT, isDirty: panelDirty, discard: closePanel });
 
   createEffect(() => {
-    const identity = currentIdentity();
-    if (seededIdentity() === identity) return;
-
+    const nextIdentity = identity();
+    if (seededIdentity() === nextIdentity) return;
     setRows([]);
     setBufferEnvironmentName("");
-    resetAddRowState();
-
+    setSearch("");
+    closePanel();
     if (props.isLoading) return;
-
     setRows(props.sourceEntries.map(entry => ({ ...entry })));
     setBufferEnvironmentName(props.environmentName);
-    setSeededIdentity(identity);
+    setSeededIdentity(nextIdentity);
   });
 
-  const updateRow = (index: number, patch: Partial<ConfigReleaseEntry>) =>
-    setRows(index, row => ({ ...row, ...patch }));
+  const historyQuery = useQuery(() => ({
+    queryKey: ["amend-parameter-history", props.projectId, props.environmentName, historyKey()],
+    queryFn: () => configEntryService.history(props.projectId, props.environmentName, historyKey()),
+    enabled: !!historyKey(),
+    staleTime: 60_000
+  }));
 
-  const normalizedRows = createMemo<ConfigEntry[]>(() => rows.map(row => ({
-    project: props.projectId,
-    environment: bufferEnvironmentName() || props.environmentName,
-    key: row.key,
-    value: row.value,
-    contentType:
-      row.contentType === "number" || row.contentType === "boolean" || row.contentType === "json"
-        ? row.contentType
-        : "text",
-    scope: row.scope === "client" || row.scope === "server" ? row.scope : "all",
-    description: row.description,
-    unit: row.unit,
-    activeVersion: 1,
-    createdAt: "",
-    updatedAt: ""
-  })));
-
-  const removeRow = (index: number) => {
-    const nextRows = rows.filter((_, rowIndex) => rowIndex !== index);
-    setRows(nextRows);
+  const selectEntry = (entry: ConfigEntry, opener?: HTMLElement) => {
+    if (selectedEntry()?.key === entry.key && !creating()) return;
+    requestAction(() => {
+      panelOpener = opener;
+      setCreating(false);
+      setSelectedEntry(entry);
+      setPanelDirty(false);
+      setHistoryKey("");
+    }, [RELEASE_AMEND_PANEL_DRAFT]);
   };
 
-  const addRow = () => {
-    setKeyTouched(true);
-    setValueTouched(true);
-    if (!addValidation().isValid) return;
+  const openCreate = (opener: HTMLElement) => {
+    requestAction(() => {
+      panelOpener = opener;
+      setCreating(true);
+      setSelectedEntry(null);
+      setPanelDirty(false);
+      setHistoryKey("");
+    }, [RELEASE_AMEND_PANEL_DRAFT]);
+  };
 
-    const key = newKey().trim();
-    setRows(currentRows => [
-      ...currentRows,
-      { key, value: newValue(), contentType: newType(), scope: newScope() }
-    ]);
-    setNewKey("");
-    setNewValue("");
-    setNewType("text");
-    setNewScope("all");
-    setKeyTouched(false);
-    setValueTouched(false);
+  const savePanel = async (data: ParameterPanelSaveData) => {
+    const releaseEntry: ConfigReleaseEntry = {
+      key: data.key,
+      value: data.value,
+      contentType: data.contentType,
+      scope: data.scope,
+      description: data.description,
+      unit: data.unit
+    };
+
+    if (creating()) {
+      setRows(current => [...current, releaseEntry]);
+      const created = normalizeEntry(props.projectId, bufferEnvironmentName(), releaseEntry);
+      setCreating(false);
+      setSelectedEntry(created);
+      setPanelDirty(false);
+      return created;
+    }
+
+    const selected = selectedEntry();
+    const index = selected ? rows.findIndex(row => row.key === selected.key) : -1;
+    if (index < 0) throw new Error("The draft parameter could not be found.");
+    setRows(index, releaseEntry);
+    const updated = normalizeEntry(props.projectId, bufferEnvironmentName(), releaseEntry);
+    setSelectedEntry(updated);
+    setPanelDirty(false);
+    return updated;
+  };
+
+  const useHistoryVersion = async (version: ConfigEntryVersion) => {
+    const selected = selectedEntry();
+    const index = selected ? rows.findIndex(row => row.key === selected.key) : -1;
+    if (!selected || index < 0) throw new Error("The draft parameter could not be found.");
+    const releaseEntry: ConfigReleaseEntry = {
+      key: selected.key,
+      value: version.value,
+      contentType: version.contentType,
+      scope: version.scope,
+      description: version.description,
+      unit: version.unit
+    };
+    setRows(index, releaseEntry);
+    const updated = normalizeEntry(props.projectId, bufferEnvironmentName(), releaseEntry);
+    setSelectedEntry(updated);
+    return updated;
   };
 
   return (
-    <section
-      data-testid="release-amend-panel"
-      class="bg-surface-container-low border-outline-variant/15 space-y-4 rounded-2xl border p-5"
-    >
+    <section data-testid="release-amend-panel" class="bg-surface-container-low border-outline-variant/15 space-y-4 rounded-2xl border p-4 sm:p-5">
       <div class="border-primary/25 bg-primary/5 flex flex-col gap-3 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between">
         <div class="flex items-center gap-2 text-[13px]">
           <MIcon name="edit" class="text-primary text-[18px]" />
           <span class="text-on-surface-variant">
-            Amending <span class="text-on-surface font-mono font-bold">{props.sourceVersion}</span> →
-            creating patch{" "}
-            <span class="text-primary font-mono font-bold">{props.targetVersion}</span>.
+            Amending <span class="text-on-surface font-mono font-bold">{props.sourceVersion}</span> → creating patch <span class="text-primary font-mono font-bold">{props.targetVersion}</span>.
           </span>
         </div>
         <div class="flex shrink-0 flex-wrap justify-end gap-2">
+          <Button type="button" variant="secondary" onClick={event => openCreate(event.currentTarget)}>
+            <MIcon name="add" class="text-[16px]" />
+            Add parameter
+          </Button>
           <Button
             data-testid="release-amend-confirm-button"
             type="button"
             disabled={props.isPublishing || !isBufferReady()}
-            onClick={() => {
-              const environmentName = bufferEnvironmentName();
-              if (!environmentName || !isBufferReady()) return;
-
-              props.onPublish(environmentName, rows.map(entry => ({ ...entry })));
-            }}
+            onClick={() => props.onPublish(bufferEnvironmentName(), rows.map(entry => ({ ...entry })))}
           >
             <MIcon name="check" class="text-[16px]" />
             {props.isPublishing ? "Creating…" : "Create release"}
           </Button>
-          <Button
-            data-testid="release-amend-cancel-button"
-            type="button"
-            variant="outline"
-            disabled={props.isPublishing}
-            onClick={() => props.onCancel()}
-          >
+          <Button data-testid="release-amend-cancel-button" type="button" variant="outline" disabled={props.isPublishing} onClick={props.onCancel}>
             <MIcon name="close" class="text-[16px]" />
             Cancel
           </Button>
         </div>
       </div>
 
-      <Show
-        when={isBufferReady()}
-        fallback={<div class="skeleton h-40 w-full rounded-xl" />}
-      >
-        <div class="bg-surface-container border-outline-variant/15 space-y-3 rounded-xl border p-4">
-          <p class="text-outline font-headline text-[10px] font-bold tracking-widest uppercase">
-            Add parameter
-          </p>
-          <div class="grid gap-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto_auto] md:items-start">
-            <div>
-              <Label for="amend-new-key">Key</Label>
-              <Input
-                id="amend-new-key"
-                data-testid="amend-new-key"
-                value={newKey()}
-                onInput={e => {
-                  setNewKey(e.currentTarget.value);
-                  setKeyTouched(true);
-                }}
-                onBlur={() => setKeyTouched(true)}
-                aria-invalid={!!keyError()}
-                aria-describedby={keyError() ? keyErrorId : undefined}
-                placeholder="Features:Checkout"
-                class="h-10 font-mono"
-              />
-              <Show when={keyError()}>
-                <p id={keyErrorId} class="text-error mt-1.5 text-[11px] font-bold">
-                  {keyError()}
-                </p>
-              </Show>
-            </div>
-            <div>
-              <Label for="amend-new-value">Value</Label>
-              <Input
-                id="amend-new-value"
-                data-testid="amend-new-value"
-                value={newValue()}
-                onInput={e => {
-                  setNewValue(e.currentTarget.value);
-                  setValueTouched(true);
-                }}
-                onBlur={() => setValueTouched(true)}
-                aria-invalid={!!valueError()}
-                aria-describedby={valueError() ? valueErrorId : undefined}
-                placeholder="value"
-                class="h-10 font-mono"
-              />
-              <Show when={valueError()}>
-                <p id={valueErrorId} class="text-error mt-1.5 text-[11px] font-bold">
-                  {valueError()}
-                </p>
-              </Show>
-            </div>
-            <div class="w-full md:w-28">
-              <TooltipLabel for="amend-new-type" content={tooltipCopy.datatype}>Type</TooltipLabel>
-              <Select
-                id="amend-new-type"
-                aria-label="Type"
-                value={newType()}
-                onChange={(value) => {
-                  setNewType(value as ConfigEntryContentType);
-                  setNewValue("");
-                  setValueTouched(true);
-                }}
-                options={TYPE_OPTIONS}
-                class="h-10"
-              />
-            </div>
-            <div class="w-full md:w-28">
-              <TooltipLabel for="amend-new-scope" content={tooltipCopy.scope}>Scope</TooltipLabel>
-              <Select
-                id="amend-new-scope"
-                aria-label="Scope"
-                value={newScope()}
-                onChange={setNewScope}
-                options={SCOPE_OPTIONS}
-                class="h-10"
-              />
-            </div>
-            <div>
-              <span
-                aria-hidden="true"
-                class="text-on-surface-variant invisible mb-1.5 hidden text-[11px] font-medium tracking-[0.05em] md:block"
-              >
-                Action
-              </span>
-              <Show
-                when={!addValidation().isValid}
-                fallback={
-                  <Button
-                    data-testid="amend-add-button"
-                    type="button"
-                    variant="secondary"
-                    onClick={addRow}
-                  >
-                    <MIcon name="add" class="text-[16px]" />
-                    Add
-                  </Button>
-                }
-              >
-                <Tooltip content={actionStatus()}>
-                  <TooltipTrigger
-                    as="span"
-                    tabindex="0"
-                    data-tooltip-trigger
-                    class="inline-flex rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                  >
-                    <Button
-                      data-testid="amend-add-button"
-                      type="button"
-                      variant="secondary"
-                      disabled
-                      aria-describedby={actionStatusId}
-                    >
-                      <MIcon name="add" class="text-[16px]" />
-                      Add
-                    </Button>
-                  </TooltipTrigger>
-                </Tooltip>
-              </Show>
-            </div>
-          </div>
-          <p
-            id={actionStatusId}
-            role="status"
-            aria-live="polite"
-            class={
-              hasVisibleFieldError()
-                ? "sr-only"
-                : "text-on-surface-variant ml-auto w-fit max-w-full text-[11px] md:text-right"
-            }
-          >
-            {actionStatus()}
-          </p>
-        </div>
-
+      <Show when={isBufferReady()} fallback={<div class="skeleton h-40 w-full rounded-xl" />}>
         <Show
           when={rows.length > 0}
-          fallback={
-            <div class="bg-surface-container rounded-xl px-4 py-5 text-center text-xs text-on-surface-variant">
-              This release has no parameters.
-            </div>
-          }
+          fallback={<div class="bg-surface-container rounded-xl px-4 py-8 text-center text-xs text-on-surface-variant">This release has no parameters.</div>}
         >
-          <div class="space-y-2">
-            <div class="flex justify-end">
-              <div
-                role="group"
-                aria-label="Parameter spacing"
-                class="border-outline-variant/20 bg-surface-container-high flex items-center rounded-lg border p-1"
-              >
-                <button
-                  type="button"
-                  aria-label="Comfortable spacing"
-                  aria-pressed={density() === "comfortable"}
-                  title="Comfortable spacing"
-                  onClick={() => setDensity("comfortable")}
-                  class={`inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md border-0 ${density() === "comfortable" ? "bg-surface-container-lowest text-primary" : "text-outline bg-transparent"}`}
-                >
-                  <MIcon name="density_medium" class="text-[17px]" />
-                </button>
-                <button
-                  type="button"
-                  aria-label="Compact spacing"
-                  aria-pressed={density() === "compact"}
-                  title="Compact spacing"
-                  onClick={() => setDensity("compact")}
-                  class={`inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md border-0 ${density() === "compact" ? "bg-surface-container-lowest text-primary" : "text-outline bg-transparent"}`}
-                >
-                  <MIcon name="density_small" class="text-[17px]" />
-                </button>
-              </div>
-            </div>
-            <ProjectParamsTable
-              isLoading={false}
-              projectId={props.projectId}
-              activeEnvName={bufferEnvironmentName() || props.environmentName}
-              filteredConfig={normalizedRows()}
-              editingEntry={editingEntry()}
-              onSelectEntry={entry => setEditingEntry(entry)}
-              onShareEntry={() => undefined}
-              onDeleteEntry={key => {
-                const index = rows.findIndex(row => row.key === key);
-                if (index >= 0) removeRow(index);
-              }}
-              onUpdateValue={(entry, value) => {
-                const index = rows.findIndex(row => row.key === entry.key);
-                if (index >= 0) updateRow(index, { value });
-              }}
-              canManage
-              copiedKey={null}
-              onCopyValue={() => undefined}
-              getParamMeta={() => ({ displayName: "", description: "" })}
-              initialDescription={editingEntry()?.description ?? ""}
-              onCloseEntry={() => setEditingEntry(null)}
-              onEditDirtyChange={() => undefined}
-              onSaveSettings={data => {
-                const selected = editingEntry();
-                const index = selected ? rows.findIndex(row => row.key === selected.key) : -1;
-                if (index < 0) return;
-                const patch = {
-                  value: data.value,
-                  contentType: data.contentType,
-                  scope: data.scope,
-                  description: data.description,
-                  unit: data.contentType === "number" ? data.unit : null
-                };
-                updateRow(index, patch);
-                setEditingEntry(current => current ? { ...current, ...patch } : current);
-              }}
-              isSaving={false}
-              historyVersions={[]}
-              isHistoryLoading={false}
-              isRollingBack={false}
-              onRollbackVersion={() => undefined}
-              search=""
-              density={density()}
+          <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <Input
+              type="text"
+              value={search()}
+              onInput={event => setSearch(event.currentTarget.value)}
+              placeholder="Search parameters…"
+              aria-label="Search parameters"
+              class="h-10 sm:w-72"
+              leftIcon="search"
             />
+            <div role="group" aria-label="Parameter spacing" class="border-outline-variant/20 bg-surface-container-high flex items-center rounded-lg border p-1">
+              <button type="button" aria-label="Comfortable spacing" aria-pressed={density() === "comfortable"} title="Comfortable spacing" onClick={() => setDensity("comfortable")} class={`inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md border-0 ${density() === "comfortable" ? "bg-surface-container-lowest text-primary" : "text-outline bg-transparent"}`}>
+                <MIcon name="density_medium" class="text-[17px]" />
+              </button>
+              <button type="button" aria-label="Compact spacing" aria-pressed={density() === "compact"} title="Compact spacing" onClick={() => setDensity("compact")} class={`inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md border-0 ${density() === "compact" ? "bg-surface-container-lowest text-primary" : "text-outline bg-transparent"}`}>
+                <MIcon name="density_small" class="text-[17px]" />
+              </button>
+            </div>
           </div>
+          <ProjectParamsTable
+            isLoading={false}
+            projectId={props.projectId}
+            activeEnvName={bufferEnvironmentName()}
+            filteredConfig={filteredRows()}
+            onSelectEntry={selectEntry}
+            onDeleteEntry={setDeleteKey}
+            onUpdateValue={(entry, nextValue) => {
+              const index = rows.findIndex(row => row.key === entry.key);
+              if (index >= 0) setRows(index, "value", nextValue);
+            }}
+            canManage
+            search={search()}
+            density={density()}
+          />
         </Show>
       </Show>
+
+      <ProjectParamPanel
+        open={creating() || !!selectedEntry()}
+        mode={creating() ? "create" : "amend"}
+        entry={selectedEntry()}
+        projectId={props.projectId}
+        environmentName={bufferEnvironmentName() || props.environmentName}
+        releaseVersion={props.targetVersion}
+        existingEntries={normalizedRows()}
+        canManage
+        isSaving={false}
+        historyVersions={historyQuery.data ?? []}
+        isHistoryLoading={historyQuery.isLoading}
+        isHistoryActionPending={false}
+        shareEnabled={
+          !!selectedEntry() && props.liveEntries.some(entry => entry.key === selectedEntry()?.key)
+        }
+        shareDisabledReason="This draft or release-only parameter does not exist in the live environment."
+        onRequestClose={() => requestAction(closePanel, [RELEASE_AMEND_PANEL_DRAFT])}
+        onDirtyChange={setPanelDirty}
+        onSave={savePanel}
+        onHistoryOpen={setHistoryKey}
+        onHistoryAction={useHistoryVersion}
+        onShare={props.onShareEntry}
+      />
+
+      <ConfirmDialog
+        open={deleteKey() !== null}
+        title="Remove Parameter?"
+        message={<>Remove <span class="text-primary font-mono font-bold">{deleteKey()}</span> from this release draft?</>}
+        confirmLabel="Remove Parameter"
+        onConfirm={() => {
+          const key = deleteKey();
+          if (key) setRows(rows.filter(row => row.key !== key));
+          setDeleteKey(null);
+        }}
+        onCancel={() => setDeleteKey(null)}
+        testId="delete-amend-parameter-dialog"
+      />
     </section>
   );
 }

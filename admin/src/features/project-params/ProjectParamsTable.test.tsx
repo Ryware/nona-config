@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@solidjs/testing-library";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createSignal } from "solid-js";
 import type { ConfigEntry } from "../../types";
 import { ProjectParamsTable, type ProjectParamsTableProps } from "./ProjectParamsTable";
 
@@ -26,24 +27,10 @@ const tableProps = (patch: Partial<ProjectParamsTableProps> = {}): ProjectParams
   projectId: "project",
   activeEnvName: "production",
   filteredConfig: [entry()],
-  editingEntry: null,
   onSelectEntry: vi.fn(),
-  onShareEntry: vi.fn(),
   onDeleteEntry: vi.fn(),
   onUpdateValue: vi.fn(),
   canManage: true,
-  copiedKey: null,
-  onCopyValue: vi.fn(),
-  getParamMeta: () => ({ displayName: "", description: "" }),
-  initialDescription: "",
-  onCloseEntry: vi.fn(),
-  onEditDirtyChange: vi.fn(),
-  onSaveSettings: vi.fn(),
-  isSaving: false,
-  historyVersions: [],
-  isHistoryLoading: false,
-  isRollingBack: false,
-  onRollbackVersion: vi.fn(),
   search: "",
   density: "compact",
   ...patch
@@ -64,6 +51,21 @@ describe("ProjectParamsTable", () => {
     expect(screen.queryByTestId("parameter-row-Checkout:FreeShippingThreshold")).not.toBeInTheDocument();
     expect(JSON.parse(localStorage.getItem("nona_parameter_tree:project:production") ?? "[]"))
       .toContain("Checkout");
+  });
+
+  it("temporarily reveals a matching collapsed path without changing saved state", () => {
+    const [search, setSearch] = createSignal("");
+    render(() => <ProjectParamsTable {...tableProps()} search={search()} />);
+    fireEvent.click(screen.getByTestId("parameter-group-Checkout"));
+    expect(screen.queryByTestId("parameter-row-Checkout:FreeShippingThreshold")).not.toBeInTheDocument();
+
+    setSearch("shipping");
+    expect(screen.getByTestId("parameter-row-Checkout:FreeShippingThreshold")).toBeInTheDocument();
+    expect(JSON.parse(localStorage.getItem("nona_parameter_tree:project:production") ?? "[]"))
+      .toContain("Checkout");
+
+    setSearch("");
+    expect(screen.queryByTestId("parameter-row-Checkout:FreeShippingThreshold")).not.toBeInTheDocument();
   });
 
   it("keeps invalid JSON drafts, reports the parser reason, and only updates valid changes", async () => {

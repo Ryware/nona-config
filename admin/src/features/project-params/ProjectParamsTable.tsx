@@ -1,10 +1,9 @@
 import { createMediaQuery } from "@solid-primitives/media";
 import { For, Show, createEffect, createMemo, createSignal, on } from "solid-js";
-import type { ConfigEntry, ConfigEntryVersion } from "../../types";
+import type { ConfigEntry } from "../../types";
 import { cn } from "../../shared/lib/utils";
 import { MIcon } from "../../shared/ui/icons";
 import { getConfigEntryValueError } from "../project-param-edit/config-entry-value";
-import { ProjectParamEditDrawer } from "../project-param-edit/ProjectParamEditDrawer";
 import { ParameterValueEditor } from "./ParameterValueEditor";
 import { buildParameterTree, parameterName, type ParameterTreeNode } from "./parameter-tree";
 
@@ -15,38 +14,13 @@ export interface ProjectParamsTableProps {
   projectId: string;
   activeEnvName: string;
   filteredConfig: ConfigEntry[];
-  editingEntry: ConfigEntry | null;
   onSelectEntry: (entry: ConfigEntry, opener?: HTMLElement) => void;
-  onShareEntry: (entry: ConfigEntry) => void;
   onDeleteEntry: (key: string) => void;
   onUpdateValue?: (entry: ConfigEntry, value: string) => Promise<void> | void;
   updatingKey?: string | null;
   canManage: boolean;
-  copiedKey: string | null;
-  onCopyValue: (key: string, value: string) => void;
-  getParamMeta: (
-    proj: string,
-    env: string,
-    key: string
-  ) => { displayName: string; description: string };
-  initialDescription: string;
-  onCloseEntry: () => void;
-  onEditDirtyChange: (dirty: boolean) => void;
-  onSaveSettings: (data: {
-    value: string;
-    description: string;
-    contentType: ConfigEntry["contentType"];
-    scope: ConfigEntry["scope"];
-    unit?: string;
-  }) => void;
-  isSaving: boolean;
-  historyVersions: ConfigEntryVersion[];
-  isHistoryLoading: boolean;
-  isRollingBack: boolean;
-  onRollbackVersion: (version: ConfigEntryVersion) => void;
   search: string;
   isReadOnly?: boolean;
-  releaseVersion?: string;
   density?: ParameterViewDensity;
 }
 
@@ -195,12 +169,12 @@ function ParameterRow(props: {
             event.stopPropagation();
             open(event.currentTarget);
           }}
-          aria-label={`Edit parameter ${props.entry.key}`}
-          title={`Edit parameter ${props.entry.key}`}
+          aria-label={`${props.table.isReadOnly ? "View" : "Edit"} parameter ${props.entry.key}`}
+          title={`${props.table.isReadOnly ? "View" : "Edit"} parameter ${props.entry.key}`}
           class="text-outline hover:bg-primary/10 hover:text-primary inline-flex h-8 cursor-pointer items-center gap-1 rounded-lg border-0 bg-transparent px-2 text-[11px] font-semibold"
         >
           <MIcon name="edit" class="text-[16px]" />
-          <span class="hidden lg:inline">Edit</span>
+          <span class="hidden lg:inline">{props.table.isReadOnly ? "View" : "Edit"}</span>
         </button>
         <Show when={!props.table.isReadOnly && props.table.canManage}>
           <button
@@ -368,30 +342,6 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
         </div>
       </Show>
 
-      <Show when={props.editingEntry}>
-        <div
-          data-testid={`parameter-accordion-${props.editingEntry!.key}`}
-          class="border-outline-variant/15 bg-surface-container-lowest/40 border-t p-4"
-        >
-          <ProjectParamEditDrawer
-            entry={props.editingEntry}
-            activeEnvName={props.activeEnvName}
-            initialDescription={props.initialDescription}
-            onClose={props.onCloseEntry}
-            onDirtyChange={props.onEditDirtyChange}
-            onSaveSettings={props.onSaveSettings}
-            isSaving={props.isSaving}
-            canManage={props.canManage}
-            historyVersions={props.historyVersions}
-            isHistoryLoading={props.isHistoryLoading}
-            isRollingBack={props.isRollingBack}
-            onRollbackVersion={props.onRollbackVersion}
-            historyLayout={isMobile() ? "mobile" : "desktop"}
-            isReadOnly={props.isReadOnly}
-            releaseVersion={props.releaseVersion}
-          />
-        </div>
-      </Show>
     </div>
   );
 }

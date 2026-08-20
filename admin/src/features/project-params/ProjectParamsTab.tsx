@@ -4,31 +4,12 @@ import { createSignal, Show } from "solid-js";
 import { cn } from "../../shared/lib/utils";
 import { MIcon } from "../../shared/ui/icons";
 import { Input } from "../../shared/ui/input";
-import type {
-  ConfigEntry,
-  CreateConfigEntryRequest,
-} from "../../types";
-import { ProjectParamCreateForm } from "../project-param-edit/ProjectParamCreateForm";
+import type { ConfigEntry } from "../../types";
 import {
   ProjectParamsTable,
   type ParameterViewDensity,
   type ProjectParamsTableProps
 } from "./ProjectParamsTable";
-
-interface ProjectParamsCreateFormData {
-  key: string;
-  value: string;
-  contentType: CreateConfigEntryRequest["contentType"];
-  scope: CreateConfigEntryRequest["scope"];
-  description: string;
-}
-
-interface ProjectParamsCreateFormProps {
-  onCancel: () => void;
-  onSubmit: (data: ProjectParamsCreateFormData) => void;
-  isPending: boolean;
-  onDirtyChange: (dirty: boolean) => void;
-}
 
 interface ProjectParamsTabProps {
   activeEnvName: string;
@@ -38,13 +19,11 @@ interface ProjectParamsTabProps {
   paramSearch: string;
   onParamSearch: (q: string) => void;
   onToggleBulkImport: () => void;
-  onToggleConfigForm: () => void;
-  showConfigForm: boolean;
+  onAddParameter: (opener: HTMLElement) => void;
   bulkImportPanel?: JSX.Element;
   canManage: boolean;
   isReadOnly?: boolean;
   viewingReleaseVersion?: string;
-  createForm: ProjectParamsCreateFormProps;
   table: ProjectParamsTableProps;
 }
 
@@ -178,7 +157,7 @@ export function ProjectParamsTab(props: ProjectParamsTabProps) {
               <button
                 data-testid="project-add-parameter-button"
                 type="button"
-                onClick={() => props.onToggleConfigForm()}
+                onClick={event => props.onAddParameter(event.currentTarget)}
                 aria-label="Add Parameter"
                 title="Add Parameter"
                 class="bg-primary text-on-primary inline-flex h-10 w-10 cursor-pointer items-center justify-center self-end rounded-lg border-0 px-0 text-[13px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] md:w-auto md:gap-1.5 md:px-4 md:self-auto"
@@ -193,16 +172,6 @@ export function ProjectParamsTab(props: ProjectParamsTabProps) {
 
       {props.bulkImportPanel}
 
-      <Show when={!props.isReadOnly && props.canManage && props.activeEnvName && props.showConfigForm}>
-        <ProjectParamCreateForm
-          onCancel={props.createForm.onCancel}
-          onSubmit={props.createForm.onSubmit}
-          isPending={props.createForm.isPending}
-          existingEntries={props.configEntries}
-          onDirtyChange={props.createForm.onDirtyChange}
-        />
-      </Show>
-
       <Show when={!props.activeEnvName}>
         <div class="bg-surface-container rounded-xl px-4 py-5 text-center text-xs text-on-surface-variant">
           Select an active environment from the header to view its parameters.
@@ -214,7 +183,6 @@ export function ProjectParamsTab(props: ProjectParamsTabProps) {
           {...props.table}
           density={density()}
           search={props.paramSearch}
-          releaseVersion={props.viewingReleaseVersion}
         />
       </Show>
 

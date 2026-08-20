@@ -122,7 +122,7 @@ describe('ProjectReleasesSection', () => {
     fireEvent.click(await screen.findByTestId('release-amend-1.1.0'));
     expect(screen.queryByTestId('release-version-dialog')).not.toBeInTheDocument();
 
-    await screen.findByTestId('amend-row-feature.x');
+    await screen.findByTestId('parameter-row-feature.x');
 
     fireEvent.click(screen.getByTestId('release-amend-confirm-button'));
     await waitFor(() => {
@@ -134,7 +134,7 @@ describe('ProjectReleasesSection', () => {
     expect(draftCalls).toEqual([]);
   });
 
-  it('shows field-level validation details when amended JSON is invalid', async () => {
+  it('retains invalid amended JSON until it is corrected and explicitly updated', async () => {
     let publishRequest: { entries?: Array<{ key: string; value: string }> } | undefined;
     server.use(
       http.get(
@@ -180,18 +180,81 @@ describe('ProjectReleasesSection', () => {
     renderProjectSections('/projects/my-app/releases');
 
     fireEvent.click(await screen.findByTestId('release-amend-1.1.0'));
-    fireEvent.input(await screen.findByTestId('amend-value-json.settings'), {
+    const input = await screen.findByTestId('parameter-value-input-json.settings');
+    fireEvent.input(input, {
       target: { value: '{"enabled":' },
     });
+    expect(input).toHaveValue('{"enabled":');
+    expect(screen.getByRole('alert')).toHaveTextContent(/invalid json:/i);
+    expect(screen.getByTestId('parameter-update-json.settings')).toBeDisabled();
     fireEvent.click(screen.getByTestId('release-amend-confirm-button'));
 
-    expect(
-      await screen.findByText(
-        "Entries[0].Value: Value must be valid JSON when contentType is 'json'.",
-      ),
-    ).toBeInTheDocument();
-    expect(publishRequest?.entries?.[0].value).toBe('{"enabled":');
+    await waitFor(() => expect(publishRequest).toBeDefined());
+    expect(publishRequest?.entries?.[0].value).toBe('{"enabled":true}');
+    expect(input).toHaveValue('{"enabled":');
     expect(screen.getByTestId('release-amend-panel')).toBeInTheDocument();
+  });
+
+  it('copies a historical live snapshot into the isolated amend draft', async () => {
+    let publishRequest: { entries?: Array<{ key: string; value: string; description?: string }> } | undefined;
+    server.use(
+      http.get(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/releases/:version',
+        ({ params }) => HttpResponse.json({
+          project: params.projectId,
+          environment: params.envName,
+          version: params.version,
+          entryCount: 1,
+          isActive: false,
+          createdAt: '2026-08-20T08:00:00Z',
+          actor: 'alice@example.com',
+          entries: [
+            { key: 'feature.x', value: 'true', contentType: 'boolean', scope: 'client' },
+          ],
+        }),
+      ),
+      http.get(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/config-entries/:key/history',
+        ({ params }) => HttpResponse.json([
+          {
+            project: params.projectId,
+            environment: params.envName,
+            key: params.key,
+            version: 1,
+            value: 'false',
+            contentType: 'boolean',
+            scope: 'server',
+            description: 'Historical switch',
+            unit: null,
+            createdAt: '2026-08-19T08:00:00Z',
+            actor: 'bob@example.com',
+          },
+        ]),
+      ),
+      http.post(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/releases',
+        async ({ request }) => {
+          publishRequest = (await request.json()) as typeof publishRequest;
+          return HttpResponse.json({}, { status: 201 });
+        },
+      ),
+    );
+
+    renderProjectSections('/projects/my-app/releases');
+    fireEvent.click(await screen.findByTestId('release-amend-1.1.0'));
+    fireEvent.click(await screen.findByTestId('parameter-edit-feature.x'));
+    fireEvent.click(await screen.findByTestId('parameter-panel-history-tab'));
+    expect(await screen.findByText(/changed by bob@example.com/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Use in draft' }));
+
+    expect(await screen.findByTestId('parameter-edit-description-input')).toHaveValue('Historical switch');
+    fireEvent.click(screen.getByTestId('release-amend-confirm-button'));
+    await waitFor(() => expect(publishRequest).toBeDefined());
+    expect(publishRequest?.entries?.[0]).toMatchObject({
+      key: 'feature.x',
+      value: 'false',
+      description: 'Historical switch',
+    });
   });
 
   it('activates a configuration release', async () => {
