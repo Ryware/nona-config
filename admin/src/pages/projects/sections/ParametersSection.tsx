@@ -65,6 +65,7 @@ export default function ParametersSection() {
   const [generatedShareUrl, setGeneratedShareUrl] = createSignal<string | null>(null);
   const [revokingShareLinkId, setRevokingShareLinkId] = createSignal<number | null>(null);
   const [editDescription, setEditDescription] = createSignal("");
+  const [updatingValueKey, setUpdatingValueKey] = createSignal<string | null>(null);
   const [showBulkImport, setShowBulkImport] = createSignal(false);
   const [pendingReleaseExit, setPendingReleaseExit] = createSignal<(() => void) | null>(null);
   const [createDraftDirty, setCreateDraftDirty] = createSignal(false);
@@ -224,7 +225,9 @@ export default function ParametersSection() {
         scope: normalizeScope(entry.scope),
         activeVersion: 1,
         createdAt: release?.createdAt ?? "",
-        updatedAt: release?.createdAt ?? ""
+        updatedAt: release?.createdAt ?? "",
+        description: entry.description,
+        unit: entry.unit
       }));
     }
 
@@ -243,10 +246,12 @@ export default function ParametersSection() {
       (entry: ConfigEntry) =>
         entry.key.toLowerCase().includes(q) ||
         entry.value.toLowerCase().includes(q) ||
-        localParamMetadataService
+        (entry.description ?? localParamMetadataService
           .getMeta(projectId(), activeEnvName(), entry.key)
-          .displayName.toLowerCase()
-          .includes(q)
+          .description)
+          .toLowerCase()
+          .includes(q) ||
+        (entry.unit ?? "").toLowerCase().includes(q)
     );
   });
 
@@ -336,13 +341,24 @@ export default function ParametersSection() {
     );
   });
 
+  const configEntriesQueryKey = () =>
+    projectKeys.configEntries(params.slug, activeEnvName());
+
+  const patchConfigEntry = (entry: ConfigEntry) => {
+    queryClient.setQueryData<ConfigEntry[]>(configEntriesQueryKey(), current => {
+      const entries = current ?? [];
+      const index = entries.findIndex(candidate => candidate.key === entry.key);
+      if (index === -1) return [...entries, entry];
+      return entries.map(candidate => candidate.key === entry.key ? entry : candidate);
+    });
+  };
+
   const createConfigMutation = useMutation(() => ({
     mutationFn: (req: CreateConfigEntryRequest) =>
       configEntryService.upsert(req.projectId, activeEnvName(), req.key, req),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: projectKeys.configEntries(params.slug, activeEnvName())
-      });
+    onSuccess: entry => {
+      patchConfigEntry(entry);
+      void queryClient.invalidateQueries({ queryKey: configEntriesQueryKey() });
       setShowConfigForm(false);
       addToast(MSG.PARAM_CREATED, "success");
     },
@@ -351,16 +367,18 @@ export default function ParametersSection() {
 
   const deleteConfigMutation = useMutation(() => ({
     mutationFn: (id: string) => configEntryService.delete(projectId(), activeEnvName(), id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: projectKeys.configEntries(params.slug, activeEnvName())
-      });
+    onSuccess: (_, key) => {
+      queryClient.setQueryData<ConfigEntry[]>(
+        configEntriesQueryKey(),
+        current => (current ?? []).filter(entry => entry.key !== key)
+      );
+      void queryClient.invalidateQueries({ queryKey: configEntriesQueryKey() });
       addToast(MSG.PARAM_DELETED, "success");
     },
     onError: () => addToast(MSG.PARAM_DELETE_FAILED, "error")
   }));
 
-  const handleOpenEditDrawer = (entry: ConfigEntry) => {
+  const handleOpenEditDrawer = (entry: ConfigEntry, _opener?: HTMLElement) => {
     const isCurrentEntry = editingEntry()?.key === entry.key;
     const currentProjectId = projectId();
     const currentEnvironmentName = activeEnvName();
@@ -374,12 +392,12 @@ export default function ParametersSection() {
       setEditDraftDirty(false);
       setEditingEntry(entry);
       setEditHistoryQueryKey("");
-      const meta = localParamMetadataService.getMeta(
+      const localDescription = localParamMetadataService.getMeta(
         currentProjectId,
         currentEnvironmentName,
         entry.key
-      );
-      setEditDescription(meta.description);
+      ).description;
+      setEditDescription(entry.description ?? localDescription);
 
       if (isViewingReleaseSnapshot()) {
         return;
@@ -411,34 +429,25 @@ export default function ParametersSection() {
       value: string;
       contentType: ConfigEntry["contentType"];
       scope: ConfigEntry["scope"];
-      description?: string;
+      description?: string | null;
+      unit?: string | null;
     }) =>
       configEntryService.upsert(projectId(), activeEnvName(), req.key, {
         value: req.value,
         contentType: req.contentType,
-        scope: req.scope
+        scope: req.scope,
+        ...(req.description !== undefined ? { description: req.description } : {}),
+        ...(req.unit !== undefined ? { unit: req.unit } : {})
       }),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: projectKeys.configEntries(params.slug, activeEnvName())
-      });
-
-      const desc =
-        variables.description !== undefined
-          ? variables.description.trim()
-          : editDescription().trim();
-
-      if (editingEntry()) {
-        localParamMetadataService.setMeta(projectId(), activeEnvName(), editingEntry()!.key, {
-          description: desc
-        });
-      }
-
-      queryClient.invalidateQueries({
+    onSuccess: (entry, variables) => {
+      patchConfigEntry(entry);
+      setEditingEntry(current => current?.key === entry.key ? entry : current);
+      setEditDescription(entry.description ?? "");
+      setEditDraftDirty(false);
+      void queryClient.invalidateQueries({ queryKey: configEntriesQueryKey() });
+      void queryClient.invalidateQueries({
         queryKey: projectKeys.configEntryHistory(params.slug, activeEnvName(), variables.key)
       });
-
-      setEditingEntry(null);
       addToast(MSG.PARAM_UPDATED, "success");
     },
     onError: error => addToast(errorMessage(error, MSG.PARAM_UPDATE_FAILED), "error")
@@ -448,19 +457,15 @@ export default function ParametersSection() {
     for (const item of selectedItems) {
       const desc = `Imported parameter: ${item.key}`;
 
-      localParamMetadataService.setMeta(projectId(), activeEnvName(), item.key, {
-        description: desc
-      });
       await configEntryService.upsert(projectId(), activeEnvName(), item.key, {
         value: item.value,
         contentType: item.contentType,
-        scope: item.scope
+        scope: item.scope,
+        description: desc
       });
     }
 
-    queryClient.invalidateQueries({
-      queryKey: projectKeys.configEntries(params.slug, activeEnvName())
-    });
+    void queryClient.invalidateQueries({ queryKey: configEntriesQueryKey() });
     setShowBulkImport(false);
     addToast(MSG.bulkImportSuccess(selectedItems.length), "success");
   };
@@ -471,10 +476,9 @@ export default function ParametersSection() {
         version: req.version
       }),
     onSuccess: (entry, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: projectKeys.configEntries(params.slug, activeEnvName())
-      });
-      queryClient.invalidateQueries({
+      patchConfigEntry(entry);
+      void queryClient.invalidateQueries({ queryKey: configEntriesQueryKey() });
+      void queryClient.invalidateQueries({
         queryKey: projectKeys.configEntryHistory(params.slug, activeEnvName(), variables.key)
       });
       setEditingEntry(entry);
@@ -706,15 +710,13 @@ export default function ParametersSection() {
               onCancel: () => requestAction(closeCreateDraft, [CREATE_PARAMETER_DRAFT]),
               onSubmit: data => {
                 if (!canManageProject()) return;
-                localParamMetadataService.setMeta(projectId(), activeEnvName(), data.key, {
-                  description: data.description
-                });
                 createConfigMutation.mutate({
                   projectId: projectId(),
                   key: data.key,
                   value: data.value,
                   contentType: data.contentType,
-                  scope: data.scope
+                  scope: data.scope,
+                  description: data.description
                 });
               },
               isPending: createConfigMutation.isPending,
@@ -729,6 +731,20 @@ export default function ParametersSection() {
               onSelectEntry: handleOpenEditDrawer,
               onShareEntry: handleOpenShareDialog,
               onDeleteEntry: setConfirmDeleteEntry,
+              onUpdateValue: async (entry, value) => {
+                setUpdatingValueKey(entry.key);
+                try {
+                  await updateConfigMutation.mutateAsync({
+                    key: entry.key,
+                    value,
+                    contentType: entry.contentType,
+                    scope: entry.scope
+                  });
+                } finally {
+                  setUpdatingValueKey(null);
+                }
+              },
+              updatingKey: updatingValueKey(),
               canManage: canManageProject() && !isViewingReleaseSnapshot(),
               copiedKey: copiedKey(),
               onCopyValue: copyValue,
@@ -747,7 +763,8 @@ export default function ParametersSection() {
                   value: data.value,
                   contentType: data.contentType,
                   scope: data.scope,
-                  description: data.description
+                  description: data.description,
+                  unit: data.unit
                 });
               },
               isSaving: updateConfigMutation.isPending,

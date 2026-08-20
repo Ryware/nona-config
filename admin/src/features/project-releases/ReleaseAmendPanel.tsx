@@ -1,5 +1,6 @@
+import { makePersisted } from "@solid-primitives/storage";
 import { createStore } from "solid-js/store";
-import { For, Show, createEffect, createMemo, createSignal } from "solid-js";
+import { Show, createEffect, createMemo, createSignal } from "solid-js";
 import { Button } from "../../shared/ui/button";
 import { MIcon } from "../../shared/ui/icons";
 import { Input } from "../../shared/ui/input";
@@ -8,11 +9,18 @@ import { Select } from "../../shared/ui/select";
 import { Tooltip, TooltipLabel, TooltipTrigger } from "../../shared/ui/tooltip";
 import { tooltipCopy } from "../../shared/lib/tooltip-copy";
 import { useUnsavedChangesBlocker } from "../../shared/hooks/useUnsavedChanges";
-import type { ConfigReleaseEntry } from "../../types";
+import type { ConfigEntry, ConfigReleaseEntry } from "../../types";
 import {
   type ConfigEntryContentType,
   validateConfigEntryDraft,
 } from "../project-param-edit/config-entry-value";
+import {
+  PARAMETER_DENSITY_STORAGE_KEY
+} from "../project-params/ProjectParamsTab";
+import {
+  ProjectParamsTable,
+  type ParameterViewDensity
+} from "../project-params/ProjectParamsTable";
 
 const TYPE_OPTIONS = [
   { value: "text", label: "Text" },
@@ -37,7 +45,9 @@ function entriesMatch(left: ConfigReleaseEntry[], right: ConfigReleaseEntry[]) {
         entry.key === right[index]?.key &&
         entry.value === right[index]?.value &&
         entry.contentType === right[index]?.contentType &&
-        entry.scope === right[index]?.scope
+        entry.scope === right[index]?.scope &&
+        entry.description === right[index]?.description &&
+        entry.unit === right[index]?.unit
     )
   );
 }
@@ -69,6 +79,22 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
   const [newScope, setNewScope] = createSignal("all");
   const [keyTouched, setKeyTouched] = createSignal(false);
   const [valueTouched, setValueTouched] = createSignal(false);
+  const [editingEntry, setEditingEntry] = createSignal<ConfigEntry | null>(null);
+  const [density, setDensity] = makePersisted(
+    // eslint-disable-next-line solid/reactivity -- makePersisted intentionally wraps the signal.
+    createSignal<ParameterViewDensity>("compact"),
+    {
+      name: PARAMETER_DENSITY_STORAGE_KEY,
+      deserialize: value => {
+        try {
+          const parsed = JSON.parse(value) as unknown;
+          return parsed === "comfortable" || parsed === "compact" ? parsed : "compact";
+        } catch {
+          return "compact";
+        }
+      }
+    }
+  );
 
   const keyErrorId = "amend-new-key-error";
   const valueErrorId = "amend-new-value-error";
@@ -141,6 +167,23 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
 
   const updateRow = (index: number, patch: Partial<ConfigReleaseEntry>) =>
     setRows(index, row => ({ ...row, ...patch }));
+
+  const normalizedRows = createMemo<ConfigEntry[]>(() => rows.map(row => ({
+    project: props.projectId,
+    environment: bufferEnvironmentName() || props.environmentName,
+    key: row.key,
+    value: row.value,
+    contentType:
+      row.contentType === "number" || row.contentType === "boolean" || row.contentType === "json"
+        ? row.contentType
+        : "text",
+    scope: row.scope === "client" || row.scope === "server" ? row.scope : "all",
+    description: row.description,
+    unit: row.unit,
+    activeVersion: 1,
+    createdAt: "",
+    updatedAt: ""
+  })));
 
   const removeRow = (index: number) => {
     const nextRows = rows.filter((_, rowIndex) => rowIndex !== index);
@@ -352,49 +395,79 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
           }
         >
           <div class="space-y-2">
-            <For each={rows}>
-              {(row, index) => (
-                <div
-                  data-testid={`amend-row-${row.key}`}
-                  class="bg-surface-container grid gap-2 rounded-xl px-4 py-3 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1.5fr)_auto_auto_auto] md:items-center"
+            <div class="flex justify-end">
+              <div
+                role="group"
+                aria-label="Parameter spacing"
+                class="border-outline-variant/20 bg-surface-container-high flex items-center rounded-lg border p-1"
+              >
+                <button
+                  type="button"
+                  aria-label="Comfortable spacing"
+                  aria-pressed={density() === "comfortable"}
+                  title="Comfortable spacing"
+                  onClick={() => setDensity("comfortable")}
+                  class={`inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md border-0 ${density() === "comfortable" ? "bg-surface-container-lowest text-primary" : "text-outline bg-transparent"}`}
                 >
-                  <span class="text-on-surface truncate font-mono text-[13px] font-bold" title={row.key}>
-                    {row.key}
-                  </span>
-                  <Input
-                    data-testid={`amend-value-${row.key}`}
-                    value={row.value}
-                    onInput={e => updateRow(index(), { value: e.currentTarget.value })}
-                    class="h-9 font-mono"
-                  />
-                  <div class="w-full md:w-28">
-                    <Select
-                      value={row.contentType}
-                      onChange={value => updateRow(index(), { contentType: value })}
-                      options={TYPE_OPTIONS}
-                      class="h-9"
-                    />
-                  </div>
-                  <div class="w-full md:w-28">
-                    <Select
-                      value={row.scope}
-                      onChange={value => updateRow(index(), { scope: value })}
-                      options={SCOPE_OPTIONS}
-                      class="h-9"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => removeRow(index())}
-                    aria-label={`Remove ${row.key}`}
-                    title={`Remove ${row.key}`}
-                    class="bg-error-container/10 text-error hover:bg-error-container/20 inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border-0"
-                  >
-                    <MIcon name="delete" class="text-[16px]" />
-                  </button>
-                </div>
-              )}
-            </For>
+                  <MIcon name="density_medium" class="text-[17px]" />
+                </button>
+                <button
+                  type="button"
+                  aria-label="Compact spacing"
+                  aria-pressed={density() === "compact"}
+                  title="Compact spacing"
+                  onClick={() => setDensity("compact")}
+                  class={`inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md border-0 ${density() === "compact" ? "bg-surface-container-lowest text-primary" : "text-outline bg-transparent"}`}
+                >
+                  <MIcon name="density_small" class="text-[17px]" />
+                </button>
+              </div>
+            </div>
+            <ProjectParamsTable
+              isLoading={false}
+              projectId={props.projectId}
+              activeEnvName={bufferEnvironmentName() || props.environmentName}
+              filteredConfig={normalizedRows()}
+              editingEntry={editingEntry()}
+              onSelectEntry={entry => setEditingEntry(entry)}
+              onShareEntry={() => undefined}
+              onDeleteEntry={key => {
+                const index = rows.findIndex(row => row.key === key);
+                if (index >= 0) removeRow(index);
+              }}
+              onUpdateValue={(entry, value) => {
+                const index = rows.findIndex(row => row.key === entry.key);
+                if (index >= 0) updateRow(index, { value });
+              }}
+              canManage
+              copiedKey={null}
+              onCopyValue={() => undefined}
+              getParamMeta={() => ({ displayName: "", description: "" })}
+              initialDescription={editingEntry()?.description ?? ""}
+              onCloseEntry={() => setEditingEntry(null)}
+              onEditDirtyChange={() => undefined}
+              onSaveSettings={data => {
+                const selected = editingEntry();
+                const index = selected ? rows.findIndex(row => row.key === selected.key) : -1;
+                if (index < 0) return;
+                const patch = {
+                  value: data.value,
+                  contentType: data.contentType,
+                  scope: data.scope,
+                  description: data.description,
+                  unit: data.contentType === "number" ? data.unit : null
+                };
+                updateRow(index, patch);
+                setEditingEntry(current => current ? { ...current, ...patch } : current);
+              }}
+              isSaving={false}
+              historyVersions={[]}
+              isHistoryLoading={false}
+              isRollingBack={false}
+              onRollbackVersion={() => undefined}
+              search=""
+              density={density()}
+            />
           </div>
         </Show>
       </Show>

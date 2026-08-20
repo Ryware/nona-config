@@ -52,16 +52,17 @@ export const PARAMETER_DENSITY_STORAGE_KEY = "nona_parameter_density";
 
 function parseParameterDensity(value: string): ParameterViewDensity {
   try {
-    return JSON.parse(value) === "compact" ? "compact" : "comfortable";
+    const parsed = JSON.parse(value) as unknown;
+    return parsed === "comfortable" || parsed === "compact" ? parsed : "compact";
   } catch {
-    return "comfortable";
+    return "compact";
   }
 }
 
 export function ProjectParamsTab(props: ProjectParamsTabProps) {
   const [density, setDensity] = makePersisted(
     // eslint-disable-next-line solid/reactivity -- makePersisted intentionally wraps the signal.
-    createSignal<ParameterViewDensity>("comfortable"),
+    createSignal<ParameterViewDensity>("compact"),
     {
       deserialize: parseParameterDensity,
       name: PARAMETER_DENSITY_STORAGE_KEY

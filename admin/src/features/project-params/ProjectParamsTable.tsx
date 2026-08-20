@@ -1,11 +1,12 @@
 import { createMediaQuery } from "@solid-primitives/media";
-import { For, Show, createMemo } from "solid-js";
-import { ProjectParamEditDrawer } from "../project-param-edit/ProjectParamEditDrawer";
-import { MIcon } from "../../shared/ui/icons";
-import { cn } from "../../shared/lib/utils";
+import { For, Show, createEffect, createMemo, createSignal, on } from "solid-js";
 import type { ConfigEntry, ConfigEntryVersion } from "../../types";
-import { Tooltip, TooltipTrigger } from "../../shared/ui/tooltip";
-import { tooltipCopy } from "../../shared/lib/tooltip-copy";
+import { cn } from "../../shared/lib/utils";
+import { MIcon } from "../../shared/ui/icons";
+import { getConfigEntryValueError } from "../project-param-edit/config-entry-value";
+import { ProjectParamEditDrawer } from "../project-param-edit/ProjectParamEditDrawer";
+import { ParameterValueEditor } from "./ParameterValueEditor";
+import { buildParameterTree, parameterName, type ParameterTreeNode } from "./parameter-tree";
 
 export type ParameterViewDensity = "comfortable" | "compact";
 
@@ -15,9 +16,11 @@ export interface ProjectParamsTableProps {
   activeEnvName: string;
   filteredConfig: ConfigEntry[];
   editingEntry: ConfigEntry | null;
-  onSelectEntry: (entry: ConfigEntry) => void;
+  onSelectEntry: (entry: ConfigEntry, opener?: HTMLElement) => void;
   onShareEntry: (entry: ConfigEntry) => void;
   onDeleteEntry: (key: string) => void;
+  onUpdateValue?: (entry: ConfigEntry, value: string) => Promise<void> | void;
+  updatingKey?: string | null;
   canManage: boolean;
   copiedKey: string | null;
   onCopyValue: (key: string, value: string) => void;
@@ -34,6 +37,7 @@ export interface ProjectParamsTableProps {
     description: string;
     contentType: ConfigEntry["contentType"];
     scope: ConfigEntry["scope"];
+    unit?: string;
   }) => void;
   isSaving: boolean;
   historyVersions: ConfigEntryVersion[];
@@ -46,515 +50,346 @@ export interface ProjectParamsTableProps {
   density?: ParameterViewDensity;
 }
 
-const TYPE_STYLE: Record<string, string> = {
-  string: "bg-primary/10 border border-primary/20 text-primary",
-  number: "bg-secondary/10 border border-secondary/20 text-secondary",
-  boolean: "bg-amber-500/10 border border-amber-500/20 text-amber-400",
-  json: "bg-purple-500/10 border border-purple-500/20 text-purple-400"
-};
+const collapseStorageKey = (projectId: string, environmentName: string) =>
+  `nona_parameter_tree:${projectId}:${environmentName}`;
 
-const SCOPE_STYLE: Record<string, string> = {
-  all: "bg-surface-container-high/80 border border-outline-variant/15 text-outline",
-  client: "bg-primary/10 border border-primary/20 text-primary",
-  server: "bg-secondary/10 border border-secondary/20 text-secondary"
-};
+function readCollapsed(projectId: string, environmentName: string) {
+  try {
+    const stored = localStorage.getItem(collapseStorageKey(projectId, environmentName));
+    const parsed = stored ? JSON.parse(stored) as unknown : [];
+    return new Set(Array.isArray(parsed) ? parsed.filter(value => typeof value === "string") : []);
+  } catch {
+    return new Set<string>();
+  }
+}
 
-export function ProjectParamsTable(props: ProjectParamsTableProps) {
-  const isMobile = createMediaQuery("(max-width: 767px)");
-  const isCompact = () => props.density === "compact";
+function ParameterRow(props: {
+  entry: ConfigEntry;
+  table: ProjectParamsTableProps;
+  depth: number;
+  compact: boolean;
+}) {
+  const [draft, setDraft] = createSignal("");
+  const [submitError, setSubmitError] = createSignal("");
+  const [isSubmitting, setIsSubmitting] = createSignal(false);
+  const errorId = () => `parameter-value-error-${encodeURIComponent(props.entry.key)}`;
+  const valueError = createMemo(() => getConfigEntryValueError(props.entry.contentType, draft()));
+  const isDirty = () => draft() !== props.entry.value;
+
+  createEffect(on(
+    () => [props.entry.key, props.entry.value] as const,
+    ([, value]) => {
+      setDraft(value);
+      setSubmitError("");
+    }
+  ));
+
+  const update = async () => {
+    if (!props.table.onUpdateValue || !isDirty() || valueError()) return;
+    setIsSubmitting(true);
+    setSubmitError("");
+    try {
+      await props.table.onUpdateValue(props.entry, draft());
+    } catch (caught) {
+      setSubmitError(caught instanceof Error ? caught.message : "The value could not be updated.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const open = (opener: HTMLElement) => props.table.onSelectEntry(props.entry, opener);
+  const disabled = () =>
+    isSubmitting()
+    || props.table.updatingKey === props.entry.key
+    || !isDirty()
+    || !!valueError();
 
   return (
     <div
-      data-testid="parameter-table"
-      data-density={props.density ?? "comfortable"}
-      class={isCompact() ? "space-y-1.5" : "space-y-3"}
+      data-testid={`parameter-row-${props.entry.key}`}
+      onClick={event => {
+        if ((event.target as HTMLElement).closest("button,input,textarea,select,a")) return;
+        open(event.currentTarget);
+      }}
+      class={cn(
+        "border-outline-variant/10 bg-surface-container grid items-center border-b last:border-b-0",
+        props.compact
+          ? "min-h-12 gap-2 px-3 py-1.5 md:grid-cols-[minmax(11rem,1.1fr)_minmax(12rem,1.5fr)_8rem_auto]"
+          : "min-h-16 gap-3 px-4 py-3 md:grid-cols-[minmax(12rem,1.1fr)_minmax(14rem,1.5fr)_9rem_auto]"
+      )}
+      style={{ "--parameter-depth": props.depth }}
     >
-      <Show when={isMobile()}>
-        <div class={isCompact() ? "space-y-1.5" : "space-y-3"}>
-        <Show when={props.isLoading}>
-          <For each={[1, 2, 3]}>
-            {() => (
-              <div
-                class={cn(
-                  "skeleton w-full",
-                  isCompact() ? "h-24 rounded-xl" : "h-36 rounded-2xl"
-                )}
+      <button
+        type="button"
+        onClick={event => open(event.currentTarget)}
+        class="min-w-0 cursor-pointer border-0 bg-transparent text-left"
+        style={{ "padding-left": `${Math.min(props.depth, 4) * (props.compact ? 14 : 18)}px` }}
+        aria-label={`Open details for ${props.entry.key}`}
+      >
+        <span
+          data-testid={`parameter-display-${props.entry.key}`}
+          class="text-on-surface block truncate text-[13px] font-bold"
+        >
+          {parameterName(props.entry.key)}
+        </span>
+        <span
+          data-testid={`parameter-key-${props.entry.key}`}
+          class="text-outline block truncate font-mono text-[10px]"
+          title={props.entry.key}
+        >
+          {props.entry.key}
+        </span>
+      </button>
+
+      <div class="min-w-0" onClick={event => event.stopPropagation()}>
+        <ParameterValueEditor
+          entry={props.entry}
+          value={draft()}
+          onChange={value => {
+            setDraft(value);
+            setSubmitError("");
+          }}
+          readOnly={props.table.isReadOnly || !props.table.canManage}
+          invalid={!!valueError() || !!submitError()}
+          describedBy={valueError() || submitError() ? errorId() : undefined}
+          compact={props.compact}
+        />
+        <Show when={valueError() || submitError()}>
+          <p
+            id={errorId()}
+            role="alert"
+            aria-live="polite"
+            class="text-error mt-1 text-[10px] leading-tight"
+          >
+            {valueError() || submitError()}
+          </p>
+        </Show>
+      </div>
+
+      <div class="text-outline flex items-center gap-2 text-[10px] uppercase md:flex-col md:items-start md:gap-0.5">
+        <span><span class="sr-only">Datatype </span>{props.entry.contentType}</span>
+        <span><span class="sr-only">Scope </span>{props.entry.scope}</span>
+      </div>
+
+      <div class="flex items-center justify-end gap-1.5">
+        <Show when={!props.table.isReadOnly && props.table.canManage}>
+          <button
+            data-testid={`parameter-update-${props.entry.key}`}
+            type="button"
+            disabled={disabled()}
+            onClick={() => void update()}
+            class={cn(
+              "inline-flex h-8 cursor-pointer items-center justify-center rounded-lg border-0 px-3 text-[11px] font-bold transition-colors",
+              disabled()
+                ? "bg-surface-container-high text-outline cursor-not-allowed opacity-60"
+                : "bg-primary text-on-primary hover:brightness-105"
+            )}
+          >
+            {isSubmitting() || props.table.updatingKey === props.entry.key ? "Updating…" : "Update"}
+          </button>
+        </Show>
+        <button
+          data-testid={`parameter-edit-${props.entry.key}`}
+          type="button"
+          onClick={event => {
+            event.stopPropagation();
+            open(event.currentTarget);
+          }}
+          aria-label={`Edit parameter ${props.entry.key}`}
+          title={`Edit parameter ${props.entry.key}`}
+          class="text-outline hover:bg-primary/10 hover:text-primary inline-flex h-8 cursor-pointer items-center gap-1 rounded-lg border-0 bg-transparent px-2 text-[11px] font-semibold"
+        >
+          <MIcon name="edit" class="text-[16px]" />
+          <span class="hidden lg:inline">Edit</span>
+        </button>
+        <Show when={!props.table.isReadOnly && props.table.canManage}>
+          <button
+            data-testid={`parameter-delete-${props.entry.key}`}
+            type="button"
+            onClick={() => props.table.onDeleteEntry(props.entry.key)}
+            aria-label={`Delete parameter ${props.entry.key}`}
+            title={`Delete parameter ${props.entry.key}`}
+            class="text-outline hover:bg-error/10 hover:text-error inline-flex h-8 cursor-pointer items-center gap-1 rounded-lg border-0 bg-transparent px-2 text-[11px] font-semibold"
+          >
+            <MIcon name="delete_outline" class="text-[16px]" />
+            <span class="hidden xl:inline">Delete</span>
+          </button>
+        </Show>
+      </div>
+    </div>
+  );
+}
+
+function TreeBranch(props: {
+  node: ParameterTreeNode;
+  table: ProjectParamsTableProps;
+  compact: boolean;
+  collapsed: Set<string>;
+  toggle: (id: string) => void;
+  searching: boolean;
+}) {
+  const isGroup = () => props.node.children.length > 0;
+  const isCollapsed = () => !props.searching && props.collapsed.has(props.node.id);
+
+  return (
+    <>
+      <Show
+        when={isGroup()}
+        fallback={
+          <Show when={props.node.entry}>
+            {entry => (
+              <ParameterRow
+                entry={entry()}
+                table={props.table}
+                depth={props.node.legacy ? 0 : props.node.depth}
+                compact={props.compact}
+              />
+            )}
+          </Show>
+        }
+      >
+        <button
+          data-testid={`parameter-group-${props.node.id}`}
+          type="button"
+          aria-expanded={!isCollapsed()}
+          onClick={() => props.toggle(props.node.id)}
+          class={cn(
+            "border-outline-variant/10 bg-surface-container-lowest text-on-surface flex w-full cursor-pointer items-center gap-2 border-b px-3 text-left font-semibold",
+            props.compact ? "h-9 text-[12px]" : "h-11 text-[13px]"
+          )}
+          style={{ "padding-left": `${props.node.depth * (props.compact ? 14 : 18) + 12}px` }}
+        >
+          <MIcon name={isCollapsed() ? "chevron_right" : "expand_more"} class="text-outline text-[17px]" />
+          <span>{props.node.label}</span>
+          <span class="text-outline text-[10px] font-normal">{props.node.count}</span>
+        </button>
+        <Show when={!isCollapsed()}>
+          <Show when={props.node.entry}>
+            {entry => (
+              <ParameterRow
+                entry={entry()}
+                table={props.table}
+                depth={props.node.depth + 1}
+                compact={props.compact}
+              />
+            )}
+          </Show>
+          <For each={props.node.children}>
+            {child => (
+              <TreeBranch
+                node={child}
+                table={props.table}
+                compact={props.compact}
+                collapsed={props.collapsed}
+                toggle={props.toggle}
+                searching={props.searching}
               />
             )}
           </For>
         </Show>
+      </Show>
+    </>
+  );
+}
 
-        <Show when={!props.isLoading}>
-          <For each={props.filteredConfig}>
-            {entry => {
-              const meta = createMemo(() =>
-                props.getParamMeta(props.projectId, props.activeEnvName, entry.key)
-              );
-              const isExpanded = () => props.editingEntry?.key === entry.key;
+export function ProjectParamsTable(props: ProjectParamsTableProps) {
+  const isMobile = createMediaQuery("(max-width: 767px)");
+  const isCompact = () => props.density === "compact";
+  const tree = createMemo(() => buildParameterTree(props.filteredConfig));
+  const [collapsed, setCollapsed] = createSignal<Set<string>>(new Set());
 
-              return (
-                <article
-                  class={cn(
-                    "bg-surface-container border-outline-variant/10 overflow-hidden border",
-                    isCompact() ? "rounded-xl" : "rounded-2xl"
-                  )}
-                >
-                  <div
-                    data-testid={`parameter-row-${entry.key}`}
-                    role="button"
-                    tabindex="0"
-                    onClick={() => props.onSelectEntry(entry)}
-                    onKeyDown={event => {
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                        props.onSelectEntry(entry);
-                      }
-                    }}
-                    class={cn(
-                      "w-full cursor-pointer border-0 bg-transparent text-left",
-                      isCompact() ? "p-3" : "p-4"
-                    )}
-                  >
-                    <div class={cn("flex items-start", isCompact() ? "gap-2" : "gap-3")}>
-                      <div
-                        class={cn(
-                          "bg-surface-container-high text-outline mt-0.5 flex shrink-0 items-center justify-center transition-transform",
-                          isCompact() ? "h-6 w-6 rounded-md" : "h-7 w-7 rounded-lg",
-                          isExpanded() && "rotate-180"
-                        )}
-                      >
-                        <MIcon name="expand_more" class="text-[16px]" />
-                      </div>
+  createEffect(on(
+    () => [props.projectId, props.activeEnvName] as const,
+    ([projectId, environmentName]) => setCollapsed(readCollapsed(projectId, environmentName))
+  ));
 
-                      <div class={cn("min-w-0 flex-1", isCompact() ? "space-y-1.5" : "space-y-3")}>
-                        <div class="min-w-0">
-                          <span
-                            data-testid={`parameter-display-${entry.key}`}
-                            class="text-on-surface block text-[13.5px] font-bold"
-                          >
-                            {meta().displayName}
-                          </span>
-                          <span
-                            data-testid={`parameter-key-${entry.key}`}
-                            class={cn(
-                              "text-outline block font-mono text-[10px] tracking-tight break-all",
-                              !isCompact() && "mt-0.5"
-                            )}
-                          >
-                            {entry.key}
-                          </span>
-                        </div>
+  const toggle = (id: string) => {
+    const next = new Set(collapsed());
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setCollapsed(next);
+    try {
+      localStorage.setItem(
+        collapseStorageKey(props.projectId, props.activeEnvName),
+        JSON.stringify([...next])
+      );
+    } catch {
+      // Storage is optional; the tree remains usable when it is unavailable.
+    }
+  };
 
-                        <div class={cn("flex flex-wrap", isCompact() ? "gap-1.5" : "gap-2")}>
-                          <span
-                            class={cn(
-                              "rounded-full text-[9px] font-bold tracking-wider uppercase",
-                              isCompact() ? "px-1.5 py-0" : "px-2 py-0.5",
-                              TYPE_STYLE[entry.contentType] ?? ""
-                            )}
-                          >
-                            {entry.contentType}
-                          </span>
-                          <span
-                            class={cn(
-                              "rounded-full text-[9px] font-bold tracking-wider uppercase",
-                              isCompact() ? "px-1.5 py-0" : "px-2 py-0.5",
-                              SCOPE_STYLE[entry.scope] ?? ""
-                            )}
-                          >
-                            {entry.scope}
-                          </span>
-                        </div>
-
-                        <div
-                          class={cn(
-                            "bg-surface-container-lowest/60 flex items-center gap-2",
-                            isCompact() ? "rounded-lg px-2 py-1" : "rounded-xl px-3 py-2"
-                          )}
-                          onClick={e => e.stopPropagation()}
-                        >
-                          <span
-                            data-testid={`parameter-value-${entry.key}`}
-                            class="text-on-surface-variant min-w-0 flex-1 truncate font-mono text-[12px]"
-                          >
-                            {entry.value}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => void props.onCopyValue(entry.key, entry.value)}
-                            title="Copy value"
-                            class="text-outline hover:text-primary hover:bg-primary/10 flex shrink-0 cursor-pointer items-center justify-center rounded border-0 bg-transparent p-1"
-                          >
-                            <MIcon
-                              name={props.copiedKey === entry.key ? "check" : "content_copy"}
-                              class="text-[14px]"
-                            />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <Show when={props.canManage}>
-                    <div
-                      class={cn(
-                        "border-outline-variant/10 flex justify-end gap-1 border-t",
-                        isCompact() ? "px-3 py-1" : "px-4 py-2"
-                      )}
-                    >
-                      <button
-                        data-testid={`parameter-share-${entry.key}`}
-                        type="button"
-                        onClick={() => props.onShareEntry(entry)}
-                        class="text-outline hover:text-primary hover:bg-primary/10 cursor-pointer rounded-lg border-0 bg-transparent p-1.5"
-                        title={`Share parameter ${entry.key}`}
-                        aria-label={`Share parameter ${entry.key}`}
-                      >
-                        <MIcon name="ios_share" class="text-[18px]" />
-                      </button>
-                      <button
-                        data-testid={`parameter-delete-${entry.key}`}
-                        type="button"
-                        onClick={() => props.onDeleteEntry(entry.key)}
-                        class="text-outline hover:text-error hover:bg-error/10 cursor-pointer rounded-lg border-0 bg-transparent p-1.5"
-                        title={`Delete parameter ${entry.key}`}
-                        aria-label={`Delete parameter ${entry.key}`}
-                      >
-                        <MIcon name="delete_outline" class="text-[18px]" />
-                      </button>
-                    </div>
-                  </Show>
-
-                  <Show when={isExpanded()}>
-                    <div
-                      data-testid={`parameter-accordion-${entry.key}`}
-                      class={cn(
-                        "bg-surface-container-lowest/30 border-outline-variant/10 border-t",
-                        isCompact() ? "px-3 py-2.5" : "px-4 py-4"
-                      )}
-                    >
-                      <ProjectParamEditDrawer
-                        {...props}
-                        entry={props.editingEntry}
-                        onClose={props.onCloseEntry}
-                        onDirtyChange={props.onEditDirtyChange}
-                        historyLayout="mobile"
-                      />
-                    </div>
-                  </Show>
-                </article>
-              );
-            }}
-          </For>
-        </Show>
-
-        <Show when={!props.isLoading && props.search && props.filteredConfig.length === 0}>
-          <div
-            class={cn(
-              "text-on-surface-variant text-center text-sm",
-              isCompact() ? "py-6" : "py-10"
-            )}
-          >
-            No parameters match "<span class="text-on-surface font-medium">{props.search}</span>"
-          </div>
-        </Show>
+  return (
+    <div
+      data-testid="parameter-table"
+      data-density={props.density ?? "compact"}
+      class="border-outline-variant/15 bg-surface-container overflow-hidden rounded-xl border"
+    >
+      <Show when={!isMobile()}>
+        <div
+          aria-hidden="true"
+          class={cn(
+            "border-outline-variant/15 bg-surface-container-lowest text-outline grid border-b px-4 text-[9px] font-bold tracking-widest uppercase",
+            isCompact()
+              ? "h-8 grid-cols-[minmax(11rem,1.1fr)_minmax(12rem,1.5fr)_8rem_auto] items-center gap-2"
+              : "h-10 grid-cols-[minmax(12rem,1.1fr)_minmax(14rem,1.5fr)_9rem_auto] items-center gap-3"
+          )}
+        >
+          <span>Parameter</span>
+          <span>Value</span>
+          <span>Details</span>
+          <span class="text-right">Actions</span>
         </div>
       </Show>
 
-      <Show when={!isMobile()}>
-        <div
-          class={cn(
-            "bg-surface-container-low border-outline-variant/15 overflow-hidden border",
-            isCompact() ? "rounded-lg" : "rounded-xl"
-          )}
-        >
-        <div class="overflow-x-auto">
-        <table
-          data-testid="parameter-desktop-table"
-          class="w-full min-w-[48rem] table-fixed border-collapse text-left text-[12px]"
-        >
-          <colgroup>
-            <col class="w-[17rem]" />
-            <col />
-            <col class="w-28" />
-            <col class="w-28" />
-            <col class="w-24" />
-          </colgroup>
-          <thead class="sticky top-0 z-10">
-            <tr class="border-outline-variant/15 bg-surface-container-lowest/50 border-b">
-              <th
-                class={cn(
-                  "text-outline text-[11px] font-medium tracking-[0.05em] uppercase",
-                  isCompact() ? "px-2.5 py-2" : "px-4 py-3"
-                )}
-              >
-                Parameter
-              </th>
-              <th
-                class={cn(
-                  "text-outline text-[11px] font-medium tracking-[0.05em] uppercase",
-                  isCompact() ? "px-2.5 py-2" : "px-4 py-3"
-                )}
-              >
-                Value
-              </th>
-              <th
-                class={cn(
-                  "text-outline text-[11px] font-medium tracking-[0.05em] uppercase",
-                  isCompact() ? "px-2.5 py-2" : "px-4 py-3"
-                )}
-              >
-                <Tooltip content={tooltipCopy.datatype}><TooltipTrigger as="span" tabindex="0" data-tooltip-trigger class="cursor-help border-b border-dotted border-outline/60">Type</TooltipTrigger></Tooltip>
-              </th>
-              <th
-                class={cn(
-                  "text-outline text-[11px] font-medium tracking-[0.05em] uppercase",
-                  isCompact() ? "px-2.5 py-2" : "px-4 py-3"
-                )}
-              >
-                <Tooltip content={tooltipCopy.scope}><TooltipTrigger as="span" tabindex="0" data-tooltip-trigger class="cursor-help border-b border-dotted border-outline/60">Scope</TooltipTrigger></Tooltip>
-              </th>
-              <th
-                class={cn(
-                  "text-outline text-right text-[11px] font-medium tracking-[0.05em] uppercase",
-                  isCompact() ? "px-2.5 py-2" : "px-4 py-3"
-                )}
-              >
-                <Show when={!props.isReadOnly} fallback={<>Details</>}>
-                  Actions
-                </Show>
-              </th>
-            </tr>
-          </thead>
-          <tbody class="divide-outline-variant/10 animate-stagger divide-y">
-            <Show when={props.isLoading}>
-              <For each={[1, 2, 3]}>
-                {() => (
-                  <tr>
-                    <td class={isCompact() ? "px-2.5 py-2" : "px-4 py-4"}>
-                      <div class="skeleton h-4 w-40 rounded" />
-                    </td>
-                    <td class={isCompact() ? "px-2.5 py-2" : "px-4 py-4"}>
-                      <div class="skeleton h-4 w-32 rounded" />
-                    </td>
-                    <td class={isCompact() ? "px-2.5 py-2" : "px-4 py-4"}>
-                      <div class="skeleton h-5 w-14 rounded-full" />
-                    </td>
-                    <td class={isCompact() ? "px-2.5 py-2" : "px-4 py-4"}>
-                      <div class="skeleton h-5 w-14 rounded-full" />
-                    </td>
-                    <td class={isCompact() ? "px-2.5 py-2" : "px-4 py-4"} />
-                  </tr>
-                )}
-              </For>
-            </Show>
-            <Show when={!props.isLoading}>
-              <For each={props.filteredConfig}>
-                {entry => {
-                  const meta = createMemo(() =>
-                    props.getParamMeta(props.projectId, props.activeEnvName, entry.key)
-                  );
-                  const isExpanded = () => props.editingEntry?.key === entry.key;
+      <Show when={props.isLoading}>
+        <For each={[1, 2, 3]}>
+          {() => <div class={cn("skeleton border-outline-variant/10 border-b", isCompact() ? "h-12" : "h-16")} />}
+        </For>
+      </Show>
 
-                  return (
-                    <>
-                      <tr
-                        data-testid={`parameter-row-${entry.key}`}
-                        onClick={() => props.onSelectEntry(entry)}
-                        class={cn(
-                          "group cursor-pointer transition-colors",
-                          isExpanded()
-                            ? "bg-surface-container-high/40"
-                            : "hover:bg-surface-container-high/40"
-                        )}
-                      >
-                        <td
-                          class={cn(
-                            "min-w-0 overflow-hidden",
-                            isCompact() ? "px-2.5 py-2" : "px-4 py-4"
-                          )}
-                        >
-                          <div
-                            class={cn(
-                              "flex min-w-0 items-center",
-                              isCompact() ? "gap-2" : "gap-3"
-                            )}
-                          >
-                            <div
-                              class={cn(
-                                "bg-surface-container-high text-outline flex shrink-0 items-center justify-center transition-transform",
-                                isCompact() ? "h-6 w-6 rounded-md" : "h-7 w-7 rounded-lg",
-                                isExpanded() && "rotate-180"
-                              )}
-                            >
-                              <MIcon name="expand_more" class="text-[16px]" />
-                            </div>
-                            <div class="flex min-w-0 flex-1 flex-col gap-0.5">
-                              <span
-                                data-testid={`parameter-display-${entry.key}`}
-                                title={meta().displayName}
-                                class="text-on-surface block min-w-0 truncate text-[13.5px] font-bold"
-                              >
-                                {meta().displayName}
-                              </span>
-                              <span
-                                data-testid={`parameter-key-${entry.key}`}
-                                title={entry.key}
-                                class="text-outline block min-w-0 truncate font-mono text-[10px] tracking-tight"
-                              >
-                                {entry.key}
-                              </span>
-                            </div>
-                          </div>
-                        </td>
-                        <td
-                          class={cn(
-                            "min-w-0 overflow-hidden",
-                            isCompact() ? "px-2.5 py-2" : "px-4 py-4"
-                          )}
-                        >
-                          <div
-                            class="flex w-full min-w-0 items-center gap-2"
-                            onClick={e => e.stopPropagation()}
-                          >
-                            <span
-                              data-testid={`parameter-value-${entry.key}`}
-                              title={entry.value || undefined}
-                              class="text-on-surface-variant block min-w-0 flex-1 truncate font-mono"
-                            >
-                              {entry.value}
-                            </span>
-                            <button
-                              onClick={() => void props.onCopyValue(entry.key, entry.value)}
-                              title="Copy value"
-                              class="text-outline hover:text-primary hover:bg-primary/10 flex shrink-0 cursor-pointer items-center justify-center rounded border-0 bg-transparent p-1 opacity-40 transition-all group-hover:opacity-100 focus:opacity-100"
-                            >
-                              <MIcon
-                                name={props.copiedKey === entry.key ? "check" : "content_copy"}
-                                class="text-[14px]"
-                              />
-                            </button>
-                          </div>
-                        </td>
-                        <td
-                          class={cn(
-                            "overflow-hidden font-mono",
-                            isCompact() ? "px-2.5 py-2" : "px-4 py-4"
-                          )}
-                        >
-                          <span
-                            class={cn(
-                              "rounded-full text-[9px] font-bold tracking-wider uppercase",
-                              isCompact() ? "px-1.5 py-0" : "px-2 py-0.5",
-                              TYPE_STYLE[entry.contentType] ?? ""
-                            )}
-                          >
-                            {entry.contentType}
-                          </span>
-                        </td>
-                        <td
-                          class={cn(
-                            "overflow-hidden font-mono",
-                            isCompact() ? "px-2.5 py-2" : "px-4 py-4"
-                          )}
-                        >
-                          <span
-                            class={cn(
-                              "rounded-full text-[9px] font-bold tracking-wider uppercase",
-                              isCompact() ? "px-1.5 py-0" : "px-2 py-0.5",
-                              SCOPE_STYLE[entry.scope] ?? ""
-                            )}
-                          >
-                            {entry.scope}
-                          </span>
-                        </td>
-                        <td
-                          class={cn(
-                            "overflow-hidden text-right",
-                            isCompact() ? "px-2.5 py-2" : "px-4 py-4"
-                          )}
-                          onClick={e => e.stopPropagation()}
-                        >
-                          <Show when={props.canManage}>
-                            <div
-                              class={cn(
-                                "flex justify-end",
-                                isCompact() ? "gap-0.5" : "gap-1"
-                              )}
-                            >
-                              <button
-                                data-testid={`parameter-share-${entry.key}`}
-                                onClick={() => props.onShareEntry(entry)}
-                                class="text-outline hover:text-primary hover:bg-primary/10 cursor-pointer rounded-lg border-0 bg-transparent p-1.5 opacity-40 transition-opacity group-hover:opacity-100 focus:opacity-100"
-                                title={`Share parameter ${entry.key}`}
-                                aria-label={`Share parameter ${entry.key}`}
-                              >
-                                <MIcon name="ios_share" class="text-[18px]" />
-                              </button>
-                              <button
-                                data-testid={`parameter-delete-${entry.key}`}
-                                onClick={() => props.onDeleteEntry(entry.key)}
-                                class="text-outline hover:text-error hover:bg-error/10 cursor-pointer rounded-lg border-0 bg-transparent p-1.5 opacity-40 transition-opacity group-hover:opacity-100 focus:opacity-100"
-                                title={`Delete parameter ${entry.key}`}
-                                aria-label={`Delete parameter ${entry.key}`}
-                              >
-                                <MIcon name="delete_outline" class="text-[18px]" />
-                              </button>
-                            </div>
-                          </Show>
-                        </td>
-                      </tr>
-                      <Show when={isExpanded()}>
-                        <tr data-testid={`parameter-accordion-${entry.key}`}>
-                          <td
-                            colSpan={5}
-                            class={cn(
-                              "bg-surface-container-lowest/30",
-                              isCompact() ? "px-3 py-2.5" : "px-6 py-4"
-                            )}
-                          >
-                            <ProjectParamEditDrawer
-                              entry={props.editingEntry}
-                              activeEnvName={props.activeEnvName}
-                              initialDescription={props.initialDescription}
-                              onClose={props.onCloseEntry}
-                              onDirtyChange={props.onEditDirtyChange}
-                              onSaveSettings={props.onSaveSettings}
-                              isSaving={props.isSaving}
-                              canManage={props.canManage}
-                              historyVersions={props.historyVersions}
-                              isHistoryLoading={props.isHistoryLoading}
-                              isRollingBack={props.isRollingBack}
-                              onRollbackVersion={props.onRollbackVersion}
-                              historyLayout="desktop"
-                              isReadOnly={props.isReadOnly}
-                              releaseVersion={props.releaseVersion}
-                            />
-                          </td>
-                        </tr>
-                      </Show>
-                    </>
-                  );
-                }}
-              </For>
-            </Show>
-            <Show when={!props.isLoading && props.search && props.filteredConfig.length === 0}>
-              <tr>
-                <td
-                  colSpan={5}
-                  class={cn(
-                    "text-on-surface-variant text-center text-sm",
-                    isCompact() ? "py-6" : "py-10"
-                  )}
-                >
-                  No parameters match "
-                  <span class="text-on-surface font-medium">{props.search}</span>"
-                </td>
-              </tr>
-            </Show>
-          </tbody>
-        </table>
+      <Show when={!props.isLoading}>
+        <For each={tree()}>
+          {node => (
+            <TreeBranch
+              node={node}
+              table={props}
+              compact={isCompact()}
+              collapsed={collapsed()}
+              toggle={toggle}
+              searching={props.search.trim().length > 0}
+            />
+          )}
+        </For>
+      </Show>
+
+      <Show when={!props.isLoading && props.search && props.filteredConfig.length === 0}>
+        <div class="text-on-surface-variant px-4 py-8 text-center text-sm">
+          No parameters match “{props.search}”.
         </div>
+      </Show>
+
+      <Show when={props.editingEntry}>
+        <div
+          data-testid={`parameter-accordion-${props.editingEntry!.key}`}
+          class="border-outline-variant/15 bg-surface-container-lowest/40 border-t p-4"
+        >
+          <ProjectParamEditDrawer
+            entry={props.editingEntry}
+            activeEnvName={props.activeEnvName}
+            initialDescription={props.initialDescription}
+            onClose={props.onCloseEntry}
+            onDirtyChange={props.onEditDirtyChange}
+            onSaveSettings={props.onSaveSettings}
+            isSaving={props.isSaving}
+            canManage={props.canManage}
+            historyVersions={props.historyVersions}
+            isHistoryLoading={props.isHistoryLoading}
+            isRollingBack={props.isRollingBack}
+            onRollbackVersion={props.onRollbackVersion}
+            historyLayout={isMobile() ? "mobile" : "desktop"}
+            isReadOnly={props.isReadOnly}
+            releaseVersion={props.releaseVersion}
+          />
         </div>
       </Show>
     </div>
