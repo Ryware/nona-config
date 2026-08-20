@@ -343,6 +343,59 @@ describe('ProjectParametersSection', () => {
     });
   });
 
+  it('clears an existing numeric unit with an explicit empty value', async () => {
+    let updateRequest: Record<string, unknown> | undefined;
+    let currentEntry = {
+      project: 'my-app',
+      environment: 'production',
+      key: 'TIMEOUT',
+      value: '2500',
+      contentType: 'number',
+      scope: 'server',
+      description: 'Provider timeout',
+      unit: 'ms' as string | null,
+      activeVersion: 1,
+      createdAt: '2024-01-01T00:00:00Z',
+      updatedAt: '2024-01-01T00:00:00Z',
+    };
+
+    server.use(
+      http.get(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/config-entries',
+        () => HttpResponse.json([currentEntry]),
+      ),
+      http.put(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/config-entries/:key',
+        async ({ request }) => {
+          updateRequest = (await request.json()) as Record<string, unknown>;
+          currentEntry = {
+            ...currentEntry,
+            value: String(updateRequest.value),
+            contentType: String(updateRequest.contentType),
+            scope: String(updateRequest.scope),
+            description: String(updateRequest.description),
+            unit: updateRequest.unit === '' ? null : String(updateRequest.unit),
+            activeVersion: 2,
+            updatedAt: '2024-01-02T00:00:00Z',
+          };
+          return HttpResponse.json(currentEntry);
+        },
+      ),
+    );
+
+    renderProjectSections('/projects/my-app');
+    fireEvent.click(await screen.findByTestId('parameter-edit-TIMEOUT'));
+
+    const unitInput = await screen.findByTestId('parameter-edit-unit-input');
+    expect(unitInput).toHaveValue('ms');
+    fireEvent.input(unitInput, { target: { value: '' } });
+    fireEvent.click(screen.getByTestId('parameter-edit-save-button'));
+
+    await waitFor(() => expect(updateRequest?.unit).toBe(''));
+    await waitFor(() => expect(unitInput).toHaveValue(''));
+    expect(screen.queryByLabelText('Unit ms')).not.toBeInTheDocument();
+  });
+
   it('shows prompt to select environment when none is active', async () => {
     server.use(
       http.get('http://localhost:5027/admin/projects/:projectId/environments', () =>

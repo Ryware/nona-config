@@ -566,7 +566,11 @@ export default function ParametersSection() {
       contentType: data.contentType,
       scope: data.scope,
       description: data.description,
-      unit: data.unit
+      unit: selected.contentType === "number"
+        && data.contentType === "number"
+        && data.unit === null
+        ? ""
+        : data.unit
     });
   };
 
