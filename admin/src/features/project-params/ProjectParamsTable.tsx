@@ -1,5 +1,5 @@
 import { createMediaQuery } from "@solid-primitives/media";
-import { For, Show, createEffect, createMemo, createSignal, on } from "solid-js";
+import { For, Index, Show, createEffect, createMemo, createSignal, on, untrack } from "solid-js";
 import type { ConfigEntry } from "../../types";
 import { cn } from "../../shared/lib/utils";
 import { MIcon } from "../../shared/ui/icons";
@@ -46,25 +46,39 @@ function ParameterRow(props: {
   const [draft, setDraft] = createSignal("");
   const [submitError, setSubmitError] = createSignal("");
   const [isSubmitting, setIsSubmitting] = createSignal(false);
+  let submittedKey: string | undefined;
+  let submittedValue: string | undefined;
   const errorId = () => `parameter-value-error-${encodeURIComponent(props.entry.key)}`;
   const valueError = createMemo(() => getConfigEntryValueError(props.entry.contentType, draft()));
   const isDirty = () => draft() !== props.entry.value;
 
   createEffect(on(
     () => [props.entry.key, props.entry.value] as const,
-    ([, value]) => {
+    ([key, value]) => {
+      if (
+        submittedKey === key
+        && submittedValue !== undefined
+        && untrack(draft) !== submittedValue
+      ) return;
       setDraft(value);
       setSubmitError("");
+      submittedKey = undefined;
+      submittedValue = undefined;
     }
   ));
 
   const update = async () => {
     if (!props.table.onUpdateValue || !isDirty() || valueError()) return;
+    const nextValue = draft();
+    submittedKey = props.entry.key;
+    submittedValue = nextValue;
     setIsSubmitting(true);
     setSubmitError("");
     try {
-      await props.table.onUpdateValue(props.entry, draft());
+      await props.table.onUpdateValue(props.entry, nextValue);
     } catch (caught) {
+      submittedKey = undefined;
+      submittedValue = undefined;
       setSubmitError(caught instanceof Error ? caught.message : "The value could not be updated.");
     } finally {
       setIsSubmitting(false);
@@ -248,10 +262,10 @@ function TreeBranch(props: {
               />
             )}
           </Show>
-          <For each={props.node.children}>
+          <Index each={props.node.children}>
             {child => (
               <TreeBranch
-                node={child}
+                node={child()}
                 table={props.table}
                 compact={props.compact}
                 collapsed={props.collapsed}
@@ -259,7 +273,7 @@ function TreeBranch(props: {
                 searching={props.searching}
               />
             )}
-          </For>
+          </Index>
         </Show>
       </Show>
     </>
@@ -322,10 +336,10 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
       </Show>
 
       <Show when={!props.isLoading}>
-        <For each={tree()}>
+        <Index each={tree()}>
           {node => (
             <TreeBranch
-              node={node}
+              node={node()}
               table={props}
               compact={isCompact()}
               collapsed={collapsed()}
@@ -333,7 +347,7 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
               searching={props.search.trim().length > 0}
             />
           )}
-        </For>
+        </Index>
       </Show>
 
       <Show when={!props.isLoading && props.search && props.filteredConfig.length === 0}>

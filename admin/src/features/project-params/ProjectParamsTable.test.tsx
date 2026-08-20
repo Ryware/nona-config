@@ -97,6 +97,43 @@ describe("ProjectParamsTable", () => {
     ));
   });
 
+  it("preserves a newer draft when an earlier update response arrives", async () => {
+    let resolveUpdate: (() => void) | undefined;
+    const pendingUpdate = new Promise<void>(resolve => {
+      resolveUpdate = resolve;
+    });
+    const [entries, setEntries] = createSignal([entry()]);
+    const onUpdateValue = vi.fn(async (current: ConfigEntry, value: string) => {
+      await pendingUpdate;
+      setEntries([{ ...current, value, activeVersion: current.activeVersion + 1 }]);
+    });
+
+    render(() => (
+      <ProjectParamsTable
+        {...tableProps()}
+        filteredConfig={entries()}
+        onUpdateValue={onUpdateValue}
+      />
+    ));
+
+    const input = screen.getByTestId(`parameter-value-input-${entry().key}`);
+    const update = screen.getByTestId(`parameter-update-${entry().key}`);
+    fireEvent.input(input, { target: { value: "30" } });
+    fireEvent.click(update);
+    await waitFor(() => expect(onUpdateValue).toHaveBeenCalledWith(
+      expect.objectContaining({ key: entry().key }),
+      "30"
+    ));
+
+    fireEvent.input(input, { target: { value: "35" } });
+    resolveUpdate?.();
+
+    await waitFor(() => expect(
+      screen.getByTestId(`parameter-update-${entry().key}`)
+    ).toBeEnabled());
+    expect(screen.getByTestId(`parameter-value-input-${entry().key}`)).toHaveValue("35");
+  });
+
   it("uses an accessible boolean switch and shows number units", () => {
     render(() => (
       <ProjectParamsTable
