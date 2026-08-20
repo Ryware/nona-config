@@ -1,13 +1,10 @@
-import { makePersisted } from "@solid-primitives/storage";
 import type { JSX } from "solid-js";
-import { createSignal, Show } from "solid-js";
-import { cn } from "../../shared/lib/utils";
+import { onMount, Show } from "solid-js";
 import { MIcon } from "../../shared/ui/icons";
 import { Input } from "../../shared/ui/input";
 import type { ConfigEntry } from "../../types";
 import {
   ProjectParamsTable,
-  type ParameterViewDensity,
   type ProjectParamsTableProps
 } from "./ProjectParamsTable";
 
@@ -27,37 +24,25 @@ interface ProjectParamsTabProps {
   table: ProjectParamsTableProps;
 }
 
-export const PARAMETER_DENSITY_STORAGE_KEY = "nona_parameter_density";
+const LEGACY_PARAMETER_DENSITY_STORAGE_KEY = "nona_parameter_density";
 
-function parseParameterDensity(value: string): ParameterViewDensity {
+export function clearLegacyParameterDensityPreference() {
   try {
-    const parsed = JSON.parse(value) as unknown;
-    return parsed === "comfortable" || parsed === "compact" ? parsed : "compact";
+    localStorage.removeItem(LEGACY_PARAMETER_DENSITY_STORAGE_KEY);
   } catch {
-    return "compact";
+    // Storage is optional; compact rendering does not depend on it.
   }
 }
 
 export function ProjectParamsTab(props: ProjectParamsTabProps) {
-  const [density, setDensity] = makePersisted(
-    // eslint-disable-next-line solid/reactivity -- makePersisted intentionally wraps the signal.
-    createSignal<ParameterViewDensity>("compact"),
-    {
-      deserialize: parseParameterDensity,
-      name: PARAMETER_DENSITY_STORAGE_KEY
-    }
-  );
-  const isCompact = () => density() === "compact";
+  onMount(clearLegacyParameterDensityPreference);
 
   return (
     <section
       id="parameters"
       data-testid="project-parameters-section"
-      data-density={density()}
-      class={cn(
-        "bg-surface-container-low border-outline-variant/15 border scroll-mt-20",
-        isCompact() ? "space-y-2.5 rounded-xl p-3 sm:p-4" : "space-y-4 rounded-2xl p-5"
-      )}
+      data-density="compact"
+      class="bg-surface-container-low border-outline-variant/15 space-y-2.5 rounded-xl border p-3 scroll-mt-20 sm:p-4"
     >
       <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
@@ -100,47 +85,6 @@ export function ProjectParamsTab(props: ProjectParamsTabProps) {
             />
           </Show>
 
-          <Show when={props.activeEnvName}>
-            <div
-              role="group"
-              aria-label="Parameter spacing"
-              class="border-outline-variant/20 bg-surface-container-high flex shrink-0 items-center rounded-lg border p-1"
-            >
-              <button
-                data-testid="parameters-density-comfortable"
-                type="button"
-                aria-label="Comfortable spacing"
-                aria-pressed={density() === "comfortable"}
-                title="Comfortable spacing"
-                onClick={() => setDensity("comfortable")}
-                class={cn(
-                  "inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md border-0 transition-colors md:h-8 md:w-8",
-                  density() === "comfortable"
-                    ? "bg-surface-container-lowest text-primary shadow-sm"
-                    : "text-outline hover:bg-surface-bright hover:text-on-surface bg-transparent"
-                )}
-              >
-                <MIcon name="density_medium" class="text-[17px]" />
-              </button>
-              <button
-                data-testid="parameters-density-compact"
-                type="button"
-                aria-label="Compact spacing"
-                aria-pressed={density() === "compact"}
-                title="Compact spacing"
-                onClick={() => setDensity("compact")}
-                class={cn(
-                  "inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md border-0 transition-colors md:h-8 md:w-8",
-                  density() === "compact"
-                    ? "bg-surface-container-lowest text-primary shadow-sm"
-                    : "text-outline hover:bg-surface-bright hover:text-on-surface bg-transparent"
-                )}
-              >
-                <MIcon name="density_small" class="text-[17px]" />
-              </button>
-            </div>
-          </Show>
-
           <Show when={!props.isReadOnly && props.canManage && props.activeEnvName}>
             <div class="flex flex-wrap justify-end gap-2">
               <button
@@ -181,7 +125,6 @@ export function ProjectParamsTab(props: ProjectParamsTabProps) {
       <Show when={props.activeEnvName && (props.isLoading || props.filteredConfig.length > 0)}>
         <ProjectParamsTable
           {...props.table}
-          density={density()}
           search={props.paramSearch}
         />
       </Show>

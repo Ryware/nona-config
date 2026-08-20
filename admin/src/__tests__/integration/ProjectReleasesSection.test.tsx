@@ -117,12 +117,16 @@ describe('ProjectReleasesSection', () => {
       ),
     );
 
+    localStorage.setItem('nona_parameter_density', JSON.stringify('comfortable'));
     renderProjectSections('/projects/my-app/releases');
 
     fireEvent.click(await screen.findByTestId('release-amend-1.1.0'));
     expect(screen.queryByTestId('release-version-dialog')).not.toBeInTheDocument();
 
     await screen.findByTestId('parameter-row-feature.x');
+    expect(screen.getByTestId('parameter-table')).toHaveAttribute('data-density', 'compact');
+    expect(screen.queryByRole('group', { name: 'Parameter spacing' })).not.toBeInTheDocument();
+    expect(localStorage.getItem('nona_parameter_density')).toBeNull();
 
     fireEvent.click(screen.getByTestId('release-amend-confirm-button'));
     await waitFor(() => {

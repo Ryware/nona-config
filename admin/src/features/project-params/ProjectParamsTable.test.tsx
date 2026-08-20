@@ -32,7 +32,6 @@ const tableProps = (patch: Partial<ProjectParamsTableProps> = {}): ProjectParams
   onUpdateValue: vi.fn(),
   canManage: true,
   search: "",
-  density: "compact",
   ...patch
 });
 

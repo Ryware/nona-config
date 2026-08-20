@@ -45,21 +45,33 @@ describe('ProjectParametersSection', () => {
     expect(await screen.findByTestId('parameter-row-MAX_RETRIES')).toBeInTheDocument();
   });
 
-  it('defaults to compact spacing and restores the saved density', async () => {
+  it('always uses compact spacing and removes the legacy density preference', async () => {
+    localStorage.setItem('nona_parameter_density', JSON.stringify('comfortable'));
     const page = renderProjectSections('/projects/my-app');
     const section = await screen.findByTestId('project-parameters-section');
     expect(section).toHaveAttribute('data-density', 'compact');
-
-    fireEvent.click(await screen.findByTestId('parameters-density-comfortable'));
-    expect(section).toHaveAttribute('data-density', 'comfortable');
-    expect(JSON.parse(localStorage.getItem('nona_parameter_density') ?? 'null')).toBe('comfortable');
+    expect(await screen.findByTestId('parameter-table')).toHaveAttribute('data-density', 'compact');
+    expect(screen.queryByRole('group', { name: 'Parameter spacing' })).not.toBeInTheDocument();
+    expect(localStorage.getItem('nona_parameter_density')).toBeNull();
 
     page.unmount();
-    renderProjectSections('/projects/my-app');
+    localStorage.setItem('nona_parameter_density', JSON.stringify('comfortable'));
+    const snapshot = renderProjectSections('/projects/my-app?viewRelease=1.1.0');
     expect(await screen.findByTestId('project-parameters-section')).toHaveAttribute(
       'data-density',
-      'comfortable',
+      'compact',
     );
+    expect(await screen.findByTestId('parameter-table')).toHaveAttribute('data-density', 'compact');
+    expect(screen.queryByRole('group', { name: 'Parameter spacing' })).not.toBeInTheDocument();
+    expect(localStorage.getItem('nona_parameter_density')).toBeNull();
+
+    snapshot.unmount();
+    localStorage.setItem('nona_parameter_density', JSON.stringify('comfortable'));
+    renderProjectSections('/projects/my-app?release=1.1.1&amend=1.1.0');
+    expect(await screen.findByTestId('release-amend-panel')).toBeInTheDocument();
+    expect(await screen.findByTestId('parameter-table')).toHaveAttribute('data-density', 'compact');
+    expect(screen.queryByRole('group', { name: 'Parameter spacing' })).not.toBeInTheDocument();
+    expect(localStorage.getItem('nona_parameter_density')).toBeNull();
   });
 
   it('keeps project Viewers read-only', async () => {

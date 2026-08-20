@@ -7,8 +7,6 @@ import { getConfigEntryValueError } from "../project-param-edit/config-entry-val
 import { ParameterValueEditor } from "./ParameterValueEditor";
 import { buildParameterTree, parameterName, type ParameterTreeNode } from "./parameter-tree";
 
-export type ParameterViewDensity = "comfortable" | "compact";
-
 export interface ProjectParamsTableProps {
   isLoading: boolean;
   projectId: string;
@@ -21,7 +19,6 @@ export interface ProjectParamsTableProps {
   canManage: boolean;
   search: string;
   isReadOnly?: boolean;
-  density?: ParameterViewDensity;
 }
 
 const collapseStorageKey = (projectId: string, environmentName: string) =>
@@ -41,7 +38,6 @@ function ParameterRow(props: {
   entry: ConfigEntry;
   table: ProjectParamsTableProps;
   depth: number;
-  compact: boolean;
 }) {
   const [draft, setDraft] = createSignal("");
   const [submitError, setSubmitError] = createSignal("");
@@ -99,19 +95,14 @@ function ParameterRow(props: {
         if ((event.target as HTMLElement).closest("button,input,textarea,select,a")) return;
         open(event.currentTarget);
       }}
-      class={cn(
-        "border-outline-variant/10 bg-surface-container grid items-center border-b last:border-b-0",
-        props.compact
-          ? "min-h-12 gap-2 px-3 py-1.5 md:grid-cols-[minmax(11rem,1.1fr)_minmax(12rem,1.5fr)_8rem_auto]"
-          : "min-h-16 gap-3 px-4 py-3 md:grid-cols-[minmax(12rem,1.1fr)_minmax(14rem,1.5fr)_9rem_auto]"
-      )}
+      class="border-outline-variant/10 bg-surface-container grid min-h-12 items-center gap-2 border-b px-3 py-1.5 last:border-b-0 md:grid-cols-[minmax(11rem,1.1fr)_minmax(12rem,1.5fr)_8rem_auto]"
       style={{ "--parameter-depth": props.depth }}
     >
       <button
         type="button"
         onClick={event => open(event.currentTarget)}
         class="min-w-0 cursor-pointer border-0 bg-transparent text-left"
-        style={{ "padding-left": `${Math.min(props.depth, 4) * (props.compact ? 14 : 18)}px` }}
+        style={{ "padding-left": `${Math.min(props.depth, 4) * 14}px` }}
         aria-label={`Open details for ${props.entry.key}`}
       >
         <span
@@ -140,7 +131,7 @@ function ParameterRow(props: {
           readOnly={props.table.isReadOnly || !props.table.canManage}
           invalid={!!valueError() || !!submitError()}
           describedBy={valueError() || submitError() ? errorId() : undefined}
-          compact={props.compact}
+          compact
         />
         <Show when={valueError() || submitError()}>
           <p
@@ -211,7 +202,6 @@ function ParameterRow(props: {
 function TreeBranch(props: {
   node: ParameterTreeNode;
   table: ProjectParamsTableProps;
-  compact: boolean;
   collapsed: Set<string>;
   toggle: (id: string) => void;
   searching: boolean;
@@ -230,7 +220,6 @@ function TreeBranch(props: {
                 entry={entry()}
                 table={props.table}
                 depth={props.node.legacy ? 0 : props.node.depth}
-                compact={props.compact}
               />
             )}
           </Show>
@@ -241,11 +230,8 @@ function TreeBranch(props: {
           type="button"
           aria-expanded={!isCollapsed()}
           onClick={() => props.toggle(props.node.id)}
-          class={cn(
-            "border-outline-variant/10 bg-surface-container-lowest text-on-surface flex w-full cursor-pointer items-center gap-2 border-b px-3 text-left font-semibold",
-            props.compact ? "h-9 text-[12px]" : "h-11 text-[13px]"
-          )}
-          style={{ "padding-left": `${props.node.depth * (props.compact ? 14 : 18) + 12}px` }}
+          class="border-outline-variant/10 bg-surface-container-lowest text-on-surface flex h-9 w-full cursor-pointer items-center gap-2 border-b px-3 text-left text-[12px] font-semibold"
+          style={{ "padding-left": `${props.node.depth * 14 + 12}px` }}
         >
           <MIcon name={isCollapsed() ? "chevron_right" : "expand_more"} class="text-outline text-[17px]" />
           <span>{props.node.label}</span>
@@ -258,7 +244,6 @@ function TreeBranch(props: {
                 entry={entry()}
                 table={props.table}
                 depth={props.node.depth + 1}
-                compact={props.compact}
               />
             )}
           </Show>
@@ -267,7 +252,6 @@ function TreeBranch(props: {
               <TreeBranch
                 node={child()}
                 table={props.table}
-                compact={props.compact}
                 collapsed={props.collapsed}
                 toggle={props.toggle}
                 searching={props.searching}
@@ -282,7 +266,6 @@ function TreeBranch(props: {
 
 export function ProjectParamsTable(props: ProjectParamsTableProps) {
   const isMobile = createMediaQuery("(max-width: 767px)");
-  const isCompact = () => props.density === "compact";
   const tree = createMemo(() => buildParameterTree(props.filteredConfig));
   const [collapsed, setCollapsed] = createSignal<Set<string>>(new Set());
 
@@ -309,18 +292,13 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
   return (
     <div
       data-testid="parameter-table"
-      data-density={props.density ?? "compact"}
+      data-density="compact"
       class="border-outline-variant/15 bg-surface-container overflow-hidden rounded-xl border"
     >
       <Show when={!isMobile()}>
         <div
           aria-hidden="true"
-          class={cn(
-            "border-outline-variant/15 bg-surface-container-lowest text-outline grid border-b px-4 text-[9px] font-bold tracking-widest uppercase",
-            isCompact()
-              ? "h-8 grid-cols-[minmax(11rem,1.1fr)_minmax(12rem,1.5fr)_8rem_auto] items-center gap-2"
-              : "h-10 grid-cols-[minmax(12rem,1.1fr)_minmax(14rem,1.5fr)_9rem_auto] items-center gap-3"
-          )}
+          class="border-outline-variant/15 bg-surface-container-lowest text-outline grid h-8 grid-cols-[minmax(11rem,1.1fr)_minmax(12rem,1.5fr)_8rem_auto] items-center gap-2 border-b px-4 text-[9px] font-bold tracking-widest uppercase"
         >
           <span>Parameter</span>
           <span>Value</span>
@@ -331,7 +309,7 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
 
       <Show when={props.isLoading}>
         <For each={[1, 2, 3]}>
-          {() => <div class={cn("skeleton border-outline-variant/10 border-b", isCompact() ? "h-12" : "h-16")} />}
+          {() => <div class="skeleton border-outline-variant/10 h-12 border-b" />}
         </For>
       </Show>
 
@@ -341,7 +319,6 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
             <TreeBranch
               node={node()}
               table={props}
-              compact={isCompact()}
               collapsed={collapsed()}
               toggle={toggle}
               searching={props.search.trim().length > 0}

@@ -1,6 +1,5 @@
-import { makePersisted } from "@solid-primitives/storage";
 import { useQuery } from "@tanstack/solid-query";
-import { createEffect, createMemo, createSignal, Show } from "solid-js";
+import { createEffect, createMemo, createSignal, onMount, Show } from "solid-js";
 import { createStore } from "solid-js/store";
 import { configEntryService } from "../../entities/project/api/config-entry.service";
 import { useUnsavedChanges, useUnsavedChangesBlocker } from "../../shared/hooks/useUnsavedChanges";
@@ -13,11 +12,8 @@ import {
   ProjectParamPanel,
   type ParameterPanelSaveData
 } from "../project-param-edit/ProjectParamPanel";
-import { PARAMETER_DENSITY_STORAGE_KEY } from "../project-params/ProjectParamsTab";
-import {
-  ProjectParamsTable,
-  type ParameterViewDensity
-} from "../project-params/ProjectParamsTable";
+import { clearLegacyParameterDensityPreference } from "../project-params/ProjectParamsTab";
+import { ProjectParamsTable } from "../project-params/ProjectParamsTable";
 
 const RELEASE_AMEND_DRAFT = "release-amend-draft";
 const RELEASE_AMEND_PANEL_DRAFT = "release-amend-panel-draft";
@@ -85,21 +81,7 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
   const { requestAction } = useUnsavedChanges();
   let panelOpener: HTMLElement | undefined;
 
-  const [density, setDensity] = makePersisted(
-    // eslint-disable-next-line solid/reactivity -- makePersisted intentionally wraps the signal.
-    createSignal<ParameterViewDensity>("compact"),
-    {
-      name: PARAMETER_DENSITY_STORAGE_KEY,
-      deserialize: value => {
-        try {
-          const parsed = JSON.parse(value) as unknown;
-          return parsed === "comfortable" || parsed === "compact" ? parsed : "compact";
-        } catch {
-          return "compact";
-        }
-      }
-    }
-  );
+  onMount(clearLegacyParameterDensityPreference);
 
   const identity = () => JSON.stringify([props.projectId, props.environmentName, props.sourceVersion]);
   const isBufferReady = () => !props.isLoading && seededIdentity() === identity();
@@ -265,7 +247,7 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
           when={rows.length > 0}
           fallback={<div class="bg-surface-container rounded-xl px-4 py-8 text-center text-xs text-on-surface-variant">This release has no parameters.</div>}
         >
-          <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
             <Input
               type="text"
               value={search()}
@@ -275,14 +257,6 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
               class="h-10 sm:w-72"
               leftIcon="search"
             />
-            <div role="group" aria-label="Parameter spacing" class="border-outline-variant/20 bg-surface-container-high flex items-center rounded-lg border p-1">
-              <button type="button" aria-label="Comfortable spacing" aria-pressed={density() === "comfortable"} title="Comfortable spacing" onClick={() => setDensity("comfortable")} class={`inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md border-0 ${density() === "comfortable" ? "bg-surface-container-lowest text-primary" : "text-outline bg-transparent"}`}>
-                <MIcon name="density_medium" class="text-[17px]" />
-              </button>
-              <button type="button" aria-label="Compact spacing" aria-pressed={density() === "compact"} title="Compact spacing" onClick={() => setDensity("compact")} class={`inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md border-0 ${density() === "compact" ? "bg-surface-container-lowest text-primary" : "text-outline bg-transparent"}`}>
-                <MIcon name="density_small" class="text-[17px]" />
-              </button>
-            </div>
           </div>
           <ProjectParamsTable
             isLoading={false}
@@ -297,7 +271,6 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
             }}
             canManage
             search={search()}
-            density={density()}
           />
         </Show>
       </Show>
