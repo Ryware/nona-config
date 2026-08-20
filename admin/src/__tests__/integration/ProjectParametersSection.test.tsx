@@ -396,6 +396,57 @@ describe('ProjectParametersSection', () => {
     expect(screen.queryByLabelText('Unit ms')).not.toBeInTheDocument();
   });
 
+  it('preserves the raw JSON value during a metadata-only edit', async () => {
+    const rawValue = '{"enabled":true,"retries":3}';
+    let updateRequest: Record<string, unknown> | undefined;
+    const currentEntry = {
+      project: 'my-app',
+      environment: 'production',
+      key: 'SETTINGS',
+      value: rawValue,
+      contentType: 'json',
+      scope: 'server',
+      description: 'Runtime settings',
+      unit: null,
+      activeVersion: 1,
+      createdAt: '2024-01-01T00:00:00Z',
+      updatedAt: '2024-01-01T00:00:00Z',
+    };
+
+    server.use(
+      http.get(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/config-entries',
+        () => HttpResponse.json([currentEntry]),
+      ),
+      http.put(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/config-entries/:key',
+        async ({ request }) => {
+          updateRequest = (await request.json()) as Record<string, unknown>;
+          return HttpResponse.json({
+            ...currentEntry,
+            ...updateRequest,
+            activeVersion: 2,
+            updatedAt: '2024-01-02T00:00:00Z',
+          });
+        },
+      ),
+    );
+
+    renderProjectSections('/projects/my-app');
+    fireEvent.click(await screen.findByTestId('parameter-edit-SETTINGS'));
+    fireEvent.input(await screen.findByTestId('parameter-edit-description-input'), {
+      target: { value: 'Updated runtime settings' },
+    });
+    fireEvent.click(screen.getByTestId('parameter-edit-save-button'));
+
+    await waitFor(() => expect(updateRequest).toBeDefined());
+    expect(updateRequest).toMatchObject({
+      value: rawValue,
+      contentType: 'json',
+      description: 'Updated runtime settings',
+    });
+  });
+
   it('shows prompt to select environment when none is active', async () => {
     server.use(
       http.get('http://localhost:5027/admin/projects/:projectId/environments', () =>

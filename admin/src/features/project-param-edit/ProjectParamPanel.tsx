@@ -75,6 +75,7 @@ export function ProjectParamPanel(props: ProjectParamPanelProps) {
   const [tab, setTab] = createSignal<"settings" | "history">("settings");
   const [key, setKey] = createSignal("");
   const [value, setValue] = createSignal("");
+  const [originalValue, setOriginalValue] = createSignal("");
   const [description, setDescription] = createSignal("");
   const [contentType, setContentType] = createSignal<ConfigEntry["contentType"]>("text");
   const [scope, setScope] = createSignal<ConfigEntry["scope"]>("all");
@@ -82,6 +83,7 @@ export function ProjectParamPanel(props: ProjectParamPanelProps) {
   const [baseline, setBaseline] = createSignal("");
   const [keyTouched, setKeyTouched] = createSignal(false);
   const [valueTouched, setValueTouched] = createSignal(false);
+  const [valueEdited, setValueEdited] = createSignal(false);
   const [status, setStatus] = createSignal("");
 
   const resetFromEntry = (entry = props.entry) => {
@@ -98,6 +100,7 @@ export function ProjectParamPanel(props: ProjectParamPanelProps) {
 
     setKey(nextKey);
     setValue(nextValue);
+    setOriginalValue(rawValue);
     setDescription(nextDescription);
     setContentType(nextType);
     setScope(nextScope);
@@ -113,6 +116,7 @@ export function ProjectParamPanel(props: ProjectParamPanelProps) {
     setTab("settings");
     setKeyTouched(false);
     setValueTouched(false);
+    setValueEdited(false);
     setStatus("");
     requestAnimationFrame(() => panelMain?.scrollTo({ top: 0, left: 0 }));
   };
@@ -164,7 +168,7 @@ export function ProjectParamPanel(props: ProjectParamPanelProps) {
     try {
       const saved = await props.onSave({
         key: key().trim(),
-        value: value(),
+        value: valueEdited() ? value() : originalValue(),
         description: description().trim(),
         contentType: contentType(),
         scope: scope(),
@@ -405,6 +409,7 @@ export function ProjectParamPanel(props: ProjectParamPanelProps) {
                           setValue("false");
                         }
                         setValueTouched(true);
+                        setValueEdited(true);
                       }}
                       options={["text", "number", "boolean", "json"]}
                     />
@@ -464,6 +469,7 @@ export function ProjectParamPanel(props: ProjectParamPanelProps) {
                           onChange={next => {
                             setValue(next);
                             setValueTouched(true);
+                            setValueEdited(true);
                           }}
                           readOnly={isReadOnly()}
                           invalid={valueTouched() && !!valueError()}
@@ -488,8 +494,11 @@ export function ProjectParamPanel(props: ProjectParamPanelProps) {
                         aria-describedby={valueTouched() && valueError() ? "parameter-panel-value-error" : undefined}
                         value={value()}
                         onChange={next => {
+                          if (next !== value()) {
+                            setValueTouched(true);
+                            setValueEdited(true);
+                          }
                           setValue(next);
-                          setValueTouched(true);
                         }}
                       />
                     </Show>
