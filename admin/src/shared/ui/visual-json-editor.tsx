@@ -36,7 +36,7 @@ function VisualJsonRow(props: VisualJsonRowProps) {
             props.onItemChange(props.index, "key", e.currentTarget.value)
           }
           placeholder="Key"
-          class={`h-7 px-2.5 rounded-lg text-xs font-mono bg-surface-container-low ${
+          class={`h-7 px-2.5 rounded-lg text-[13px] font-mono bg-surface-container-low ${
             props.isDuplicate
               ? "border-error/40 focus:border-error/60 focus:ring-1 focus:ring-error/20"
               : "border-outline-variant/15"
@@ -52,7 +52,7 @@ function VisualJsonRow(props: VisualJsonRowProps) {
             onChange={(e) =>
               props.onItemChange(props.index, "value", e.currentTarget.value)
             }
-            class="w-full bg-surface-container-low border border-outline-variant/15 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-lg px-2.5 py-1.5 text-xs text-on-surface outline-none cursor-pointer"
+            class="w-full bg-surface-container-low border border-outline-variant/15 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-lg px-2.5 py-1.5 text-[13px] text-on-surface outline-none cursor-pointer"
           >
             <option value="true">True</option>
             <option value="false">False</option>
@@ -67,7 +67,7 @@ function VisualJsonRow(props: VisualJsonRowProps) {
               props.onItemChange(props.index, "value", e.currentTarget.value)
             }
             placeholder="0"
-            class="h-7 px-2.5 rounded-lg text-xs font-mono bg-surface-container-low border-outline-variant/15"
+            class="h-7 px-2.5 rounded-lg text-[13px] font-mono bg-surface-container-low border-outline-variant/15"
           />
         </Show>
 
@@ -79,7 +79,7 @@ function VisualJsonRow(props: VisualJsonRowProps) {
               props.onItemChange(props.index, "value", e.currentTarget.value)
             }
             placeholder="Value"
-            class="h-7 px-2.5 rounded-lg text-xs bg-surface-container-low border-outline-variant/15"
+            class="h-7 px-2.5 rounded-lg text-[13px] bg-surface-container-low border-outline-variant/15"
           />
         </Show>
       </div>
@@ -95,7 +95,7 @@ function VisualJsonRow(props: VisualJsonRowProps) {
               e.currentTarget.value as JsonGridItem['type'],
             )
           }
-          class="w-full bg-surface-container-low border border-outline-variant/15 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-lg px-1.5 py-1.5 text-[11px] font-mono text-on-surface outline-none cursor-pointer"
+          class="w-full bg-surface-container-low border border-outline-variant/15 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-lg px-1.5 py-1.5 text-[12px] font-mono text-on-surface outline-none cursor-pointer"
         >
           <option value="string">str</option>
           <option value="number">num</option>
@@ -283,7 +283,7 @@ export function VisualJsonEditor(props: VisualJsonEditorProps) {
             type="button"
             disabled={isNested()}
             onClick={() => setIsVisual(true)}
-            class={`px-3 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider transition-all border-0 cursor-pointer ${
+            class={`px-3 py-1 rounded-md text-[12px] font-bold uppercase tracking-wider transition-all border-0 cursor-pointer ${
               isVisual()
                 ? "bg-primary text-on-primary shadow-sm"
                 : "text-outline hover:text-on-surface disabled:opacity-40"
@@ -294,7 +294,7 @@ export function VisualJsonEditor(props: VisualJsonEditorProps) {
           <button
             type="button"
             onClick={() => setIsVisual(false)}
-            class={`px-3 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider transition-all border-0 cursor-pointer ${
+            class={`px-3 py-1 rounded-md text-[12px] font-bold uppercase tracking-wider transition-all border-0 cursor-pointer ${
               !isVisual()
                 ? "bg-primary text-on-primary shadow-sm"
                 : "text-outline hover:text-on-surface"
@@ -310,12 +310,12 @@ export function VisualJsonEditor(props: VisualJsonEditorProps) {
               type="button"
               onClick={formatRawJson}
               disabled={!!errorMsg()}
-              class="px-2 py-1 rounded border border-outline-variant/20 hover:border-primary/50 text-[10px] font-bold font-mono text-outline hover:text-primary transition-all bg-transparent cursor-pointer"
+              class="px-2 py-1 rounded border border-outline-variant/20 hover:border-primary/50 text-[11px] font-bold font-mono text-outline hover:text-primary transition-all bg-transparent cursor-pointer"
             >
               Format Code
             </button>
             <span
-              class={`px-2 py-0.5 rounded text-[9px] font-bold font-mono uppercase ${
+              class={`px-2 py-0.5 rounded text-[10px] font-bold font-mono uppercase ${
                 errorMsg()
                   ? "bg-error/10 border border-error/20 text-error"
                   : "bg-success/10 border border-success/20 text-success"
@@ -336,17 +336,17 @@ export function VisualJsonEditor(props: VisualJsonEditorProps) {
               value={props.value}
               onInput={handleRawChange}
               rows={6}
-              class="w-full bg-surface-container-low border border-outline-variant/15 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-lg px-4 py-2.5 text-sm text-on-surface font-mono placeholder:text-outline/60 transition-all outline-none"
+              class="w-full bg-surface-container-low border border-outline-variant/15 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-lg px-4 py-2.5 text-[15px] text-on-surface font-mono placeholder:text-outline/60 transition-all outline-none"
               placeholder='{ "key": "value" }'
             />
             <Show when={errorMsg()}>
-              <p class="text-xs text-error font-bold mt-1 flex items-center gap-1.5 animate-fade-in">
+              <p class="text-[13px] text-error font-bold mt-1 flex items-center gap-1.5 animate-fade-in">
                 <span class="material-symbols-outlined text-[14px]">error</span>
                 {errorMsg()}
               </p>
             </Show>
             <Show when={isNested()}>
-              <p class="text-[10px] text-outline mt-1.5 leading-relaxed">
+              <p class="text-[11px] text-outline mt-1.5 leading-relaxed">
                 * Visual Grid is disabled because this JSON configuration
                 contains nested objects or arrays.
               </p>
@@ -359,7 +359,7 @@ export function VisualJsonEditor(props: VisualJsonEditorProps) {
             <Show
               when={items().length > 0}
               fallback={
-                <div class="text-center py-6 text-xs text-outline font-medium">
+                <div class="text-center py-6 text-[13px] text-outline font-medium">
                   No key-value pairs. Click 'Add Row' to begin.
                 </div>
               }
@@ -384,14 +384,14 @@ export function VisualJsonEditor(props: VisualJsonEditorProps) {
               type="button"
               onClick={handleAddField}
               data-testid="visual-json-editor-add-item"
-              class="flex items-center gap-1 text-[11px] font-bold text-primary hover:text-primary-container bg-transparent border-0 cursor-pointer p-1 rounded select-none"
+              class="flex items-center gap-1 text-[12px] font-bold text-primary hover:text-primary-container bg-transparent border-0 cursor-pointer p-1 rounded select-none"
             >
               <span class="material-symbols-outlined text-[14px]">add</span>
               Add Item
             </button>
 
             <Show when={duplicateKeys().size > 0}>
-              <span class="text-[10px] text-error font-bold flex items-center gap-1 select-none animate-fade-in">
+              <span class="text-[11px] text-error font-bold flex items-center gap-1 select-none animate-fade-in">
                 <span class="material-symbols-outlined text-[12px]">
                   warning
                 </span>

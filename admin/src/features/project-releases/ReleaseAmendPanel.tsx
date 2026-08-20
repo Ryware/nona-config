@@ -171,7 +171,7 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
       class="bg-surface-container-low border-outline-variant/15 space-y-4 rounded-2xl border p-5"
     >
       <div class="border-primary/25 bg-primary/5 flex flex-col gap-3 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between">
-        <div class="flex items-center gap-2 text-[13px]">
+        <div class="flex items-center gap-2 text-[14px]">
           <MIcon name="edit" class="text-primary text-[18px]" />
           <span class="text-on-surface-variant">
             Amending <span class="text-on-surface font-mono font-bold">{props.sourceVersion}</span> →
@@ -212,7 +212,7 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
         fallback={<div class="skeleton h-40 w-full rounded-xl" />}
       >
         <div class="bg-surface-container border-outline-variant/15 space-y-3 rounded-xl border p-4">
-          <p class="text-outline font-headline text-[10px] font-bold tracking-widest uppercase">
+          <p class="text-outline font-headline text-[11px] font-bold tracking-widest uppercase">
             Add parameter
           </p>
           <div class="grid gap-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto_auto] md:items-start">
@@ -233,7 +233,7 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
                 class="h-10 font-mono"
               />
               <Show when={keyError()}>
-                <p id={keyErrorId} class="text-error mt-1.5 text-[11px] font-bold">
+                <p id={keyErrorId} class="text-error mt-1.5 text-[12px] font-bold">
                   {keyError()}
                 </p>
               </Show>
@@ -255,7 +255,7 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
                 class="h-10 font-mono"
               />
               <Show when={valueError()}>
-                <p id={valueErrorId} class="text-error mt-1.5 text-[11px] font-bold">
+                <p id={valueErrorId} class="text-error mt-1.5 text-[12px] font-bold">
                   {valueError()}
                 </p>
               </Show>
@@ -289,7 +289,7 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
             <div>
               <span
                 aria-hidden="true"
-                class="text-on-surface-variant invisible mb-1.5 hidden text-[11px] font-medium tracking-[0.05em] md:block"
+                class="text-on-surface-variant invisible mb-1.5 hidden text-[12px] font-medium tracking-[0.05em] md:block"
               >
                 Action
               </span>
@@ -336,7 +336,7 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
             class={
               hasVisibleFieldError()
                 ? "sr-only"
-                : "text-on-surface-variant ml-auto w-fit max-w-full text-[11px] md:text-right"
+                : "text-on-surface-variant ml-auto w-fit max-w-full text-[12px] md:text-right"
             }
           >
             {actionStatus()}
@@ -346,7 +346,7 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
         <Show
           when={rows.length > 0}
           fallback={
-            <div class="bg-surface-container rounded-xl px-4 py-5 text-center text-xs text-on-surface-variant">
+            <div class="bg-surface-container rounded-xl px-4 py-5 text-center text-[13px] text-on-surface-variant">
               This release has no parameters.
             </div>
           }
@@ -358,7 +358,7 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
                   data-testid={`amend-row-${row.key}`}
                   class="bg-surface-container grid gap-2 rounded-xl px-4 py-3 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1.5fr)_auto_auto_auto] md:items-center"
                 >
-                  <span class="text-on-surface truncate font-mono text-[13px] font-bold" title={row.key}>
+                  <span class="text-on-surface truncate font-mono text-[14px] font-bold" title={row.key}>
                     {row.key}
                   </span>
                   <Input

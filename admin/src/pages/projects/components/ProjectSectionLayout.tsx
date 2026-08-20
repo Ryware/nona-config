@@ -37,7 +37,7 @@ export function ProjectSectionLayout(props: ProjectSectionLayoutProps) {
             fallback={
               <div class="flex items-center justify-between gap-4">
                 <div>
-                  <h2 class="font-headline text-on-surface text-[17px] font-bold tracking-tight">
+                  <h2 class="font-headline text-on-surface text-[18px] font-bold tracking-tight">
                     Projects
                   </h2>
                 </div>

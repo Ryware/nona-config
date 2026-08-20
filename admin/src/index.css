@@ -359,7 +359,7 @@ select {
   border: 1px solid color-mix(in srgb, var(--outline-variant) 60%, transparent);
   border-radius: 0.5rem;
   padding: 0.5rem 0.75rem;
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   outline: none;
   cursor: pointer;
   transition: border-color 0.15s ease;

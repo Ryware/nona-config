@@ -73,7 +73,7 @@ export function Select(props: SelectProps) {
       itemComponent={(itemProps: SelectItemProps) => (
         <Item
           item={itemProps.item}
-          class="flex items-center justify-between w-full px-3 py-2 rounded-lg text-xs text-on-surface hover:bg-surface-container-high hover:text-on-surface transition-colors cursor-pointer outline-none select-none relative data-selected:bg-surface-container-high/60"
+          class="flex items-center justify-between w-full px-3 py-2 rounded-lg text-[13px] text-on-surface hover:bg-surface-container-high hover:text-on-surface transition-colors cursor-pointer outline-none select-none relative data-selected:bg-surface-container-high/60"
         >
           <div class="flex items-center gap-2">
             <span class="w-4 h-4 flex items-center justify-center shrink-0">
@@ -95,7 +95,7 @@ export function Select(props: SelectProps) {
         aria-describedby={props["aria-describedby"]}
         onBlur={props.onBlur}
         class={cn(
-          "flex items-center justify-between w-full pl-4 pr-3 py-2 text-[13px] text-on-surface bg-surface-container-lowest border border-outline-variant/20 rounded-lg hover:border-outline-variant/30 transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 h-11 cursor-pointer outline-none",
+          "flex items-center justify-between w-full pl-4 pr-3 py-2 text-[14px] text-on-surface bg-surface-container-lowest border border-outline-variant/20 rounded-lg hover:border-outline-variant/30 transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 h-11 cursor-pointer outline-none",
           props.class,
         )}
       >

@@ -131,7 +131,7 @@ export function ProjectParamCreateForm(props: ProjectParamCreateFormProps) {
               }}
             />
             <Show when={keyError()}>
-              <p id={keyErrorId} class="text-error mt-2 text-[11px] font-bold">
+              <p id={keyErrorId} class="text-error mt-2 text-[12px] font-bold">
                 {keyError()}
               </p>
             </Show>
@@ -254,12 +254,12 @@ export function ProjectParamCreateForm(props: ProjectParamCreateFormProps) {
           />
         </Show>
         <Show when={valueError()}>
-          <p id={valueErrorId} class="text-error mt-2 text-[11px] font-bold">
+          <p id={valueErrorId} class="text-error mt-2 text-[12px] font-bold">
             {valueError()}
           </p>
         </Show>
         <Show when={createError()}>
-          <p role="alert" class="text-error mt-2 text-[11px] font-bold">
+          <p role="alert" class="text-error mt-2 text-[12px] font-bold">
             {createError()}
           </p>
         </Show>
@@ -270,7 +270,7 @@ export function ProjectParamCreateForm(props: ProjectParamCreateFormProps) {
           id={actionStatusId}
           role="status"
           aria-live="polite"
-          class="text-on-surface-variant text-[11px]"
+          class="text-on-surface-variant text-[12px]"
         >
           {actionStatus()}
         </p>

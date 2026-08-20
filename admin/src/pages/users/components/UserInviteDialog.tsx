@@ -29,7 +29,7 @@ export function UserInviteDialog(props: UserInviteDialogProps) {
         >
           <div class="bg-surface-container-low border-outline-variant/15 animate-palette-in w-full max-w-lg rounded-2xl border p-8 shadow-2xl">
             <div class="mb-5 flex items-center gap-3">
-              <span class="bg-primary/10 text-primary border-primary/20 rounded-full border px-2.5 py-0.5 font-mono text-[10px] font-bold tracking-wider">
+              <span class="bg-primary/10 text-primary border-primary/20 rounded-full border px-2.5 py-0.5 font-mono text-[11px] font-bold tracking-wider">
                 READY
               </span>
               <h3
@@ -41,7 +41,7 @@ export function UserInviteDialog(props: UserInviteDialogProps) {
               </h3>
             </div>
 
-            <p class="text-on-surface-variant mb-5 text-sm leading-relaxed">
+            <p class="text-on-surface-variant mb-5 text-[15px] leading-relaxed">
               Send this link to{" "}
               <span class="text-on-surface font-semibold">{props.email}</span>. It can be used once
               to create a password or finish sign-in with SSO.
@@ -68,7 +68,7 @@ export function UserInviteDialog(props: UserInviteDialogProps) {
             </div>
 
             <Show when={props.copyFeedback}>
-              <p class="text-primary mt-3 text-xs font-medium">{props.copyFeedback}</p>
+              <p class="text-primary mt-3 text-[13px] font-medium">{props.copyFeedback}</p>
             </Show>
 
             <div class="mt-6 flex justify-end gap-3">

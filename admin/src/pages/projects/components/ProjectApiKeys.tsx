@@ -38,7 +38,7 @@ function ScopeBadge(props: { scope: ApiKey["scope"] }) {
 
   return (
     <Tooltip content={scopeTooltip(props.scope)}>
-      <TooltipTrigger as="span" tabindex="0" data-tooltip-trigger class={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${className()}`}>
+      <TooltipTrigger as="span" tabindex="0" data-tooltip-trigger class={`rounded-full px-2 py-0.5 text-[11px] font-bold uppercase ${className()}`}>
         {props.scope}
       </TooltipTrigger>
     </Tooltip>
@@ -85,12 +85,12 @@ export function ProjectApiKeys(props: ProjectApiKeysProps) {
         <div>
           <p
             data-testid="project-api-keys-heading"
-            class="text-outline font-headline flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase"
+            class="text-outline font-headline flex items-center gap-1.5 text-[11px] font-bold tracking-widest uppercase"
           >
             <MIcon name="key" class="text-[15px]" />
             API Keys
           </p>
-          <p class="text-on-surface-variant mt-1 text-xs">
+          <p class="text-on-surface-variant mt-1 text-[13px]">
             Keys belong to this project and can be limited by access type or environment.
           </p>
         </div>
@@ -102,7 +102,7 @@ export function ProjectApiKeys(props: ProjectApiKeysProps) {
             onClick={() => props.setShowCreateForm(!props.showCreateForm)}
             aria-label="Add API Key"
             title="Add API Key"
-            class="bg-primary text-on-primary inline-flex h-10 w-10 cursor-pointer items-center justify-center gap-1.5 self-end rounded-lg border-0 px-0 text-[13px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] md:h-10 md:w-auto md:px-4 md:self-auto"
+            class="bg-primary text-on-primary inline-flex h-10 w-10 cursor-pointer items-center justify-center gap-1.5 self-end rounded-lg border-0 px-0 text-[14px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] md:h-10 md:w-auto md:px-4 md:self-auto"
           >
             <MIcon name="add" class="text-[16px]" />
             <span class="hidden md:inline">Add API Key</span>
@@ -112,7 +112,7 @@ export function ProjectApiKeys(props: ProjectApiKeysProps) {
 
       <Show when={props.canManage && props.showCreateForm}>
         <div class="bg-surface-container-low border-outline-variant/15 animate-fade-in rounded-2xl border p-6 shadow-sm">
-          <h3 class="font-headline text-on-surface mb-6 text-xs font-bold tracking-wider uppercase">
+          <h3 class="font-headline text-on-surface mb-6 text-[13px] font-bold tracking-wider uppercase">
             New API Key
           </h3>
           <div class="grid gap-6 md:grid-cols-2">
@@ -168,7 +168,7 @@ export function ProjectApiKeys(props: ProjectApiKeysProps) {
         <Show
           when={props.apiKeys.length > 0}
           fallback={
-            <div class="bg-surface-container rounded-xl px-4 py-5 text-center text-xs text-on-surface-variant">
+            <div class="bg-surface-container rounded-xl px-4 py-5 text-center text-[13px] text-on-surface-variant">
               No API keys yet.
             </div>
           }
@@ -179,19 +179,19 @@ export function ProjectApiKeys(props: ProjectApiKeysProps) {
                 <div class="bg-surface-container grid gap-3 rounded-xl px-4 py-3 md:grid-cols-[minmax(160px,0.8fr)_minmax(180px,1.2fr)_auto] md:items-center">
                   <div class="min-w-0">
                     <div class="flex items-center gap-2">
-                      <span class="text-on-surface truncate text-sm font-semibold">
+                      <span class="text-on-surface truncate text-[15px] font-semibold">
                         {apiKey.name}
                       </span>
                       <ScopeBadge scope={apiKey.scope} />
                     </div>
-                    <p class="text-outline mt-1 truncate text-[11px]">
+                    <p class="text-outline mt-1 truncate text-[12px]">
                       {apiKey.environment ?? "All environments"}
                     </p>
                   </div>
 
                   <code
                     data-testid={`api-key-value-${apiKey.id}`}
-                    class="text-on-surface bg-surface-container-lowest rounded-lg px-3 py-2 font-mono text-[12px]"
+                    class="text-on-surface bg-surface-container-lowest rounded-lg px-3 py-2 font-mono text-[13px]"
                   >
                     {revealed()[apiKey.id] ? apiKey.key : "•".repeat(32)}
                   </code>

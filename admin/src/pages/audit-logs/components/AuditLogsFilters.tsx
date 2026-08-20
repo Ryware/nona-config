@@ -116,7 +116,7 @@ export function AuditLogsFilters(props: AuditLogsFiltersProps) {
             wrapperStyle="w-auto"
           />
         </Show>
-        <span class="text-outline/70 hidden shrink-0 text-[11px] font-medium sm:inline">
+        <span class="text-outline/70 hidden shrink-0 text-[12px] font-medium sm:inline">
           Filters:
         </span>
 
@@ -146,7 +146,7 @@ export function AuditLogsFilters(props: AuditLogsFiltersProps) {
 
         <button
           onClick={() => props.clearAllFilters()}
-          class="text-outline hover:text-error ml-auto flex cursor-pointer items-center gap-1 border-0 bg-transparent text-[11px] font-medium transition-colors sm:ml-0"
+          class="text-outline hover:text-error ml-auto flex cursor-pointer items-center gap-1 border-0 bg-transparent text-[12px] font-medium transition-colors sm:ml-0"
         >
           <MIcon name="close" class="text-[14px]" />
           Clear
@@ -155,7 +155,7 @@ export function AuditLogsFilters(props: AuditLogsFiltersProps) {
 
       {/* Date Range picker */}
       <div class="flex flex-wrap items-center gap-3">
-        <span class="text-outline/70 shrink-0 text-[11px] font-medium">Date Range:</span>
+        <span class="text-outline/70 shrink-0 text-[12px] font-medium">Date Range:</span>
         <div class="relative flex items-center">
           <Input
             ref={fromInputRef}
@@ -166,10 +166,10 @@ export function AuditLogsFilters(props: AuditLogsFiltersProps) {
           />
           <MIcon
             name="calendar_today"
-            class="text-outline/70 pointer-events-none absolute right-2.5 text-xs"
+            class="text-outline/70 pointer-events-none absolute right-2.5 text-[13px]"
           />
         </div>
-        <span class="text-outline text-[11px]">to</span>
+        <span class="text-outline text-[12px]">to</span>
         <div class="relative flex items-center">
           <Input
             ref={toInputRef}
@@ -180,13 +180,13 @@ export function AuditLogsFilters(props: AuditLogsFiltersProps) {
           />
           <MIcon
             name="calendar_today"
-            class="text-outline/70 pointer-events-none absolute right-2.5 text-xs"
+            class="text-outline/70 pointer-events-none absolute right-2.5 text-[13px]"
           />
         </div>
         <Show when={props.dateFrom || props.dateTo}>
           <button
             onClick={clearDates}
-            class="text-outline hover:text-error flex cursor-pointer items-center gap-1 border-0 bg-transparent text-[11px] font-medium transition-colors"
+            class="text-outline hover:text-error flex cursor-pointer items-center gap-1 border-0 bg-transparent text-[12px] font-medium transition-colors"
           >
             <MIcon name="close" class="text-[14px]" />
             Clear dates

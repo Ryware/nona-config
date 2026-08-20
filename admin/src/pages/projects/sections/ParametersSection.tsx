@@ -557,7 +557,7 @@ export default function ParametersSection() {
             data-testid="release-view-banner"
             class="border-secondary/25 bg-secondary/5 animate-fade-in flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between"
           >
-            <div class="flex items-center gap-2 text-[13px]">
+            <div class="flex items-center gap-2 text-[14px]">
               <span class="material-symbols-outlined text-secondary text-[18px]">visibility</span>
               <span class="text-on-surface-variant">
                 Viewing release{" "}
@@ -570,7 +570,7 @@ export default function ParametersSection() {
                 data-testid="release-view-back-to-releases-button"
                 type="button"
                 onClick={() => navigate(`/projects/${params.slug}/releases`)}
-                class="bg-surface-container-high text-on-surface hover:bg-surface-bright inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border-0 px-4 text-[12px] font-semibold"
+                class="bg-surface-container-high text-on-surface hover:bg-surface-bright inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border-0 px-4 text-[13px] font-semibold"
               >
                 <span class="material-symbols-outlined text-[16px]">arrow_back</span>
                 Back to releases
@@ -579,7 +579,7 @@ export default function ParametersSection() {
                 data-testid="release-view-back-button"
                 type="button"
                 onClick={() => navigate(`/projects/${params.slug}`)}
-                class="border-outline-variant/30 bg-surface-container-low text-on-surface-variant hover:bg-surface-container inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border px-4 text-[12px] font-semibold"
+                class="border-outline-variant/30 bg-surface-container-low text-on-surface-variant hover:bg-surface-container inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border px-4 text-[13px] font-semibold"
               >
                 <span class="material-symbols-outlined text-[16px]">tune</span>
                 Live parameters
@@ -616,7 +616,7 @@ export default function ParametersSection() {
             data-testid="release-draft-banner"
             class="border-primary/25 bg-primary/5 animate-fade-in flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between"
           >
-            <div class="flex items-center gap-2 text-[13px]">
+            <div class="flex items-center gap-2 text-[14px]">
               <span class="material-symbols-outlined text-primary text-[18px]">
                 deployed_code_history
               </span>
@@ -640,7 +640,7 @@ export default function ParametersSection() {
                     }
                   })
                 }
-                class="bg-primary text-on-primary inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border-0 px-4 text-[12px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] disabled:opacity-50"
+                class="bg-primary text-on-primary inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border-0 px-4 text-[13px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] disabled:opacity-50"
               >
                 <span class="material-symbols-outlined text-[16px]">check</span>
                 {publishReleaseMutation.isPending ? "Creating..." : "Create release"}
@@ -650,7 +650,7 @@ export default function ParametersSection() {
                 type="button"
                 disabled={publishReleaseMutation.isPending}
                 onClick={() => navigate(`/projects/${params.slug}/releases`)}
-                class="border-outline-variant/30 bg-surface-container-low text-on-surface-variant hover:bg-surface-container inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border px-4 text-[12px] font-semibold transition-all disabled:opacity-50"
+                class="border-outline-variant/30 bg-surface-container-low text-on-surface-variant hover:bg-surface-container inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border px-4 text-[13px] font-semibold transition-all disabled:opacity-50"
               >
                 <span class="material-symbols-outlined text-[16px]">close</span>
                 Cancel

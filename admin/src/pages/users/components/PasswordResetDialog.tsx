@@ -30,7 +30,7 @@ export function PasswordResetDialog(props: PasswordResetDialogProps) {
         >
           <div class="bg-surface-container-low border-outline-variant/15 animate-palette-in w-full max-w-lg rounded-2xl border p-8 shadow-2xl">
             <div class="mb-5 flex items-center gap-3">
-              <span class="bg-warning/10 text-warning border-warning/20 rounded-full border px-2.5 py-0.5 font-mono text-[10px] font-bold tracking-wider">
+              <span class="bg-warning/10 text-warning border-warning/20 rounded-full border px-2.5 py-0.5 font-mono text-[11px] font-bold tracking-wider">
                 24 HOURS
               </span>
               <h3
@@ -41,12 +41,12 @@ export function PasswordResetDialog(props: PasswordResetDialogProps) {
               </h3>
             </div>
 
-            <p class="text-on-surface-variant mb-2 text-sm leading-relaxed">
+            <p class="text-on-surface-variant mb-2 text-[15px] leading-relaxed">
               Send this link manually to <span class="text-on-surface font-semibold">{props.email}</span>.
               It can be used once to set a new password.
             </p>
             <Show when={props.expiresAt}>
-              <p class="text-outline mb-5 text-xs">
+              <p class="text-outline mb-5 text-[13px]">
                 Expires {new Date(props.expiresAt!).toLocaleString()}.
               </p>
             </Show>
@@ -67,7 +67,7 @@ export function PasswordResetDialog(props: PasswordResetDialogProps) {
             </div>
 
             <Show when={props.copyFeedback}>
-              <p class="text-primary mt-3 text-xs font-medium">{props.copyFeedback}</p>
+              <p class="text-primary mt-3 text-[13px] font-medium">{props.copyFeedback}</p>
             </Show>
 
             <div class="mt-6 flex justify-end">

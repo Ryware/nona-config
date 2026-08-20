@@ -18,7 +18,7 @@ export function Tooltip(props: TooltipProps) {
     >
       {props.children}
       <TooltipPrimitive.Portal>
-        <TooltipPrimitive.Content class="bg-surface-container-highest text-on-surface border-outline-variant/20 z-[200] max-w-80 rounded-lg border px-3 py-2 text-[11px] leading-relaxed shadow-xl motion-safe:animate-fade-in">
+        <TooltipPrimitive.Content class="bg-surface-container-highest text-on-surface border-outline-variant/20 z-[200] max-w-80 rounded-lg border px-3 py-2 text-[12px] leading-relaxed shadow-xl motion-safe:animate-fade-in">
           {props.content}
           <TooltipPrimitive.Arrow class="fill-surface-container-highest" />
         </TooltipPrimitive.Content>
@@ -43,7 +43,7 @@ export function TooltipLabel(props: TooltipLabelProps) {
         tabindex="0"
         data-tooltip-trigger
         class={cn(
-          "text-on-surface-variant mb-1.5 block w-fit cursor-help border-b border-dotted border-outline/60 text-[11px] font-medium tracking-[0.05em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+          "text-on-surface-variant mb-1.5 block w-fit cursor-help border-b border-dotted border-outline/60 text-[12px] font-medium tracking-[0.05em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
           local.class,
         )}
         {...others}

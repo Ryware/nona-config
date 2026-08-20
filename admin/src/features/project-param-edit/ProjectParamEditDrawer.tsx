@@ -43,7 +43,7 @@ interface FieldRowProps {
 function FieldRow(props: FieldRowProps): JSX.Element {
   return (
     <Tooltip content={props.value || "No value"}>
-      <TooltipTrigger as="span" tabindex="0" data-tooltip-trigger class={`text-on-surface block min-w-0 truncate text-[10px] leading-tight md:text-[11px] ${props.mono ? "font-mono" : ""}`}>
+      <TooltipTrigger as="span" tabindex="0" data-tooltip-trigger class={`text-on-surface block min-w-0 truncate text-[11px] leading-tight md:text-[12px] ${props.mono ? "font-mono" : ""}`}>
         {props.value ? props.value : <span class="text-outline/40 italic">-</span>}
       </TooltipTrigger>
     </Tooltip>
@@ -65,7 +65,7 @@ function HistoryValueField(props: HistoryValueFieldProps): JSX.Element {
     >
       <Tooltip content={props.value || "No value"}>
       <TooltipTrigger as="span" tabindex="0" data-tooltip-trigger
-        class="text-on-surface min-w-0 flex-1 truncate font-mono text-[10px] leading-tight md:text-[11px]"
+        class="text-on-surface min-w-0 flex-1 truncate font-mono text-[11px] leading-tight md:text-[12px]"
       >
         {props.value || <span class="text-outline/40 italic">-</span>}
       </TooltipTrigger>
@@ -175,7 +175,7 @@ export function ProjectParamEditDrawer(props: ProjectParamEditDrawerProps) {
                 <button
                   type="button"
                   onClick={() => setActiveDrawerTab("settings")}
-                  class={`min-w-0 cursor-pointer rounded-lg border-0 px-2 py-1.5 text-[11px] font-medium transition-all sm:text-[12px] ${
+                  class={`min-w-0 cursor-pointer rounded-lg border-0 px-2 py-1.5 text-[12px] font-medium transition-all sm:text-[13px] ${
                     activeDrawerTab() === "settings"
                       ? "bg-primary text-on-primary"
                       : "text-outline hover:text-on-surface bg-transparent"
@@ -193,14 +193,14 @@ export function ProjectParamEditDrawer(props: ProjectParamEditDrawerProps) {
                         : (props.historyVersions[0]?.version ?? null)
                     );
                   }}
-                  class={`min-w-0 cursor-pointer rounded-lg border-0 px-2 py-1.5 text-[11px] font-medium transition-all sm:text-[12px] ${
+                  class={`min-w-0 cursor-pointer rounded-lg border-0 px-2 py-1.5 text-[12px] font-medium transition-all sm:text-[13px] ${
                     activeDrawerTab() === "history"
                       ? "bg-primary text-on-primary"
                       : "text-outline hover:text-on-surface bg-transparent"
                   }`}
                 >
                   <span class="truncate">History</span>
-                  <span class="ml-1 text-[10px] opacity-80 sm:text-[11px]">
+                  <span class="ml-1 text-[11px] opacity-80 sm:text-[12px]">
                     ({props.historyVersions.length})
                   </span>
                 </button>
@@ -212,21 +212,21 @@ export function ProjectParamEditDrawer(props: ProjectParamEditDrawerProps) {
                 <div class="grid gap-5 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
                   <div class="space-y-5">
                     <div class="bg-surface-container-high/40 border-outline-variant/15 flex flex-wrap items-center gap-2 rounded-xl border px-3 py-2.5">
-                      <span class="text-outline text-[11px] font-medium tracking-[0.05em]">
+                      <span class="text-outline text-[12px] font-medium tracking-[0.05em]">
                         Context
                       </span>
-                      <span class="bg-primary/10 text-primary border-primary/20 rounded-full border px-2.5 py-0.5 font-mono text-[11px]">
+                      <span class="bg-primary/10 text-primary border-primary/20 rounded-full border px-2.5 py-0.5 font-mono text-[12px]">
                         {props.activeEnvName}
                       </span>
-                      <span class="text-outline/50 text-[11px]">•</span>
-                      <span class="bg-secondary/10 text-secondary border-secondary/20 rounded-full border px-2.5 py-0.5 font-mono text-[11px]">
+                      <span class="text-outline/50 text-[12px]">•</span>
+                      <span class="bg-secondary/10 text-secondary border-secondary/20 rounded-full border px-2.5 py-0.5 font-mono text-[12px]">
                         release {props.releaseVersion}
                       </span>
                     </div>
 
                     <div class="space-y-2">
                       <Label class="mb-0">Description</Label>
-                      <div class="bg-surface-container-lowest border-outline-variant/20 text-on-surface min-h-[88px] rounded-xl border px-4 py-3 text-[13px] leading-relaxed">
+                      <div class="bg-surface-container-lowest border-outline-variant/20 text-on-surface min-h-[88px] rounded-xl border px-4 py-3 text-[14px] leading-relaxed">
                         {editDescription().trim() || (
                           <span class="text-outline/60">No description provided.</span>
                         )}
@@ -236,7 +236,7 @@ export function ProjectParamEditDrawer(props: ProjectParamEditDrawerProps) {
                     <div class="grid gap-4 sm:grid-cols-2">
                       <div class="space-y-2">
                         <TooltipLabel class="mb-0" content={tooltipCopy.datatype}>Datatype</TooltipLabel>
-                        <div class="text-primary bg-primary/5 border-primary/15 inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 font-mono text-[11px]">
+                        <div class="text-primary bg-primary/5 border-primary/15 inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 font-mono text-[12px]">
                           <MIcon name="data_object" class="text-[14px]" />
                           {entry.contentType}
                         </div>
@@ -244,7 +244,7 @@ export function ProjectParamEditDrawer(props: ProjectParamEditDrawerProps) {
 
                       <div class="space-y-2">
                         <TooltipLabel class="mb-0" content={scopeTooltip(entry.scope)}>Scope</TooltipLabel>
-                        <div class="text-secondary bg-secondary/5 border-secondary/15 inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 font-mono text-[11px]">
+                        <div class="text-secondary bg-secondary/5 border-secondary/15 inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 font-mono text-[12px]">
                           <MIcon name="public" class="text-[14px]" />
                           {entry.scope}
                         </div>
@@ -254,7 +254,7 @@ export function ProjectParamEditDrawer(props: ProjectParamEditDrawerProps) {
 
                   <div class="space-y-2">
                     <Label class="mb-0">Value</Label>
-                    <pre class="bg-surface-container-lowest border-outline-variant/20 text-on-surface min-h-[220px] overflow-x-auto rounded-xl border px-4 py-3 font-mono text-[12px] leading-relaxed break-all whitespace-pre-wrap">
+                    <pre class="bg-surface-container-lowest border-outline-variant/20 text-on-surface min-h-[220px] overflow-x-auto rounded-xl border px-4 py-3 font-mono text-[13px] leading-relaxed break-all whitespace-pre-wrap">
                       {prettyValue()}
                     </pre>
                   </div>
@@ -265,14 +265,14 @@ export function ProjectParamEditDrawer(props: ProjectParamEditDrawerProps) {
                 <div class="grid gap-5 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
                   <div class="space-y-5">
                     <div class="bg-surface-container-high/40 border-outline-variant/15 flex flex-wrap items-center gap-2 rounded-xl border px-3 py-2.5">
-                      <span class="text-outline text-[11px] font-medium tracking-[0.05em]">
+                      <span class="text-outline text-[12px] font-medium tracking-[0.05em]">
                         Context
                       </span>
-                      <span class="bg-primary/10 text-primary border-primary/20 rounded-full border px-2.5 py-0.5 font-mono text-[11px]">
+                      <span class="bg-primary/10 text-primary border-primary/20 rounded-full border px-2.5 py-0.5 font-mono text-[12px]">
                         {props.activeEnvName}
                       </span>
-                      <span class="text-outline/50 text-[11px]">•</span>
-                      <span class="bg-secondary/10 text-secondary border-secondary/20 rounded-full border px-2.5 py-0.5 font-mono text-[11px]">
+                      <span class="text-outline/50 text-[12px]">•</span>
+                      <span class="bg-secondary/10 text-secondary border-secondary/20 rounded-full border px-2.5 py-0.5 font-mono text-[12px]">
                         active v{entry.activeVersion}
                       </span>
                     </div>
@@ -287,7 +287,7 @@ export function ProjectParamEditDrawer(props: ProjectParamEditDrawerProps) {
                         disabled={!props.canManage}
                         rows={3}
                         maxLength={500}
-                        class="bg-surface-container-lowest border-outline-variant/20 focus:border-primary focus:ring-primary/20 text-on-surface placeholder:text-outline/60 hover:border-outline-variant/30 w-full resize-none rounded-xl border px-4 py-2.5 text-[13px] transition-all outline-none focus:ring-2"
+                        class="bg-surface-container-lowest border-outline-variant/20 focus:border-primary focus:ring-primary/20 text-on-surface placeholder:text-outline/60 hover:border-outline-variant/30 w-full resize-none rounded-xl border px-4 py-2.5 text-[14px] transition-all outline-none focus:ring-2"
                         placeholder="Describe what this setting controls..."
                         data-testid="parameter-edit-description-input"
                       />
@@ -376,7 +376,7 @@ export function ProjectParamEditDrawer(props: ProjectParamEditDrawerProps) {
 
               <Show when={!props.isReadOnly && activeDrawerTab() === "history"}>
                 <div>
-                  <p class="text-outline mb-5 text-[11px] font-medium tracking-[0.05em]">
+                  <p class="text-outline mb-5 text-[12px] font-medium tracking-[0.05em]">
                     Version timeline
                   </p>
                   <Show
@@ -397,7 +397,7 @@ export function ProjectParamEditDrawer(props: ProjectParamEditDrawerProps) {
                     <Show
                       when={props.historyVersions.length > 0}
                       fallback={
-                        <div class="text-outline py-12 text-center text-[12px]">
+                        <div class="text-outline py-12 text-center text-[13px]">
                           No version history.
                         </div>
                       }
@@ -406,7 +406,7 @@ export function ProjectParamEditDrawer(props: ProjectParamEditDrawerProps) {
                         <div class="border-outline-variant/20 relative border-l pl-4">
                           <div
                             data-testid="parameter-history-header"
-                            class="text-outline border-outline-variant/15 mb-3 grid min-w-0 grid-cols-[minmax(0,1fr)_6rem_5rem_8rem] gap-x-2 border-b pb-2 text-[10px] leading-none font-medium tracking-[0.05em] uppercase"
+                            class="text-outline border-outline-variant/15 mb-3 grid min-w-0 grid-cols-[minmax(0,1fr)_6rem_5rem_8rem] gap-x-2 border-b pb-2 text-[11px] leading-none font-medium tracking-[0.05em] uppercase"
                           >
                             <span class="min-w-0">Value</span>
                             <span class="min-w-0">Datatype</span>
@@ -432,23 +432,23 @@ export function ProjectParamEditDrawer(props: ProjectParamEditDrawerProps) {
                                         class="min-w-0"
                                       >
                                         <div class="flex min-w-0 items-center gap-1.5">
-                                          <span class="text-on-surface shrink-0 font-mono text-[12px] font-bold">
+                                          <span class="text-on-surface shrink-0 font-mono text-[13px] font-bold">
                                             v{version.version}
                                           </span>
                                           <Show when={isActive()}>
-                                            <span class="bg-secondary/10 text-secondary border-secondary/20 shrink-0 rounded-full border px-1.5 py-px text-[8px] font-bold tracking-wider uppercase">
+                                            <span class="bg-secondary/10 text-secondary border-secondary/20 shrink-0 rounded-full border px-1.5 py-px text-[9px] font-bold tracking-wider uppercase">
                                               active
                                             </span>
                                           </Show>
                                         </div>
                                         <span
-                                          class="text-on-surface-variant mt-0.5 block min-w-0 truncate text-[10px]"
+                                          class="text-on-surface-variant mt-0.5 block min-w-0 truncate text-[11px]"
                                           title={version.actor}
                                         >
                                           {version.actor}
                                         </span>
                                       </div>
-                                      <span class="text-outline text-right font-mono text-[9px] whitespace-nowrap">
+                                      <span class="text-outline text-right font-mono text-[10px] whitespace-nowrap">
                                         {fmtRevDate(version.createdAt)}
                                       </span>
                                     </div>
@@ -477,7 +477,7 @@ export function ProjectParamEditDrawer(props: ProjectParamEditDrawerProps) {
                                             type="button"
                                             onClick={() => props.onRollbackVersion(version)}
                                             disabled={props.isRollingBack}
-                                            class="text-primary hover:text-primary-container flex min-w-0 cursor-pointer items-center gap-1 border-0 bg-transparent px-0 text-[11px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                                            class="text-primary hover:text-primary-container flex min-w-0 cursor-pointer items-center gap-1 border-0 bg-transparent px-0 text-[12px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40"
                                           >
                                             <MIcon name="history" class="shrink-0 text-[13px]" />
                                             <span class="truncate">
@@ -524,23 +524,23 @@ export function ProjectParamEditDrawer(props: ProjectParamEditDrawerProps) {
                                       class="min-w-0"
                                     >
                                       <span class="flex min-w-0 items-center gap-1.5">
-                                        <span class="text-on-surface shrink-0 font-mono text-[12px] font-bold">
+                                        <span class="text-on-surface shrink-0 font-mono text-[13px] font-bold">
                                           v{version.version}
                                         </span>
                                         <Show when={isActive()}>
-                                          <span class="bg-secondary/10 text-secondary border-secondary/20 shrink-0 rounded-full border px-1.5 py-px text-[7px] font-bold tracking-wider uppercase">
+                                          <span class="bg-secondary/10 text-secondary border-secondary/20 shrink-0 rounded-full border px-1.5 py-px text-[8px] font-bold tracking-wider uppercase">
                                             active
                                           </span>
                                         </Show>
                                       </span>
                                       <span
                                         title={version.actor}
-                                        class="text-on-surface-variant mt-0.5 block truncate text-[9px]"
+                                        class="text-on-surface-variant mt-0.5 block truncate text-[10px]"
                                       >
                                         {version.actor}
                                       </span>
                                     </span>
-                                    <span class="text-outline text-right font-mono text-[8px] whitespace-nowrap">
+                                    <span class="text-outline text-right font-mono text-[9px] whitespace-nowrap">
                                       {fmtRevDate(version.createdAt)}
                                     </span>
                                     <MIcon
@@ -560,7 +560,7 @@ export function ProjectParamEditDrawer(props: ProjectParamEditDrawerProps) {
                                       class="border-outline-variant/10 grid grid-cols-2 gap-x-3 gap-y-3 border-t px-3 py-3"
                                     >
                                       <div class="col-span-2 min-w-0">
-                                        <span class="text-outline mb-1 block text-[8px] font-medium tracking-[0.05em] uppercase">
+                                        <span class="text-outline mb-1 block text-[9px] font-medium tracking-[0.05em] uppercase">
                                           Value
                                         </span>
                                         <HistoryValueField
@@ -571,13 +571,13 @@ export function ProjectParamEditDrawer(props: ProjectParamEditDrawerProps) {
                                         />
                                       </div>
                                       <div class="min-w-0">
-                                        <span class="text-outline mb-1 block text-[8px] font-medium tracking-[0.05em] uppercase">
+                                        <span class="text-outline mb-1 block text-[9px] font-medium tracking-[0.05em] uppercase">
                                           Datatype
                                         </span>
                                         <FieldRow value={version.contentType} mono />
                                       </div>
                                       <div class="min-w-0">
-                                        <span class="text-outline mb-1 block text-[8px] font-medium tracking-[0.05em] uppercase">
+                                        <span class="text-outline mb-1 block text-[9px] font-medium tracking-[0.05em] uppercase">
                                           Scope
                                         </span>
                                         <FieldRow value={version.scope} mono />
@@ -588,7 +588,7 @@ export function ProjectParamEditDrawer(props: ProjectParamEditDrawerProps) {
                                             type="button"
                                             onClick={() => props.onRollbackVersion(version)}
                                             disabled={props.isRollingBack}
-                                            class="text-primary hover:text-primary-container flex cursor-pointer items-center gap-1 border-0 bg-transparent px-0 text-[10px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                                            class="text-primary hover:text-primary-container flex cursor-pointer items-center gap-1 border-0 bg-transparent px-0 text-[11px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40"
                                           >
                                             <MIcon name="history" class="text-[13px]" />
                                             Rollback to v{version.version}

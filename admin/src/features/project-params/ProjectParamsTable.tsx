@@ -130,14 +130,14 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
                         <div class="min-w-0">
                           <span
                             data-testid={`parameter-display-${entry.key}`}
-                            class="text-on-surface block text-[13.5px] font-bold"
+                            class="text-on-surface block text-[14.5px] font-bold"
                           >
                             {meta().displayName}
                           </span>
                           <span
                             data-testid={`parameter-key-${entry.key}`}
                             class={cn(
-                              "text-outline block font-mono text-[10px] tracking-tight break-all",
+                              "text-outline block font-mono text-[11px] tracking-tight break-all",
                               !isCompact() && "mt-0.5"
                             )}
                           >
@@ -148,7 +148,7 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
                         <div class={cn("flex flex-wrap", isCompact() ? "gap-1.5" : "gap-2")}>
                           <span
                             class={cn(
-                              "rounded-full text-[9px] font-bold tracking-wider uppercase",
+                              "rounded-full text-[10px] font-bold tracking-wider uppercase",
                               isCompact() ? "px-1.5 py-0" : "px-2 py-0.5",
                               TYPE_STYLE[entry.contentType] ?? ""
                             )}
@@ -157,7 +157,7 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
                           </span>
                           <span
                             class={cn(
-                              "rounded-full text-[9px] font-bold tracking-wider uppercase",
+                              "rounded-full text-[10px] font-bold tracking-wider uppercase",
                               isCompact() ? "px-1.5 py-0" : "px-2 py-0.5",
                               SCOPE_STYLE[entry.scope] ?? ""
                             )}
@@ -175,7 +175,7 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
                         >
                           <span
                             data-testid={`parameter-value-${entry.key}`}
-                            class="text-on-surface-variant min-w-0 flex-1 truncate font-mono text-[12px]"
+                            class="text-on-surface-variant min-w-0 flex-1 truncate font-mono text-[13px]"
                           >
                             {entry.value}
                           </span>
@@ -187,7 +187,7 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
                           >
                             <MIcon
                               name={props.copiedKey === entry.key ? "check" : "content_copy"}
-                              class="text-[14px]"
+                              class="text-[15px]"
                             />
                           </button>
                         </div>
@@ -251,7 +251,7 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
         <Show when={!props.isLoading && props.search && props.filteredConfig.length === 0}>
           <div
             class={cn(
-              "text-on-surface-variant text-center text-sm",
+              "text-on-surface-variant text-center text-[15px]",
               isCompact() ? "py-6" : "py-10"
             )}
           >
@@ -271,7 +271,7 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
         <div class="overflow-x-auto">
         <table
           data-testid="parameter-desktop-table"
-          class="w-full min-w-[48rem] table-fixed border-collapse text-left text-[12px]"
+          class="w-full min-w-[48rem] table-fixed border-collapse text-left text-[13px]"
         >
           <colgroup>
             <col class="w-[17rem]" />
@@ -284,7 +284,7 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
             <tr class="border-outline-variant/15 bg-surface-container-lowest/50 border-b">
               <th
                 class={cn(
-                  "text-outline text-[11px] font-medium tracking-[0.05em] uppercase",
+                  "text-outline text-[12px] font-medium tracking-[0.05em] uppercase",
                   isCompact() ? "px-2.5 py-2" : "px-4 py-3"
                 )}
               >
@@ -292,7 +292,7 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
               </th>
               <th
                 class={cn(
-                  "text-outline text-[11px] font-medium tracking-[0.05em] uppercase",
+                  "text-outline text-[12px] font-medium tracking-[0.05em] uppercase",
                   isCompact() ? "px-2.5 py-2" : "px-4 py-3"
                 )}
               >
@@ -300,7 +300,7 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
               </th>
               <th
                 class={cn(
-                  "text-outline text-[11px] font-medium tracking-[0.05em] uppercase",
+                  "text-outline text-[12px] font-medium tracking-[0.05em] uppercase",
                   isCompact() ? "px-2.5 py-2" : "px-4 py-3"
                 )}
               >
@@ -308,7 +308,7 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
               </th>
               <th
                 class={cn(
-                  "text-outline text-[11px] font-medium tracking-[0.05em] uppercase",
+                  "text-outline text-[12px] font-medium tracking-[0.05em] uppercase",
                   isCompact() ? "px-2.5 py-2" : "px-4 py-3"
                 )}
               >
@@ -316,7 +316,7 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
               </th>
               <th
                 class={cn(
-                  "text-outline text-right text-[11px] font-medium tracking-[0.05em] uppercase",
+                  "text-outline text-right text-[12px] font-medium tracking-[0.05em] uppercase",
                   isCompact() ? "px-2.5 py-2" : "px-4 py-3"
                 )}
               >
@@ -393,14 +393,14 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
                               <span
                                 data-testid={`parameter-display-${entry.key}`}
                                 title={meta().displayName}
-                                class="text-on-surface block min-w-0 truncate text-[13.5px] font-bold"
+                                class="text-on-surface block min-w-0 truncate text-[14.5px] font-bold"
                               >
                                 {meta().displayName}
                               </span>
                               <span
                                 data-testid={`parameter-key-${entry.key}`}
                                 title={entry.key}
-                                class="text-outline block min-w-0 truncate font-mono text-[10px] tracking-tight"
+                                class="text-outline block min-w-0 truncate font-mono text-[11px] tracking-tight"
                               >
                                 {entry.key}
                               </span>
@@ -431,7 +431,7 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
                             >
                               <MIcon
                                 name={props.copiedKey === entry.key ? "check" : "content_copy"}
-                                class="text-[14px]"
+                                class="text-[15px]"
                               />
                             </button>
                           </div>
@@ -444,7 +444,7 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
                         >
                           <span
                             class={cn(
-                              "rounded-full text-[9px] font-bold tracking-wider uppercase",
+                              "rounded-full text-[10px] font-bold tracking-wider uppercase",
                               isCompact() ? "px-1.5 py-0" : "px-2 py-0.5",
                               TYPE_STYLE[entry.contentType] ?? ""
                             )}
@@ -460,7 +460,7 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
                         >
                           <span
                             class={cn(
-                              "rounded-full text-[9px] font-bold tracking-wider uppercase",
+                              "rounded-full text-[10px] font-bold tracking-wider uppercase",
                               isCompact() ? "px-1.5 py-0" : "px-2 py-0.5",
                               SCOPE_STYLE[entry.scope] ?? ""
                             )}
@@ -543,7 +543,7 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
                 <td
                   colSpan={5}
                   class={cn(
-                    "text-on-surface-variant text-center text-sm",
+                    "text-on-surface-variant text-center text-[15px]",
                     isCompact() ? "py-6" : "py-10"
                   )}
                 >

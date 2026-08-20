@@ -46,10 +46,10 @@ export function ProjectGrid(props: ProjectGridProps) {
               <div class="bg-primary/5 mb-5 inline-flex h-16 w-16 items-center justify-center rounded-2xl">
                 <MIcon name="folder_open" class="text-primary/60 text-4xl" />
               </div>
-              <p class="text-on-surface font-headline mb-1 text-[14px] font-bold">
+              <p class="text-on-surface font-headline mb-1 text-[15px] font-bold">
                 No projects yet
               </p>
-              <p class="text-on-surface-variant mb-6 text-[13px]">
+              <p class="text-on-surface-variant mb-6 text-[14px]">
                 {props.canCreateProjects
                   ? "Create your first project to start managing configuration."
                   : "You have no project assignments. Contact an Admin for access."}
@@ -60,7 +60,7 @@ export function ProjectGrid(props: ProjectGridProps) {
                   onClick={() => props.onCreateClick()}
                   aria-label="New Project"
                   title="New Project"
-                  class="bg-primary text-on-primary inline-flex h-10 w-10 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-0 px-0 text-[13px] font-semibold transition-all hover:brightness-105 md:h-auto md:w-auto md:px-4 md:py-2"
+                  class="bg-primary text-on-primary inline-flex h-10 w-10 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-0 px-0 text-[14px] font-semibold transition-all hover:brightness-105 md:h-auto md:w-auto md:px-4 md:py-2"
                 >
                   <MIcon name="add" class="text-[17px]" />
                   <span class="hidden md:inline">New Project</span>
@@ -75,7 +75,7 @@ export function ProjectGrid(props: ProjectGridProps) {
           fallback={
             <div class="bg-surface-container-low border-outline-variant/15 rounded-2xl border p-10 text-center">
               <MIcon name="search_off" class="text-outline mb-3 block text-4xl" />
-              <p class="text-on-surface-variant text-[13px]">
+              <p class="text-on-surface-variant text-[14px]">
                 No projects match "<span class="text-on-surface font-medium">{props.search}</span>"
               </p>
             </div>
@@ -99,23 +99,23 @@ export function ProjectGrid(props: ProjectGridProps) {
                   }}
                 >
                   <div class="flex h-full flex-col p-5">
-                    <span class="text-outline mb-2 block truncate font-mono text-[11px]">
+                    <span class="text-outline mb-2 block truncate font-mono text-[12px]">
                       {project.urlSlug}
                     </span>
 
                     <h3
-                      class="font-headline text-on-surface mb-2 truncate text-[14px] leading-tight font-semibold"
+                      class="font-headline text-on-surface mb-2 truncate text-[15px] leading-tight font-semibold"
                       title={project.name}
                     >
                       {project.name}
                     </h3>
 
-                    <p class="text-on-surface-variant mb-4 line-clamp-2 flex-1 text-[12.5px] leading-relaxed">
+                    <p class="text-on-surface-variant mb-4 line-clamp-2 flex-1 text-[13.5px] leading-relaxed">
                       {project.description || "No description provided."}
                     </p>
 
                     <div class="border-outline-variant/10 flex items-center justify-between border-t pt-3">
-                      <span class="text-outline text-[11.5px]">
+                      <span class="text-outline text-[12.5px]">
                         {new Date(project.updatedAt).toLocaleDateString("en-US", {
                           month: "short",
                           day: "numeric"
@@ -154,7 +154,7 @@ export function ProjectGrid(props: ProjectGridProps) {
                 title="New Project"
               >
                 <MIcon name="add" class="text-2xl" />
-                <span class="hidden md:inline text-[12.5px] font-medium">New Project</span>
+                <span class="hidden md:inline text-[13.5px] font-medium">New Project</span>
               </button>
             </Show>
           </div>

@@ -77,7 +77,7 @@ export function ReleaseVersionDialog(props: ReleaseVersionDialogProps) {
               {props.title}
             </h3>
             <Show when={props.description}>
-              <p class="text-on-surface-variant mb-5 text-sm leading-relaxed">{props.description}</p>
+              <p class="text-on-surface-variant mb-5 text-[15px] leading-relaxed">{props.description}</p>
             </Show>
 
             <div>
@@ -98,7 +98,7 @@ export function ReleaseVersionDialog(props: ReleaseVersionDialogProps) {
                 class="font-mono"
               />
               <Show when={error()}>
-                <p class="text-error mt-2 text-[11px] font-bold">{error()}</p>
+                <p class="text-error mt-2 text-[12px] font-bold">{error()}</p>
               </Show>
             </div>
 
