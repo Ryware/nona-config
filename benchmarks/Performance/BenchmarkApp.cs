@@ -3,9 +3,9 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Configuration;
 
-namespace Nona.StorageBenchmarks;
+namespace Nona.Benchmarks;
 
-internal static class StorageBenchmarkApp
+public static class StorageBenchmarkApp
 {
     public static async Task<int> RunAsync(string[] args)
     {
@@ -95,6 +95,7 @@ internal static class StorageBenchmarkApp
                     options,
                     scenarios,
                     DatabaseSeeder.DatasetRows.ToDictionary(pair => pair.Key.ToString(), pair => pair.Value),
+                    DatabaseSeeder.DatasetValueBytes.ToDictionary(pair => pair.Key.ToString(), pair => pair.Value),
                     results,
                     latencySamples,
                     errorSamples);
@@ -595,3 +596,4 @@ internal static class StorageBenchmarkApp
         throw new DirectoryNotFoundException("Could not resolve repository root.");
     }
 }
+
