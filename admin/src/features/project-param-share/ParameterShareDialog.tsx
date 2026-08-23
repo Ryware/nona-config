@@ -1,5 +1,5 @@
-import { createEffect, createSignal, For, Show } from "solid-js";
-import { Portal } from "solid-js/web";
+import { Dialog } from "@kobalte/core/dialog";
+import { createEffect, createSignal, For, on, Show } from "solid-js";
 import { Button } from "../../shared/ui/button";
 import { Input } from "../../shared/ui/input";
 import { MIcon } from "../../shared/ui/icons";
@@ -54,6 +54,7 @@ function linkStatus(link: ParameterShareLink): "active" | "expired" | "revoked" 
 export function ParameterShareDialog(props: ParameterShareDialogProps) {
   const [expiration, setExpiration] = createSignal<ExpirationOption>("1h");
   const [permission, setPermission] = createSignal<"edit" | "view">("edit");
+  let opener: HTMLElement | null = null;
 
   createEffect(() => {
     if (props.entry) {
@@ -61,6 +62,19 @@ export function ParameterShareDialog(props: ParameterShareDialogProps) {
       setPermission("edit");
     }
   });
+
+  createEffect(on(
+    () => !!props.entry,
+    open => {
+      if (open) {
+        opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      } else if (opener) {
+        const target = opener;
+        opener = null;
+        requestAnimationFrame(() => target.focus({ preventScroll: true }));
+      }
+    }
+  ));
 
   const handleCreate = () => {
     props.onCreate({
@@ -72,23 +86,28 @@ export function ParameterShareDialog(props: ParameterShareDialogProps) {
   return (
     <Show when={props.entry}>
       {entry => (
-        <Portal>
-          <div
-            onClick={() => props.onClose()}
-            class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
-          />
-          <div
+    <Dialog
+      open
+      modal
+      onOpenChange={open => {
+        if (!open) props.onClose();
+      }}
+    >
+      <Dialog.Portal>
+        <Dialog.Overlay class="fixed inset-0 z-90 bg-black/60 backdrop-blur-sm" />
+          <Dialog.Content
             data-testid="parameter-share-dialog"
-            class="bg-surface-container-low border-outline-variant/20 fixed top-1/2 left-1/2 z-50 flex max-h-[88vh] w-[min(560px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 flex-col rounded-2xl border p-6 shadow-2xl"
+            onCloseAutoFocus={event => event.preventDefault()}
+            class="bg-surface-container-low border-outline-variant/20 fixed top-1/2 left-1/2 z-100 flex max-h-[88vh] w-[min(560px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 flex-col rounded-2xl border p-6 shadow-2xl outline-none"
           >
             <div class="border-outline-variant/15 mb-5 flex items-start justify-between gap-4 border-b pb-4">
               <div class="min-w-0">
-                <h3 class="font-headline text-on-surface text-base font-bold">
+                <Dialog.Title class="font-headline text-on-surface text-base font-bold">
                   Share Parameter
-                </h3>
-                <p class="text-outline mt-1 truncate font-mono text-[11px]">
+                </Dialog.Title>
+                <Dialog.Description class="text-outline mt-1 truncate font-mono text-[11px]">
                   {entry().environment} / {entry().key}
-                </p>
+                </Dialog.Description>
               </div>
               <button
                 onClick={() => props.onClose()}
@@ -245,8 +264,9 @@ export function ParameterShareDialog(props: ParameterShareDialogProps) {
                 </Show>
               </div>
             </div>
-          </div>
-        </Portal>
+          </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog>
       )}
     </Show>
   );

@@ -187,6 +187,40 @@ public class SharedParameterCommandTests
             Arg.Any<CancellationToken>());
     }
 
+    [Test]
+    public async Task UpdateSharedParameter_PreservesVersionedMetadata()
+    {
+        var shareLinkRepository = Substitute.For<IParameterShareLinkRepository>();
+        var configEntryRepository = Substitute.For<IConfigEntryRepository>();
+        var dateTime = Substitute.For<IDateTime>();
+        ConfigEntry? savedEntry = null;
+
+        dateTime.NowUtc.Returns(_now);
+        shareLinkRepository.GetByTokenHashAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(EditableLink());
+        configEntryRepository.GetAsync(ProjectName, EnvironmentName, ConfigKey, Arg.Any<CancellationToken>())
+            .Returns(Entry("100", "number", "ms", "Request timeout"));
+        configEntryRepository.AddVersionAsync(
+                Arg.Do<ConfigEntry>(entry => savedEntry = entry),
+                Arg.Any<string>(),
+                Arg.Any<CancellationToken>())
+            .Returns(call => call.ArgAt<ConfigEntry>(0));
+
+        var handler = new UpdateSharedParameterCommandHandler(
+            shareLinkRepository,
+            configEntryRepository,
+            dateTime);
+
+        var result = await handler.Handle(
+            new UpdateSharedParameterCommand(Token, "250"),
+            CancellationToken.None);
+
+        await Assert.That(result.Success).IsTrue();
+        await Assert.That(savedEntry!.Description).IsEqualTo("Request timeout");
+        await Assert.That(savedEntry.Unit).IsEqualTo("ms");
+        await Assert.That(result.Parameter!.Unit).IsEqualTo("ms");
+    }
+
     private ParameterShareLink EditableLink(bool canEdit = true, DateTime? expiresAt = null)
     {
         return new ParameterShareLink
@@ -204,7 +238,11 @@ public class SharedParameterCommandTests
         };
     }
 
-    private ConfigEntry Entry(string value)
+    private ConfigEntry Entry(
+        string value,
+        string contentType = "text",
+        string? unit = null,
+        string? description = null)
     {
         return new ConfigEntry
         {
@@ -212,7 +250,9 @@ public class SharedParameterCommandTests
             Environment = EnvironmentName,
             Key = ConfigKey,
             Value = value,
-            ContentType = "text",
+            ContentType = contentType,
+            Description = description,
+            Unit = unit,
             Scope = KeyScope.All,
             CreatedAt = _now.AddDays(-1),
             UpdatedAt = _now.AddDays(-1)

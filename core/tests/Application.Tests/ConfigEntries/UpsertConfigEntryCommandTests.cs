@@ -2,6 +2,9 @@ using Nona.Application.Admin.ConfigEntries.Commands;
 using Nona.Application.Common;
 using Nona.Application.Tests.Common;
 using Nona.Domain;
+using Nona.Domain.Entities;
+using Nona.Domain.Enums;
+using NSubstitute;
 
 namespace Nona.Application.Tests.ConfigEntries;
 
@@ -234,5 +237,82 @@ public class UpsertConfigEntryCommandTests
 
         await Assert.That(result.Success).IsFalse();
         await Assert.That(result.Error).IsEqualTo("Value must be valid JSON when contentType is 'json'.");
+    }
+
+    [Test]
+    public async Task UpsertConfigEntry_RejectsDeepHierarchyOnlyForNewKeys()
+    {
+        var fixture = new TestFixture();
+        fixture.SetupAsSystemAdmin();
+        fixture.SetupProjectExists(ProjectName);
+        fixture.SetupEnvironmentExists(ProjectName, EnvironmentName);
+        const string legacyKey = "one:two:three:four:five";
+
+        var handler = new UpsertConfigEntryCommandHandler(
+            fixture.ProjectRepository,
+            fixture.EnvironmentRepository,
+            fixture.ConfigEntryRepository,
+            fixture.ProjectAccessService,
+            fixture.DateTime);
+
+        var createResult = await handler.Handle(
+            new UpsertConfigEntryCommand(ProjectName, EnvironmentName, legacyKey, "value", "text", "all"),
+            CancellationToken.None);
+
+        await Assert.That(createResult.Success).IsFalse();
+        await Assert.That(createResult.Error).IsEqualTo(ConfigEntryKey.HierarchyValidationError);
+
+        fixture.ConfigEntryRepository.GetAsync(ProjectName, EnvironmentName, legacyKey, Arg.Any<CancellationToken>())
+            .Returns(new ConfigEntry
+            {
+                Project = ProjectName,
+                Environment = EnvironmentName,
+                Key = legacyKey,
+                Value = "old",
+                ContentType = "text",
+                Scope = KeyScope.All
+            });
+
+        var updateResult = await handler.Handle(
+            new UpsertConfigEntryCommand(ProjectName, EnvironmentName, legacyKey, "new", null, null),
+            CancellationToken.None);
+
+        await Assert.That(updateResult.Success).IsTrue();
+    }
+
+    [Test]
+    public async Task UpsertConfigEntry_VersionsDescriptionAndNumberUnit()
+    {
+        var fixture = new TestFixture();
+        fixture.SetupAsSystemAdmin();
+        fixture.SetupProjectExists(ProjectName);
+        fixture.SetupEnvironmentExists(ProjectName, EnvironmentName);
+
+        var handler = new UpsertConfigEntryCommandHandler(
+            fixture.ProjectRepository,
+            fixture.EnvironmentRepository,
+            fixture.ConfigEntryRepository,
+            fixture.ProjectAccessService,
+            fixture.DateTime);
+
+        var result = await handler.Handle(
+            new UpsertConfigEntryCommand(
+                ProjectName,
+                EnvironmentName,
+                "Checkout:Timeout",
+                "2500",
+                "number",
+                "client",
+                "  Request timeout  ",
+                " ms "),
+            CancellationToken.None);
+
+        await Assert.That(result.Success).IsTrue();
+        await Assert.That(result.ConfigEntry!.Description).IsEqualTo("Request timeout");
+        await Assert.That(result.ConfigEntry.Unit).IsEqualTo("ms");
+        await fixture.ConfigEntryRepository.Received(1).AddVersionAsync(
+            Arg.Is<ConfigEntry>(entry => entry.Description == "Request timeout" && entry.Unit == "ms"),
+            Arg.Any<string>(),
+            Arg.Any<CancellationToken>());
     }
 }

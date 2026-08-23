@@ -118,8 +118,8 @@ jobs:
       - name: Install Chromium
         run: npx --prefix admin playwright install --with-deps chromium
 
-      - name: Run release visual tests
-        run: npm --prefix admin run test:visual -- tests/visual/project-releases.spec.ts
+      - name: Run release and parameter visual tests
+        run: npm --prefix admin run test:visual -- tests/visual/project-releases.spec.ts tests/visual/project-parameters.spec.ts
 
   build:
     name: Build container image

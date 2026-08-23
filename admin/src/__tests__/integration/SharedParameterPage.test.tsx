@@ -6,6 +6,8 @@ import { MetaProvider } from '@solidjs/meta';
 import { ThemeProvider } from '../../shared/hooks/useTheme';
 import { ToastProvider } from '../../shared/ui/toast';
 import SharedParameterPage from '../../pages/shared/SharedParameterPage';
+import { http, HttpResponse } from 'msw';
+import { server } from '../mocks/server';
 
 function renderSharedPage(token = 'AbCdEf1234567890') {
   const queryClient = new QueryClient({
@@ -72,6 +74,27 @@ describe('SharedParameterPage', () => {
         'https://shared.example.com',
       );
     });
+  });
+
+  it('shows the configured unit for a shared number parameter', async () => {
+    server.use(
+      http.get('http://localhost:5027/public/share-links/:token', () =>
+        HttpResponse.json({
+          environment: 'production',
+          key: 'Checkout:Timeout',
+          value: '250',
+          contentType: 'number',
+          canEdit: true,
+          expiresAt: '2099-01-01T00:00:00Z',
+          unit: 'ms',
+        }),
+      ),
+    );
+
+    renderSharedPage();
+
+    expect(await screen.findByTestId('shared-parameter-value-input')).toHaveValue(250);
+    expect(screen.getByText('ms')).toBeInTheDocument();
   });
 
   it('shows a clear error for revoked links', async () => {
