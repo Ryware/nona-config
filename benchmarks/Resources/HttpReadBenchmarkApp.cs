@@ -530,11 +530,11 @@ public static class HttpReadBenchmarkApp
         builder.AppendLine("## Results");
         builder.AppendLine();
         builder.AppendLine("| Provider | Operation | Dataset keys | Keys returned | Concurrency | p50 ms | p95 ms | p99 ms | req/s | Error % | C# CPU avg/peak % | C# RAM initial/avg/peak MiB | sqld RAM avg/peak MiB | Errors |");
-        builder.AppendLine("|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|");
+        builder.AppendLine("|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|");
         foreach (var result in summary.Results)
         {
             builder.AppendLine(
-                $"| {result.Provider} | {FormatOperation(result.Operation)} | {result.DatasetKeyCount:N0} | {result.KeysReturned:N0} | {result.Concurrency} | {result.P50LatencyMs:F2} | {result.P95LatencyMs:F2} | {result.P99LatencyMs:F2} | {result.RequestsPerSecond:F1} | {result.ErrorRatePercent:F2} | {FormatMemory(result.CSharpAverageCpuPercent, result.CSharpPeakCpuPercent)} | {FormatMemory(result.CSharpInitialRamMb, result.CSharpAverageRamMb)} / {result.CSharpPeakRamMb?.ToString("F1", CultureInfo.InvariantCulture) ?? "n/a"} | {FormatMemory(result.SqldAverageRamMb, result.SqldPeakRamMb)} | {result.Errors.Count} |");
+                $"| {result.Provider} | {FormatOperation(result.Operation)} | {result.DatasetKeyCount:N0} | {result.KeysReturned:N0} | {result.Concurrency} | {result.P50LatencyMs:F2} | {result.P95LatencyMs:F2} | {result.P99LatencyMs:F2} | {result.RequestsPerSecond:F1} | {result.ErrorRatePercent:F2} | {FormatMemory(result.CSharpAverageCpuPercent, result.CSharpPeakCpuPercent)} | {FormatMemory(result.CSharpInitialRamMb, result.CSharpAverageRamMb)} / {result.CSharpPeakRamMb?.ToString("F1", CultureInfo.InvariantCulture) ?? "n/a"} | {FormatMemory(result.SqldAverageRamMb, result.SqldPeakRamMb)} | {FormatErrors(result.Errors)} |");
         }
 
         var resourceNotes = summary.Results
