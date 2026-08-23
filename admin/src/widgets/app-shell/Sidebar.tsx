@@ -1,5 +1,6 @@
 import { A, useLocation, useNavigate } from "@solidjs/router";
 import { useQuery } from "@tanstack/solid-query";
+import { createMediaQuery } from "@solid-primitives/media";
 import { For, Show } from "solid-js";
 import { authService } from "../../entities/auth/api/auth.service";
 import { canManageProjects, canManageUsers } from "../../entities/auth/model/permissions";
@@ -131,7 +132,10 @@ export const Sidebar = (props: {
       : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
     }`;
 
-  const w = () => (props.collapsed ? "w-16" : "w-64");
+  const isDesktop = createMediaQuery("(min-width: 1024px)");
+  const collapsed = () => props.collapsed && isDesktop();
+
+  const w = () => (collapsed() ? "w-16" : "w-64");
 
   const handleProjectNavigation = (event: MouseEvent, href: string) => {
     props.onClose();
@@ -154,16 +158,17 @@ export const Sidebar = (props: {
     <>
       <Show when={props.isOpen}>
         <div
-          class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
+          data-testid="sidebar-scrim"
+          class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 lg:hidden"
           onClick={() => props.onClose()}
         />
       </Show>
 
       <aside
-        class={`h-screen ${w()} fixed left-0 top-0 bg-surface-container-lowest border-r border-outline-variant/20 flex flex-col z-50 sidebar-transition lg:translate-x-0 ${props.isOpen ? "translate-x-0" : "-translate-x-full"
+        class={`h-screen ${w()} fixed left-0 top-0 bg-surface-container-lowest border-r border-outline-variant/20 flex flex-col z-60 sidebar-transition lg:translate-x-0 ${props.isOpen ? "translate-x-0" : "-translate-x-full"
           }`}
       >
-        <div class={`pt-5 pb-4 ${props.collapsed ? "px-3" : "px-4"}`}>
+        <div class={`pt-5 pb-4 flex items-start justify-between gap-2 ${collapsed() ? "px-3" : "px-4"}`}>
           <A
             href={selectedProjectHref()}
             onClick={() => props.onClose()}
@@ -172,7 +177,7 @@ export const Sidebar = (props: {
             <div class="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center bg-primary/15 border border-primary/20 shadow-[0_0_12px_rgba(96,165,250,0.18)] group-hover:shadow-[0_0_20px_rgba(52,211,153,0.24)] transition-shadow duration-300">
               <NonaMark class="h-4.5 w-4.5 text-primary" />
             </div>
-            <Show when={!props.collapsed}>
+            <Show when={!collapsed()}>
               <div class="min-w-0">
                 <p class="text-[15px] font-headline font-bold text-on-surface tracking-tight leading-none">
                   Nona Config
@@ -183,11 +188,21 @@ export const Sidebar = (props: {
               </div>
             </Show>
           </A>
+
+          <button
+            type="button"
+            data-testid="sidebar-close-button"
+            onClick={() => props.onClose()}
+            aria-label="Close navigation menu"
+            class="lg:hidden -mr-1 -mt-1 flex shrink-0 cursor-pointer items-center justify-center rounded-lg border-0 bg-transparent p-2 text-on-surface-variant hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+          >
+            <span class="material-symbols-outlined text-xl">close</span>
+          </button>
         </div>
 
         <div class="mx-3 h-px bg-outline-variant/20" />
 
-        <div class={`pt-3 space-y-0.5 ${props.collapsed ? "px-2" : "px-2"}`}>
+        <div class={`pt-3 space-y-0.5 ${collapsed() ? "px-2" : "px-2"}`}>
           <Show
             when={noProjects()}
             fallback={
@@ -196,10 +211,10 @@ export const Sidebar = (props: {
                   <a
                     href={item.href()}
                     onClick={event => handleProjectNavigation(event, item.href())}
-                    title={props.collapsed ? item.label : undefined}
+                    title={collapsed() ? item.label : undefined}
                     aria-label={item.label}
                     aria-current={item.isActive() ? "page" : undefined}
-                    class={navItem(item.isActive(), props.collapsed)}
+                    class={navItem(item.isActive(), collapsed())}
                   >
                     <span
                       class="material-symbols-outlined text-[20px] shrink-0"
@@ -211,7 +226,7 @@ export const Sidebar = (props: {
                     >
                       {item.icon}
                     </span>
-                    <Show when={!props.collapsed}>{item.label}</Show>
+                    <Show when=when={!collapsed()}>{item.label}</Show>
                   </a>
                 )}
               </For>
@@ -224,25 +239,25 @@ export const Sidebar = (props: {
                   href="/projects"
                   onClick={() => props.onClose()}
                   aria-label="Projects"
-                  class={navItem(location.pathname === "/projects", props.collapsed)}
+                  class={navItem(location.pathname === "/projects", collapsed())}
                 >
                   <span class="material-symbols-outlined text-[20px] shrink-0">folder_open</span>
-                  <Show when={!props.collapsed}>Projects</Show>
+                  <Show when={!collapsed()}>Projects</Show>
                 </A>
               }
             >
               <A
                 href="/projects?new=1"
                 onClick={() => props.onClose()}
-                title={props.collapsed ? "Create Project" : undefined}
+                title={collapsed() ? "Create Project" : undefined}
                 aria-label="Create Project"
                 data-testid="sidebar-create-project"
                 class={`bg-primary text-on-primary flex items-center justify-center gap-2 rounded-lg text-[14px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] ${
-                  props.collapsed ? "px-2.5 py-2.5" : "px-3 py-2.5"
+                  collapsed() ? "px-2.5 py-2.5" : "px-3 py-2.5"
                 }`}
               >
                 <span class="material-symbols-outlined text-[18px] shrink-0">add</span>
-                <Show when={!props.collapsed}>Create Project</Show>
+                <Show when={!collapsed()}>Create Project</Show>
               </A>
             </Show>
           </Show>
@@ -250,9 +265,9 @@ export const Sidebar = (props: {
 
         <div class="flex-1" />
 
-        <div class={`mt-auto pb-4 space-y-2 ${props.collapsed ? "px-2" : "px-3"}`}>
+        <div class={`mt-auto pb-4 space-y-2 ${collapsed() ? "px-2" : "px-3"}`}>
           <Show when={!noProjects() || isAdmin}>
-            <Show when={!props.collapsed}>
+            <Show when={!collapsed()}>
               <p class="px-1 pb-1 text-[11px] font-semibold text-outline/50 tracking-[0.08em] uppercase">
                 Admin
               </p>
@@ -264,9 +279,9 @@ export const Sidebar = (props: {
                   <A
                     href={item.href()}
                     onClick={() => props.onClose()}
-                    title={props.collapsed ? item.label : undefined}
+                    title={collapsed() ? item.label : undefined}
                     aria-label={item.label}
-                    class={navItem(item.isActive(), props.collapsed)}
+                    class={navItem(item.isActive(), collapsed())}
                   >
                     <span
                       class="material-symbols-outlined text-[20px] shrink-0"
@@ -278,7 +293,7 @@ export const Sidebar = (props: {
                     >
                       {item.icon}
                     </span>
-                    <Show when={!props.collapsed}>{item.label}</Show>
+                    <Show when={!collapsed()}>{item.label}</Show>
                   </A>
                 )}
               </For>
@@ -287,22 +302,22 @@ export const Sidebar = (props: {
 
           <button
             onClick={() => props.onToggleCollapse()}
-            title={props.collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            class={`hidden lg:flex w-full items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium text-outline/60 hover:text-on-surface hover:bg-surface-container-low transition-all bg-transparent border-0 cursor-pointer ${props.collapsed ? "justify-center" : ""
+            title={collapsed() ? "Expand sidebar" : "Collapse sidebar"}
+            class={`hidden lg:flex w-full items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium text-outline/60 hover:text-on-surface hover:bg-surface-container-low transition-all bg-transparent border-0 cursor-pointer ${collapsed() ? "justify-center" : ""
               }`}
           >
             <span
               class="material-symbols-outlined text-[18px] transition-transform duration-300"
-              style={props.collapsed ? "transform: rotate(180deg)" : ""}
+              style={collapsed() ? "transform: rotate(180deg)" : ""}
             >
               left_panel_close
             </span>
-            <Show when={!props.collapsed}>
+            <Show when={!collapsed()}>
               <span>Collapse</span>
             </Show>
           </button>
 
-          <Show when={authService.isAuthenticated() && !props.collapsed}>
+          <Show when={authService.isAuthenticated() && !collapsed()}>
             <div class="rounded-xl border border-outline-variant/20 bg-surface-container-low flex items-center gap-3 p-3 hover:border-outline-variant/35 transition-all">
               <A
                 href="/account"
@@ -337,7 +352,7 @@ export const Sidebar = (props: {
             </div>
           </Show>
 
-          <Show when={authService.isAuthenticated() && props.collapsed}>
+          <Show when={authService.isAuthenticated() && collapsed()}>
             <div class="flex flex-col items-center gap-1.5">
               <A
                 href="/account"
