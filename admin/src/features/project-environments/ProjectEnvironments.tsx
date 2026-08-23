@@ -14,11 +14,23 @@ interface ProjectEnvironmentsProps {
   setShowEnvForm: (v: boolean) => void;
   createEnvPending: boolean;
   canManage: boolean;
+  createEnvError?: string;
+  onDismissCreateEnvError?: () => void;
 }
+
+const ENV_NAME_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9-]*$/;
+const ENV_NAME_ERROR_ID = "env-name-error";
 
 export function ProjectEnvironments(props: ProjectEnvironmentsProps) {
   const [envName, setEnvName] = createSignal("");
   const [createError, setCreateError] = createSignal("");
+
+  const errorText = () => createError() || props.createEnvError || "";
+
+  const clearErrors = () => {
+    if (createError()) setCreateError("");
+    if (props.createEnvError) props.onDismissCreateEnvError?.();
+  };
 
   const handleSubmit = (e: Event) => {
     e.preventDefault();
@@ -27,11 +39,17 @@ export function ProjectEnvironments(props: ProjectEnvironmentsProps) {
       setCreateError("Environment name is required.");
       return;
     }
+    if (!ENV_NAME_PATTERN.test(trimmed)) {
+      setCreateError(
+        "Use letters, numbers and hyphens only, starting with a letter or number."
+      );
+      return;
+    }
     if (props.environments.some(env => env.name === trimmed)) {
       setCreateError("Environment name already exists.");
       return;
     }
-    setCreateError("");
+    clearErrors();
     props.onCreateEnv(trimmed);
     setEnvName("");
   };
@@ -71,6 +89,7 @@ export function ProjectEnvironments(props: ProjectEnvironmentsProps) {
       <Show when={props.canManage && props.showEnvForm}>
         <form
           onSubmit={handleSubmit}
+          noValidate
           class="bg-surface-container-low border-outline-variant/15 animate-fade-in rounded-2xl border p-6 shadow-sm"
         >
           <h3 class="font-headline text-on-surface mb-6 text-[13px] font-bold tracking-wider uppercase">
@@ -85,14 +104,23 @@ export function ProjectEnvironments(props: ProjectEnvironmentsProps) {
               value={envName()}
               onInput={(e: InputEvent & { currentTarget: HTMLInputElement }) => {
                 setEnvName(e.currentTarget.value);
-                if (createError()) setCreateError("");
+                clearErrors();
               }}
               required
               leftIcon="dns"
               testId="environment-name-input"
+              aria-invalid={!!errorText()}
+              aria-describedby={errorText() ? ENV_NAME_ERROR_ID : undefined}
             />
-            <Show when={createError()}>
-              <p class="text-error mt-2 text-[12px] font-bold">{createError()}</p>
+            <Show when={errorText()}>
+              <p
+                id={ENV_NAME_ERROR_ID}
+                role="alert"
+                data-testid="environment-create-error"
+                class="text-error mt-2 text-[12px] font-bold"
+              >
+                {errorText()}
+              </p>
             </Show>
           </div>
           <div class="mt-6 flex justify-end gap-3">
