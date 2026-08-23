@@ -17,7 +17,9 @@ internal static class ConfigEntryMapping
             entry.Scope.ToApiString(),
             entry.ActiveVersion,
             entry.CreatedAt,
-            entry.UpdatedAt);
+            entry.UpdatedAt,
+            entry.Description,
+            entry.Unit);
     }
 
     public static ConfigEntryVersionDto ToDto(ConfigEntryVersion version)
@@ -31,6 +33,8 @@ internal static class ConfigEntryMapping
             version.ContentType,
             version.Scope.ToApiString(),
             version.CreatedAt,
-            version.Actor);
+            version.Actor,
+            version.Description,
+            version.Unit);
     }
 }

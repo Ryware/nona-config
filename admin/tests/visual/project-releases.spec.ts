@@ -238,8 +238,8 @@ test('release amend panel matches approved screenshot', async ({ page }) => {
   await expect(amendPanel).toBeVisible();
   await expect(page).toHaveURL('/projects/my-app?release=1.1.1&amend=1.1.0');
   for (const entry of configEntries) {
-    await expect(page.getByTestId(`amend-row-${entry.key}`)).toBeVisible();
-    await expect(page.getByTestId(`amend-value-${entry.key}`)).toHaveValue(entry.value);
+    await expect(page.getByTestId(`parameter-row-${entry.key}`)).toBeVisible();
+    await expect(page.getByTestId(`parameter-value-input-${entry.key}`)).toHaveValue(entry.value);
   }
   await expect(amendPanel).toHaveScreenshot('release-amend-panel.png');
   await expectNoHorizontalOverflow(page);

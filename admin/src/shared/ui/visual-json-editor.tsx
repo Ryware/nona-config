@@ -333,6 +333,7 @@ export function VisualJsonEditor(props: VisualJsonEditorProps) {
         fallback={
           <div class="relative">
             <textarea
+              data-testid="visual-json-editor-raw-input"
               value={props.value}
               onInput={handleRawChange}
               rows={6}
@@ -340,7 +341,7 @@ export function VisualJsonEditor(props: VisualJsonEditorProps) {
               placeholder='{ "key": "value" }'
             />
             <Show when={errorMsg()}>
-              <p class="text-[13px] text-error font-bold mt-1 flex items-center gap-1.5 animate-fade-in">
+              <p role="alert" aria-live="polite" class="text-[13px] text-error font-bold mt-1 flex items-center gap-1.5 animate-fade-in">
                 <span class="material-symbols-outlined text-[14px]">error</span>
                 {errorMsg()}
               </p>

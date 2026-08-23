@@ -204,8 +204,8 @@ public class ConfigReleaseCommandTests
                 MakeActive: false,
                 Entries:
                 [
-                    new ConfigReleaseEntryDto("feature.enabled", "true", "boolean", "client"),
-                    new ConfigReleaseEntryDto("new.setting", "new", "text", "all")
+                    new ConfigReleaseEntryDto("feature.enabled", "true", "boolean", "client", "Feature toggle"),
+                    new ConfigReleaseEntryDto("new.timeout", "250", "number", "all", "Request timeout", "ms")
                 ]),
             CancellationToken.None);
 
@@ -220,9 +220,13 @@ public class ConfigReleaseCommandTests
                 && release.Entries.Any(entry =>
                     entry.Key == "feature.enabled"
                     && entry.Value == "true"
+                    && entry.Description == "Feature toggle"
                     && entry.Scope == KeyScope.Frontend)
                 && release.Entries.Any(entry =>
-                    entry.Key == "new.setting" && entry.Value == "new")),
+                    entry.Key == "new.timeout"
+                    && entry.Value == "250"
+                    && entry.Description == "Request timeout"
+                    && entry.Unit == "ms")),
             Arg.Any<CancellationToken>());
 
         // The environment's working configuration is never read or mutated.

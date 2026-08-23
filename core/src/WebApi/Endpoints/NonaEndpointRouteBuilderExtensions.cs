@@ -1013,7 +1013,15 @@ public static class NonaEndpointRouteBuilderExtensions
         }
 
         var result = await mediator.Send(
-            new UpsertConfigEntryCommand(projectId, environmentName, key, request.Value, request.ContentType, request.Scope),
+            new UpsertConfigEntryCommand(
+                projectId,
+                environmentName,
+                key,
+                request.Value,
+                request.ContentType,
+                request.Scope,
+                request.Description,
+                request.Unit),
             cancellationToken);
 
         if (result.Success)

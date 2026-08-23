@@ -169,12 +169,17 @@ export default function SharedParameterPage() {
                         <Show
                           when={current().contentType === "json"}
                           fallback={
-                            <Input
-                              value={current().value}
-                              readOnly
-                              data-testid="shared-parameter-value"
-                              class="font-mono"
-                            />
+                            <div class="flex items-center gap-2">
+                              <Input
+                                value={current().value}
+                                readOnly
+                                data-testid="shared-parameter-value"
+                                class="font-mono"
+                              />
+                              <Show when={current().contentType === "number" && current().unit}>
+                                <span class="text-outline shrink-0 text-[12px]">{current().unit}</span>
+                              </Show>
+                            </div>
                           }
                         >
                           <pre
@@ -197,15 +202,20 @@ export default function SharedParameterPage() {
                         />
                       </Show>
                       <Show when={current().contentType === "number"}>
-                        <Input
-                          type="number"
-                          value={editValue()}
-                          onInput={(e: InputEvent & { currentTarget: HTMLInputElement }) =>
-                            setEditValue(e.currentTarget.value)
-                          }
-                          data-testid="shared-parameter-value-input"
-                          class="font-mono"
-                        />
+                        <div class="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            value={editValue()}
+                            onInput={(e: InputEvent & { currentTarget: HTMLInputElement }) =>
+                              setEditValue(e.currentTarget.value)
+                            }
+                            data-testid="shared-parameter-value-input"
+                            class="font-mono"
+                          />
+                          <Show when={current().unit}>
+                            <span class="text-outline shrink-0 text-[12px]">{current().unit}</span>
+                          </Show>
+                        </div>
                       </Show>
                       <Show when={current().contentType === "json"}>
                         <VisualJsonEditor
