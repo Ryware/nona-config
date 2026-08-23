@@ -7,7 +7,11 @@ import { VisualJsonEditor } from "../../shared/ui/visual-json-editor";
 import type { ConfigEntry } from "../../types";
 import { FormField } from "../../widgets/auth-shell/FormField";
 import { MIcon } from "../../shared/ui/icons";
-import { validateConfigEntryDraft } from "./config-entry-value";
+import {
+  isDisallowedConfigEntryKeyPress,
+  readConfigEntryKeyInput,
+  validateConfigEntryDraft,
+} from "./config-entry-value";
 import { Tooltip, TooltipLabel, TooltipTrigger } from "../../shared/ui/tooltip";
 import { tooltipCopy } from "../../shared/lib/tooltip-copy";
 
@@ -48,7 +52,7 @@ export function ProjectParamCreateForm(props: ProjectParamCreateFormProps) {
   });
 
   const onKeyDownConfigKey = (e: KeyboardEvent) => {
-    if (e.key === " ") {
+    if (isDisallowedConfigEntryKeyPress(e)) {
       e.preventDefault();
     }
   };
@@ -116,7 +120,7 @@ export function ProjectParamCreateForm(props: ProjectParamCreateFormProps) {
               value={cfgKey()}
               onKeyDown={onKeyDownConfigKey}
               onInput={(e: InputEvent & { currentTarget: HTMLInputElement }) => {
-                setCfgKey(e.currentTarget.value);
+                setCfgKey(readConfigEntryKeyInput(e.currentTarget));
                 setKeyTouched(true);
                 if (createError()) setCreateError("");
               }}
