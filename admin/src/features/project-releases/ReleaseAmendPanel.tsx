@@ -11,6 +11,8 @@ import { useUnsavedChangesBlocker } from "../../shared/hooks/useUnsavedChanges";
 import type { ConfigReleaseEntry } from "../../types";
 import {
   type ConfigEntryContentType,
+  isDisallowedConfigEntryKeyPress,
+  readConfigEntryKeyInput,
   validateConfigEntryDraft,
 } from "../project-param-edit/config-entry-value";
 
@@ -222,8 +224,13 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
                 id="amend-new-key"
                 data-testid="amend-new-key"
                 value={newKey()}
+                onKeyDown={e => {
+                  if (isDisallowedConfigEntryKeyPress(e)) {
+                    e.preventDefault();
+                  }
+                }}
                 onInput={e => {
-                  setNewKey(e.currentTarget.value);
+                  setNewKey(readConfigEntryKeyInput(e.currentTarget));
                   setKeyTouched(true);
                 }}
                 onBlur={() => setKeyTouched(true)}
