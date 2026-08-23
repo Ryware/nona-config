@@ -44,6 +44,8 @@ export interface ConfigEntry {
   activeVersion: number;
   createdAt: string;
   updatedAt: string;
+  description?: string | null;
+  unit?: string | null;
 }
 
 export interface ConfigEntryVersion {
@@ -56,6 +58,8 @@ export interface ConfigEntryVersion {
   scope: 'client' | 'server' | 'all';
   createdAt: string;
   actor: string;
+  description?: string | null;
+  unit?: string | null;
 }
 
 export interface ParameterShareLink {
@@ -87,6 +91,7 @@ export interface SharedParameter {
   contentType: 'text' | 'number' | 'boolean' | 'json';
   canEdit: boolean;
   expiresAt: string;
+  unit?: string | null;
 }
 
 export interface UpdateSharedParameterRequest {
@@ -99,12 +104,16 @@ export interface CreateConfigEntryRequest {
   value: string;
   contentType: 'text' | 'number' | 'boolean' | 'json';
   scope: 'client' | 'server' | 'all';
+  description?: string | null;
+  unit?: string | null;
 }
 
 export interface UpdateConfigEntryRequest {
   value: string;
   contentType?: 'text' | 'number' | 'boolean' | 'json';
   scope?: 'client' | 'server' | 'all';
+  description?: string | null;
+  unit?: string | null;
 }
 
 export interface RollbackConfigEntryRequest {
@@ -116,6 +125,8 @@ export interface ConfigReleaseEntry {
   value: string;
   contentType: 'text' | 'number' | 'boolean' | 'json' | string;
   scope: 'client' | 'server' | 'all' | string;
+  description?: string | null;
+  unit?: string | null;
 }
 
 export interface ConfigRelease {

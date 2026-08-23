@@ -36,12 +36,12 @@ export function ProjectReleases(props: ProjectReleasesProps) {
         <div>
           <p
             data-testid="project-releases-heading"
-            class="text-outline font-headline flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase"
+            class="text-outline font-headline flex items-center gap-1.5 text-[11px] font-bold tracking-widest uppercase"
           >
             <MIcon name="deployed_code_history" class="text-[15px]" />
             Releases
           </p>
-          <div class="mt-1 flex flex-wrap items-center gap-2 text-xs">
+          <div class="mt-1 flex flex-wrap items-center gap-2 text-[13px]">
             <span class="text-on-surface-variant">
               Publish immutable snapshots for {props.environmentName}, then activate one for clients.
             </span>
@@ -51,7 +51,7 @@ export function ProjectReleases(props: ProjectReleasesProps) {
               fallback={<span class="text-outline font-mono">none</span>}
             >
               {release => (
-                <span class="bg-primary/10 text-primary rounded-md px-2 py-0.5 font-mono text-[11px] font-bold">
+                <span class="bg-primary/10 text-primary rounded-md px-2 py-0.5 font-mono text-[12px] font-bold">
                   {release().version}
                 </span>
               )}
@@ -61,7 +61,7 @@ export function ProjectReleases(props: ProjectReleasesProps) {
                 type="button"
                 onClick={() => props.onClearActive()}
                 disabled={props.isActivating}
-                class="text-on-surface-variant hover:text-on-surface cursor-pointer border-0 bg-transparent p-0 text-[12px] font-semibold disabled:opacity-50"
+                class="text-on-surface-variant hover:text-on-surface cursor-pointer border-0 bg-transparent p-0 text-[13px] font-semibold disabled:opacity-50"
               >
                 Clear
               </button>
@@ -77,7 +77,7 @@ export function ProjectReleases(props: ProjectReleasesProps) {
             disabled={!props.environmentName}
             aria-label="Create a version"
             title="Create a version"
-            class="bg-primary text-on-primary inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center gap-1.5 self-end rounded-lg border-0 px-0 text-[13px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] disabled:opacity-50 md:h-10 md:w-auto md:px-4 md:self-auto"
+            class="bg-primary text-on-primary inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center gap-1.5 self-end rounded-lg border-0 px-0 text-[14px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] disabled:opacity-50 md:h-10 md:w-auto md:px-4 md:self-auto"
           >
             <MIcon name="add" class="text-[17px]" />
             <span class="hidden md:inline">Create a version</span>

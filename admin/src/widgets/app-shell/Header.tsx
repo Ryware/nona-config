@@ -16,6 +16,7 @@ import {
 } from "../../entities/project/model/active-project";
 import { projectKeys } from "../../entities/project/queries/keys";
 import { useUnsavedChanges } from "../../shared/hooks/useUnsavedChanges";
+import { getProjectPageSection } from "../../shared/lib/project-navigation";
 import { Select } from "../../shared/ui/select";
 import { ThemeToggle } from "../../shared/ui/ThemeToggle";
 import { Breadcrumbs } from "./Breadcrumbs";
@@ -29,20 +30,22 @@ interface HeaderProps {
 const MANAGE_PROJECTS_OPTION = "__manage_projects__";
 const MANAGE_ENVIRONMENTS_OPTION = "__manage_environments__";
 
-export function getProjectNavigationPath(pathname: string, slug: string) {
-  if (pathname.endsWith("/environments")) {
+export function getProjectNavigationPath(pathname: string, search: string, slug: string) {
+  const projectSection = getProjectPageSection(pathname, search);
+
+  if (projectSection === "environments") {
     return `/projects/${slug}/environments`;
   }
 
-  if (pathname.endsWith("/shared-links")) {
+  if (projectSection === "sharedLinks") {
     return `/projects/${slug}/shared-links`;
   }
 
-  if (pathname.endsWith("/api-keys")) {
+  if (projectSection === "apiKeys") {
     return `/projects/${slug}/api-keys`;
   }
 
-  if (pathname.endsWith("/releases")) {
+  if (projectSection === "releases") {
     return `/projects/${slug}/releases`;
   }
 
@@ -121,7 +124,7 @@ export function Header(props: HeaderProps) {
       }
 
       setActiveProjectSlug(slug);
-      navigate(getProjectNavigationPath(location.pathname, slug));
+      navigate(getProjectNavigationPath(location.pathname, location.search, slug));
     });
   };
 
@@ -159,7 +162,7 @@ export function Header(props: HeaderProps) {
 
         <div class="hidden min-w-0 flex-[2] min-[1440px]:flex min-[1440px]:items-center min-[1440px]:justify-end min-[1440px]:gap-5">
           <div class="flex min-w-0 max-w-[36rem] flex-[1.15] items-center gap-3">
-            <span class="shrink-0 text-[11px] font-semibold uppercase tracking-[0.08em] text-on-surface-variant">
+            <span class="shrink-0 text-[12px] font-semibold uppercase tracking-[0.08em] text-on-surface-variant">
               Active Project
             </span>
             <Select
@@ -168,12 +171,12 @@ export function Header(props: HeaderProps) {
               options={projectOptions()}
               placeholder={projectsQuery.isLoading ? "Loading projects..." : "---"}
               disabled={projectsQuery.isLoading || (projects().length === 0 && !canCreateProjects)}
-              class="h-9 w-full min-w-0 rounded-xl border-outline-variant/20 bg-surface-container-low text-[12px]"
+              class="h-9 w-full min-w-0 rounded-xl border-outline-variant/20 bg-surface-container-low text-[13px]"
             />
           </div>
 
           <div class="flex min-w-0 max-w-[26rem] flex-1 items-center gap-3">
-            <span class="shrink-0 text-[11px] font-semibold uppercase tracking-[0.08em] text-on-surface-variant">
+            <span class="shrink-0 text-[12px] font-semibold uppercase tracking-[0.08em] text-on-surface-variant">
               Active Environment
             </span>
             <Select
@@ -188,7 +191,7 @@ export function Header(props: HeaderProps) {
                   : "---"
               }
               disabled={!activeProject() || environmentsQuery.isLoading}
-              class="h-9 w-full min-w-0 rounded-xl border-outline-variant/20 bg-surface-container-low text-[12px]"
+              class="h-9 w-full min-w-0 rounded-xl border-outline-variant/20 bg-surface-container-low text-[13px]"
             />
           </div>
         </div>
@@ -199,7 +202,7 @@ export function Header(props: HeaderProps) {
           <div class="h-5 w-px bg-outline-variant/20" />
 
           <a
-            class="flex items-center gap-1 text-[11px] font-medium text-outline transition-colors hover:text-primary"
+            class="flex items-center gap-1 text-[12px] font-medium text-outline transition-colors hover:text-primary"
             href="https://www.nonaconfig.com/support"
             target="_blank"
             rel="noopener noreferrer"
@@ -208,7 +211,7 @@ export function Header(props: HeaderProps) {
             <span class="hidden md:inline">Support</span>
           </a>
           <a
-            class="flex items-center gap-1 text-[11px] font-medium text-outline transition-colors hover:text-primary"
+            class="flex items-center gap-1 text-[12px] font-medium text-outline transition-colors hover:text-primary"
             href="https://www.nonaconfig.com/docs"
             target="_blank"
             rel="noopener noreferrer"
@@ -222,7 +225,7 @@ export function Header(props: HeaderProps) {
       <div class="space-y-3 border-t border-outline-variant/10 px-5 py-3 md:px-7 min-[1440px]:hidden">
         <div class="grid gap-3 sm:grid-cols-2">
           <div class="space-y-1.5">
-            <span class="block text-[11px] font-semibold uppercase tracking-[0.08em] text-on-surface-variant">
+            <span class="block text-[12px] font-semibold uppercase tracking-[0.08em] text-on-surface-variant">
               Active Project
             </span>
             <Select
@@ -231,12 +234,12 @@ export function Header(props: HeaderProps) {
               options={projectOptions()}
               placeholder={projectsQuery.isLoading ? "Loading projects..." : "---"}
               disabled={projectsQuery.isLoading || (projects().length === 0 && !canCreateProjects)}
-              class="h-10 w-full rounded-xl border-outline-variant/20 bg-surface-container-low text-[12px]"
+              class="h-10 w-full rounded-xl border-outline-variant/20 bg-surface-container-low text-[13px]"
             />
           </div>
 
           <div class="space-y-1.5">
-            <span class="block text-[11px] font-semibold uppercase tracking-[0.08em] text-on-surface-variant">
+            <span class="block text-[12px] font-semibold uppercase tracking-[0.08em] text-on-surface-variant">
               Active Environment
             </span>
             <Select
@@ -251,7 +254,7 @@ export function Header(props: HeaderProps) {
                   : "---"
               }
               disabled={!activeProject() || environmentsQuery.isLoading}
-              class="h-10 w-full rounded-xl border-outline-variant/20 bg-surface-container-low text-[12px]"
+              class="h-10 w-full rounded-xl border-outline-variant/20 bg-surface-container-low text-[13px]"
             />
           </div>
         </div>

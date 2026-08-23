@@ -3149,6 +3149,8 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             updatedAt: string;
+            description?: null | string;
+            unit?: null | string;
         };
         ConfigEntryVersionDto: {
             project: string;
@@ -3162,6 +3164,8 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
             actor: string;
+            description?: null | string;
+            unit?: null | string;
         };
         ConfigReleaseDetailsDto: {
             project: string;
@@ -3191,6 +3195,8 @@ export interface components {
             value: string;
             contentType: string;
             scope: string;
+            description?: null | string;
+            unit?: null | string;
         };
         CreateApiKeyRequest: {
             name: string;
@@ -3346,6 +3352,7 @@ export interface components {
             canEdit: boolean;
             /** Format: date-time */
             expiresAt: string;
+            unit?: null | string;
         };
         SsoLoginRequest: {
             idToken: string;
@@ -3372,6 +3379,8 @@ export interface components {
             value: string;
             contentType: null | string;
             scope: null | string;
+            description?: null | string;
+            unit?: null | string;
         };
         UserDto: {
             /** Format: int64 */

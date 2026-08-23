@@ -1,6 +1,6 @@
-namespace Nona.StorageBenchmarks;
+namespace Nona.Benchmarks;
 
-internal static class BenchmarkSeedApp
+public static class BenchmarkSeedApp
 {
     public static async Task<int> RunAsync(string[] args)
     {
@@ -123,3 +123,4 @@ internal static class BenchmarkSeedApp
         string? LibsqlUrl,
         string LibsqlAuthToken);
 }
+

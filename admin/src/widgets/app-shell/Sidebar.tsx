@@ -1,4 +1,4 @@
-import { A, useLocation } from "@solidjs/router";
+import { A, useLocation, useNavigate } from "@solidjs/router";
 import { useQuery } from "@tanstack/solid-query";
 import { For, Show } from "solid-js";
 import { authService } from "../../entities/auth/api/auth.service";
@@ -7,6 +7,7 @@ import { authStore } from "../../entities/auth/model/store";
 import { projectService } from "../../entities/project/api/project.service";
 import { getActiveProjectHref, getActiveProjectSlug } from "../../entities/project/model/active-project";
 import { projectKeys } from "../../entities/project/queries/keys";
+import { getProjectPageSection } from "../../shared/lib/project-navigation";
 import { NonaMark } from "../../shared/ui/logo";
 
 function getUser(): { email: string; role: string } {
@@ -29,6 +30,7 @@ export const Sidebar = (props: {
   onToggleCollapse: () => void;
 }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const user = getUser();
   const isAdmin = canManageUsers();
   const canCreateProjects = canManageProjects();
@@ -56,45 +58,41 @@ export const Sidebar = (props: {
     if (section === "sharedLinks") return `${projectHref}/shared-links`;
     return `${projectHref}/${section === "apiKeys" ? "api-keys" : "releases"}`;
   };
-  const isProjectPage = () => location.pathname.startsWith("/projects/") && location.pathname !== "/projects";
+  const activeProjectSection = () =>
+    getProjectPageSection(location.pathname, location.search);
 
   const projectNavItems: NavItemDef[] = [
     {
       label: "Parameters",
       icon: "tune",
       href: () => projectPageHref("parameters"),
-      isActive: () =>
-        isProjectPage() &&
-        !location.pathname.endsWith("/environments") &&
-        !location.pathname.endsWith("/shared-links") &&
-        !location.pathname.endsWith("/api-keys") &&
-        !location.pathname.endsWith("/releases"),
+      isActive: () => activeProjectSection() === "parameters",
     },
     {
       label: "API Keys",
       icon: "key",
       href: () => projectPageHref("apiKeys"),
-      isActive: () => location.pathname.endsWith("/api-keys"),
+      isActive: () => activeProjectSection() === "apiKeys",
       requiresEdit: true,
     },
     {
       label: "Releases",
       icon: "deployed_code_history",
       href: () => projectPageHref("releases"),
-      isActive: () => location.pathname.endsWith("/releases"),
+      isActive: () => activeProjectSection() === "releases",
     },
     {
       label: "Shared Links",
       icon: "link",
       href: () => projectPageHref("sharedLinks"),
-      isActive: () => location.pathname.endsWith("/shared-links"),
+      isActive: () => activeProjectSection() === "sharedLinks",
       requiresEdit: true,
     },
     {
       label: "Environments",
       icon: "dns",
       href: () => projectPageHref("environments"),
-      isActive: () => location.pathname.endsWith("/environments"),
+      isActive: () => activeProjectSection() === "environments",
     },
   ];
   const visibleProjectNavItems = () =>
@@ -127,13 +125,30 @@ export const Sidebar = (props: {
   ];
 
   const navItem = (active: boolean, collapsed: boolean) =>
-    `flex items-center gap-3 rounded-lg text-[13px] font-medium transition-all cursor-pointer ${collapsed ? "px-2.5 py-2.5 justify-center" : "px-3 py-2"
+    `flex items-center gap-3 rounded-lg text-[14px] font-medium transition-all cursor-pointer ${collapsed ? "px-2.5 py-2.5 justify-center" : "px-3 py-2"
     } ${active
       ? "bg-primary/10 text-primary"
       : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface"
     }`;
 
   const w = () => (props.collapsed ? "w-16" : "w-64");
+
+  const handleProjectNavigation = (event: MouseEvent, href: string) => {
+    props.onClose();
+    if (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    navigate(href);
+  };
 
   return (
     <>
@@ -159,10 +174,10 @@ export const Sidebar = (props: {
             </div>
             <Show when={!props.collapsed}>
               <div class="min-w-0">
-                <p class="text-[14px] font-headline font-bold text-on-surface tracking-tight leading-none">
+                <p class="text-[15px] font-headline font-bold text-on-surface tracking-tight leading-none">
                   Nona Config
                 </p>
-                <p class="text-[9px] font-medium text-outline/50 tracking-[0.18em] uppercase mt-1">
+                <p class="text-[10px] font-medium text-outline/50 tracking-[0.18em] uppercase mt-1">
                   Admin Console
                 </p>
               </div>
@@ -178,11 +193,12 @@ export const Sidebar = (props: {
             fallback={
               <For each={visibleProjectNavItems()}>
                 {item => (
-                  <A
+                  <a
                     href={item.href()}
-                    onClick={() => props.onClose()}
+                    onClick={event => handleProjectNavigation(event, item.href())}
                     title={props.collapsed ? item.label : undefined}
                     aria-label={item.label}
+                    aria-current={item.isActive() ? "page" : undefined}
                     class={navItem(item.isActive(), props.collapsed)}
                   >
                     <span
@@ -196,7 +212,7 @@ export const Sidebar = (props: {
                       {item.icon}
                     </span>
                     <Show when={!props.collapsed}>{item.label}</Show>
-                  </A>
+                  </a>
                 )}
               </For>
             }
@@ -221,7 +237,7 @@ export const Sidebar = (props: {
                 title={props.collapsed ? "Create Project" : undefined}
                 aria-label="Create Project"
                 data-testid="sidebar-create-project"
-                class={`bg-primary text-on-primary flex items-center justify-center gap-2 rounded-lg text-[13px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] ${
+                class={`bg-primary text-on-primary flex items-center justify-center gap-2 rounded-lg text-[14px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] ${
                   props.collapsed ? "px-2.5 py-2.5" : "px-3 py-2.5"
                 }`}
               >
@@ -237,7 +253,7 @@ export const Sidebar = (props: {
         <div class={`mt-auto pb-4 space-y-2 ${props.collapsed ? "px-2" : "px-3"}`}>
           <Show when={!noProjects() || isAdmin}>
             <Show when={!props.collapsed}>
-              <p class="px-1 pb-1 text-[10px] font-semibold text-outline/50 tracking-[0.08em] uppercase">
+              <p class="px-1 pb-1 text-[11px] font-semibold text-outline/50 tracking-[0.08em] uppercase">
                 Admin
               </p>
             </Show>
@@ -272,7 +288,7 @@ export const Sidebar = (props: {
           <button
             onClick={() => props.onToggleCollapse()}
             title={props.collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            class={`hidden lg:flex w-full items-center gap-3 rounded-lg px-3 py-2 text-[12px] font-medium text-outline/60 hover:text-on-surface hover:bg-surface-container-low transition-all bg-transparent border-0 cursor-pointer ${props.collapsed ? "justify-center" : ""
+            class={`hidden lg:flex w-full items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium text-outline/60 hover:text-on-surface hover:bg-surface-container-low transition-all bg-transparent border-0 cursor-pointer ${props.collapsed ? "justify-center" : ""
               }`}
           >
             <span
@@ -295,15 +311,15 @@ export const Sidebar = (props: {
                 class="flex min-w-0 flex-1 items-center gap-3 rounded-lg"
               >
                 <div class="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center bg-primary/20 border border-primary/20">
-                  <span class="text-[11px] font-headline font-bold text-primary">
+                  <span class="text-[12px] font-headline font-bold text-primary">
                     {initials}
                   </span>
                 </div>
                 <div class="flex-1 min-w-0">
-                  <p class="text-[12px] font-semibold text-on-surface truncate leading-tight">
+                  <p class="text-[13px] font-semibold text-on-surface truncate leading-tight">
                     {user.email || "Console User"}
                   </p>
-                  <p class="text-[10px] text-outline/60 mt-0.5 capitalize tracking-wide">
+                  <p class="text-[11px] text-outline/60 mt-0.5 capitalize tracking-wide">
                     {user.role || "member"}
                   </p>
                 </div>
@@ -329,7 +345,7 @@ export const Sidebar = (props: {
                 title="Account settings"
                 class="w-8 h-8 rounded-lg flex items-center justify-center bg-primary/20 border border-primary/20"
               >
-                <span class="text-[11px] font-headline font-bold text-primary">
+                <span class="text-[12px] font-headline font-bold text-primary">
                   {initials}
                 </span>
               </A>

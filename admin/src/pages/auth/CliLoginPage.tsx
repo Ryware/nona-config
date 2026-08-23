@@ -46,7 +46,7 @@ export default function CliLoginPage() {
             testId="cli-login-error"
             headingTestId="cli-login-heading"
           >
-            <p class="text-on-surface-variant text-center text-[12.5px]">
+            <p class="text-on-surface-variant text-center text-[13.5px]">
               Return to your terminal and run the login command again.
             </p>
           </AuthCard>

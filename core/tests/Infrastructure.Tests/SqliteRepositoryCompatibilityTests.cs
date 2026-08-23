@@ -36,12 +36,19 @@ public class SqliteRepositoryCompatibilityTests
             var loaded = await repository.GetByNameAsync("sqlite project");
             var migrationCount = await client.ExecuteAsync(
                 "SELECT COUNT(1) AS Count FROM __MigrationsHistory");
+            var entryColumns = await client.ExecuteAsync("PRAGMA table_info(ConfigEntries)");
+            var versionColumns = await client.ExecuteAsync("PRAGMA table_info(ConfigEntryVersions)");
+            var releaseColumns = await client.ExecuteAsync("PRAGMA table_info(ConfigReleaseEntries)");
 
             await Assert.That(project.Id).IsGreaterThan(0);
             await Assert.That(loaded).IsNotNull();
             await Assert.That(loaded!.UrlSlug).IsEqualTo("sqlite-project");
             await Assert.That(await repository.CountAsync()).IsEqualTo(1);
-            await Assert.That(migrationCount.Rows[0].GetInt32("Count")).IsEqualTo(23);
+            await Assert.That(migrationCount.Rows[0].GetInt32("Count")).IsEqualTo(24);
+            await Assert.That(entryColumns.Rows.Select(row => row.GetString("name"))).Contains("Description");
+            await Assert.That(entryColumns.Rows.Select(row => row.GetString("name"))).Contains("Unit");
+            await Assert.That(versionColumns.Rows.Select(row => row.GetString("name"))).Contains("Description");
+            await Assert.That(releaseColumns.Rows.Select(row => row.GetString("name"))).Contains("Unit");
         }
         finally
         {

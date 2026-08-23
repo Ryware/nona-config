@@ -96,7 +96,7 @@ const ToastItem = (props: {
       <span class="material-symbols-outlined text-[18px] shrink-0">
         {toastIcons[props.toast.type]}
       </span>
-      <span class="text-[13px] flex-1">{props.toast.message}</span>
+      <span class="text-[14px] flex-1">{props.toast.message}</span>
       <Tooltip content="Dismiss notification"><TooltipTrigger as="button"
         onClick={() => props.removeToast(props.toast.id)}
         aria-label="Dismiss notification"

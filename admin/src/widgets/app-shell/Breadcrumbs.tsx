@@ -1,27 +1,29 @@
 import { A, useLocation } from "@solidjs/router";
 import { For, Show } from "solid-js";
+import { getProjectPageSection } from "../../shared/lib/project-navigation";
 
 interface Crumb {
   label: string;
   path?: string;
 }
 
-function parseBreadcrumbs(pathname: string): Crumb[] {
+function parseBreadcrumbs(pathname: string, search: string): Crumb[] {
   const parts = pathname.split("/").filter(Boolean);
   if (parts.length === 0) return [];
 
   if (parts[0] === "projects") {
     if (parts[1]) {
-      if (parts[2] === "environments") {
+      const projectSection = getProjectPageSection(pathname, search);
+      if (projectSection === "environments") {
         return [{ label: "Environments" }];
       }
-      if (parts[2] === "shared-links") {
+      if (projectSection === "sharedLinks") {
         return [{ label: "Shared Links" }];
       }
-      if (parts[2] === "api-keys") {
+      if (projectSection === "apiKeys") {
         return [{ label: "API Keys" }];
       }
-      if (parts[2] === "releases") {
+      if (projectSection === "releases") {
         return [{ label: "Releases" }];
       }
       return [{ label: "Parameters" }];
@@ -52,10 +54,10 @@ function parseBreadcrumbs(pathname: string): Crumb[] {
 
 export function Breadcrumbs() {
   const location = useLocation();
-  const crumbs = () => parseBreadcrumbs(location.pathname);
+  const crumbs = () => parseBreadcrumbs(location.pathname, location.search);
 
   return (
-    <nav class="flex-1 flex items-center gap-2 text-[12px] min-w-0 overflow-hidden font-medium">
+    <nav class="flex-1 flex items-center gap-2 text-[13px] min-w-0 overflow-hidden font-medium">
       <Show when={crumbs().length > 0}>
         <For each={crumbs()}>
           {(crumb, i) => (

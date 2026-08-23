@@ -37,7 +37,9 @@ internal static class ConfigReleaseMapping
             entry.Key,
             entry.Value,
             entry.ContentType,
-            entry.Scope.ToApiString());
+            entry.Scope.ToApiString(),
+            entry.Description,
+            entry.Unit);
     }
 
     private static bool IsActive(ConfigRelease release, string? activeReleaseVersion)

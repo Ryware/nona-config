@@ -245,6 +245,8 @@ public class InMemoryConfigReleaseRepository : IConfigReleaseRepository
             Key = entry.Key,
             Value = entry.Value,
             ContentType = entry.ContentType,
+            Description = entry.Description,
+            Unit = entry.Unit,
             Scope = entry.Scope
         }).ToList();
         var renamedRelease = new ConfigRelease
