@@ -215,7 +215,7 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
   return (
     <section data-testid="release-amend-panel" class="bg-surface-container-low border-outline-variant/15 space-y-4 rounded-2xl border p-4 sm:p-5">
       <div class="border-primary/25 bg-primary/5 flex flex-col gap-3 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between">
-        <div class="flex items-center gap-2 text-[13px]">
+        <div class="flex items-center gap-2 text-[14px]">
           <MIcon name="edit" class="text-primary text-[18px]" />
           <span class="text-on-surface-variant">
             Amending <span class="text-on-surface font-mono font-bold">{props.sourceVersion}</span> → creating patch <span class="text-primary font-mono font-bold">{props.targetVersion}</span>.
@@ -245,7 +245,7 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
       <Show when={isBufferReady()} fallback={<div class="skeleton h-40 w-full rounded-xl" />}>
         <Show
           when={rows.length > 0}
-          fallback={<div class="bg-surface-container rounded-xl px-4 py-8 text-center text-xs text-on-surface-variant">This release has no parameters.</div>}
+          fallback={<div class="bg-surface-container rounded-xl px-4 py-8 text-center text-[13px] text-on-surface-variant">This release has no parameters.</div>}
         >
           <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
             <Input

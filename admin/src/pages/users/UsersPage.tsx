@@ -218,7 +218,7 @@ export default function UsersPage() {
             <div>
               <h2
                 data-testid="team-heading"
-                class="text-outline font-headline flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase"
+                class="text-outline font-headline flex items-center gap-1.5 text-[11px] font-bold tracking-widest uppercase"
               >
                 <MIcon name="group" class="text-[15px]" />
                 Team
@@ -249,7 +249,7 @@ export default function UsersPage() {
                 onClick={toggleInvite}
                 aria-label={showInvite() ? "Cancel invite" : "Invite User"}
                 title={showInvite() ? "Cancel invite" : "Invite User"}
-                class="bg-primary text-on-primary inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-lg border-0 px-0 text-[13px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] md:h-10 md:w-auto md:px-4"
+                class="bg-primary text-on-primary inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-lg border-0 px-0 text-[14px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] md:h-10 md:w-auto md:px-4"
               >
                 <MIcon name={showInvite() ? "close" : "person_add"} class="text-[17px]" />
                 <span class="hidden md:inline">
@@ -344,7 +344,7 @@ export default function UsersPage() {
               Remove <span class="text-on-surface font-semibold">{deleteTarget()?.email}</span> from
               this instance?
             </p>
-            <p class="text-outline font-sans text-[11px]">
+            <p class="text-outline font-sans text-[12px]">
               All active sessions and credentials will be terminated immediately.
             </p>
           </>

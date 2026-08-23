@@ -76,17 +76,17 @@ export function ReleaseRow(props: ReleaseRowProps) {
     <div class="bg-surface-container grid gap-3 rounded-xl px-4 py-3 md:grid-cols-[minmax(200px,1fr)_auto] md:items-center">
       <div class="min-w-0">
         <div class="flex flex-wrap items-center gap-2">
-          <span class="text-on-surface truncate font-mono text-[13px] font-bold">
+          <span class="text-on-surface truncate font-mono text-[14px] font-bold">
             {props.release.version}
           </span>
           <Show when={props.release.isActive}>
-            <Tooltip content={tooltipCopy.activeRelease}><TooltipTrigger as="span" tabindex="0" data-tooltip-trigger class="bg-primary/10 text-primary rounded-md px-2 py-0.5 text-[11px] font-bold">Active</TooltipTrigger></Tooltip>
+            <Tooltip content={tooltipCopy.activeRelease}><TooltipTrigger as="span" tabindex="0" data-tooltip-trigger class="bg-primary/10 text-primary rounded-md px-2 py-0.5 text-[12px] font-bold">Active</TooltipTrigger></Tooltip>
           </Show>
         </div>
-        <p class="text-on-surface-variant mt-1 text-[12px]">
+        <p class="text-on-surface-variant mt-1 text-[13px]">
           {props.release.entryCount} parameters
         </p>
-        <p class="text-outline mt-0.5 text-[11px]">Published by {props.release.actor}</p>
+        <p class="text-outline mt-0.5 text-[12px]">Published by {props.release.actor}</p>
       </div>
 
       <div class="flex flex-wrap items-center justify-end gap-2">
@@ -96,7 +96,7 @@ export function ReleaseRow(props: ReleaseRowProps) {
           onClick={() => props.onView(props.release.version)}
           aria-label={`View parameters for release ${props.release.version}`}
           data-tooltip-trigger
-          class="bg-surface-container-high text-on-surface hover:bg-surface-bright inline-flex h-9 w-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-0 px-0 text-[12px] font-semibold disabled:cursor-default disabled:opacity-50 md:w-auto md:px-3"
+          class="bg-surface-container-high text-on-surface hover:bg-surface-bright inline-flex h-9 w-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-0 px-0 text-[13px] font-semibold disabled:cursor-default disabled:opacity-50 md:w-auto md:px-3"
         >
           <MIcon name="visibility" class="text-[15px]" />
           <span class="hidden md:inline">View parameters</span>
@@ -112,7 +112,7 @@ export function ReleaseRow(props: ReleaseRowProps) {
               onClick={() => props.onActivate(props.release.version)}
               disabled={activateDisabled()}
               aria-label={`Activate release ${props.release.version}`}
-              class="bg-surface-container-high text-on-surface hover:bg-surface-bright inline-flex h-9 w-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-0 px-0 text-[12px] font-semibold disabled:cursor-default disabled:opacity-50 md:w-auto md:px-3"
+              class="bg-surface-container-high text-on-surface hover:bg-surface-bright inline-flex h-9 w-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-0 px-0 text-[13px] font-semibold disabled:cursor-default disabled:opacity-50 md:w-auto md:px-3"
             >
               <MIcon name="check_circle" class="text-[15px]" />
               <span class="hidden md:inline">Activate</span>
@@ -129,7 +129,7 @@ export function ReleaseRow(props: ReleaseRowProps) {
               onClick={() => props.onAmend(props.release.version)}
               disabled={amendDisabled()}
               aria-label={`Amend release ${props.release.version}`}
-              class="bg-surface-container-high text-on-surface hover:bg-surface-bright inline-flex h-9 w-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-0 px-0 text-[12px] font-semibold md:w-auto md:px-3"
+              class="bg-surface-container-high text-on-surface hover:bg-surface-bright inline-flex h-9 w-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-0 px-0 text-[13px] font-semibold md:w-auto md:px-3"
             >
               <MIcon name="edit" class="text-[15px]" />
               <span class="hidden md:inline">
@@ -148,7 +148,7 @@ export function ReleaseRow(props: ReleaseRowProps) {
               onClick={() => props.onDelete(props.release.version)}
               disabled={deleteDisabled()}
               aria-label={`Delete release ${props.release.version}`}
-              class="bg-error-container/10 text-error hover:bg-error-container/20 inline-flex h-9 w-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-0 px-0 text-[12px] font-semibold disabled:cursor-default disabled:opacity-50 md:w-auto md:px-3"
+              class="bg-error-container/10 text-error hover:bg-error-container/20 inline-flex h-9 w-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-0 px-0 text-[13px] font-semibold disabled:cursor-default disabled:opacity-50 md:w-auto md:px-3"
             >
               <MIcon name="delete" class="text-[15px]" />
               <span class="hidden md:inline">

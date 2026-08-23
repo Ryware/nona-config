@@ -60,17 +60,17 @@ export function AuditLogRow(props: AuditLogRowProps) {
           </div>
           <div class="min-w-0 flex-1">
             <div class="flex flex-wrap items-center gap-2">
-              <span class="text-on-surface shrink-0 text-[13px] font-semibold">
+              <span class="text-on-surface shrink-0 text-[14px] font-semibold">
                 {props.entry.actor}
               </span>
               <span
-                class={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${kindMeta().badge}`}
+                class={`shrink-0 rounded-md px-1.5 py-0.5 text-[11px] font-semibold ${kindMeta().badge}`}
               >
                 {kindMeta().label}
               </span>
               <code
                 data-testid={`audit-target-${props.entry.id}`}
-                class={`bg-surface-container-high border-outline-variant/20 max-w-45 truncate rounded border px-1.5 py-0.5 font-mono text-[11px] ${
+                class={`bg-surface-container-high border-outline-variant/20 max-w-45 truncate rounded border px-1.5 py-0.5 font-mono text-[12px] ${
                   isDeleteAction(props.entry.action)
                     ? "text-outline/60 line-through"
                     : "text-on-surface-variant"
@@ -83,10 +83,10 @@ export function AuditLogRow(props: AuditLogRowProps) {
 
             <Show when={props.entry.displayName && props.entry.displayName !== props.entry.target}>
               <div class="mt-0.5 flex items-center gap-1.5">
-                <span class="text-outline truncate text-[11.5px]">{props.entry.displayName}</span>
+                <span class="text-outline truncate text-[12.5px]">{props.entry.displayName}</span>
                 <Show when={props.entry.description}>
                   <span class="text-outline/30 shrink-0">·</span>
-                  <span class="text-outline/50 max-w-55 truncate text-[11px] italic">
+                  <span class="text-outline/50 max-w-55 truncate text-[12px] italic">
                     {props.entry.description}
                   </span>
                 </Show>
@@ -98,7 +98,7 @@ export function AuditLogRow(props: AuditLogRowProps) {
             </Show>
 
             <Show when={desc()}>
-              {d => <p class={`mt-0.5 text-[11.5px] ${d().colorClass}`}>{d().text}</p>}
+              {d => <p class={`mt-0.5 text-[12.5px] ${d().colorClass}`}>{d().text}</p>}
             </Show>
           </div>
         </div>
@@ -107,12 +107,12 @@ export function AuditLogRow(props: AuditLogRowProps) {
       {/* Context */}
       <td class="w-32 px-6 py-4 align-top">
         <div class="flex flex-col items-center gap-1.5">
-          <span class={`rounded-md px-2 py-0.5 text-[10px] font-semibold ${props.entry.envStyle}`}>
+          <span class={`rounded-md px-2 py-0.5 text-[11px] font-semibold ${props.entry.envStyle}`}>
             {props.entry.env === "Global Scope" ? "System" : props.entry.env}
           </span>
           <Show when={props.entry.project}>
             <span
-              class="text-outline/50 max-w-24 truncate text-center font-mono text-[10px]"
+              class="text-outline/50 max-w-24 truncate text-center font-mono text-[11px]"
               title={props.entry.project}
             >
               {props.entry.project}
@@ -123,16 +123,16 @@ export function AuditLogRow(props: AuditLogRowProps) {
 
       {/* When */}
       <td class="w-44 px-6 py-4 text-right align-top">
-        <div class="text-on-surface-variant text-[12.5px] font-medium">
+        <div class="text-on-surface-variant text-[13.5px] font-medium">
           {timeAgo(props.entry.time)}
         </div>
         <div
-          class="text-outline mt-0.5 truncate font-mono text-[10.5px]"
+          class="text-outline mt-0.5 truncate font-mono text-[11.5px]"
           title={`Audit Record System ID: ${props.entry.sysId}`}
         >
           {formatTimestamp(props.entry.time)}
         </div>
-        <div class="text-outline/40 mt-0.5 font-mono text-[9.5px] tracking-wide">
+        <div class="text-outline/40 mt-0.5 font-mono text-[10.5px] tracking-wide">
           {props.entry.sysId}
         </div>
       </td>

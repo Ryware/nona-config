@@ -48,12 +48,12 @@ export function ProjectParamsTab(props: ProjectParamsTabProps) {
         <div>
           <p
             data-testid="project-parameters-heading"
-            class="text-outline font-headline flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase"
+            class="text-outline font-headline flex items-center gap-1.5 text-[11px] font-bold tracking-widest uppercase"
           >
             <MIcon name="tune" class="text-[15px]" />
             Parameters
           </p>
-          <p class="text-on-surface-variant mt-1 text-xs">
+          <p class="text-on-surface-variant mt-1 text-[13px]">
             <Show
               when={props.isReadOnly && props.viewingReleaseVersion}
               fallback={
@@ -93,7 +93,7 @@ export function ProjectParamsTab(props: ProjectParamsTabProps) {
                 onClick={() => props.onToggleBulkImport()}
                 aria-label="Bulk Import"
                 title="Bulk Import"
-                class="bg-surface-container-high text-on-surface-variant hover:bg-surface-bright hover:text-on-surface inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg border-0 px-0 text-[13px] font-semibold transition-all active:scale-[0.98] md:w-auto md:gap-1.5 md:px-4"
+                class="bg-surface-container-high text-on-surface-variant hover:bg-surface-bright hover:text-on-surface inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg border-0 px-0 text-[14px] font-semibold transition-all active:scale-[0.98] md:w-auto md:gap-1.5 md:px-4"
               >
                 <MIcon name="publish" class="text-[17px]" />
                 <span class="hidden md:inline">Bulk Import</span>
@@ -104,7 +104,7 @@ export function ProjectParamsTab(props: ProjectParamsTabProps) {
                 onClick={event => props.onAddParameter(event.currentTarget)}
                 aria-label="Add Parameter"
                 title="Add Parameter"
-                class="bg-primary text-on-primary inline-flex h-10 w-10 cursor-pointer items-center justify-center self-end rounded-lg border-0 px-0 text-[13px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] md:w-auto md:gap-1.5 md:px-4 md:self-auto"
+                class="bg-primary text-on-primary inline-flex h-10 w-10 cursor-pointer items-center justify-center self-end rounded-lg border-0 px-0 text-[14px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] md:w-auto md:gap-1.5 md:px-4 md:self-auto"
               >
                 <MIcon name="add" class="text-[16px]" />
                 <span class="hidden md:inline">Add Parameter</span>
@@ -117,7 +117,7 @@ export function ProjectParamsTab(props: ProjectParamsTabProps) {
       {props.bulkImportPanel}
 
       <Show when={!props.activeEnvName}>
-        <div class="bg-surface-container rounded-xl px-4 py-5 text-center text-xs text-on-surface-variant">
+        <div class="bg-surface-container rounded-xl px-4 py-5 text-center text-[13px] text-on-surface-variant">
           Select an active environment from the header to view its parameters.
         </div>
       </Show>
@@ -130,7 +130,7 @@ export function ProjectParamsTab(props: ProjectParamsTabProps) {
       </Show>
 
       <Show when={props.activeEnvName && !props.isLoading && props.filteredConfig.length === 0}>
-        <div class="bg-surface-container rounded-xl px-4 py-5 text-center text-xs text-on-surface-variant">
+        <div class="bg-surface-container rounded-xl px-4 py-5 text-center text-[13px] text-on-surface-variant">
           <Show
             when={props.isReadOnly && props.viewingReleaseVersion}
             fallback={<>No parameters yet for this environment</>}

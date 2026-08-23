@@ -57,7 +57,7 @@ export function Breadcrumbs() {
   const crumbs = () => parseBreadcrumbs(location.pathname, location.search);
 
   return (
-    <nav class="flex-1 flex items-center gap-2 text-[12px] min-w-0 overflow-hidden font-medium">
+    <nav class="flex-1 flex items-center gap-2 text-[13px] min-w-0 overflow-hidden font-medium">
       <Show when={crumbs().length > 0}>
         <For each={crumbs()}>
           {(crumb, i) => (

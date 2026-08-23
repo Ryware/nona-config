@@ -16,7 +16,7 @@ interface ParameterValueEditorProps {
 export function ParameterValueEditor(props: ParameterValueEditorProps) {
   const inputClass = () => cn(
     "border-outline-variant/25 bg-surface-container-lowest text-on-surface focus:border-primary min-w-0 w-full rounded-lg border font-mono outline-none transition-colors",
-    props.compact ? "h-8 px-2 text-[11px]" : "h-10 px-3 text-[12px]",
+    props.compact ? "h-8 px-2 text-[12px]" : "h-10 px-3 text-[13px]",
     props.invalid && "border-error focus:border-error"
   );
 
@@ -26,7 +26,7 @@ export function ParameterValueEditor(props: ParameterValueEditorProps) {
       fallback={
         <span
           data-testid={`parameter-value-${props.entry.key}`}
-          class="text-on-surface-variant block min-w-0 truncate font-mono text-[12px]"
+          class="text-on-surface-variant block min-w-0 truncate font-mono text-[13px]"
           title={props.value}
         >
           {props.value}
@@ -52,7 +52,7 @@ export function ParameterValueEditor(props: ParameterValueEditorProps) {
               class={inputClass()}
             />
             <Show when={props.entry.contentType === "number" && props.entry.unit}>
-              <span class="text-outline shrink-0 text-[11px]" aria-label={`Unit ${props.entry.unit}`}>
+              <span class="text-outline shrink-0 text-[12px]" aria-label={`Unit ${props.entry.unit}`}>
                 {props.entry.unit}
               </span>
             </Show>

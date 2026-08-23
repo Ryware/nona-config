@@ -107,13 +107,13 @@ function ParameterRow(props: {
       >
         <span
           data-testid={`parameter-display-${props.entry.key}`}
-          class="text-on-surface block truncate text-[13px] font-bold"
+          class="text-on-surface block truncate text-[14px] font-bold"
         >
           {parameterName(props.entry.key)}
         </span>
         <span
           data-testid={`parameter-key-${props.entry.key}`}
-          class="text-outline block truncate font-mono text-[10px]"
+          class="text-outline block truncate font-mono text-[11px]"
           title={props.entry.key}
         >
           {props.entry.key}
@@ -138,14 +138,14 @@ function ParameterRow(props: {
             id={errorId()}
             role="alert"
             aria-live="polite"
-            class="text-error mt-1 text-[10px] leading-tight"
+            class="text-error mt-1 text-[11px] leading-tight"
           >
             {valueError() || submitError()}
           </p>
         </Show>
       </div>
 
-      <div class="text-outline flex items-center gap-2 text-[10px] uppercase md:flex-col md:items-start md:gap-0.5">
+      <div class="text-outline flex items-center gap-2 text-[11px] uppercase md:flex-col md:items-start md:gap-0.5">
         <span><span class="sr-only">Datatype </span>{props.entry.contentType}</span>
         <span><span class="sr-only">Scope </span>{props.entry.scope}</span>
       </div>
@@ -158,7 +158,7 @@ function ParameterRow(props: {
             disabled={disabled()}
             onClick={() => void update()}
             class={cn(
-              "inline-flex h-8 cursor-pointer items-center justify-center rounded-lg border-0 px-3 text-[11px] font-bold transition-colors",
+              "inline-flex h-8 cursor-pointer items-center justify-center rounded-lg border-0 px-3 text-[12px] font-bold transition-colors",
               disabled()
                 ? "bg-surface-container-high text-outline cursor-not-allowed opacity-60"
                 : "bg-primary text-on-primary hover:brightness-105"
@@ -176,7 +176,7 @@ function ParameterRow(props: {
           }}
           aria-label={`${props.table.isReadOnly ? "View" : "Edit"} parameter ${props.entry.key}`}
           title={`${props.table.isReadOnly ? "View" : "Edit"} parameter ${props.entry.key}`}
-          class="text-outline hover:bg-primary/10 hover:text-primary inline-flex h-8 cursor-pointer items-center gap-1 rounded-lg border-0 bg-transparent px-2 text-[11px] font-semibold"
+          class="text-outline hover:bg-primary/10 hover:text-primary inline-flex h-8 cursor-pointer items-center gap-1 rounded-lg border-0 bg-transparent px-2 text-[12px] font-semibold"
         >
           <MIcon name="edit" class="text-[16px]" />
           <span class="hidden lg:inline">{props.table.isReadOnly ? "View" : "Edit"}</span>
@@ -188,7 +188,7 @@ function ParameterRow(props: {
             onClick={() => props.table.onDeleteEntry(props.entry.key)}
             aria-label={`Delete parameter ${props.entry.key}`}
             title={`Delete parameter ${props.entry.key}`}
-            class="text-outline hover:bg-error/10 hover:text-error inline-flex h-8 cursor-pointer items-center gap-1 rounded-lg border-0 bg-transparent px-2 text-[11px] font-semibold"
+            class="text-outline hover:bg-error/10 hover:text-error inline-flex h-8 cursor-pointer items-center gap-1 rounded-lg border-0 bg-transparent px-2 text-[12px] font-semibold"
           >
             <MIcon name="delete_outline" class="text-[16px]" />
             <span class="hidden xl:inline">Delete</span>
@@ -230,12 +230,12 @@ function TreeBranch(props: {
           type="button"
           aria-expanded={!isCollapsed()}
           onClick={() => props.toggle(props.node.id)}
-          class="border-outline-variant/10 bg-surface-container-lowest text-on-surface flex h-9 w-full cursor-pointer items-center gap-2 border-b px-3 text-left text-[12px] font-semibold"
+          class="border-outline-variant/10 bg-surface-container-lowest text-on-surface flex h-9 w-full cursor-pointer items-center gap-2 border-b px-3 text-left text-[13px] font-semibold"
           style={{ "padding-left": `${props.node.depth * 14 + 12}px` }}
         >
           <MIcon name={isCollapsed() ? "chevron_right" : "expand_more"} class="text-outline text-[17px]" />
           <span>{props.node.label}</span>
-          <span class="text-outline text-[10px] font-normal">{props.node.count}</span>
+          <span class="text-outline text-[11px] font-normal">{props.node.count}</span>
         </button>
         <Show when={!isCollapsed()}>
           <Show when={props.node.entry}>
@@ -298,7 +298,7 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
       <Show when={!isMobile()}>
         <div
           aria-hidden="true"
-          class="border-outline-variant/15 bg-surface-container-lowest text-outline grid h-8 grid-cols-[minmax(11rem,1.1fr)_minmax(12rem,1.5fr)_8rem_auto] items-center gap-2 border-b px-4 text-[9px] font-bold tracking-widest uppercase"
+          class="border-outline-variant/15 bg-surface-container-lowest text-outline grid h-8 grid-cols-[minmax(11rem,1.1fr)_minmax(12rem,1.5fr)_8rem_auto] items-center gap-2 border-b px-4 text-[10px] font-bold tracking-widest uppercase"
         >
           <span>Parameter</span>
           <span>Value</span>
@@ -328,7 +328,7 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
       </Show>
 
       <Show when={!props.isLoading && props.search && props.filteredConfig.length === 0}>
-        <div class="text-on-surface-variant px-4 py-8 text-center text-sm">
+        <div class="text-on-surface-variant px-4 py-8 text-center text-[15px]">
           No parameters match “{props.search}”.
         </div>
       </Show>

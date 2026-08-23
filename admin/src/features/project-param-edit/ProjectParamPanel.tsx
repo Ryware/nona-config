@@ -240,7 +240,7 @@ export function ProjectParamPanel(props: ProjectParamPanelProps) {
               <Dialog.Title class="font-headline text-on-surface truncate text-lg font-bold">
                 {props.mode === "create" ? "New parameter" : parameterName(props.entry?.key ?? "Parameter")}
               </Dialog.Title>
-              <Dialog.Description class="text-outline mt-1 truncate font-mono text-[11px]">
+              <Dialog.Description class="text-outline mt-1 truncate font-mono text-[12px]">
                 {props.mode === "create" ? "Create a parameter" : props.entry?.key}
               </Dialog.Description>
             </div>
@@ -255,7 +255,7 @@ export function ProjectParamPanel(props: ProjectParamPanelProps) {
                       onClick={() => props.onShare(entry())}
                       aria-label="Share parameter"
                       aria-describedby={!props.shareEnabled ? "parameter-share-disabled-reason" : undefined}
-                      class="bg-surface-container-high text-on-surface hover:bg-surface-bright inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border-0 px-3 text-[12px] font-semibold disabled:cursor-not-allowed disabled:opacity-45"
+                      class="bg-surface-container-high text-on-surface hover:bg-surface-bright inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border-0 px-3 text-[13px] font-semibold disabled:cursor-not-allowed disabled:opacity-45"
                     >
                       <MIcon name="share" class="text-[17px]" />
                       Share
@@ -277,7 +277,7 @@ export function ProjectParamPanel(props: ProjectParamPanelProps) {
           </header>
 
           <Show when={!props.shareEnabled && props.shareDisabledReason && props.mode !== "create"}>
-            <p id="parameter-share-disabled-reason" class="text-outline px-4 pt-2 text-right text-[10px] sm:px-6">
+            <p id="parameter-share-disabled-reason" class="text-outline px-4 pt-2 text-right text-[11px] sm:px-6">
               {props.shareDisabledReason}
             </p>
           </Show>
@@ -289,7 +289,7 @@ export function ProjectParamPanel(props: ProjectParamPanelProps) {
               aria-selected={tab() === "settings"}
               data-testid="parameter-panel-settings-tab"
               onClick={() => setTab("settings")}
-              class={`cursor-pointer border-0 border-b-2 bg-transparent px-3 py-2 text-[12px] font-semibold ${tab() === "settings" ? "border-primary text-primary" : "border-transparent text-outline"}`}
+              class={`cursor-pointer border-0 border-b-2 bg-transparent px-3 py-2 text-[13px] font-semibold ${tab() === "settings" ? "border-primary text-primary" : "border-transparent text-outline"}`}
             >
               Settings
             </button>
@@ -300,7 +300,7 @@ export function ProjectParamPanel(props: ProjectParamPanelProps) {
                 aria-selected={tab() === "history"}
                 data-testid="parameter-panel-history-tab"
                 onClick={openHistory}
-                class={`cursor-pointer border-0 border-b-2 bg-transparent px-3 py-2 text-[12px] font-semibold ${tab() === "history" ? "border-primary text-primary" : "border-transparent text-outline"}`}
+                class={`cursor-pointer border-0 border-b-2 bg-transparent px-3 py-2 text-[13px] font-semibold ${tab() === "history" ? "border-primary text-primary" : "border-transparent text-outline"}`}
               >
                 History
               </button>
@@ -316,7 +316,7 @@ export function ProjectParamPanel(props: ProjectParamPanelProps) {
           >
             <Show when={tab() === "settings"}>
               <div data-testid="parameter-panel-settings" class="space-y-5">
-                <div class="bg-surface-container-high/45 border-outline-variant/15 grid grid-cols-2 gap-x-4 gap-y-3 rounded-xl border p-4 text-[11px] sm:grid-cols-4">
+                <div class="bg-surface-container-high/45 border-outline-variant/15 grid grid-cols-2 gap-x-4 gap-y-3 rounded-xl border p-4 text-[12px] sm:grid-cols-4">
                   <div>
                     <span class="text-outline block uppercase">Environment</span>
                     <span class="text-on-surface mt-1 block font-mono">{props.environmentName}</span>
@@ -360,7 +360,7 @@ export function ProjectParamPanel(props: ProjectParamPanelProps) {
                       class="font-mono"
                     />
                     <Show when={keyTouched() && validation().keyError}>
-                      <p id="parameter-panel-key-error" role="alert" class="text-error mt-1.5 text-[11px]">
+                      <p id="parameter-panel-key-error" role="alert" class="text-error mt-1.5 text-[12px]">
                         {validation().keyError}
                       </p>
                     </Show>
@@ -371,13 +371,13 @@ export function ProjectParamPanel(props: ProjectParamPanelProps) {
                   <div class="grid gap-3 sm:grid-cols-2">
                     <div>
                       <Label>Parameter name</Label>
-                      <div class="bg-surface-container-lowest border-outline-variant/20 text-on-surface rounded-lg border px-3 py-2.5 text-[12px] font-semibold">
+                      <div class="bg-surface-container-lowest border-outline-variant/20 text-on-surface rounded-lg border px-3 py-2.5 text-[13px] font-semibold">
                         {parameterName(props.entry?.key ?? "")}
                       </div>
                     </div>
                     <div>
                       <Label>Full key</Label>
-                      <div class="bg-surface-container-lowest border-outline-variant/20 text-on-surface truncate rounded-lg border px-3 py-2.5 font-mono text-[12px]" title={props.entry?.key}>
+                      <div class="bg-surface-container-lowest border-outline-variant/20 text-on-surface truncate rounded-lg border px-3 py-2.5 font-mono text-[13px]" title={props.entry?.key}>
                         {props.entry?.key}
                       </div>
                     </div>
@@ -395,9 +395,9 @@ export function ProjectParamPanel(props: ProjectParamPanelProps) {
                     rows={4}
                     maxLength={500}
                     placeholder="Explain what this parameter controls…"
-                    class="bg-surface-container-lowest border-outline-variant/20 focus:border-primary text-on-surface disabled:text-outline w-full resize-y rounded-xl border px-3 py-2.5 text-[13px] outline-none disabled:cursor-not-allowed"
+                    class="bg-surface-container-lowest border-outline-variant/20 focus:border-primary text-on-surface disabled:text-outline w-full resize-y rounded-xl border px-3 py-2.5 text-[14px] outline-none disabled:cursor-not-allowed"
                   />
-                  <p class="text-outline mt-1 text-right text-[10px]">{description().length}/500</p>
+                  <p class="text-outline mt-1 text-right text-[11px]">{description().length}/500</p>
                 </div>
 
                 <div class="grid gap-4 sm:grid-cols-2">
@@ -489,7 +489,7 @@ export function ProjectParamPanel(props: ProjectParamPanelProps) {
                     <Show
                       when={!isReadOnly()}
                       fallback={
-                        <pre class="bg-surface-container-lowest border-outline-variant/20 text-on-surface min-h-48 overflow-auto rounded-xl border p-4 font-mono text-[12px] whitespace-pre-wrap">
+                        <pre class="bg-surface-container-lowest border-outline-variant/20 text-on-surface min-h-48 overflow-auto rounded-xl border p-4 font-mono text-[13px] whitespace-pre-wrap">
                           {value()}
                         </pre>
                       }
@@ -511,7 +511,7 @@ export function ProjectParamPanel(props: ProjectParamPanelProps) {
                     </Show>
                   </Show>
                   <Show when={valueTouched() && valueError()}>
-                    <p id="parameter-panel-value-error" role="alert" aria-live="polite" class="text-error mt-2 text-[11px]">
+                    <p id="parameter-panel-value-error" role="alert" aria-live="polite" class="text-error mt-2 text-[12px]">
                       {valueError()}
                     </p>
                   </Show>
@@ -522,12 +522,12 @@ export function ProjectParamPanel(props: ProjectParamPanelProps) {
             <Show when={tab() === "history"}>
               <section data-testid="parameter-panel-history" class="space-y-3">
                 <Show when={props.mode === "amend"}>
-                  <p class="text-on-surface-variant text-[12px]">
+                  <p class="text-on-surface-variant text-[13px]">
                     Select a live version to copy its complete value and metadata into this release draft.
                   </p>
                 </Show>
                 <Show when={props.mode === "snapshot"}>
-                  <p class="text-on-surface-variant text-[12px]">
+                  <p class="text-on-surface-variant text-[13px]">
                     The release value is marked below when it matches a live version. History is read-only.
                   </p>
                 </Show>
@@ -537,7 +537,7 @@ export function ProjectParamPanel(props: ProjectParamPanelProps) {
                 >
                   <Show
                     when={props.historyVersions.length > 0}
-                    fallback={<p class="text-outline py-12 text-center text-[12px]">No version history.</p>}
+                    fallback={<p class="text-outline py-12 text-center text-[13px]">No version history.</p>}
                   >
                     <div class="space-y-2">
                       <For each={props.historyVersions}>
@@ -559,15 +559,15 @@ export function ProjectParamPanel(props: ProjectParamPanelProps) {
                               <div class="flex items-start justify-between gap-3">
                                 <div class="min-w-0">
                                   <div class="flex flex-wrap items-center gap-2">
-                                    <span class="text-on-surface font-mono text-[13px] font-bold">v{version.version}</span>
+                                    <span class="text-on-surface font-mono text-[14px] font-bold">v{version.version}</span>
                                     <Show when={isActive()}>
-                                      <span class="text-secondary text-[10px] font-bold uppercase">In use</span>
+                                      <span class="text-secondary text-[11px] font-bold uppercase">In use</span>
                                     </Show>
                                     <Show when={isCaptured()}>
-                                      <span class="text-primary text-[10px] font-bold uppercase">Captured in release</span>
+                                      <span class="text-primary text-[11px] font-bold uppercase">Captured in release</span>
                                     </Show>
                                   </div>
-                                  <p class="text-on-surface-variant mt-1 text-[11px]">
+                                  <p class="text-on-surface-variant mt-1 text-[12px]">
                                     Changed by {version.actor} · {formatDate(version.createdAt)}
                                   </p>
                                 </div>
@@ -584,11 +584,11 @@ export function ProjectParamPanel(props: ProjectParamPanelProps) {
                                   </Button>
                                 </Show>
                               </div>
-                              <pre class="bg-surface-container-lowest text-on-surface mt-3 max-h-40 overflow-auto rounded-lg p-3 font-mono text-[11px] whitespace-pre-wrap">
+                              <pre class="bg-surface-container-lowest text-on-surface mt-3 max-h-40 overflow-auto rounded-lg p-3 font-mono text-[12px] whitespace-pre-wrap">
                                 {version.contentType === "json" ? formatJson(version.value) : version.value}
                                 <Show when={version.contentType === "number" && version.unit}> {version.unit}</Show>
                               </pre>
-                              <div class="text-outline mt-2 flex gap-3 text-[10px] uppercase">
+                              <div class="text-outline mt-2 flex gap-3 text-[11px] uppercase">
                                 <span>Datatype {version.contentType}</span>
                                 <span>Scope {version.scope}</span>
                               </div>
@@ -604,7 +604,7 @@ export function ProjectParamPanel(props: ProjectParamPanelProps) {
           </main>
 
           <footer class="bg-surface-container-low border-outline-variant/15 sticky bottom-0 flex shrink-0 items-center justify-between gap-3 border-t px-4 py-3 sm:px-6">
-            <p role="status" aria-live="polite" class="text-on-surface-variant min-w-0 text-[11px]">
+            <p role="status" aria-live="polite" class="text-on-surface-variant min-w-0 text-[12px]">
               {status()}
             </p>
             <div class="flex shrink-0 items-center gap-2">
