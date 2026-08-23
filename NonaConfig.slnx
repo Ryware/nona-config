@@ -21,9 +21,6 @@
     <Project Path="core/tests/Infrastructure.Tests/Infrastructure.Tests.csproj">
       <Build Solution="Debug|*" Project="false" />
     </Project>
-    <Project Path="core/tests/StorageBenchmarks/StorageBenchmarks.csproj">
-      <Build Solution="Debug|*" Project="false" />
-    </Project>
   </Folder>
   <Folder Name="/libsql/" />
   <Folder Name="/libsql/src/">
@@ -33,6 +30,20 @@
   </Folder>
   <Folder Name="/libsql/tests/">
     <Project Path="libsql/tests/Libsql.Tests/Libsql.Tests.csproj">
+      <Build Solution="Debug|*" Project="false" />
+    </Project>
+  </Folder>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/Performance/Nona.Benchmarks.Performance.csproj">
+      <Build Solution="Debug|*" Project="false" />
+    </Project>
+    <Project Path="benchmarks/Replication/Nona.Benchmarks.Replication.csproj">
+      <Build Solution="Debug|*" Project="false" />
+    </Project>
+    <Project Path="benchmarks/Resources/Nona.Benchmarks.Resources.csproj">
+      <Build Solution="Debug|*" Project="false" />
+    </Project>
+    <Project Path="benchmarks/Shared/Nona.Benchmarks.Shared.csproj">
       <Build Solution="Debug|*" Project="false" />
     </Project>
   </Folder>
@@ -52,3 +63,4 @@
     <Project Path="migrator/tests/FirebaseRemoteConfigMigrator.Tests/Migrator.FirebaseRemoteConfig.Tests.csproj" />
   </Folder>
 </Solution>
+
