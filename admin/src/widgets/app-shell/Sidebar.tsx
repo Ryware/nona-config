@@ -226,7 +226,7 @@ export const Sidebar = (props: {
                     >
                       {item.icon}
                     </span>
-                    <Show when=when={!collapsed()}>{item.label}</Show>
+                    <Show when={!collapsed()}>{item.label}</Show>
                   </a>
                 )}
               </For>
