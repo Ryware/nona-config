@@ -1,11 +1,4 @@
-namespace Nona.StorageBenchmarks;
-
-internal enum DatasetSize
-{
-    Small,
-    Medium,
-    Large
-}
+namespace Nona.Benchmarks;
 
 internal enum WorkloadKind
 {
@@ -53,6 +46,7 @@ internal sealed record BenchmarkRunSummary(
     BenchmarkOptions Options,
     IReadOnlyList<BenchmarkScenario> Scenarios,
     IReadOnlyDictionary<string, int> DatasetRows,
+    IReadOnlyDictionary<string, int> DatasetValueBytes,
     IReadOnlyList<BenchmarkResult> Results,
     IReadOnlyList<LatencySample> LatencySamples,
     IReadOnlyList<ErrorSample> ErrorSamples);
@@ -96,3 +90,4 @@ internal sealed record ScenarioExecutionResult(
     BenchmarkResult Result,
     IReadOnlyList<LatencySample> LatencySamples,
     IReadOnlyList<ErrorSample> ErrorSamples);
+

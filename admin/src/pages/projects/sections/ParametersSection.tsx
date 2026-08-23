@@ -1,8 +1,7 @@
 import { writeClipboard } from "@solid-primitives/clipboard";
-import { createTimer } from "@solid-primitives/timer";
-import { useBeforeLeave, useNavigate, useParams, useSearchParams } from "@solidjs/router";
+import { useBeforeLeave, useLocation, useNavigate, useParams, useSearchParams } from "@solidjs/router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/solid-query";
-import { Show, createEffect, createMemo, createSignal, onCleanup } from "solid-js";
+import { Show, createEffect, createMemo, createSignal, on, onCleanup } from "solid-js";
 
 import { configEntryService } from "../../../entities/project/api/config-entry.service";
 import { configReleaseService } from "../../../entities/project/api/config-release.service";
@@ -11,6 +10,10 @@ import { projectKeys } from "../../../entities/project/queries/keys";
 import type { ParsedImport } from "../../../features/project-bulk-import/ProjectBulkImport";
 import { ProjectBulkImport } from "../../../features/project-bulk-import/ProjectBulkImport";
 import { ParameterShareDialog } from "../../../features/project-param-share/ParameterShareDialog";
+import {
+  ProjectParamPanel,
+  type ParameterPanelSaveData
+} from "../../../features/project-param-edit/ProjectParamPanel";
 import { ProjectParamsTab } from "../../../features/project-params/ProjectParamsTab";
 import { ReleaseAmendPanel } from "../../../features/project-releases/ReleaseAmendPanel";
 import { useEscapeKey } from "../../../shared/hooks/useEscapeKey";
@@ -19,6 +22,7 @@ import {
   useUnsavedChangesBlocker
 } from "../../../shared/hooks/useUnsavedChanges";
 import { MSG } from "../../../shared/lib/messages";
+import { getProjectPageSection } from "../../../shared/lib/project-navigation";
 import { ConfirmDialog } from "../../../shared/ui/confirm-dialog";
 import { useToast } from "../../../shared/ui/toast";
 import type {
@@ -39,6 +43,7 @@ const errorMessage = (caught: unknown, fallback: string) =>
 
 export default function ParametersSection() {
   const params = useParams<{ slug: string }>();
+  const location = useLocation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
@@ -52,7 +57,6 @@ export default function ParametersSection() {
     typeof searchParams.amend === "string" ? searchParams.amend : undefined;
 
   const [paramSearch, setParamSearch] = createSignal("");
-  const [copiedKey, setCopiedKey] = createSignal<string | null>(null);
   const [showConfigForm, setShowConfigForm] = createSignal(false);
   const [autoOpenedConfigFormsByEnvironment, setAutoOpenedConfigFormsByEnvironment] = createSignal<
     Record<string, boolean>
@@ -65,21 +69,31 @@ export default function ParametersSection() {
   const [generatedShareUrl, setGeneratedShareUrl] = createSignal<string | null>(null);
   const [revokingShareLinkId, setRevokingShareLinkId] = createSignal<number | null>(null);
   const [editDescription, setEditDescription] = createSignal("");
+  const [updatingValueKey, setUpdatingValueKey] = createSignal<string | null>(null);
   const [showBulkImport, setShowBulkImport] = createSignal(false);
   const [pendingReleaseExit, setPendingReleaseExit] = createSignal<(() => void) | null>(null);
   const [createDraftDirty, setCreateDraftDirty] = createSignal(false);
   const [editDraftDirty, setEditDraftDirty] = createSignal(false);
+  let panelOpener: HTMLElement | undefined;
   const { requestAction, isPromptOpen } = useUnsavedChanges();
+
+  const returnPanelFocus = () => {
+    const opener = panelOpener;
+    panelOpener = undefined;
+    requestAnimationFrame(() => opener?.focus({ preventScroll: true }));
+  };
 
   const closeCreateDraft = () => {
     setCreateDraftDirty(false);
     setShowConfigForm(false);
+    returnPanelFocus();
   };
 
   const closeEditDraft = () => {
     setEditDraftDirty(false);
     setEditingEntry(null);
     setEditHistoryQueryKey("");
+    returnPanelFocus();
   };
 
   useUnsavedChangesBlocker({
@@ -108,8 +122,7 @@ export default function ParametersSection() {
   const configQuery = useQuery(() => ({
     queryKey: projectKeys.configEntries(params.slug, activeEnvName()),
     queryFn: () => configEntryService.getAll(projectId(), activeEnvName()),
-    enabled:
-      !!project() && !!activeEnvName() && !isViewingReleaseSnapshot() && !isAmendMode()
+    enabled: !!project() && !!activeEnvName()
   }));
 
   const releaseDetailsQuery = useQuery(() => ({
@@ -142,8 +155,7 @@ export default function ParametersSection() {
     enabled:
       !!project() &&
       !!activeEnvName() &&
-      !!editHistoryQueryKey() &&
-      !isViewingReleaseSnapshot(),
+      !!editHistoryQueryKey(),
     staleTime: 60_000
   }));
 
@@ -193,12 +205,6 @@ export default function ParametersSection() {
     onCleanup(() => window.removeEventListener("beforeunload", handleBeforeUnload));
   });
 
-  createTimer(
-    () => setCopiedKey(null),
-    () => (copiedKey() ? 1500 : false),
-    setTimeout
-  );
-
   const normalizeContentType = (contentType: string): ConfigEntry["contentType"] =>
     contentType === "number" ||
     contentType === "boolean" ||
@@ -224,7 +230,9 @@ export default function ParametersSection() {
         scope: normalizeScope(entry.scope),
         activeVersion: 1,
         createdAt: release?.createdAt ?? "",
-        updatedAt: release?.createdAt ?? ""
+        updatedAt: release?.createdAt ?? "",
+        description: entry.description,
+        unit: entry.unit
       }));
     }
 
@@ -243,10 +251,12 @@ export default function ParametersSection() {
       (entry: ConfigEntry) =>
         entry.key.toLowerCase().includes(q) ||
         entry.value.toLowerCase().includes(q) ||
-        localParamMetadataService
+        (entry.description ?? localParamMetadataService
           .getMeta(projectId(), activeEnvName(), entry.key)
-          .displayName.toLowerCase()
-          .includes(q)
+          .description)
+          .toLowerCase()
+          .includes(q) ||
+        (entry.unit ?? "").toLowerCase().includes(q)
     );
   });
 
@@ -281,32 +291,19 @@ export default function ParametersSection() {
     }
   });
 
-  createEffect(() => {
-    const currentProjectSlug = project()?.urlSlug ?? "";
-    const currentEnvironmentName = activeEnvName();
-
-    if (!currentProjectSlug && !currentEnvironmentName) {
-      return;
-    }
-
-    setEditingEntry(null);
-    setEditHistoryQueryKey("");
-    setSharingEntry(null);
-    setShareLinksQueryKey("");
-    setGeneratedShareUrl(null);
-    setConfirmDeleteEntry(null);
-    setEditDescription("");
-  });
-
-  const copyValue = async (key: string, value: string) => {
-    try {
-      await writeClipboard(value);
-      setCopiedKey(key);
-      addToast(MSG.COPIED, "success");
-    } catch {
-      addToast(MSG.COPY_FAILED, "error");
-    }
-  };
+  createEffect(on(
+    () => `${project()?.urlSlug ?? ""}:${activeEnvName()}`,
+    () => {
+      setEditingEntry(null);
+      setEditHistoryQueryKey("");
+      setSharingEntry(null);
+      setShareLinksQueryKey("");
+      setGeneratedShareUrl(null);
+      setConfirmDeleteEntry(null);
+      setEditDescription("");
+    },
+    { defer: true }
+  ));
 
   const copyShareUrl = async (value: string) => {
     try {
@@ -336,14 +333,28 @@ export default function ParametersSection() {
     );
   });
 
+  const configEntriesQueryKey = () =>
+    projectKeys.configEntries(params.slug, activeEnvName());
+
+  const patchConfigEntry = (entry: ConfigEntry) => {
+    queryClient.setQueryData<ConfigEntry[]>(configEntriesQueryKey(), current => {
+      const entries = current ?? [];
+      const index = entries.findIndex(candidate => candidate.key === entry.key);
+      if (index === -1) return [...entries, entry];
+      return entries.map(candidate => candidate.key === entry.key ? entry : candidate);
+    });
+  };
+
   const createConfigMutation = useMutation(() => ({
     mutationFn: (req: CreateConfigEntryRequest) =>
       configEntryService.upsert(req.projectId, activeEnvName(), req.key, req),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: projectKeys.configEntries(params.slug, activeEnvName())
-      });
+    onSuccess: entry => {
+      patchConfigEntry(entry);
+      void queryClient.invalidateQueries({ queryKey: configEntriesQueryKey() });
       setShowConfigForm(false);
+      setCreateDraftDirty(false);
+      setEditingEntry(entry);
+      setEditDescription(entry.description ?? "");
       addToast(MSG.PARAM_CREATED, "success");
     },
     onError: error => addToast(errorMessage(error, MSG.PARAM_CREATE_FAILED), "error")
@@ -351,46 +362,51 @@ export default function ParametersSection() {
 
   const deleteConfigMutation = useMutation(() => ({
     mutationFn: (id: string) => configEntryService.delete(projectId(), activeEnvName(), id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: projectKeys.configEntries(params.slug, activeEnvName())
-      });
+    onSuccess: (_, key) => {
+      queryClient.setQueryData<ConfigEntry[]>(
+        configEntriesQueryKey(),
+        current => (current ?? []).filter(entry => entry.key !== key)
+      );
+      void queryClient.invalidateQueries({ queryKey: configEntriesQueryKey() });
       addToast(MSG.PARAM_DELETED, "success");
     },
     onError: () => addToast(MSG.PARAM_DELETE_FAILED, "error")
   }));
 
-  const handleOpenEditDrawer = (entry: ConfigEntry) => {
+  const handleOpenEditDrawer = (entry: ConfigEntry, opener?: HTMLElement) => {
     const isCurrentEntry = editingEntry()?.key === entry.key;
     const currentProjectId = projectId();
     const currentEnvironmentName = activeEnvName();
 
+    if (isCurrentEntry && !showConfigForm()) return;
+
     requestAction(() => {
-      if (isCurrentEntry) {
-        closeEditDraft();
-        return;
-      }
+      panelOpener = opener;
+      setShowConfigForm(false);
+      setCreateDraftDirty(false);
 
       setEditDraftDirty(false);
       setEditingEntry(entry);
       setEditHistoryQueryKey("");
-      const meta = localParamMetadataService.getMeta(
+      const localDescription = localParamMetadataService.getMeta(
         currentProjectId,
         currentEnvironmentName,
         entry.key
-      );
-      setEditDescription(meta.description);
+      ).description;
+      setEditDescription(entry.description ?? localDescription);
 
-      if (isViewingReleaseSnapshot()) {
-        return;
-      }
+    }, [CREATE_PARAMETER_DRAFT, EDIT_PARAMETER_DRAFT]);
+  };
 
-      requestAnimationFrame(() => {
-        if (editingEntry()?.key === entry.key) {
-          setEditHistoryQueryKey(entry.key);
-        }
-      });
-    }, [EDIT_PARAMETER_DRAFT]);
+  const handleOpenCreatePanel = (opener: HTMLElement) => {
+    requestAction(() => {
+      panelOpener = opener;
+      setEditingEntry(null);
+      setEditHistoryQueryKey("");
+      setEditDraftDirty(false);
+      setShowBulkImport(false);
+      setShowConfigForm(true);
+    }, [CREATE_PARAMETER_DRAFT, EDIT_PARAMETER_DRAFT]);
   };
 
   const handleOpenShareDialog = (entry: ConfigEntry) => {
@@ -411,34 +427,25 @@ export default function ParametersSection() {
       value: string;
       contentType: ConfigEntry["contentType"];
       scope: ConfigEntry["scope"];
-      description?: string;
+      description?: string | null;
+      unit?: string | null;
     }) =>
       configEntryService.upsert(projectId(), activeEnvName(), req.key, {
         value: req.value,
         contentType: req.contentType,
-        scope: req.scope
+        scope: req.scope,
+        ...(req.description !== undefined ? { description: req.description } : {}),
+        ...(req.unit !== undefined ? { unit: req.unit } : {})
       }),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: projectKeys.configEntries(params.slug, activeEnvName())
-      });
-
-      const desc =
-        variables.description !== undefined
-          ? variables.description.trim()
-          : editDescription().trim();
-
-      if (editingEntry()) {
-        localParamMetadataService.setMeta(projectId(), activeEnvName(), editingEntry()!.key, {
-          description: desc
-        });
-      }
-
-      queryClient.invalidateQueries({
+    onSuccess: (entry, variables) => {
+      patchConfigEntry(entry);
+      setEditingEntry(current => current?.key === entry.key ? entry : current);
+      setEditDescription(entry.description ?? "");
+      setEditDraftDirty(false);
+      void queryClient.invalidateQueries({ queryKey: configEntriesQueryKey() });
+      void queryClient.invalidateQueries({
         queryKey: projectKeys.configEntryHistory(params.slug, activeEnvName(), variables.key)
       });
-
-      setEditingEntry(null);
       addToast(MSG.PARAM_UPDATED, "success");
     },
     onError: error => addToast(errorMessage(error, MSG.PARAM_UPDATE_FAILED), "error")
@@ -448,19 +455,15 @@ export default function ParametersSection() {
     for (const item of selectedItems) {
       const desc = `Imported parameter: ${item.key}`;
 
-      localParamMetadataService.setMeta(projectId(), activeEnvName(), item.key, {
-        description: desc
-      });
       await configEntryService.upsert(projectId(), activeEnvName(), item.key, {
         value: item.value,
         contentType: item.contentType,
-        scope: item.scope
+        scope: item.scope,
+        description: desc
       });
     }
 
-    queryClient.invalidateQueries({
-      queryKey: projectKeys.configEntries(params.slug, activeEnvName())
-    });
+    void queryClient.invalidateQueries({ queryKey: configEntriesQueryKey() });
     setShowBulkImport(false);
     addToast(MSG.bulkImportSuccess(selectedItems.length), "success");
   };
@@ -471,26 +474,23 @@ export default function ParametersSection() {
         version: req.version
       }),
     onSuccess: (entry, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: projectKeys.configEntries(params.slug, activeEnvName())
-      });
-      queryClient.invalidateQueries({
+      patchConfigEntry(entry);
+      void queryClient.invalidateQueries({ queryKey: configEntriesQueryKey() });
+      void queryClient.invalidateQueries({
         queryKey: projectKeys.configEntryHistory(params.slug, activeEnvName(), variables.key)
       });
       setEditingEntry(entry);
+      setEditDescription(entry.description ?? "");
+      setEditDraftDirty(false);
       addToast(MSG.PARAM_ROLLED_BACK, "success");
     },
     onError: error => addToast(errorMessage(error, MSG.PARAM_ROLLBACK_FAILED), "error")
   }));
 
-  const handleRollbackVersion = (version: ConfigEntryVersion) => {
+  const restoreVersion = async (version: ConfigEntryVersion) => {
     const entry = editingEntry();
-    if (entry) {
-      rollbackConfigMutation.mutate({
-        key: entry.key,
-        version: version.version
-      });
-    }
+    if (!entry) return;
+    return rollbackConfigMutation.mutateAsync({ key: entry.key, version: version.version });
   };
 
   const createShareLinkMutation = useMutation(() => ({
@@ -545,10 +545,41 @@ export default function ParametersSection() {
     onSettled: () => setRevokingShareLinkId(null)
   }));
 
+  const handlePanelSave = async (data: ParameterPanelSaveData) => {
+    if (!canManageProject()) throw new Error("You do not have permission to manage parameters.");
+
+    if (showConfigForm()) {
+      return createConfigMutation.mutateAsync({
+        projectId: projectId(),
+        key: data.key,
+        value: data.value,
+        contentType: data.contentType,
+        scope: data.scope,
+        description: data.description,
+        unit: data.unit
+      });
+    }
+
+    const selected = editingEntry();
+    if (!selected) throw new Error("No parameter selected.");
+    return updateConfigMutation.mutateAsync({
+      key: selected.key,
+      value: data.value,
+      contentType: data.contentType,
+      scope: data.scope,
+      description: data.description,
+      unit: selected.contentType === "number"
+        && data.contentType === "number"
+        && data.unit === null
+        ? ""
+        : data.unit
+    });
+  };
+
   return (
     <>
       <ProjectSectionLayout
-        section="parameters"
+        section={getProjectPageSection(location.pathname, location.search) ?? "parameters"}
         project={project()}
         projectLoading={projectsQuery.isLoading}
       >
@@ -557,7 +588,7 @@ export default function ParametersSection() {
             data-testid="release-view-banner"
             class="border-secondary/25 bg-secondary/5 animate-fade-in flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between"
           >
-            <div class="flex items-center gap-2 text-[13px]">
+            <div class="flex items-center gap-2 text-[14px]">
               <span class="material-symbols-outlined text-secondary text-[18px]">visibility</span>
               <span class="text-on-surface-variant">
                 Viewing release{" "}
@@ -570,7 +601,7 @@ export default function ParametersSection() {
                 data-testid="release-view-back-to-releases-button"
                 type="button"
                 onClick={() => navigate(`/projects/${params.slug}/releases`)}
-                class="bg-surface-container-high text-on-surface hover:bg-surface-bright inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border-0 px-4 text-[12px] font-semibold"
+                class="bg-surface-container-high text-on-surface hover:bg-surface-bright inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border-0 px-4 text-[13px] font-semibold"
               >
                 <span class="material-symbols-outlined text-[16px]">arrow_back</span>
                 Back to releases
@@ -579,7 +610,7 @@ export default function ParametersSection() {
                 data-testid="release-view-back-button"
                 type="button"
                 onClick={() => navigate(`/projects/${params.slug}`)}
-                class="border-outline-variant/30 bg-surface-container-low text-on-surface-variant hover:bg-surface-container inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border px-4 text-[12px] font-semibold"
+                class="border-outline-variant/30 bg-surface-container-low text-on-surface-variant hover:bg-surface-container inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border px-4 text-[13px] font-semibold"
               >
                 <span class="material-symbols-outlined text-[16px]">tune</span>
                 Live parameters
@@ -595,6 +626,7 @@ export default function ParametersSection() {
             sourceVersion={amendSourceVersion()!}
             targetVersion={releaseDraftVersion() ?? ""}
             sourceEntries={amendSourceQuery.data?.entries ?? []}
+            liveEntries={configQuery.data ?? []}
             isLoading={amendSourceQuery.isLoading}
             isPublishing={publishReleaseMutation.isPending}
             onPublish={(environmentName, entries) =>
@@ -608,6 +640,7 @@ export default function ParametersSection() {
               })
             }
             onCancel={() => navigate(`/projects/${params.slug}/releases`)}
+            onShareEntry={handleOpenShareDialog}
           />
         </Show>
 
@@ -616,7 +649,7 @@ export default function ParametersSection() {
             data-testid="release-draft-banner"
             class="border-primary/25 bg-primary/5 animate-fade-in flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between"
           >
-            <div class="flex items-center gap-2 text-[13px]">
+            <div class="flex items-center gap-2 text-[14px]">
               <span class="material-symbols-outlined text-primary text-[18px]">
                 deployed_code_history
               </span>
@@ -640,7 +673,7 @@ export default function ParametersSection() {
                     }
                   })
                 }
-                class="bg-primary text-on-primary inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border-0 px-4 text-[12px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] disabled:opacity-50"
+                class="bg-primary text-on-primary inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border-0 px-4 text-[13px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] disabled:opacity-50"
               >
                 <span class="material-symbols-outlined text-[16px]">check</span>
                 {publishReleaseMutation.isPending ? "Creating..." : "Create release"}
@@ -650,7 +683,7 @@ export default function ParametersSection() {
                 type="button"
                 disabled={publishReleaseMutation.isPending}
                 onClick={() => navigate(`/projects/${params.slug}/releases`)}
-                class="border-outline-variant/30 bg-surface-container-low text-on-surface-variant hover:bg-surface-container inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border px-4 text-[12px] font-semibold transition-all disabled:opacity-50"
+                class="border-outline-variant/30 bg-surface-container-low text-on-surface-variant hover:bg-surface-container inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border px-4 text-[13px] font-semibold transition-all disabled:opacity-50"
               >
                 <span class="material-symbols-outlined text-[16px]">close</span>
                 Cancel
@@ -674,20 +707,7 @@ export default function ParametersSection() {
                 closeCreateDraft();
               }, [CREATE_PARAMETER_DRAFT]);
             }}
-            onToggleConfigForm={() => {
-              const nextShowConfigForm = !showConfigForm();
-              const toggleForm = () => {
-                setShowConfigForm(nextShowConfigForm);
-                setShowBulkImport(false);
-              };
-
-              if (showConfigForm()) {
-                requestAction(toggleForm, [CREATE_PARAMETER_DRAFT]);
-              } else {
-                toggleForm();
-              }
-            }}
-            showConfigForm={showConfigForm()}
+            onAddParameter={handleOpenCreatePanel}
             bulkImportPanel={
               !isViewingReleaseSnapshot() && canManageProject() && showBulkImport() ? (
                 <ProjectBulkImport
@@ -702,64 +722,84 @@ export default function ParametersSection() {
             canManage={canManageProject() && !isViewingReleaseSnapshot()}
             isReadOnly={isViewingReleaseSnapshot()}
             viewingReleaseVersion={viewedReleaseVersion()}
-            createForm={{
-              onCancel: () => requestAction(closeCreateDraft, [CREATE_PARAMETER_DRAFT]),
-              onSubmit: data => {
-                if (!canManageProject()) return;
-                localParamMetadataService.setMeta(projectId(), activeEnvName(), data.key, {
-                  description: data.description
-                });
-                createConfigMutation.mutate({
-                  projectId: projectId(),
-                  key: data.key,
-                  value: data.value,
-                  contentType: data.contentType,
-                  scope: data.scope
-                });
-              },
-              isPending: createConfigMutation.isPending,
-              onDirtyChange: setCreateDraftDirty
-            }}
             table={{
               isLoading: parametersLoading(),
               projectId: projectId(),
               activeEnvName: activeEnvName(),
               filteredConfig: filteredConfig(),
-              editingEntry: editingEntry(),
               onSelectEntry: handleOpenEditDrawer,
-              onShareEntry: handleOpenShareDialog,
               onDeleteEntry: setConfirmDeleteEntry,
+              onUpdateValue: async (entry, value) => {
+                setUpdatingValueKey(entry.key);
+                try {
+                  await updateConfigMutation.mutateAsync({
+                    key: entry.key,
+                    value,
+                    contentType: entry.contentType,
+                    scope: entry.scope
+                  });
+                } finally {
+                  setUpdatingValueKey(null);
+                }
+              },
+              updatingKey: updatingValueKey(),
               canManage: canManageProject() && !isViewingReleaseSnapshot(),
-              copiedKey: copiedKey(),
-              onCopyValue: copyValue,
-              getParamMeta: (proj, env, key) =>
-                localParamMetadataService.getMeta(proj, env, key),
-              initialDescription: editDescription(),
-              onCloseEntry: () => {
-                requestAction(closeEditDraft, [EDIT_PARAMETER_DRAFT]);
-              },
-              onEditDirtyChange: setEditDraftDirty,
-              onSaveSettings: data => {
-                if (!canManageProject()) return;
-                setEditDescription(data.description);
-                updateConfigMutation.mutate({
-                  key: editingEntry()!.key,
-                  value: data.value,
-                  contentType: data.contentType,
-                  scope: data.scope,
-                  description: data.description
-                });
-              },
-              isSaving: updateConfigMutation.isPending,
-              historyVersions:
-                configHistoryQuery.status === "success" ? (configHistoryQuery.data ?? []) : [],
-              isHistoryLoading: configHistoryQuery.isLoading,
-              isRollingBack: rollbackConfigMutation.isPending,
-              onRollbackVersion: handleRollbackVersion,
               search: paramSearch(),
-              isReadOnly: isViewingReleaseSnapshot(),
-              releaseVersion: viewedReleaseVersion()
+              isReadOnly: isViewingReleaseSnapshot()
             }}
+          />
+        </Show>
+
+        <Show when={!isAmendMode()}>
+          <ProjectParamPanel
+            open={showConfigForm() || !!editingEntry()}
+            mode={
+              showConfigForm()
+                ? "create"
+                : isViewingReleaseSnapshot()
+                  ? "snapshot"
+                  : "live"
+            }
+            entry={editingEntry()}
+            projectId={projectId()}
+            environmentName={activeEnvName()}
+            releaseVersion={viewedReleaseVersion()}
+            existingEntries={parameterEntries()}
+            canManage={canManageProject() && !isViewingReleaseSnapshot()}
+            initialDescription={editDescription()}
+            isSaving={createConfigMutation.isPending || updateConfigMutation.isPending}
+            historyVersions={
+              configHistoryQuery.status === "success" ? (configHistoryQuery.data ?? []) : []
+            }
+            isHistoryLoading={configHistoryQuery.isLoading}
+            isHistoryActionPending={rollbackConfigMutation.isPending}
+            shareEnabled={
+              !!editingEntry()
+              && canManageProject()
+              && !showConfigForm()
+              && (!isViewingReleaseSnapshot()
+                || (configQuery.data ?? []).some(entry => entry.key === editingEntry()?.key))
+            }
+            shareDisabledReason={
+              !canManageProject()
+                ? "You do not have permission to create share links."
+                : "This draft or release-only parameter does not exist in the live environment."
+            }
+            onRequestClose={() => {
+              const blocker = showConfigForm() ? CREATE_PARAMETER_DRAFT : EDIT_PARAMETER_DRAFT;
+              requestAction(
+                showConfigForm() ? closeCreateDraft : closeEditDraft,
+                [blocker]
+              );
+            }}
+            onDirtyChange={dirty => {
+              if (showConfigForm()) setCreateDraftDirty(dirty);
+              else setEditDraftDirty(dirty);
+            }}
+            onSave={handlePanelSave}
+            onHistoryOpen={key => setEditHistoryQueryKey(key)}
+            onHistoryAction={restoreVersion}
+            onShare={handleOpenShareDialog}
           />
         </Show>
 

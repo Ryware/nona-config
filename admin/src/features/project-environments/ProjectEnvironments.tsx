@@ -14,11 +14,23 @@ interface ProjectEnvironmentsProps {
   setShowEnvForm: (v: boolean) => void;
   createEnvPending: boolean;
   canManage: boolean;
+  createEnvError?: string;
+  onDismissCreateEnvError?: () => void;
 }
+
+const ENV_NAME_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9-]*$/;
+const ENV_NAME_ERROR_ID = "env-name-error";
 
 export function ProjectEnvironments(props: ProjectEnvironmentsProps) {
   const [envName, setEnvName] = createSignal("");
   const [createError, setCreateError] = createSignal("");
+
+  const errorText = () => createError() || props.createEnvError || "";
+
+  const clearErrors = () => {
+    if (createError()) setCreateError("");
+    if (props.createEnvError) props.onDismissCreateEnvError?.();
+  };
 
   const handleSubmit = (e: Event) => {
     e.preventDefault();
@@ -27,11 +39,17 @@ export function ProjectEnvironments(props: ProjectEnvironmentsProps) {
       setCreateError("Environment name is required.");
       return;
     }
+    if (!ENV_NAME_PATTERN.test(trimmed)) {
+      setCreateError(
+        "Use letters, numbers and hyphens only, starting with a letter or number."
+      );
+      return;
+    }
     if (props.environments.some(env => env.name === trimmed)) {
       setCreateError("Environment name already exists.");
       return;
     }
-    setCreateError("");
+    clearErrors();
     props.onCreateEnv(trimmed);
     setEnvName("");
   };
@@ -44,11 +62,11 @@ export function ProjectEnvironments(props: ProjectEnvironmentsProps) {
     >
       <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
-          <p class="text-outline font-headline flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase">
+          <p class="text-outline font-headline flex items-center gap-1.5 text-[11px] font-bold tracking-widest uppercase">
             <MIcon name="dns" class="text-[15px]" />
             Environments
           </p>
-          <p class="text-on-surface-variant mt-1 text-xs">
+          <p class="text-on-surface-variant mt-1 text-[13px]">
             Choose the active environment for this project and manage the available environments.
           </p>
         </div>
@@ -60,7 +78,7 @@ export function ProjectEnvironments(props: ProjectEnvironmentsProps) {
             onClick={() => props.setShowEnvForm(!props.showEnvForm)}
             aria-label="Add Environment"
             title="Add Environment"
-            class="bg-primary text-on-primary inline-flex h-10 w-10 cursor-pointer items-center justify-center gap-1.5 self-end rounded-lg border-0 px-0 text-[13px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] md:h-10 md:w-auto md:px-4 md:self-auto"
+            class="bg-primary text-on-primary inline-flex h-10 w-10 cursor-pointer items-center justify-center gap-1.5 self-end rounded-lg border-0 px-0 text-[14px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] md:h-10 md:w-auto md:px-4 md:self-auto"
           >
             <MIcon name="add" class="text-[17px]" />
             <span class="hidden md:inline">Add Environment</span>
@@ -71,9 +89,10 @@ export function ProjectEnvironments(props: ProjectEnvironmentsProps) {
       <Show when={props.canManage && props.showEnvForm}>
         <form
           onSubmit={handleSubmit}
+          noValidate
           class="bg-surface-container-low border-outline-variant/15 animate-fade-in rounded-2xl border p-6 shadow-sm"
         >
-          <h3 class="font-headline text-on-surface mb-6 text-xs font-bold tracking-wider uppercase">
+          <h3 class="font-headline text-on-surface mb-6 text-[13px] font-bold tracking-wider uppercase">
             New Environment
           </h3>
           <div class="group">
@@ -85,14 +104,23 @@ export function ProjectEnvironments(props: ProjectEnvironmentsProps) {
               value={envName()}
               onInput={(e: InputEvent & { currentTarget: HTMLInputElement }) => {
                 setEnvName(e.currentTarget.value);
-                if (createError()) setCreateError("");
+                clearErrors();
               }}
               required
               leftIcon="dns"
               testId="environment-name-input"
+              aria-invalid={!!errorText()}
+              aria-describedby={errorText() ? ENV_NAME_ERROR_ID : undefined}
             />
-            <Show when={createError()}>
-              <p class="text-error mt-2 text-[11px] font-bold">{createError()}</p>
+            <Show when={errorText()}>
+              <p
+                id={ENV_NAME_ERROR_ID}
+                role="alert"
+                data-testid="environment-create-error"
+                class="text-error mt-2 text-[12px] font-bold"
+              >
+                {errorText()}
+              </p>
             </Show>
           </div>
           <div class="mt-6 flex justify-end gap-3">
@@ -120,7 +148,7 @@ export function ProjectEnvironments(props: ProjectEnvironmentsProps) {
       <Show
         when={props.environments.length > 0}
         fallback={
-          <div class="bg-surface-container rounded-xl px-4 py-5 text-center text-xs text-on-surface-variant">
+          <div class="bg-surface-container rounded-xl px-4 py-5 text-center text-[13px] text-on-surface-variant">
             No environments yet.
           </div>
         }
@@ -141,16 +169,16 @@ export function ProjectEnvironments(props: ProjectEnvironmentsProps) {
                 >
                   <div class="min-w-0">
                     <div class="flex flex-wrap items-center gap-2">
-                      <span class="text-on-surface truncate font-mono text-[13px] font-bold">
+                      <span class="text-on-surface truncate font-mono text-[14px] font-bold">
                         {env.name}
                       </span>
                       <Show when={props.activeEnvName === env.name}>
-                        <span class="bg-primary/10 text-primary rounded-md px-2 py-0.5 text-[11px] font-bold">
+                        <span class="bg-primary/10 text-primary rounded-md px-2 py-0.5 text-[12px] font-bold">
                           Active
                         </span>
                       </Show>
                     </div>
-                    <p class="text-on-surface-variant mt-1 text-[12px]">
+                    <p class="text-on-surface-variant mt-1 text-[13px]">
                       Active release: {env.activeReleaseVersion ?? "none"}
                     </p>
                   </div>
@@ -163,7 +191,7 @@ export function ProjectEnvironments(props: ProjectEnvironmentsProps) {
                       onClick={() => props.setActiveEnvName(env.name)}
                       aria-label={`Set ${env.name} as active`}
                       title={`Set ${env.name} as active`}
-                      class="bg-surface-container-high text-on-surface hover:bg-surface-bright inline-flex h-9 w-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-0 px-0 text-[12px] font-semibold md:w-auto md:px-3"
+                      class="bg-surface-container-high text-on-surface hover:bg-surface-bright inline-flex h-9 w-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-0 px-0 text-[13px] font-semibold md:w-auto md:px-3"
                     >
                       <MIcon name="check_circle" class="text-[15px]" />
                       <span class="hidden md:inline">Set Active</span>
@@ -175,7 +203,7 @@ export function ProjectEnvironments(props: ProjectEnvironmentsProps) {
                       type="button"
                       onClick={() => props.onDeleteEnv(env.name)}
                       aria-label={`Delete environment ${env.name}`}
-                      class="bg-error-container/10 text-error hover:bg-error-container/20 inline-flex h-9 w-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-0 px-0 text-[12px] font-semibold md:w-auto md:px-3"
+                      class="bg-error-container/10 text-error hover:bg-error-container/20 inline-flex h-9 w-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-0 px-0 text-[13px] font-semibold md:w-auto md:px-3"
                       title={`Delete environment ${env.name}`}
                     >
                       <MIcon name="delete" class="text-[15px]" />

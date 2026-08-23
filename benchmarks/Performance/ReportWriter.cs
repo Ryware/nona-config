@@ -3,7 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Nona.StorageBenchmarks;
+namespace Nona.Benchmarks;
 
 internal static class ReportWriter
 {
@@ -166,6 +166,7 @@ internal static class ReportWriter
         sb.AppendLine($"- Measurement: {summary.Options.MeasurementDuration.TotalSeconds:F1}s");
         sb.AppendLine($"- Operation timeout: {summary.Options.OperationTimeout.TotalSeconds:F1}s");
         sb.AppendLine($"- Dataset rows: small={summary.DatasetRows["Small"]:N0}, medium={summary.DatasetRows["Medium"]:N0}, large={summary.DatasetRows["Large"]:N0}");
+        sb.AppendLine($"- Value sizes: small={summary.DatasetValueBytes["Small"]:N0} B, medium={summary.DatasetValueBytes["Medium"]:N0} B, large={summary.DatasetValueBytes["Large"]:N0} B");
         sb.AppendLine();
         sb.AppendLine("## Main Findings");
         sb.AppendLine();
@@ -364,3 +365,4 @@ internal static class ReportWriter
             : "n/a";
     }
 }
+

@@ -1,5 +1,5 @@
-import { createEffect, createSignal, For, Show } from "solid-js";
-import { Portal } from "solid-js/web";
+import { Dialog } from "@kobalte/core/dialog";
+import { createEffect, createSignal, For, on, Show } from "solid-js";
 import { Button } from "../../shared/ui/button";
 import { Input } from "../../shared/ui/input";
 import { MIcon } from "../../shared/ui/icons";
@@ -54,6 +54,7 @@ function linkStatus(link: ParameterShareLink): "active" | "expired" | "revoked" 
 export function ParameterShareDialog(props: ParameterShareDialogProps) {
   const [expiration, setExpiration] = createSignal<ExpirationOption>("1h");
   const [permission, setPermission] = createSignal<"edit" | "view">("edit");
+  let opener: HTMLElement | null = null;
 
   createEffect(() => {
     if (props.entry) {
@@ -61,6 +62,19 @@ export function ParameterShareDialog(props: ParameterShareDialogProps) {
       setPermission("edit");
     }
   });
+
+  createEffect(on(
+    () => !!props.entry,
+    open => {
+      if (open) {
+        opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      } else if (opener) {
+        const target = opener;
+        opener = null;
+        requestAnimationFrame(() => target.focus({ preventScroll: true }));
+      }
+    }
+  ));
 
   const handleCreate = () => {
     props.onCreate({
@@ -72,23 +86,28 @@ export function ParameterShareDialog(props: ParameterShareDialogProps) {
   return (
     <Show when={props.entry}>
       {entry => (
-        <Portal>
-          <div
-            onClick={() => props.onClose()}
-            class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
-          />
-          <div
+    <Dialog
+      open
+      modal
+      onOpenChange={open => {
+        if (!open) props.onClose();
+      }}
+    >
+      <Dialog.Portal>
+        <Dialog.Overlay class="fixed inset-0 z-90 bg-black/60 backdrop-blur-sm" />
+          <Dialog.Content
             data-testid="parameter-share-dialog"
-            class="bg-surface-container-low border-outline-variant/20 fixed top-1/2 left-1/2 z-50 flex max-h-[88vh] w-[min(560px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 flex-col rounded-2xl border p-6 shadow-2xl"
+            onCloseAutoFocus={event => event.preventDefault()}
+            class="bg-surface-container-low border-outline-variant/20 fixed top-1/2 left-1/2 z-100 flex max-h-[88vh] w-[min(560px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 flex-col rounded-2xl border p-6 shadow-2xl outline-none"
           >
             <div class="border-outline-variant/15 mb-5 flex items-start justify-between gap-4 border-b pb-4">
               <div class="min-w-0">
-                <h3 class="font-headline text-on-surface text-base font-bold">
+                <Dialog.Title class="font-headline text-on-surface text-base font-bold">
                   Share Parameter
-                </h3>
-                <p class="text-outline mt-1 truncate font-mono text-[11px]">
+                </Dialog.Title>
+                <Dialog.Description class="text-outline mt-1 truncate font-mono text-[12px]">
                   {entry().environment} / {entry().key}
-                </p>
+                </Dialog.Description>
               </div>
               <button
                 onClick={() => props.onClose()}
@@ -136,7 +155,7 @@ export function ParameterShareDialog(props: ParameterShareDialogProps) {
               <Show when={props.generatedUrl}>
                 {url => (
                   <div class="border-primary/20 bg-primary/5 rounded-xl border p-3">
-                    <label class="text-primary mb-2 block text-[11px] font-semibold tracking-[0.05em] uppercase">
+                    <label class="text-primary mb-2 block text-[12px] font-semibold tracking-[0.05em] uppercase">
                       Generated link
                     </label>
                     <div class="flex gap-2">
@@ -144,7 +163,7 @@ export function ParameterShareDialog(props: ParameterShareDialogProps) {
                         value={url()}
                         readonly
                         data-testid="parameter-share-generated-url"
-                        class="font-mono text-[12px]"
+                        class="font-mono text-[13px]"
                       />
                       <Button
                         type="button"
@@ -162,7 +181,7 @@ export function ParameterShareDialog(props: ParameterShareDialogProps) {
               </Show>
 
               <div>
-                <p class="text-outline mb-3 text-[11px] font-medium tracking-[0.05em] uppercase">
+                <p class="text-outline mb-3 text-[12px] font-medium tracking-[0.05em] uppercase">
                   Existing links
                 </p>
                 <Show
@@ -172,7 +191,7 @@ export function ParameterShareDialog(props: ParameterShareDialogProps) {
                   <Show
                     when={props.shareLinks.length > 0}
                     fallback={
-                      <div class="text-on-surface-variant border-outline-variant/15 rounded-xl border p-4 text-center text-[13px]">
+                      <div class="text-on-surface-variant border-outline-variant/15 rounded-xl border p-4 text-center text-[14px]">
                         No share links have been generated for this parameter.
                       </div>
                     }
@@ -186,7 +205,7 @@ export function ParameterShareDialog(props: ParameterShareDialogProps) {
                               <div class="min-w-0">
                                 <div class="flex flex-wrap items-center gap-2">
                                   <span
-                                    class={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
+                                    class={`rounded-full px-2 py-0.5 text-[11px] font-bold uppercase ${
                                       link.canEdit
                                         ? "bg-secondary/10 text-secondary"
                                         : "bg-primary/10 text-primary"
@@ -195,7 +214,7 @@ export function ParameterShareDialog(props: ParameterShareDialogProps) {
                                     {link.canEdit ? "Edit" : "View"}
                                   </span>
                                   <span
-                                    class={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
+                                    class={`rounded-full px-2 py-0.5 text-[11px] font-bold uppercase ${
                                       status() === "active"
                                         ? "bg-success/10 text-success"
                                         : "bg-error/10 text-error"
@@ -204,10 +223,10 @@ export function ParameterShareDialog(props: ParameterShareDialogProps) {
                                     {status()}
                                   </span>
                                 </div>
-                                <p class="text-on-surface-variant mt-1 text-[12px]">
+                                <p class="text-on-surface-variant mt-1 text-[13px]">
                                   Expires {formatDate(link.expiresAt)}
                                 </p>
-                                <p class="text-outline mt-0.5 text-[11px]">
+                                <p class="text-outline mt-0.5 text-[12px]">
                                   Created by {link.createdBy}
                                 </p>
                               </div>
@@ -245,8 +264,9 @@ export function ParameterShareDialog(props: ParameterShareDialogProps) {
                 </Show>
               </div>
             </div>
-          </div>
-        </Portal>
+          </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog>
       )}
     </Show>
   );

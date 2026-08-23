@@ -225,6 +225,11 @@ public class LibsqlConfigReleaseRepositoryTests
                 Path.Combine(migrationsFolder, "017_AddNormalizedReleaseEntryKeys.sql"));
             await migrations.RunMigrationsAsync();
 
+            File.Copy(
+                Path.Combine(ResolveMigrationsFolder(), "023_AddConfigEntryMetadata.sql"),
+                Path.Combine(migrationsFolder, "023_AddConfigEntryMetadata.sql"));
+            await migrations.RunMigrationsAsync();
+
             var repositoryBeforeInitialization = new LibsqlConfigReleaseRepository(client);
             Exception? exception = null;
             try
@@ -383,15 +388,17 @@ public class LibsqlConfigReleaseRepositoryTests
 
             var environment = await client.ExecuteAsync(
                 "SELECT ActiveReleaseVersion FROM Environments WHERE Project = 'test-project' AND Name = 'production'");
-            var repository = new LibsqlConfigReleaseRepository(client);
-            var release = await repository.GetAsync("test-project", "production", "0.0.0");
+            var release = await client.ExecuteAsync(
+                "SELECT Actor FROM ConfigReleases WHERE Project = 'test-project' AND Environment = 'production' AND Version = '0.0.0'");
+            var entries = await client.ExecuteAsync(
+                "SELECT Key, Value FROM ConfigReleaseEntries WHERE Project = 'test-project' AND Environment = 'production' AND ReleaseVersion = '0.0.0'");
 
             await Assert.That(environment.Rows[0].GetString("ActiveReleaseVersion")).IsEqualTo("0.0.0");
-            await Assert.That(release).IsNotNull();
-            await Assert.That(release!.Actor).IsEqualTo("Migration");
-            await Assert.That(release.Entries).Count().IsEqualTo(1);
-            await Assert.That(release.Entries[0].Key).IsEqualTo("feature.enabled");
-            await Assert.That(release.Entries[0].Value).IsEqualTo("true");
+            await Assert.That(release.Rows).Count().IsEqualTo(1);
+            await Assert.That(release.Rows[0].GetString("Actor")).IsEqualTo("Migration");
+            await Assert.That(entries.Rows).Count().IsEqualTo(1);
+            await Assert.That(entries.Rows[0].GetString("Key")).IsEqualTo("feature.enabled");
+            await Assert.That(entries.Rows[0].GetString("Value")).IsEqualTo("true");
         }
         finally
         {

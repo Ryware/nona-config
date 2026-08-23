@@ -1,10 +1,13 @@
 using System.Diagnostics;
 using System.Globalization;
 
-namespace Nona.StorageBenchmarks;
+namespace Nona.Benchmarks;
 
 internal sealed record ProcessMemorySummary(
     int SampleCount,
+    double? CSharpAverageCpuPercent,
+    double? CSharpPeakCpuPercent,
+    double? CSharpInitialRamMb,
     double? CSharpAverageRamMb,
     double? CSharpPeakRamMb,
     double? SqldAverageRamMb,
@@ -12,7 +15,7 @@ internal sealed record ProcessMemorySummary(
     string? Note)
 {
     public static ProcessMemorySummary Unavailable(string? note = null)
-        => new(0, null, null, null, null, note);
+        => new(0, null, null, null, null, null, null, null, note);
 }
 
 internal static class DockerProcessMemorySampler
@@ -65,6 +68,9 @@ internal static class DockerProcessMemorySampler
 
         return new ProcessMemorySummary(
             samples.Count,
+            null,
+            null,
+            ToMebibytes(csharpValues[0]),
             ToMebibytes(csharpValues.Average()),
             ToMebibytes(csharpValues.Max()),
             ToMebibytes(sqldValues.Average()),
@@ -198,3 +204,4 @@ internal static class DockerProcessMemorySampler
 
     private sealed record ProcessMemorySample(long CSharpRssBytes, long SqldRssBytes);
 }
+

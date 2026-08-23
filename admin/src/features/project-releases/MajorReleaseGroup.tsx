@@ -22,15 +22,15 @@ export function MajorReleaseGroup(props: MajorReleaseGroupProps) {
       <div data-testid={`release-major-group-${local.majorGroup.key}`}>
         <div class="flex select-none items-center gap-1.5 rounded-md px-1.5 py-1.5">
           <MIcon name="chevron_right" class="text-outline text-[16px]" />
-          <span class="text-on-surface font-mono text-[13px] font-bold">
+          <span class="text-on-surface font-mono text-[14px] font-bold">
             {local.majorGroup.label}
           </span>
-          <span class="text-outline text-[11px]">
+          <span class="text-outline text-[12px]">
             {countReleases(local.majorGroup)}{" "}
             {countReleases(local.majorGroup) === 1 ? "release" : "releases"}
           </span>
           <Show when={local.majorGroup.hasActive}>
-            <span class="bg-primary/10 text-primary rounded-md px-2 py-0.5 text-[11px] font-bold">
+            <span class="bg-primary/10 text-primary rounded-md px-2 py-0.5 text-[12px] font-bold">
               Active
             </span>
           </Show>

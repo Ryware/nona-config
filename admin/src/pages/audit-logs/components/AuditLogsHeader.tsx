@@ -15,12 +15,12 @@ export function AuditLogsHeader(props: AuditLogsHeaderProps) {
       <div>
         <h2
           data-testid="audit-logs-heading"
-          class="text-outline font-headline flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase"
+          class="text-outline font-headline flex items-center gap-1.5 text-[11px] font-bold tracking-widest uppercase"
         >
           <MIcon name="history" class="text-[15px]" />
           Audit Logs
         </h2>
-        <p class="text-on-surface-variant mt-1 text-xs">
+        <p class="text-on-surface-variant mt-1 text-[13px]">
           All administrative actions across your organization.
         </p>
       </div>
@@ -42,7 +42,7 @@ export function AuditLogsHeader(props: AuditLogsHeaderProps) {
               disabled={props.isExporting}
               aria-label="Export Logs"
               title="Export Logs"
-              class="bg-primary text-on-primary inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-0 px-0 text-[13px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] md:h-10 md:w-auto md:px-4"
+              class="bg-primary text-on-primary inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-0 px-0 text-[14px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] md:h-10 md:w-auto md:px-4"
             >
               <MIcon
                 name={props.isExporting ? "progress_activity" : "download"}
@@ -54,14 +54,14 @@ export function AuditLogsHeader(props: AuditLogsHeaderProps) {
               <Content class="bg-surface-container-low border-outline-variant/20 animate-fade-in z-50 min-w-40 overflow-hidden rounded-lg border shadow-xl outline-none">
                 <Item
                   onSelect={() => void props.onExport("csv")}
-                  class="text-on-surface hover:bg-surface-container-high data-[highlighted]:bg-surface-container-high data-[highlighted]:ring-primary/40 flex w-full cursor-pointer items-center gap-2.5 border-0 bg-transparent px-4 py-2.5 text-[13px] outline-none transition-colors data-[highlighted]:ring-2 data-[highlighted]:ring-inset"
+                  class="text-on-surface hover:bg-surface-container-high data-[highlighted]:bg-surface-container-high data-[highlighted]:ring-primary/40 flex w-full cursor-pointer items-center gap-2.5 border-0 bg-transparent px-4 py-2.5 text-[14px] outline-none transition-colors data-[highlighted]:ring-2 data-[highlighted]:ring-inset"
                 >
                   <MIcon name="table_view" class="text-outline text-[16px]" />
                   Export CSV
                 </Item>
                 <Item
                   onSelect={() => void props.onExport("json")}
-                  class="text-on-surface hover:bg-surface-container-high data-[highlighted]:bg-surface-container-high data-[highlighted]:ring-primary/40 flex w-full cursor-pointer items-center gap-2.5 border-0 bg-transparent px-4 py-2.5 text-[13px] outline-none transition-colors data-[highlighted]:ring-2 data-[highlighted]:ring-inset"
+                  class="text-on-surface hover:bg-surface-container-high data-[highlighted]:bg-surface-container-high data-[highlighted]:ring-primary/40 flex w-full cursor-pointer items-center gap-2.5 border-0 bg-transparent px-4 py-2.5 text-[14px] outline-none transition-colors data-[highlighted]:ring-2 data-[highlighted]:ring-inset"
                 >
                   <MIcon name="data_object" class="text-outline text-[16px]" />
                   Export JSON

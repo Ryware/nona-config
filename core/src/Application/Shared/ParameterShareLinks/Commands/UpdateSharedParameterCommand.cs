@@ -82,6 +82,8 @@ public class UpdateSharedParameterCommandHandler(
             Key = existingEntry.Key,
             Value = request.Value,
             ContentType = contentType,
+            Description = existingEntry.Description,
+            Unit = existingEntry.Unit,
             Scope = existingEntry.Scope,
             CreatedAt = existingEntry.CreatedAt,
             UpdatedAt = now

@@ -204,9 +204,9 @@ export const CommandPalette = (props: CommandPaletteProps) => {
             placeholder={isAdmin ? "Search projects, team members…" : "Search projects…"}
             value={query()}
             onInput={(e) => setQuery(e.currentTarget.value)}
-            class="flex-1 bg-transparent border-0 rounded-none h-auto py-0 px-0 text-sm hover:border-transparent focus:border-transparent focus:ring-0"
+            class="flex-1 bg-transparent border-0 rounded-none h-auto py-0 px-0 text-[15px] hover:border-transparent focus:border-transparent focus:ring-0"
           />
-          <kbd class="hidden sm:flex items-center px-1.5 py-0.5 text-[10px] font-bold text-outline bg-surface-container-high border border-outline-variant/20 rounded-md select-none">
+          <kbd class="hidden sm:flex items-center px-1.5 py-0.5 text-[11px] font-bold text-outline bg-surface-container-high border border-outline-variant/20 rounded-md select-none">
             ESC
           </kbd>
         </div>
@@ -215,7 +215,7 @@ export const CommandPalette = (props: CommandPaletteProps) => {
         <div class="max-h-[min(22rem,60vh)] overflow-y-auto">
           {/* Default Navigation Section */}
           <Show when={!query()}>
-            <p class="px-4 pt-3 pb-1 text-[10px] font-medium text-outline/70 tracking-[0.05em] select-none">
+            <p class="px-4 pt-3 pb-1 text-[11px] font-medium text-outline/70 tracking-[0.05em] select-none">
               Quick Navigate
             </p>
             <For each={filteredNav()}>
@@ -229,8 +229,8 @@ export const CommandPalette = (props: CommandPaletteProps) => {
                     {item.icon}
                   </span>
                   <div>
-                    <p class="text-[13px] font-medium leading-snug">{item.label}</p>
-                    <p class="text-[11px] text-outline">{item.desc}</p>
+                    <p class="text-[14px] font-medium leading-snug">{item.label}</p>
+                    <p class="text-[12px] text-outline">{item.desc}</p>
                   </div>
                 </PaletteItem>
               )}
@@ -239,7 +239,7 @@ export const CommandPalette = (props: CommandPaletteProps) => {
 
           {/* Projects Results Section */}
           <Show when={query() && filteredProjects().length > 0}>
-            <p class="px-4 pt-3 pb-1 text-[10px] font-medium text-outline/70 tracking-[0.05em] select-none">
+            <p class="px-4 pt-3 pb-1 text-[11px] font-medium text-outline/70 tracking-[0.05em] select-none">
               Projects
             </p>
             <For each={filteredProjects()}>
@@ -257,10 +257,10 @@ export const CommandPalette = (props: CommandPaletteProps) => {
                       </span>
                     </div>
                     <div>
-                      <p class="text-[13px] font-medium text-on-surface leading-snug">
+                      <p class="text-[14px] font-medium text-on-surface leading-snug">
                         {project.name}
                       </p>
-                      <p class="text-[11px] font-mono text-outline">{project.urlSlug}</p>
+                      <p class="text-[12px] font-mono text-outline">{project.urlSlug}</p>
                     </div>
                   </PaletteItem>
                 );
@@ -270,7 +270,7 @@ export const CommandPalette = (props: CommandPaletteProps) => {
 
           {/* Users Results Section */}
           <Show when={query() && filteredUsers().length > 0}>
-            <p class="px-4 pt-3 pb-1 text-[10px] font-medium text-outline/70 tracking-[0.05em] select-none">
+            <p class="px-4 pt-3 pb-1 text-[11px] font-medium text-outline/70 tracking-[0.05em] select-none">
               Team Members
             </p>
             <For each={filteredUsers()}>
@@ -283,14 +283,14 @@ export const CommandPalette = (props: CommandPaletteProps) => {
                     onClick={() => navigateTo("/users")}
                     onMouseEnter={() => setActiveIdx(globalIdx())}
                   >
-                    <div class="w-7 h-7 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-[11px] font-bold text-primary shrink-0">
+                    <div class="w-7 h-7 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-[12px] font-bold text-primary shrink-0">
                       {initials}
                     </div>
                     <div>
-                      <p class="text-[13px] font-medium text-on-surface leading-snug">
+                      <p class="text-[14px] font-medium text-on-surface leading-snug">
                         {user.name || "Pending Invite"}
                       </p>
-                      <p class="text-[11px] text-outline">{user.email}</p>
+                      <p class="text-[12px] text-outline">{user.email}</p>
                     </div>
                   </PaletteItem>
                 );
@@ -304,7 +304,7 @@ export const CommandPalette = (props: CommandPaletteProps) => {
               <span class="material-symbols-outlined text-4xl text-outline block mb-2">
                 search_off
               </span>
-              <p class="text-sm text-on-surface-variant">
+              <p class="text-[15px] text-on-surface-variant">
                 No results for <span class="text-on-surface font-medium">"{query()}"</span>
               </p>
             </div>
@@ -312,7 +312,7 @@ export const CommandPalette = (props: CommandPaletteProps) => {
         </div>
 
         {/* Footer shortcuts helper */}
-        <div class="border-t border-outline-variant/15 px-4 py-2 flex items-center gap-5 text-[10px] text-outline select-none">
+        <div class="border-t border-outline-variant/15 px-4 py-2 flex items-center gap-5 text-[11px] text-outline select-none">
           <span class="flex items-center gap-1.5">
             <kbd class="bg-surface-container-high border border-outline-variant/20 rounded px-1 py-0.5 font-bold">
               ↑↓

@@ -36,7 +36,7 @@ export const FormField: Component<FormFieldProps> = props => {
     <div class="group flex flex-col gap-1.5">
       <label
         for={props.id}
-        class="text-on-surface-variant group-focus-within:text-primary block text-[11px] font-medium tracking-[0.05em] transition-colors"
+        class="text-on-surface-variant group-focus-within:text-primary block text-[12px] font-medium tracking-[0.05em] transition-colors"
       >
         {props.label}
       </label>

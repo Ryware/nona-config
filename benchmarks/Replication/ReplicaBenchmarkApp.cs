@@ -6,9 +6,9 @@ using System.Text;
 using Microsoft.Extensions.Options;
 using Nona.Libsql;
 
-namespace Nona.StorageBenchmarks;
+namespace Nona.Benchmarks;
 
-internal static class ReplicaBenchmarkApp
+public static class ReplicaBenchmarkApp
 {
     private const string ProjectName = "bench-project";
     private const string ProjectSlug = "bench-project";
@@ -1185,3 +1185,4 @@ internal sealed record PollResult(
     bool Observed,
     double ElapsedMs,
     int LastValue);
+

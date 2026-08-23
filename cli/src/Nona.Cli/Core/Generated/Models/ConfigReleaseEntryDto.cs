@@ -22,6 +22,14 @@ namespace Nona.Cli.Generated.Models
 #else
         public string ContentType { get; set; }
 #endif
+        /// <summary>The description property</summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
+#nullable enable
+        public string? Description { get; set; }
+#nullable restore
+#else
+        public string Description { get; set; }
+#endif
         /// <summary>The key property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
@@ -37,6 +45,14 @@ namespace Nona.Cli.Generated.Models
 #nullable restore
 #else
         public string Scope { get; set; }
+#endif
+        /// <summary>The unit property</summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
+#nullable enable
+        public string? Unit { get; set; }
+#nullable restore
+#else
+        public string Unit { get; set; }
 #endif
         /// <summary>The value property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
@@ -72,8 +88,10 @@ namespace Nona.Cli.Generated.Models
             return new Dictionary<string, Action<IParseNode>>
             {
                 { "contentType", n => { ContentType = n.GetStringValue(); } },
+                { "description", n => { Description = n.GetStringValue(); } },
                 { "key", n => { Key = n.GetStringValue(); } },
                 { "scope", n => { Scope = n.GetStringValue(); } },
+                { "unit", n => { Unit = n.GetStringValue(); } },
                 { "value", n => { Value = n.GetStringValue(); } },
             };
         }
@@ -85,8 +103,10 @@ namespace Nona.Cli.Generated.Models
         {
             if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));
             writer.WriteStringValue("contentType", ContentType);
+            writer.WriteStringValue("description", Description);
             writer.WriteStringValue("key", Key);
             writer.WriteStringValue("scope", Scope);
+            writer.WriteStringValue("unit", Unit);
             writer.WriteStringValue("value", Value);
             writer.WriteAdditionalData(AdditionalData);
         }

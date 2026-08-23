@@ -9,4 +9,6 @@ public record ConfigEntryVersionDto(
     string ContentType,
     string Scope,
     DateTime CreatedAt,
-    string Actor);
+    string Actor,
+    string? Description = null,
+    string? Unit = null);
