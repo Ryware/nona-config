@@ -1,9 +1,9 @@
 using Microsoft.Data.Sqlite;
 using Nona.Libsql;
 
-namespace Nona.StorageBenchmarks;
+namespace Nona.Benchmarks;
 
-internal static class DatabaseSeeder
+public static class DatabaseSeeder
 {
     public const string ProjectName = "bench-project";
     public const string ProjectSlug = "bench-project";
@@ -15,6 +15,13 @@ internal static class DatabaseSeeder
         [DatasetSize.Small] = 1,
         [DatasetSize.Medium] = 100,
         [DatasetSize.Large] = 10_000
+    };
+
+    public static readonly IReadOnlyDictionary<DatasetSize, int> DatasetValueBytes = new Dictionary<DatasetSize, int>
+    {
+        [DatasetSize.Small] = 64,
+        [DatasetSize.Medium] = 1_024,
+        [DatasetSize.Large] = 16_384
     };
 
     public static string GetEnvironmentName(DatasetSize dataset)
@@ -44,7 +51,7 @@ internal static class DatabaseSeeder
             File.Delete(databasePath);
         }
 
-        using (var client = SqlStatementFactory.CreateLocalClient(databasePath))
+        using (var client = new SqliteDatabaseClient(databasePath, commandTimeoutSeconds: 60))
         {
             await SeedLibsqlDatabaseAsync(client, migrationsDirectory, cancellationToken);
             await client.ExecuteAsync("PRAGMA wal_checkpoint(TRUNCATE)", ct: cancellationToken);
@@ -173,7 +180,7 @@ internal static class DatabaseSeeder
                     ("Project", ProjectName),
                     ("Environment", environment),
                     ("Key", BuildKey(index)),
-                    ("Value", BuildValue(environment, index)),
+                     ("Value", BuildValue(dataset, environment, index)),
                     ("ContentType", "text"),
                     ("Scope", 3),
                     ("CreatedAt", now),
@@ -194,7 +201,7 @@ internal static class DatabaseSeeder
                     ("ReleaseVersion", ReleaseVersion),
                     ("Key", BuildKey(index)),
                     ("NormalizedKey", BuildKey(index).ToUpperInvariant()),
-                    ("Value", BuildValue(environment, index)),
+                     ("Value", BuildValue(dataset, environment, index)),
                     ("ContentType", "text"),
                     ("Scope", 3))));
 
@@ -236,8 +243,18 @@ internal static class DatabaseSeeder
         ], cancellationToken);
     }
 
+    public static string BuildValue(DatasetSize dataset, string environment, int index)
+    {
+        var prefix = $"{environment}-value-{index:D7}-";
+        var value = new string('x', DatasetValueBytes[dataset]);
+        return prefix.Length >= value.Length ? prefix[..value.Length] : prefix + value[prefix.Length..];
+    }
+
     public static string BuildValue(string environment, int index)
     {
-        return $"{environment}-value-{index:D7}-abcdefghijklmnopqrstuvwxyz0123456789";
+        var dataset = DatasetRows.Keys.Single(dataset =>
+            string.Equals(GetEnvironmentName(dataset), environment, StringComparison.OrdinalIgnoreCase));
+        return BuildValue(dataset, environment, index);
     }
 }
+

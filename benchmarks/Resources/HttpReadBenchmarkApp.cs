@@ -7,9 +7,9 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Nona.StorageBenchmarks;
+namespace Nona.Benchmarks;
 
-internal static class HttpReadBenchmarkApp
+public static class HttpReadBenchmarkApp
 {
     private const int MultiUserConcurrency = 50;
     private const int HighConcurrency = 100;
@@ -33,6 +33,11 @@ internal static class HttpReadBenchmarkApp
             var targets = CreateTargets(options);
             var scenarios = CreateScenarios(options.Operation);
             var results = new List<HttpReadResult>();
+            var baselineCSharpRamMb = targets
+                .Where(target => target.ProcessId.HasValue)
+                .Select(target => LocalProcessResourceSampler.ReadCurrentRamMb(target.ProcessId!.Value))
+                .Cast<double?>()
+                .FirstOrDefault();
 
             foreach (var target in targets)
             {
@@ -45,6 +50,7 @@ internal static class HttpReadBenchmarkApp
                         await ValidateDatasetAsync(client, keyCount, cancellationSource.Token);
                     }
                 }
+
                 if (scenarios.Any(scenario => scenario.Operation == HttpReadOperation.SingleKey))
                 {
                     await ValidateSingleKeyAsync(client, cancellationSource.Token);
@@ -76,6 +82,7 @@ internal static class HttpReadBenchmarkApp
                         cancellationSource.Token,
                         target.Provider,
                         target.ContainerName,
+                        target.ProcessId,
                         options.MemorySampleInterval));
                 }
             }
@@ -87,6 +94,7 @@ internal static class HttpReadBenchmarkApp
                 Environment.ProcessorCount,
                 Environment.Version.ToString(),
                 options,
+                baselineCSharpRamMb,
                 results);
             await WriteReportsAsync(outputDirectory, summary, cancellationSource.Token);
 
@@ -128,11 +136,11 @@ internal static class HttpReadBenchmarkApp
         var targets = new List<BenchmarkTarget>();
         if (options.SqliteUrl is not null)
         {
-            targets.Add(new BenchmarkTarget("SQLite", options.SqliteUrl, options.SqliteContainer));
+            targets.Add(new BenchmarkTarget("SQLite", options.SqliteUrl, options.SqliteContainer, options.SqliteProcessId));
         }
         if (options.SqldUrl is not null)
         {
-            targets.Add(new BenchmarkTarget("sqld", options.SqldUrl, options.SqldContainer));
+            targets.Add(new BenchmarkTarget("sqld", options.SqldUrl, options.SqldContainer, null));
         }
 
         return targets;
@@ -190,6 +198,7 @@ internal static class HttpReadBenchmarkApp
         CancellationToken cancellationToken,
         string provider = "",
         string? containerName = null,
+        int? processId = null,
         TimeSpan? memorySampleInterval = null)
     {
         var stopAt = Stopwatch.GetTimestamp() + (long)(duration.TotalSeconds * Stopwatch.Frequency);
@@ -200,7 +209,12 @@ internal static class HttpReadBenchmarkApp
         var failures = 0;
         var phaseStarted = Stopwatch.GetTimestamp();
         using var memorySource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        var memoryTask = measure && !string.IsNullOrWhiteSpace(containerName)
+        var memoryTask = measure && processId.HasValue
+            ? LocalProcessResourceSampler.SampleUntilCancelledAsync(
+                processId.Value,
+                memorySampleInterval ?? TimeSpan.FromMilliseconds(500),
+                memorySource.Token)
+            : measure && !string.IsNullOrWhiteSpace(containerName)
             ? DockerProcessMemorySampler.SampleUntilCancelledAsync(
                 containerName,
                 memorySampleInterval ?? TimeSpan.FromMilliseconds(500),
@@ -270,6 +284,9 @@ internal static class HttpReadBenchmarkApp
                 0,
                 new Dictionary<string, int>(),
                 memory.SampleCount,
+                memory.CSharpAverageCpuPercent,
+                memory.CSharpPeakCpuPercent,
+                memory.CSharpInitialRamMb,
                 memory.CSharpAverageRamMb,
                 memory.CSharpPeakRamMb,
                 memory.SqldAverageRamMb,
@@ -296,6 +313,9 @@ internal static class HttpReadBenchmarkApp
             errors.OrderByDescending(pair => pair.Value)
                 .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal),
             memory.SampleCount,
+            memory.CSharpAverageCpuPercent,
+            memory.CSharpPeakCpuPercent,
+            memory.CSharpInitialRamMb,
             memory.CSharpAverageRamMb,
             memory.CSharpPeakRamMb,
             memory.SqldAverageRamMb,
@@ -417,7 +437,7 @@ internal static class HttpReadBenchmarkApp
             cancellationToken);
         await File.WriteAllTextAsync(
             Path.Combine(outputDirectory, "results.csv"),
-            BuildCsv(summary.Results),
+            BuildCsv(summary),
             cancellationToken);
         await File.WriteAllTextAsync(
             Path.Combine(outputDirectory, "REPORT.md"),
@@ -425,12 +445,12 @@ internal static class HttpReadBenchmarkApp
             cancellationToken);
     }
 
-    private static string BuildCsv(IEnumerable<HttpReadResult> results)
+    private static string BuildCsv(HttpReadSummary summary)
     {
         var builder = new StringBuilder();
         builder.AppendLine(
-            "provider,operation,dataset_key_count,keys_returned,concurrency,attempts,successes,failures,error_rate_percent,requests_per_second,average_latency_ms,p50_latency_ms,p95_latency_ms,p99_latency_ms,errors,memory_sample_count,csharp_average_ram_mb,csharp_peak_ram_mb,sqld_average_ram_mb,sqld_peak_ram_mb,memory_note");
-        foreach (var result in results)
+            "provider,operation,dataset_key_count,keys_returned,concurrency,attempts,successes,failures,error_rate_percent,requests_per_second,average_latency_ms,p50_latency_ms,p95_latency_ms,p99_latency_ms,errors,resource_sample_count,baseline_csharp_ram_mb,csharp_average_cpu_percent,csharp_peak_cpu_percent,csharp_initial_ram_mb,csharp_average_ram_mb,csharp_peak_ram_mb,sqld_average_ram_mb,sqld_peak_ram_mb,resource_note");
+        foreach (var result in summary.Results)
         {
             builder.AppendLine(string.Join(
                 ",",
@@ -453,12 +473,16 @@ internal static class HttpReadBenchmarkApp
                     string.Join(
                         "; ",
                         result.Errors.Select(pair => $"{pair.Key}={pair.Value}")),
-                    result.MemorySampleCount.ToString(CultureInfo.InvariantCulture),
+                    result.ResourceSampleCount.ToString(CultureInfo.InvariantCulture),
+                    FormatNullable(summary.BaselineCSharpRamMb),
+                    FormatNullable(result.CSharpAverageCpuPercent),
+                    FormatNullable(result.CSharpPeakCpuPercent),
+                    FormatNullable(result.CSharpInitialRamMb),
                     FormatNullable(result.CSharpAverageRamMb),
                     FormatNullable(result.CSharpPeakRamMb),
                     FormatNullable(result.SqldAverageRamMb),
                     FormatNullable(result.SqldPeakRamMb),
-                    result.MemoryNote ?? string.Empty
+                    result.ResourceNote ?? string.Empty
                 }.Select(EscapeCsv)));
         }
 
@@ -468,12 +492,16 @@ internal static class HttpReadBenchmarkApp
     private static string BuildMarkdown(HttpReadSummary summary)
     {
         var builder = new StringBuilder();
-        builder.AppendLine("# Container HTTP Read Benchmark");
+        builder.AppendLine("# HTTP Resource Usage Benchmark");
         builder.AppendLine();
         builder.AppendLine($"Generated: {summary.GeneratedAtUtc:O}");
         builder.AppendLine();
         builder.AppendLine("## Method");
         builder.AppendLine();
+        if (summary.BaselineCSharpRamMb.HasValue)
+        {
+            builder.AppendLine($"- C# process RAM at benchmark start, before validation or benchmark traffic: {summary.BaselineCSharpRamMb.Value:F1} MiB.");
+        }
         if (summary.Results.Any(result => result.Operation == HttpReadOperation.FullEnvironment))
         {
             builder.AppendLine("- Full-environment reads use `GET /api/{environment}`.");
@@ -493,33 +521,33 @@ internal static class HttpReadBenchmarkApp
         builder.AppendLine("- Latency percentiles include successful responses only; failures are reported separately.");
         builder.AppendLine("- Concurrency is the number of closed-loop HTTP clients.");
         builder.AppendLine($"- Warmup {summary.Options.WarmupDuration.TotalSeconds:F1}s; measurement {summary.Options.MeasurementDuration.TotalSeconds:F1}s per scenario.");
-        if (summary.Results.Any(result => result.MemorySampleCount > 0))
+        if (summary.Results.Any(result => result.ResourceSampleCount > 0))
         {
-            builder.AppendLine($"- Process RAM is sampled from `docker top` every {summary.Options.MemorySampleInterval.TotalMilliseconds:F0} ms and reported as RSS.");
+            builder.AppendLine($"- CPU and RAM are sampled every {summary.Options.MemorySampleInterval.TotalMilliseconds:F0} ms. Local targets use process CPU time and working-set RAM; container targets use `docker top` RSS.");
         }
         builder.AppendLine($"- Client OS: {summary.OsDescription}; logical cores: {summary.ProcessorCount}; .NET: {summary.DotnetVersion}.");
         builder.AppendLine();
         builder.AppendLine("## Results");
         builder.AppendLine();
-        builder.AppendLine("| Provider | Operation | Dataset keys | Keys returned | Concurrency | p50 ms | p95 ms | p99 ms | req/s | Error % | C# RAM avg/peak MiB | sqld RAM avg/peak MiB | Errors |");
-        builder.AppendLine("|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|");
+        builder.AppendLine("| Provider | Operation | Dataset keys | Keys returned | Concurrency | p50 ms | p95 ms | p99 ms | req/s | Error % | C# CPU avg/peak % | C# RAM initial/avg/peak MiB | sqld RAM avg/peak MiB | Errors |");
+        builder.AppendLine("|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|");
         foreach (var result in summary.Results)
         {
             builder.AppendLine(
-                $"| {result.Provider} | {FormatOperation(result.Operation)} | {result.DatasetKeyCount:N0} | {result.KeysReturned:N0} | {result.Concurrency} | {result.P50LatencyMs:F2} | {result.P95LatencyMs:F2} | {result.P99LatencyMs:F2} | {result.RequestsPerSecond:F1} | {result.ErrorRatePercent:F2} | {FormatMemory(result.CSharpAverageRamMb, result.CSharpPeakRamMb)} | {FormatMemory(result.SqldAverageRamMb, result.SqldPeakRamMb)} | {FormatErrors(result.Errors)} |");
+                $"| {result.Provider} | {FormatOperation(result.Operation)} | {result.DatasetKeyCount:N0} | {result.KeysReturned:N0} | {result.Concurrency} | {result.P50LatencyMs:F2} | {result.P95LatencyMs:F2} | {result.P99LatencyMs:F2} | {result.RequestsPerSecond:F1} | {result.ErrorRatePercent:F2} | {FormatMemory(result.CSharpAverageCpuPercent, result.CSharpPeakCpuPercent)} | {FormatMemory(result.CSharpInitialRamMb, result.CSharpAverageRamMb)} / {result.CSharpPeakRamMb?.ToString("F1", CultureInfo.InvariantCulture) ?? "n/a"} | {FormatMemory(result.SqldAverageRamMb, result.SqldPeakRamMb)} | {FormatErrors(result.Errors)} |");
         }
 
-        var memoryNotes = summary.Results
-            .Where(result => !string.IsNullOrWhiteSpace(result.MemoryNote))
-            .Select(result => $"{result.Provider}, {FormatOperation(result.Operation)}, {result.DatasetKeyCount:N0} dataset keys, c{result.Concurrency}: {result.MemoryNote}")
+        var resourceNotes = summary.Results
+            .Where(result => !string.IsNullOrWhiteSpace(result.ResourceNote))
+            .Select(result => $"{result.Provider}, {FormatOperation(result.Operation)}, {result.DatasetKeyCount:N0} dataset keys, c{result.Concurrency}: {result.ResourceNote}")
             .Distinct(StringComparer.Ordinal)
             .ToArray();
-        if (memoryNotes.Length > 0)
+        if (resourceNotes.Length > 0)
         {
             builder.AppendLine();
-            builder.AppendLine("## Memory Sampling Notes");
+            builder.AppendLine("## Resource Sampling Notes");
             builder.AppendLine();
-            foreach (var note in memoryNotes)
+            foreach (var note in resourceNotes)
             {
                 builder.AppendLine($"- {note}");
             }
@@ -565,6 +593,7 @@ internal static class HttpReadBenchmarkApp
         Uri? sqliteUrl = null;
         Uri? sqldUrl = null;
         string? sqliteContainer = null;
+        int? sqliteProcessId = null;
         string? sqldContainer = null;
         string? outputDirectory = null;
         HttpReadOperation? operation = null;
@@ -585,6 +614,9 @@ internal static class HttpReadBenchmarkApp
                     break;
                 case "--sqlite-container":
                     sqliteContainer = ReadValue(args, ref index);
+                    break;
+                case "--sqlite-process-id":
+                    sqliteProcessId = int.Parse(ReadValue(args, ref index), CultureInfo.InvariantCulture);
                     break;
                 case "--sqld-container":
                     sqldContainer = ReadValue(args, ref index);
@@ -626,6 +658,7 @@ internal static class HttpReadBenchmarkApp
             sqliteUrl,
             sqldUrl,
             sqliteContainer,
+            sqliteProcessId,
             sqldContainer,
             operation,
             outputDirectory,
@@ -699,7 +732,8 @@ internal static class HttpReadBenchmarkApp
     private sealed record BenchmarkTarget(
         string Provider,
         Uri BaseUrl,
-        string? ContainerName);
+        string? ContainerName,
+        int? ProcessId);
 
     private enum HttpReadOperation
     {
@@ -717,6 +751,7 @@ internal static class HttpReadBenchmarkApp
         Uri? SqliteUrl,
         Uri? SqldUrl,
         string? SqliteContainer,
+        int? SqliteProcessId,
         string? SqldContainer,
         HttpReadOperation? Operation,
         string OutputDirectory,
@@ -741,12 +776,15 @@ internal static class HttpReadBenchmarkApp
         double P95LatencyMs,
         double P99LatencyMs,
         IReadOnlyDictionary<string, int> Errors,
-        int MemorySampleCount,
+        int ResourceSampleCount,
+        double? CSharpAverageCpuPercent,
+        double? CSharpPeakCpuPercent,
+        double? CSharpInitialRamMb,
         double? CSharpAverageRamMb,
         double? CSharpPeakRamMb,
         double? SqldAverageRamMb,
         double? SqldPeakRamMb,
-        string? MemoryNote);
+        string? ResourceNote);
 
     private sealed record HttpReadSummary(
         DateTime GeneratedAtUtc,
@@ -755,5 +793,8 @@ internal static class HttpReadBenchmarkApp
         int ProcessorCount,
         string DotnetVersion,
         HttpReadOptions Options,
+        double? BaselineCSharpRamMb,
         IReadOnlyList<HttpReadResult> Results);
+
 }
+

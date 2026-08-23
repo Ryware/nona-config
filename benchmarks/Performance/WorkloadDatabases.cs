@@ -5,7 +5,7 @@ using Nona.Domain.Enums;
 using Nona.Infrastructure.Repositories.Libsql;
 using Nona.Libsql;
 
-namespace Nona.StorageBenchmarks;
+namespace Nona.Benchmarks;
 
 internal interface IBenchmarkDatabase : IAsyncDisposable
 {
@@ -670,3 +670,4 @@ internal static class SqlStatementFactory
         }));
     }
 }
+

@@ -24,12 +24,13 @@ public static class ConfigureServices
         services.AddProblemDetails();
         services.AddExceptionHandler<ApiExceptionHandler>();
 
-        services.AddAuthentication(options =>
+        var authentication = services.AddAuthentication(options =>
         {
             options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
             options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-        })
-        .AddJwtBearer(options =>
+        });
+
+        authentication.AddJwtBearer(options =>
         {
             var jwtKey = configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key is not configured");
             var jwtIssuer = configuration["Jwt:Issuer"] ?? throw new InvalidOperationException("JWT Issuer is not configured");
@@ -59,8 +60,9 @@ public static class ConfigureServices
                     .Forbidden("You do not have permission to access this resource.")
                     .ExecuteAsync(context.HttpContext)
             };
-        })
-        .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(
+        });
+
+        authentication.AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(
             ApiKeyAuthenticationHandler.SchemeName, null);
 
         services.AddAuthorizationBuilder()
