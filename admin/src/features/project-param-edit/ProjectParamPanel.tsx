@@ -11,6 +11,8 @@ import { ParameterValueEditor } from "../project-params/ParameterValueEditor";
 import { parameterName } from "../project-params/parameter-tree";
 import {
   getConfigEntryValueError,
+  isDisallowedConfigEntryKeyPress,
+  readConfigEntryKeyInput,
   validateConfigEntryDraft
 } from "./config-entry-value";
 
@@ -342,8 +344,13 @@ export function ProjectParamPanel(props: ProjectParamPanelProps) {
                       id="parameter-panel-key-input"
                       data-testid="parameter-key-input"
                       value={key()}
+                      onKeyDown={event => {
+                        if (isDisallowedConfigEntryKeyPress(event)) {
+                          event.preventDefault();
+                        }
+                      }}
                       onInput={event => {
-                        setKey(event.currentTarget.value);
+                        setKey(readConfigEntryKeyInput(event.currentTarget));
                         setKeyTouched(true);
                       }}
                       onBlur={() => setKeyTouched(true)}
