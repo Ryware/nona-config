@@ -1,4 +1,4 @@
-# Nona — Open Source Firebase Remote Config Alternative
+# <a href="https://nonaconfig.com"><img src=".github/assets/nona-logo.svg" alt="" width="38" height="38" /></a> Nona — Open Source Firebase Remote Config Alternative
 
 **Self-hosted feature flags and remote configuration for web, mobile, and backend apps.**
 
