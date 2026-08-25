@@ -46,6 +46,9 @@ describe('SharedParameterPage', () => {
     expect(screen.getByTestId('shared-parameter-key')).toHaveTextContent('API_URL');
     expect(screen.getByTestId('shared-parameter-environment')).toHaveTextContent('production');
     expect(screen.getByTestId('shared-parameter-value-input')).toHaveValue('https://api.example.com');
+    expect(screen.getByTestId('shared-parameter-default-note')).toHaveTextContent(
+      'This link targets the default parameter only',
+    );
     expect(document.head.querySelector('meta[name="robots"]')).toHaveAttribute(
       'content',
       'noindex,nofollow',

@@ -304,6 +304,38 @@ describe('ProjectParametersSection', () => {
     expect(screen.queryByRole('button', { name: 'Restore' })).not.toBeInTheDocument();
   });
 
+  it.each([
+    '/projects/my-app?viewRelease=1.1.0',
+    '/projects/my-app?release=1.2.0',
+    '/projects/my-app?release=1.1.1&amend=1.1.0',
+  ])('does not expose default-parameter sharing in release context %s', async path => {
+    let shareRequests = 0;
+    server.use(
+      http.get(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/config-entries/:key/share-links',
+        () => {
+          shareRequests += 1;
+          return HttpResponse.json([]);
+        },
+      ),
+      http.post(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/config-entries/:key/share-links',
+        () => {
+          shareRequests += 1;
+          return HttpResponse.json({}, { status: 201 });
+        },
+      ),
+    );
+
+    renderProjectSections(path);
+
+    fireEvent.click(await screen.findByTestId('parameter-edit-API_URL'));
+    expect(await screen.findByTestId('parameter-side-panel')).toBeInTheDocument();
+    expect(screen.queryByTestId('parameter-panel-share-button')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('parameter-share-dialog')).not.toBeInTheDocument();
+    expect(shareRequests).toBe(0);
+  });
+
   it('updates a parameter with the selected datatype', async () => {
     let updateRequest:
       | { value: string; contentType: string; scope: string }
@@ -657,6 +689,9 @@ describe('ProjectParametersSection', () => {
     fireEvent.click(shareButton);
 
     expect(await screen.findByTestId('parameter-share-dialog')).toBeInTheDocument();
+    expect(screen.getByTestId('parameter-share-default-note')).toHaveTextContent(
+      'Shared links target this default parameter only',
+    );
     fireEvent.click(screen.getByTestId('parameter-share-create-button'));
 
     const generatedUrl = await screen.findByTestId('parameter-share-generated-url');

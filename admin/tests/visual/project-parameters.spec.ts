@@ -348,6 +348,7 @@ test('amend history offers Use in draft', async ({ page }, testInfo) => {
 
   const panel = page.getByTestId('parameter-side-panel');
   await expect(panel).toHaveAttribute('data-mode', 'amend');
+  await expect(panel.getByTestId('parameter-panel-share-button')).toHaveCount(0);
   await expect(panel.getByRole('button', { name: 'Use in draft' }).first()).toBeVisible();
   await expect(panel.getByRole('button', { name: 'Restore' })).toHaveCount(0);
   await expect(page).toHaveScreenshot('parameter-amend-history.png');
