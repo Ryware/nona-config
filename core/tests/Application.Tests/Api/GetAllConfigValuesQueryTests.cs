@@ -1,9 +1,13 @@
 using Nona.Application.Api.ConfigEntries.Queries;
 using Nona.Application.Common.Interfaces;
+using Nona.Domain;
 using Nona.Domain.Entities;
 using Nona.Domain.Enums;
 using Nona.Domain.Interfaces;
 using NSubstitute;
+using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Nona.Application.Tests.Api;
 
@@ -124,6 +128,26 @@ public class GetAllConfigValuesQueryTests
         await Assert.That(second.NotModified).IsTrue();
         await Assert.That(second.Values is null).IsTrue();
         await Assert.That(second.Etag).IsEqualTo(first.Etag);
+    }
+
+    [Test]
+    public async Task InvalidPrefix_IsRejectedBeforeRepositoryOrEtagAccess()
+    {
+        var result = await CreateHandler().Handle(
+            new GetAllConfigValuesQuery(
+                EnvironmentName,
+                Prefix: "ſ",
+                IfNoneMatch: "*"),
+            CancellationToken.None);
+
+        await Assert.That(result.Success).IsFalse();
+        await Assert.That(result.Error).IsEqualTo(ConfigEntryPrefix.ValidationError);
+        await Assert.That(result.Etag is null).IsTrue();
+        await Assert.That(result.NotModified).IsFalse();
+        await Assert.That(_apiKeyRepository.ReceivedCalls()).IsEmpty();
+        await Assert.That(_environmentRepository.ReceivedCalls()).IsEmpty();
+        await Assert.That(_configEntryRepository.ReceivedCalls()).IsEmpty();
+        await Assert.That(_configReleaseRepository.ReceivedCalls()).IsEmpty();
     }
 
     [Test]
@@ -387,6 +411,58 @@ public class GetAllConfigValuesQueryTests
     }
 
     [Test]
+    public async Task ReleasePrefix_LegacyPrefixEtagDoesNotReturnNotModified()
+    {
+        SetupApiKey(KeyScope.Frontend);
+        var createdAt = new DateTime(2026, 8, 25, 12, 0, 0, DateTimeKind.Utc);
+        var release = new ConfigRelease
+        {
+            Project = ProjectName,
+            Environment = EnvironmentName,
+            Version = "1.0.0",
+            Major = 1,
+            Minor = 0,
+            Patch = 0,
+            EntryCount = 1,
+            CreatedAt = createdAt
+        };
+        _environmentRepository.GetAsync(ProjectName, EnvironmentName, Arg.Any<CancellationToken>())
+            .Returns(new ProjectEnvironment
+            {
+                Project = ProjectName,
+                Name = EnvironmentName,
+                ActiveReleaseVersion = release.Version
+            });
+        _configReleaseRepository.GetMetadataAsync(
+                ProjectName,
+                EnvironmentName,
+                release.Version,
+                Arg.Any<CancellationToken>())
+            .Returns(release);
+        _configReleaseRepository.ListEntriesAsync(
+                ProjectName,
+                EnvironmentName,
+                release.Version,
+                KeyScope.Frontend,
+                "GroupA:",
+                Arg.Any<CancellationToken>())
+            .Returns([Entry("GroupA:One", "true", "boolean", KeyScope.Frontend)]);
+        var legacyEtag = CreateLegacyReleaseEtag("GroupA:", release);
+
+        var result = await CreateHandler().Handle(
+            new GetAllConfigValuesQuery(
+                EnvironmentName,
+                Prefix: "GroupA:",
+                IfNoneMatch: legacyEtag),
+            CancellationToken.None);
+
+        await Assert.That(result.Success).IsTrue();
+        await Assert.That(result.NotModified).IsFalse();
+        await Assert.That(result.Values!).Count().IsEqualTo(1);
+        await Assert.That(result.Etag).IsNotEqualTo(legacyEtag);
+    }
+
+    [Test]
     public async Task ExactVersion_UsesTargetedMetadataLookup()
     {
         SetupApiKey(KeyScope.Frontend);
@@ -556,4 +632,25 @@ public class GetAllConfigValuesQueryTests
             ContentType = contentType,
             Scope = scope
         };
+
+    private static string CreateLegacyReleaseEtag(string prefix, ConfigRelease release)
+    {
+        var canonical = new StringBuilder("client-config-v1");
+        AppendEtagPart(canonical, ProjectName);
+        AppendEtagPart(canonical, EnvironmentName);
+        AppendEtagPart(canonical, "prefix-v1");
+        AppendEtagPart(canonical, ConfigEntryPrefix.Normalize(prefix)!);
+        AppendEtagPart(canonical, release.Version);
+        AppendEtagPart(
+            canonical,
+            release.CreatedAt.ToUniversalTime().Ticks.ToString(CultureInfo.InvariantCulture));
+        AppendEtagPart(canonical, release.EntryCount.ToString(CultureInfo.InvariantCulture));
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(canonical.ToString()));
+        return $"\"{Convert.ToHexString(hash).ToLowerInvariant()}\"";
+    }
+
+    private static void AppendEtagPart(StringBuilder builder, string value)
+    {
+        builder.Append(value.Length).Append(':').Append(value);
+    }
 }

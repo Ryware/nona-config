@@ -127,8 +127,7 @@ public class InMemoryConfigReleaseRepository : IConfigReleaseRepository
 
         var entries = storedRelease.Release.Entries
             .Where(entry => (entry.Scope & requiredScope) != 0
-                         && (string.IsNullOrEmpty(prefix)
-                             || entry.Key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)))
+                         && ConfigEntryPrefix.StartsWith(entry.Key, prefix))
             .OrderBy(entry => entry.Key, StringComparer.Ordinal)
             .ToList();
         return Task.FromResult<IReadOnlyList<ConfigReleaseEntry>>(entries);

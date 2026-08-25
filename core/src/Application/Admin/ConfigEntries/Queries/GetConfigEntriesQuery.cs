@@ -3,6 +3,7 @@ using Nona.Application.Admin.ConfigEntries;
 using Nona.Application.Admin.ConfigEntries.DTOs;
 using Nona.Application.Admin.Projects;
 using Nona.Application.Common.Interfaces;
+using Nona.Domain;
 using Nona.Domain.Interfaces;
 
 namespace Nona.Application.Admin.ConfigEntries.Queries;
@@ -23,6 +24,9 @@ public class GetConfigEntriesQueryHandler(
 {
     public async ValueTask<GetConfigEntriesResult> Handle(GetConfigEntriesQuery request, CancellationToken cancellationToken)
     {
+        if (!ConfigEntryPrefix.IsValid(request.Prefix))
+            return new GetConfigEntriesResult(false, null, ConfigEntryPrefix.ValidationError);
+
         var project = await ProjectResolution.ResolveProjectAsync(projectRepository, request.ProjectId, cancellationToken);
         if (project is null)
             return new GetConfigEntriesResult(false, null, "Project not found");

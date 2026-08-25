@@ -2,6 +2,7 @@ using Mediator;
 using Nona.Application.Admin.ConfigReleases;
 using Nona.Application.Common;
 using Nona.Application.Common.Interfaces;
+using Nona.Domain;
 using Nona.Domain.Entities;
 using Nona.Domain.Enums;
 using Nona.Domain.Interfaces;
@@ -39,6 +40,9 @@ public class GetAllConfigValuesQueryHandler(
         GetAllConfigValuesQuery request,
         CancellationToken cancellationToken)
     {
+        if (!ConfigEntryPrefix.IsValid(request.Prefix))
+            return Failure(ConfigEntryPrefix.ValidationError);
+
         var apiKey = apiKeyService.GetCurrentApiKey();
         if (string.IsNullOrEmpty(apiKey))
             return Failure("API key is required");
@@ -67,7 +71,7 @@ public class GetAllConfigValuesQueryHandler(
         if (environment is null)
             return Failure("Environment not found");
 
-        var normalizedPrefix = NormalizePrefix(request.Prefix);
+        var normalizedPrefix = ConfigEntryPrefix.Normalize(request.Prefix);
 
         if (string.IsNullOrWhiteSpace(request.Version)
             && string.IsNullOrWhiteSpace(environment.ActiveReleaseVersion))
@@ -240,12 +244,9 @@ public class GetAllConfigValuesQueryHandler(
         if (normalizedPrefix is null)
             return;
 
-        AppendEtagPart(builder, "prefix-v1");
+        AppendEtagPart(builder, "prefix-v2");
         AppendEtagPart(builder, normalizedPrefix);
     }
-
-    private static string? NormalizePrefix(string? prefix) =>
-        string.IsNullOrEmpty(prefix) ? null : prefix.ToUpperInvariant();
 
     private static bool MatchesIfNoneMatch(string? headerValue, string etag)
     {

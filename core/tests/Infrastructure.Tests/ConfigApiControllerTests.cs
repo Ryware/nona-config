@@ -2,6 +2,7 @@ using Mediator;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Nona.Application.Api.ConfigEntries.Queries;
+using Nona.Domain;
 using Nona.WebApi;
 using Nona.WebApi.Endpoints;
 using System.Text.Json;
@@ -130,6 +131,33 @@ public class ConfigApiEndpointTests
         await Assert.That(body.RootElement.GetProperty("title").GetString()).IsEqualTo("Not Found");
         await Assert.That(body.RootElement.GetProperty("detail").GetString()).IsEqualTo("Environment not found");
         await Assert.That(body.RootElement.GetProperty("status").GetInt32()).IsEqualTo(404);
+    }
+
+    [Test]
+    public async Task GetAllConfigValues_ReturnsBadRequestWithoutEtagForInvalidPrefix()
+    {
+        var mediator = new StubMediator(new GetAllConfigValuesResult(
+            false,
+            null,
+            ConfigEntryPrefix.ValidationError));
+        var httpContext = CreateHttpContext();
+
+        var result = await NonaEndpointRouteBuilderExtensions.GetAllConfigValuesAsync(
+            "production",
+            null,
+            "%",
+            httpContext,
+            mediator,
+            CancellationToken.None);
+        await result.ExecuteAsync(httpContext);
+
+        await Assert.That(httpContext.Response.StatusCode).IsEqualTo(StatusCodes.Status400BadRequest);
+        await Assert.That(httpContext.Response.ContentType).IsEqualTo("application/problem+json");
+        await Assert.That(httpContext.Response.Headers.ETag.ToString()).IsEmpty();
+        httpContext.Response.Body.Seek(0, SeekOrigin.Begin);
+        using var body = await JsonDocument.ParseAsync(httpContext.Response.Body);
+        await Assert.That(body.RootElement.GetProperty("detail").GetString())
+            .IsEqualTo(ConfigEntryPrefix.ValidationError);
     }
 
     private static DefaultHttpContext CreateHttpContext()

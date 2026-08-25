@@ -68,8 +68,7 @@ public class InMemoryConfigEntryRepository : IConfigEntryRepository
         var entries = _entries.Values
             .Where(e => e.Project.Equals(projectName, StringComparison.OrdinalIgnoreCase)
                      && e.Environment.Equals(environmentName, StringComparison.OrdinalIgnoreCase)
-                     && (string.IsNullOrEmpty(prefix)
-                         || e.Key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)))
+                     && ConfigEntryPrefix.StartsWith(e.Key, prefix))
             .OrderBy(e => e.Key, StringComparer.Ordinal)
             .ToList();
         return Task.FromResult<IReadOnlyList<ConfigEntry>>(entries);
