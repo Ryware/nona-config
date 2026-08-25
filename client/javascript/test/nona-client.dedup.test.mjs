@@ -29,6 +29,29 @@ test("three concurrent identical requests deduplicate to one HTTP call", async (
   assert.equal(rc.value, "v1");
 });
 
+test("concurrent bulk requests deduplicate case-insensitive prefixes", async () => {
+  const pending = deferred();
+  let calls = 0;
+  const client = createNonaClient("https://nona.test", {
+    environmentId: "production",
+    apiKey: "api-key",
+    fetch: async () => {
+      calls += 1;
+      return pending.promise;
+    }
+  });
+
+  const first = client.getAllValues({ prefix: "GroupA:" });
+  const second = client.getAllValues({ prefix: "groupa:" });
+
+  assert.equal(calls, 1);
+  pending.resolve(jsonResponse({
+    "GroupA:One": { value: "1", contentType: "number" }
+  }));
+
+  assert.deepEqual(await first, await second);
+});
+
 test("three concurrent different requests result in three HTTP calls", async () => {
   let calls = 0;
   const client = createNonaClient("https://nona.test", {

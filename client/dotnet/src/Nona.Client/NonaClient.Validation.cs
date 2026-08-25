@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Nona.Client;
 
@@ -30,9 +31,32 @@ public sealed partial class NonaClient
             : $"{path}?version={Uri.EscapeDataString(releaseVersion)}";
     }
 
+    private string BuildAllConfigValuesPath(string? releaseVersion, string? prefix)
+    {
+        var path = $"api/{_environmentSegment}";
+        var query = new List<string>(2);
+        if (releaseVersion is not null)
+        {
+            query.Add($"version={Uri.EscapeDataString(releaseVersion)}");
+        }
+
+        if (!string.IsNullOrEmpty(prefix))
+        {
+            query.Add($"prefix={Uri.EscapeDataString(prefix)}");
+        }
+
+        return query.Count == 0 ? path : $"{path}?{string.Join("&", query)}";
+    }
+
     private static string CreateCacheKey(string key, string? releaseVersion)
     {
         return releaseVersion is null ? key : $"{key}\n{releaseVersion}";
+    }
+
+    private static string CreateBulkCacheKey(string? releaseVersion, string? prefix)
+    {
+        var normalizedPrefix = NormalizePrefix(prefix);
+        return $"{releaseVersion ?? string.Empty}\n{normalizedPrefix ?? string.Empty}";
     }
 
     private static string? NormalizeReleaseVersion(string? releaseVersion)
@@ -40,9 +64,34 @@ public sealed partial class NonaClient
         return string.IsNullOrWhiteSpace(releaseVersion) ? null : releaseVersion!.Trim();
     }
 
+    private static string? NormalizePrefix(string? prefix)
+    {
+        return string.IsNullOrEmpty(prefix) ? null : prefix!.ToUpperInvariant();
+    }
+
     private static long EstimateCacheEntrySize(string cacheKey, NonaConfigValue value)
     {
         return 128L + (cacheKey.Length + value.Value.Length + value.ContentType.Length) * sizeof(char);
+    }
+
+    private static long EstimateBulkCacheEntrySize(
+        string cacheKey,
+        string? etag,
+        IReadOnlyDictionary<string, NonaConfigValue> values,
+        IReadOnlyDictionary<string, string> requestKeys)
+    {
+        var sizeBytes = 192L + (cacheKey.Length + (etag?.Length ?? 0)) * sizeof(char);
+        foreach (var pair in values)
+        {
+            sizeBytes += (pair.Key.Length + pair.Value.Value.Length + pair.Value.ContentType.Length) * sizeof(char);
+        }
+
+        foreach (var pair in requestKeys)
+        {
+            sizeBytes += (pair.Key.Length + pair.Value.Length) * sizeof(char);
+        }
+
+        return sizeBytes;
     }
 
     private static TimeSpan ValidateCacheTtl(TimeSpan cacheTtl)

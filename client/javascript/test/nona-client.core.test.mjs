@@ -234,6 +234,80 @@ test("getAllValues uses ETag validation and reuses the snapshot on 304", async (
   assert.equal(calls[1].headers.get("If-None-Match"), '"snapshot"');
 });
 
+test("getAllValues isolates prefix snapshots and shares case-insensitive ETags", async () => {
+  const calls = [];
+  const groupA = { "GroupA:One": { value: "1", contentType: "number" } };
+  const groupB = { "GroupB:One": { value: "2", contentType: "number" } };
+  const client = createNonaClient("https://nona.test", {
+    environmentId: "production",
+    apiKey: "api-key",
+    fetch: async (url, init) => {
+      const call = capture(url, init);
+      calls.push(call);
+      const prefix = new URL(url).searchParams.get("prefix");
+      if (prefix?.toUpperCase() === "GROUPA:") {
+        if (call.headers.get("If-None-Match") === '"group-a"') {
+          return new Response(null, { status: 304, headers: { ETag: '"group-a"' } });
+        }
+
+        return new Response(JSON.stringify(groupA), {
+          status: 200,
+          headers: { "Content-Type": "application/json", ETag: '"group-a"' }
+        });
+      }
+
+      return new Response(JSON.stringify(prefix ? groupB : { ...groupA, ...groupB }), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          ETag: prefix ? '"group-b"' : '"all"'
+        }
+      });
+    }
+  });
+
+  const first = await client.getAllValues({ prefix: "GroupA:" });
+  const samePrefixDifferentCase = await client.getAllValues({ prefix: "groupa:" });
+  const otherPrefix = await client.getAllValues({ prefix: "GroupB:" });
+  const unfiltered = await client.getAllValues({ prefix: "" });
+
+  assert.deepEqual(first, groupA);
+  assert.deepEqual(samePrefixDifferentCase, groupA);
+  assert.deepEqual(otherPrefix, groupB);
+  assert.deepEqual(unfiltered, { ...groupA, ...groupB });
+  assert.equal(calls[0].url, "https://nona.test/api/production?prefix=GroupA%3A");
+  assert.equal(calls[1].url, "https://nona.test/api/production?prefix=groupa%3A");
+  assert.equal(calls[1].headers.get("If-None-Match"), '"group-a"');
+  assert.equal(calls[2].headers.get("If-None-Match"), null);
+  assert.equal(calls[3].url, "https://nona.test/api/production");
+});
+
+test("prefixed bulk reads prime only returned single-key values", async () => {
+  const calls = [];
+  const client = createNonaClient("https://nona.test", {
+    environmentId: "production",
+    apiKey: "api-key",
+    fetch: async (url, init) => {
+      calls.push(capture(url, init));
+      if (new URL(url).searchParams.has("prefix")) {
+        return new Response(JSON.stringify({
+          "GroupA:One": { value: "1", contentType: "number" }
+        }), {
+          status: 200,
+          headers: { "Content-Type": "application/json", ETag: '"group-a"' }
+        });
+      }
+
+      return configValueResponse("2", "number");
+    }
+  });
+
+  await client.getAllValues({ prefix: "GroupA:" });
+  assert.equal((await client.getConfigValue("GroupA:One")).value, "1");
+  assert.equal((await client.getConfigValue("GroupB:One")).value, "2");
+  assert.equal(calls.length, 2);
+});
+
 test("getAllValues isolates cached values from caller mutation", async () => {
   const calls = [];
   const flags = { banner: { value: "hello", contentType: "text" } };
@@ -355,4 +429,23 @@ test("getAllValues supports a release selector", async () => {
   await client.getAllValues();
 
   assert.equal(calls[0].url, "https://nona.test/api/production?version=1.1.x");
+});
+
+test("getAllValues combines release and prefix selectors", async () => {
+  const calls = [];
+  const client = createNonaClient("https://nona.test", {
+    environmentId: "production",
+    apiKey: "api-key",
+    fetch: async (url, init) => {
+      calls.push(capture(url, init));
+      return jsonResponse({});
+    }
+  });
+
+  await client.getAllValues({ releaseVersion: "1.2.3", prefix: "GroupA:" });
+
+  assert.equal(
+    calls[0].url,
+    "https://nona.test/api/production?version=1.2.3&prefix=GroupA%3A"
+  );
 });

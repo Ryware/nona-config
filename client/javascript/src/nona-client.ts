@@ -14,6 +14,7 @@ import type {
   NonaClientOptions,
   NonaConfigValues,
   NonaConfigValue,
+  NonaGetAllValuesOptions,
   NonaRequestOptions,
 } from "./types.js";
 
@@ -30,7 +31,7 @@ export interface NonaClient {
     key: string,
     options?: NonaRequestOptions,
   ): Promise<NonaConfigValue>;
-  getAllValues(options?: NonaRequestOptions): Promise<NonaConfigValues>;
+  getAllValues(options?: NonaGetAllValuesOptions): Promise<NonaConfigValues>;
   tryGetConfigValue(
     key: string,
     options?: NonaRequestOptions,
@@ -90,15 +91,22 @@ export function createNonaClient(
     return `${path}?${search.toString()}`;
   }
 
-  function allConfigValuesPath(releaseVersion: string | undefined): string {
+  function allConfigValuesPath(
+    releaseVersion: string | undefined,
+    prefix: string | undefined,
+  ): string {
     const path = `api/${environmentSegment}`;
-    if (!releaseVersion) {
-      return path;
+    const search = new URLSearchParams();
+    if (releaseVersion) {
+      search.set("version", releaseVersion);
     }
 
-    const search = new URLSearchParams();
-    search.set("version", releaseVersion);
-    return `${path}?${search.toString()}`;
+    if (prefix) {
+      search.set("prefix", prefix);
+    }
+
+    const query = search.toString();
+    return query ? `${path}?${query}` : path;
   }
 
   function configValueRequestId(
@@ -180,12 +188,16 @@ export function createNonaClient(
       return inFlight;
     },
     async getAllValues(
-      requestOptions: NonaRequestOptions = {},
+      requestOptions: NonaGetAllValuesOptions = {},
     ): Promise<NonaConfigValues> {
       const releaseVersion =
         requestOptions.releaseVersion ?? defaultReleaseVersion;
-      const path = allConfigValuesPath(releaseVersion);
-      const id = buildRequestKey(baseUrl, "GET", path, apiKey);
+      const path = allConfigValuesPath(releaseVersion, requestOptions.prefix);
+      const identityPath = allConfigValuesPath(
+        releaseVersion,
+        normalizePrefix(requestOptions.prefix),
+      );
+      const id = buildRequestKey(baseUrl, "GET", identityPath, apiKey);
 
       const pending = pendingBulkRequests.get(id);
       if (pending) {
@@ -293,5 +305,9 @@ export function createNonaClient(
     }
 
     return valueRequestIds;
+  }
+
+  function normalizePrefix(prefix: string | undefined): string | undefined {
+    return prefix ? prefix.toUpperCase() : undefined;
   }
 }
