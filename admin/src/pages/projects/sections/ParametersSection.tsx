@@ -109,6 +109,8 @@ export default function ParametersSection() {
 
   const isViewingReleaseSnapshot = () => !!viewedReleaseVersion();
   const isAmendMode = () => !!amendSourceVersion();
+  const isDefaultParametersView = () =>
+    !releaseDraftVersion() && !viewedReleaseVersion() && !amendSourceVersion();
 
   const {
     projectsQuery,
@@ -167,7 +169,7 @@ export default function ParametersSection() {
       !!project() &&
       !!activeEnvName() &&
       !!shareLinksQueryKey() &&
-      !isViewingReleaseSnapshot(),
+      isDefaultParametersView(),
     staleTime: 60_000
   }));
 
@@ -409,7 +411,19 @@ export default function ParametersSection() {
     }, [CREATE_PARAMETER_DRAFT, EDIT_PARAMETER_DRAFT]);
   };
 
+  const closeShareDialog = () => {
+    setSharingEntry(null);
+    setShareLinksQueryKey("");
+    setGeneratedShareUrl(null);
+  };
+
+  createEffect(on(isDefaultParametersView, isDefaultView => {
+    if (!isDefaultView) closeShareDialog();
+  }));
+
   const handleOpenShareDialog = (entry: ConfigEntry) => {
+    if (!isDefaultParametersView()) return;
+
     setSharingEntry(entry);
     setShareLinksQueryKey("");
     setGeneratedShareUrl(null);
@@ -495,6 +509,10 @@ export default function ParametersSection() {
 
   const createShareLinkMutation = useMutation(() => ({
     mutationFn: (data: CreateParameterShareLinkRequest) => {
+      if (!isDefaultParametersView()) {
+        throw new Error("Share links can only be created from the default Parameters view");
+      }
+
       const entry = sharingEntry();
       if (!entry) {
         throw new Error("No parameter selected");
@@ -517,6 +535,10 @@ export default function ParametersSection() {
 
   const revokeShareLinkMutation = useMutation(() => ({
     mutationFn: (shareLinkId: number) => {
+      if (!isDefaultParametersView()) {
+        throw new Error("Share links can only be managed from the default Parameters view");
+      }
+
       const entry = sharingEntry();
       if (!entry) {
         throw new Error("No parameter selected");
@@ -626,7 +648,6 @@ export default function ParametersSection() {
             sourceVersion={amendSourceVersion()!}
             targetVersion={releaseDraftVersion() ?? ""}
             sourceEntries={amendSourceQuery.data?.entries ?? []}
-            liveEntries={configQuery.data ?? []}
             isLoading={amendSourceQuery.isLoading}
             isPublishing={publishReleaseMutation.isPending}
             onPublish={(environmentName, entries) =>
@@ -640,7 +661,6 @@ export default function ParametersSection() {
               })
             }
             onCancel={() => navigate(`/projects/${params.slug}/releases`)}
-            onShareEntry={handleOpenShareDialog}
           />
         </Show>
 
@@ -777,13 +797,12 @@ export default function ParametersSection() {
               !!editingEntry()
               && canManageProject()
               && !showConfigForm()
-              && (!isViewingReleaseSnapshot()
-                || (configQuery.data ?? []).some(entry => entry.key === editingEntry()?.key))
+              && isDefaultParametersView()
             }
             shareDisabledReason={
               !canManageProject()
                 ? "You do not have permission to create share links."
-                : "This draft or release-only parameter does not exist in the live environment."
+                : "Share links are available only for default parameters."
             }
             onRequestClose={() => {
               const blocker = showConfigForm() ? CREATE_PARAMETER_DRAFT : EDIT_PARAMETER_DRAFT;
@@ -799,12 +818,12 @@ export default function ParametersSection() {
             onSave={handlePanelSave}
             onHistoryOpen={key => setEditHistoryQueryKey(key)}
             onHistoryAction={restoreVersion}
-            onShare={handleOpenShareDialog}
+            onShare={isDefaultParametersView() ? handleOpenShareDialog : undefined}
           />
         </Show>
 
         <ParameterShareDialog
-          entry={sharingEntry()}
+          entry={isDefaultParametersView() ? sharingEntry() : null}
           shareLinks={
             parameterShareLinksQuery.status === "success"
               ? (parameterShareLinksQuery.data ?? [])
@@ -815,9 +834,7 @@ export default function ParametersSection() {
           isCreating={createShareLinkMutation.isPending}
           revokingId={revokingShareLinkId()}
           onClose={() => {
-            setSharingEntry(null);
-            setShareLinksQueryKey("");
-            setGeneratedShareUrl(null);
+            closeShareDialog();
           }}
           onCreate={data => createShareLinkMutation.mutate(data)}
           onRevoke={shareLinkId => {

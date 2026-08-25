@@ -102,4 +102,32 @@ public class CreateParameterShareLinkCommandTests
             Arg.Any<ParameterShareLink>(),
             Arg.Any<CancellationToken>());
     }
+
+    [Test]
+    public async Task CreateShareLink_RejectsKeyWithoutDefaultParameter()
+    {
+        var fixture = new TestFixture();
+        fixture.SetupAsSystemAdmin();
+        fixture.SetupProjectExists(ProjectName);
+        fixture.SetupEnvironmentExists(ProjectName, EnvironmentName);
+
+        var shareLinkRepository = Substitute.For<IParameterShareLinkRepository>();
+        var handler = new CreateParameterShareLinkCommandHandler(
+            fixture.ProjectRepository,
+            fixture.EnvironmentRepository,
+            fixture.ConfigEntryRepository,
+            shareLinkRepository,
+            fixture.ProjectAccessService,
+            fixture.DateTime);
+
+        var result = await handler.Handle(
+            new CreateParameterShareLinkCommand(ProjectName, EnvironmentName, ConfigKey, null, true),
+            CancellationToken.None);
+
+        await Assert.That(result.Success).IsFalse();
+        await Assert.That(result.Error).IsEqualTo("Config entry not found");
+        await shareLinkRepository.DidNotReceive().AddAsync(
+            Arg.Any<ParameterShareLink>(),
+            Arg.Any<CancellationToken>());
+    }
 }

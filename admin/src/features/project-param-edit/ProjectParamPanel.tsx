@@ -41,14 +41,14 @@ interface ProjectParamPanelProps {
   historyVersions: ConfigEntryVersion[];
   isHistoryLoading: boolean;
   isHistoryActionPending: boolean;
-  shareEnabled: boolean;
+  shareEnabled?: boolean;
   shareDisabledReason?: string;
   onRequestClose: () => void;
   onDirtyChange: (dirty: boolean) => void;
   onSave: (data: ParameterPanelSaveData) => Promise<ConfigEntry | void>;
   onHistoryOpen: (key: string) => void;
   onHistoryAction: (version: ConfigEntryVersion) => Promise<ConfigEntry | void> | void;
-  onShare: (entry: ConfigEntry) => void;
+  onShare?: (entry: ConfigEntry) => void;
 }
 
 function formatJson(value: string) {
@@ -245,14 +245,14 @@ export function ProjectParamPanel(props: ProjectParamPanelProps) {
               </Dialog.Description>
             </div>
             <div class="flex shrink-0 items-center gap-2">
-              <Show when={props.mode !== "create" && props.entry}>
+              <Show when={props.mode !== "create" && props.entry && props.onShare ? props.entry : null}>
                 {entry => (
                   <span title={props.shareEnabled ? undefined : props.shareDisabledReason}>
                     <button
                       type="button"
                       data-testid="parameter-panel-share-button"
                       disabled={!props.shareEnabled}
-                      onClick={() => props.onShare(entry())}
+                      onClick={() => props.onShare?.(entry())}
                       aria-label="Share parameter"
                       aria-describedby={!props.shareEnabled ? "parameter-share-disabled-reason" : undefined}
                       class="bg-surface-container-high text-on-surface hover:bg-surface-bright inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border-0 px-3 text-[13px] font-semibold disabled:cursor-not-allowed disabled:opacity-45"
@@ -276,7 +276,7 @@ export function ProjectParamPanel(props: ProjectParamPanelProps) {
             </div>
           </header>
 
-          <Show when={!props.shareEnabled && props.shareDisabledReason && props.mode !== "create"}>
+          <Show when={props.onShare && !props.shareEnabled && props.shareDisabledReason && props.mode !== "create"}>
             <p id="parameter-share-disabled-reason" class="text-outline px-4 pt-2 text-right text-[11px] sm:px-6">
               {props.shareDisabledReason}
             </p>

@@ -119,6 +119,13 @@ export function ParameterShareDialog(props: ParameterShareDialogProps) {
             </div>
 
             <div class="flex-1 space-y-5 overflow-y-auto pr-1">
+              <p
+                data-testid="parameter-share-default-note"
+                class="border-primary/20 bg-primary/5 text-on-surface-variant rounded-xl border px-3 py-2.5 text-[13px] leading-relaxed"
+              >
+                Shared links target this default parameter only. Active and historical releases remain unchanged.
+              </p>
+
               <div class="grid gap-3 sm:grid-cols-2">
                 <div class="space-y-2">
                   <TooltipLabel class="mb-0" content={tooltipCopy.shareExpiration}>Expiration</TooltipLabel>

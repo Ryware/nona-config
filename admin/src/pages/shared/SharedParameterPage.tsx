@@ -161,6 +161,13 @@ export default function SharedParameterPage() {
                 </div>
 
                 <div class="space-y-4">
+                  <p
+                    data-testid="shared-parameter-default-note"
+                    class="border-primary/20 bg-primary/5 text-on-surface-variant rounded-xl border px-3 py-2.5 text-[13px] leading-relaxed"
+                  >
+                    This link targets the default parameter only. Active and historical releases remain unchanged.
+                  </p>
+
                   <div class="space-y-2">
                     <Label class="mb-0">Current value</Label>
                     <Show

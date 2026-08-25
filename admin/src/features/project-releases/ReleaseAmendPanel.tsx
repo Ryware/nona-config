@@ -59,12 +59,10 @@ interface ReleaseAmendPanelProps {
   sourceVersion: string;
   targetVersion: string;
   sourceEntries: ConfigReleaseEntry[];
-  liveEntries: ConfigEntry[];
   isLoading: boolean;
   isPublishing: boolean;
   onPublish: (environmentName: string, entries: ConfigReleaseEntry[]) => void;
   onCancel: () => void;
-  onShareEntry: (entry: ConfigEntry) => void;
 }
 
 /** Keeps all amendments isolated in a client-side release buffer until publish. */
@@ -288,16 +286,11 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
         historyVersions={historyQuery.data ?? []}
         isHistoryLoading={historyQuery.isLoading}
         isHistoryActionPending={false}
-        shareEnabled={
-          !!selectedEntry() && props.liveEntries.some(entry => entry.key === selectedEntry()?.key)
-        }
-        shareDisabledReason="This draft or release-only parameter does not exist in the live environment."
         onRequestClose={() => requestAction(closePanel, [RELEASE_AMEND_PANEL_DRAFT])}
         onDirtyChange={setPanelDirty}
         onSave={savePanel}
         onHistoryOpen={setHistoryKey}
         onHistoryAction={useHistoryVersion}
-        onShare={props.onShareEntry}
       />
 
       <ConfirmDialog
