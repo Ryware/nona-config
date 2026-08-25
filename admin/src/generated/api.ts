@@ -1665,7 +1665,9 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    prefix?: string;
+                };
                 header?: never;
                 path: {
                     projectId: string;
@@ -1682,6 +1684,15 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["ConfigEntryDto"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
                     };
                 };
                 /** @description Client Error */
@@ -2819,6 +2830,7 @@ export interface paths {
             parameters: {
                 query?: {
                     version?: string;
+                    prefix?: string;
                 };
                 header?: never;
                 path: {
