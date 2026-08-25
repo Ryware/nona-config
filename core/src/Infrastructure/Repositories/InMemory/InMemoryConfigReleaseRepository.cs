@@ -110,6 +110,15 @@ public class InMemoryConfigReleaseRepository : IConfigReleaseRepository
         string version,
         KeyScope requiredScope,
         CancellationToken ct = default)
+        => ListEntriesAsync(projectName, environmentName, version, requiredScope, prefix: null, ct);
+
+    public Task<IReadOnlyList<ConfigReleaseEntry>> ListEntriesAsync(
+        string projectName,
+        string environmentName,
+        string version,
+        KeyScope requiredScope,
+        string? prefix,
+        CancellationToken ct = default)
     {
         if (!_releases.TryGetValue(GetKey(projectName, environmentName, version), out var storedRelease))
         {
@@ -117,7 +126,10 @@ public class InMemoryConfigReleaseRepository : IConfigReleaseRepository
         }
 
         var entries = storedRelease.Release.Entries
-            .Where(entry => (entry.Scope & requiredScope) != 0)
+            .Where(entry => (entry.Scope & requiredScope) != 0
+                         && (string.IsNullOrEmpty(prefix)
+                             || entry.Key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)))
+            .OrderBy(entry => entry.Key, StringComparer.Ordinal)
             .ToList();
         return Task.FromResult<IReadOnlyList<ConfigReleaseEntry>>(entries);
     }

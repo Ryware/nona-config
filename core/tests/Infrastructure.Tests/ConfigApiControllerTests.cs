@@ -61,6 +61,7 @@ public class ConfigApiEndpointTests
         var result = await NonaEndpointRouteBuilderExtensions.GetAllConfigValuesAsync(
             "production",
             null,
+            null,
             httpContext,
             mediator,
             CancellationToken.None);
@@ -93,6 +94,7 @@ public class ConfigApiEndpointTests
         var result = await NonaEndpointRouteBuilderExtensions.GetAllConfigValuesAsync(
             "production",
             null,
+            null,
             httpContext,
             mediator,
             CancellationToken.None);
@@ -114,6 +116,7 @@ public class ConfigApiEndpointTests
 
         var result = await NonaEndpointRouteBuilderExtensions.GetAllConfigValuesAsync(
             "production",
+            null,
             null,
             httpContext,
             mediator,

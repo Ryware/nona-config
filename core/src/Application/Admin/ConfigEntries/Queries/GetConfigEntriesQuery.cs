@@ -7,7 +7,10 @@ using Nona.Domain.Interfaces;
 
 namespace Nona.Application.Admin.ConfigEntries.Queries;
 
-public record GetConfigEntriesQuery(string ProjectId, string EnvironmentName) : IRequest<GetConfigEntriesResult>;
+public record GetConfigEntriesQuery(
+    string ProjectId,
+    string EnvironmentName,
+    string? Prefix = null) : IRequest<GetConfigEntriesResult>;
 
 public record GetConfigEntriesResult(bool Success, List<ConfigEntryDto>? ConfigEntries, string? Error);
 
@@ -31,7 +34,13 @@ public class GetConfigEntriesQueryHandler(
         if (!await environmentRepository.ExistsAsync(projectName, request.EnvironmentName, cancellationToken))
             return new GetConfigEntriesResult(false, null, "Environment not found");
 
-        var configEntries = await configEntryRepository.ListAsync(projectName, request.EnvironmentName, cancellationToken);
+        var configEntries = string.IsNullOrEmpty(request.Prefix)
+            ? await configEntryRepository.ListAsync(projectName, request.EnvironmentName, cancellationToken)
+            : await configEntryRepository.ListAsync(
+                projectName,
+                request.EnvironmentName,
+                request.Prefix,
+                cancellationToken);
 
         var dtos = configEntries.Select(ConfigEntryMapping.ToDto).ToList();
 

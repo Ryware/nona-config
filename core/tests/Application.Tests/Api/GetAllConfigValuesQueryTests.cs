@@ -127,6 +127,99 @@ public class GetAllConfigValuesQueryTests
     }
 
     [Test]
+    public async Task WorkingFallback_PrefixesFilterAndHaveIndependentCaseInsensitiveEtags()
+    {
+        SetupApiKey(KeyScope.Frontend);
+        _environmentRepository.GetAsync(ProjectName, EnvironmentName, Arg.Any<CancellationToken>())
+            .Returns(new ProjectEnvironment
+            {
+                Project = ProjectName,
+                Name = EnvironmentName,
+                ActiveReleaseVersion = null
+            });
+        var groupA = new[]
+        {
+            WorkingEntry("GroupA:One", "1", "number", KeyScope.Frontend),
+            WorkingEntry("groupa:Two", "2", "number", KeyScope.Frontend)
+        };
+        var groupB = new[]
+        {
+            WorkingEntry("GroupB:One", "3", "number", KeyScope.Frontend)
+        };
+        _configEntryRepository.ListAsync(
+                ProjectName,
+                EnvironmentName,
+                Arg.Any<CancellationToken>())
+            .Returns([.. groupA, .. groupB]);
+        _configEntryRepository.ListAsync(
+                ProjectName,
+                EnvironmentName,
+                "GroupA:",
+                Arg.Any<CancellationToken>())
+            .Returns(groupA);
+        _configEntryRepository.ListAsync(
+                ProjectName,
+                EnvironmentName,
+                "groupa:",
+                Arg.Any<CancellationToken>())
+            .Returns(groupA);
+        _configEntryRepository.ListAsync(
+                ProjectName,
+                EnvironmentName,
+                "GroupB:",
+                Arg.Any<CancellationToken>())
+            .Returns(groupB);
+        _configEntryRepository.ListAsync(
+                ProjectName,
+                EnvironmentName,
+                Arg.Is<string>(prefix => prefix.StartsWith("Missing", StringComparison.Ordinal)),
+                Arg.Any<CancellationToken>())
+            .Returns([]);
+
+        var unfiltered = await CreateHandler().Handle(
+            new GetAllConfigValuesQuery(EnvironmentName),
+            CancellationToken.None);
+        var empty = await CreateHandler().Handle(
+            new GetAllConfigValuesQuery(EnvironmentName, Prefix: string.Empty),
+            CancellationToken.None);
+        var first = await CreateHandler().Handle(
+            new GetAllConfigValuesQuery(EnvironmentName, Prefix: "GroupA:"),
+            CancellationToken.None);
+        var samePrefixDifferentCase = await CreateHandler().Handle(
+            new GetAllConfigValuesQuery(EnvironmentName, Prefix: "groupa:"),
+            CancellationToken.None);
+        var otherPrefix = await CreateHandler().Handle(
+            new GetAllConfigValuesQuery(
+                EnvironmentName,
+                Prefix: "GroupB:",
+                IfNoneMatch: first.Etag),
+            CancellationToken.None);
+        var missingA = await CreateHandler().Handle(
+            new GetAllConfigValuesQuery(EnvironmentName, Prefix: "MissingA:"),
+            CancellationToken.None);
+        var missingB = await CreateHandler().Handle(
+            new GetAllConfigValuesQuery(EnvironmentName, Prefix: "MissingB:"),
+            CancellationToken.None);
+        var notModified = await CreateHandler().Handle(
+            new GetAllConfigValuesQuery(
+                EnvironmentName,
+                Prefix: "groupa:",
+                IfNoneMatch: first.Etag),
+            CancellationToken.None);
+
+        await Assert.That(first.Values!.Keys).IsEquivalentTo(["GroupA:One", "groupa:Two"]);
+        await Assert.That(first.Etag).IsEqualTo(samePrefixDifferentCase.Etag);
+        await Assert.That(first.Etag).IsNotEqualTo(unfiltered.Etag);
+        await Assert.That(unfiltered.Etag).IsEqualTo(empty.Etag);
+        await Assert.That(otherPrefix.NotModified).IsFalse();
+        await Assert.That(otherPrefix.Etag).IsNotEqualTo(first.Etag);
+        await Assert.That(missingA.Values!).IsEmpty();
+        await Assert.That(missingA.Etag).IsNotEqualTo(missingB.Etag);
+        await Assert.That(notModified.NotModified).IsTrue();
+        await Assert.That(notModified.Values is null).IsTrue();
+    }
+
+    [Test]
     public async Task ClientKey_ReturnsClientVisibleEntriesAndExcludesServerEntries()
     {
         SetupApiKey(KeyScope.Frontend);
@@ -249,6 +342,47 @@ public class GetAllConfigValuesQueryTests
             Arg.Any<string>(),
             Arg.Any<string>(),
             Arg.Any<KeyScope>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Test]
+    public async Task ReleasePrefix_MatchingCaseVariantEtagAvoidsLoadingEntries()
+    {
+        SetupApiKey(KeyScope.Frontend);
+        SetupRelease();
+        var entries = new[]
+        {
+            Entry("GroupA:One", "true", "boolean", KeyScope.Frontend)
+        };
+        _configReleaseRepository.ListEntriesAsync(
+                ProjectName,
+                EnvironmentName,
+                "1.0.0",
+                KeyScope.Frontend,
+                "GroupA:",
+                Arg.Any<CancellationToken>())
+            .Returns(entries);
+
+        var first = await CreateHandler().Handle(
+            new GetAllConfigValuesQuery(EnvironmentName, Prefix: "GroupA:"),
+            CancellationToken.None);
+        _configReleaseRepository.ClearReceivedCalls();
+
+        var second = await CreateHandler().Handle(
+            new GetAllConfigValuesQuery(
+                EnvironmentName,
+                Prefix: "groupa:",
+                IfNoneMatch: first.Etag),
+            CancellationToken.None);
+
+        await Assert.That(second.NotModified).IsTrue();
+        await Assert.That(second.Etag).IsEqualTo(first.Etag);
+        await _configReleaseRepository.DidNotReceive().ListEntriesAsync(
+            Arg.Any<string>(),
+            Arg.Any<string>(),
+            Arg.Any<string>(),
+            Arg.Any<KeyScope>(),
+            Arg.Any<string?>(),
             Arg.Any<CancellationToken>());
     }
 

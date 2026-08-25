@@ -116,6 +116,58 @@ public class InMemoryConfigReleaseRepositoryTests
     }
 
     [Test]
+    public async Task ListEntriesAsync_FiltersByLiteralCaseInsensitivePrefix()
+    {
+        var repository = new InMemoryConfigReleaseRepository();
+        var original = CreateRelease("1.1.0", "false", patch: 0);
+        var release = new ConfigRelease
+        {
+            Project = original.Project,
+            Environment = original.Environment,
+            Version = original.Version,
+            Major = original.Major,
+            Minor = original.Minor,
+            Patch = original.Patch,
+            CreatedAt = original.CreatedAt,
+            Actor = original.Actor,
+            Entries =
+            [
+                original.Entries[0],
+                new ConfigReleaseEntry
+                {
+                    Project = original.Project,
+                    Environment = original.Environment,
+                    ReleaseVersion = original.Version,
+                    Key = "Feature_Extra",
+                    Value = "true",
+                    Scope = KeyScope.Frontend
+                },
+                new ConfigReleaseEntry
+                {
+                    Project = original.Project,
+                    Environment = original.Environment,
+                    ReleaseVersion = original.Version,
+                    Key = "Other:Value",
+                    Value = "true",
+                    Scope = KeyScope.Frontend
+                }
+            ],
+            EntryCount = 3
+        };
+        await repository.AddAsync(release);
+
+        var entries = await repository.ListEntriesAsync(
+            "test-project",
+            "production",
+            "1.1.0",
+            KeyScope.Frontend,
+            "FEATURE_");
+
+        await Assert.That(entries).Count().IsEqualTo(1);
+        await Assert.That(entries[0].Key).IsEqualTo("Feature_Extra");
+    }
+
+    [Test]
     public async Task GetEntryAsync_ResolvesExactAndLatestEntriesByKeyAndScope()
     {
         var repository = new InMemoryConfigReleaseRepository();

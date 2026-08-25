@@ -57,10 +57,20 @@ public class InMemoryConfigEntryRepository : IConfigEntryRepository
     }
 
     public Task<IReadOnlyList<ConfigEntry>> ListAsync(string projectName, string environmentName, CancellationToken ct = default)
+        => ListAsync(projectName, environmentName, prefix: null, ct);
+
+    public Task<IReadOnlyList<ConfigEntry>> ListAsync(
+        string projectName,
+        string environmentName,
+        string? prefix,
+        CancellationToken ct = default)
     {
         var entries = _entries.Values
             .Where(e => e.Project.Equals(projectName, StringComparison.OrdinalIgnoreCase)
-                     && e.Environment.Equals(environmentName, StringComparison.OrdinalIgnoreCase))
+                     && e.Environment.Equals(environmentName, StringComparison.OrdinalIgnoreCase)
+                     && (string.IsNullOrEmpty(prefix)
+                         || e.Key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)))
+            .OrderBy(e => e.Key, StringComparer.Ordinal)
             .ToList();
         return Task.FromResult<IReadOnlyList<ConfigEntry>>(entries);
     }

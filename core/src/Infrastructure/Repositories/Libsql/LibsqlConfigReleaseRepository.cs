@@ -279,11 +279,20 @@ public sealed class LibsqlConfigReleaseRepository : IConfigReleaseRepository
         return result.Rows.Select(row => MapRelease(row, [])).ToList();
     }
 
+    public Task<IReadOnlyList<ConfigReleaseEntry>> ListEntriesAsync(
+        string projectName,
+        string environmentName,
+        string version,
+        KeyScope requiredScope,
+        CancellationToken ct = default)
+        => ListEntriesAsync(projectName, environmentName, version, requiredScope, prefix: null, ct);
+
     public async Task<IReadOnlyList<ConfigReleaseEntry>> ListEntriesAsync(
         string projectName,
         string environmentName,
         string version,
         KeyScope requiredScope,
+        string? prefix,
         CancellationToken ct = default)
     {
         var result = await _client.ExecuteAsync(
@@ -294,13 +303,15 @@ public sealed class LibsqlConfigReleaseRepository : IConfigReleaseRepository
               AND Environment = @EnvironmentName COLLATE NOCASE
               AND ReleaseVersion = @Version COLLATE NOCASE
               AND (Scope & @RequiredScope) != 0
+              AND (@Prefix = '' OR substr(Key, 1, length(@Prefix)) = @Prefix COLLATE NOCASE)
             ORDER BY Key
             """,
             LibsqlParameters.Create(
                 ("ProjectName", projectName),
                 ("EnvironmentName", environmentName),
                 ("Version", version),
-                ("RequiredScope", (int)requiredScope)),
+                ("RequiredScope", (int)requiredScope),
+                ("Prefix", prefix ?? string.Empty)),
             ct);
 
         return result.Rows.Select(MapEntry).ToList();

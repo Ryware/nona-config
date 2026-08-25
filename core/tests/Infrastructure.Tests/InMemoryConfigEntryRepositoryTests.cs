@@ -7,6 +7,33 @@ namespace Nona.Infrastructure.Tests;
 public class InMemoryConfigEntryRepositoryTests
 {
     [Test]
+    public async Task ListAsync_FiltersByLiteralCaseInsensitivePrefix()
+    {
+        var repository = new InMemoryConfigEntryRepository();
+        foreach (var key in new[] { "GroupA:One", "groupa:Two", "GroupA_Three", "GroupB:One" })
+        {
+            await repository.AddAsync(new ConfigEntry
+            {
+                Project = "test-project",
+                Environment = "production",
+                Key = key,
+                Value = "true",
+                ContentType = "boolean",
+                Scope = KeyScope.Frontend
+            });
+        }
+
+        var colon = await repository.ListAsync("TEST-PROJECT", "PRODUCTION", "groupa:");
+        var underscore = await repository.ListAsync("test-project", "production", "GroupA_");
+        var unfiltered = await repository.ListAsync("test-project", "production", string.Empty);
+
+        await Assert.That(colon.Select(entry => entry.Key)).IsEquivalentTo(["GroupA:One", "groupa:Two"]);
+        await Assert.That(underscore).Count().IsEqualTo(1);
+        await Assert.That(underscore[0].Key).IsEqualTo("GroupA_Three");
+        await Assert.That(unfiltered).Count().IsEqualTo(4);
+    }
+
+    [Test]
     public async Task AddVersionAsync_RejectsInvalidKey()
     {
         var repository = new InMemoryConfigEntryRepository();

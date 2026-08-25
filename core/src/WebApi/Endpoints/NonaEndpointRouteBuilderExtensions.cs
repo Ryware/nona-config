@@ -952,10 +952,13 @@ public static class NonaEndpointRouteBuilderExtensions
     private static async Task<IResult> GetConfigEntriesAsync(
         string projectId,
         string environmentName,
+        string? prefix,
         IMediator mediator,
         CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(new GetConfigEntriesQuery(projectId, environmentName), cancellationToken);
+        var result = await mediator.Send(
+            new GetConfigEntriesQuery(projectId, environmentName, prefix),
+            cancellationToken);
         return result.Success
             ? Results.Ok(result.ConfigEntries)
             : result.Error == "Access denied"
@@ -1439,6 +1442,7 @@ public static class NonaEndpointRouteBuilderExtensions
     public static async Task<IResult> GetAllConfigValuesAsync(
         string environmentId,
         string? version,
+        string? prefix,
         HttpContext httpContext,
         IMediator mediator,
         CancellationToken cancellationToken)
@@ -1447,6 +1451,7 @@ public static class NonaEndpointRouteBuilderExtensions
             new GetAllConfigValuesQuery(
                 environmentId,
                 version,
+                prefix,
                 httpContext.Request.Headers.IfNoneMatch.ToString()),
             cancellationToken);
         if (!result.Success)
