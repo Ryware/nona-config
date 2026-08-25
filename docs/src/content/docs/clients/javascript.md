@@ -148,7 +148,7 @@ Pass a prefix to load one key group:
 const features = await nona.getAllValues({ prefix: "Features:" });
 ```
 
-Matching is case-insensitive and literal. Empty or omitted prefixes fetch the complete snapshot. Each normalized prefix has an independent ETag snapshot and in-flight request identity, so results from different groups cannot be mixed. Only keys returned by the request are primed for later single-key reads.
+Prefixes may contain ASCII letters, digits, colons, dots, underscores, and dashes, and matching is case-insensitive. Empty or omitted prefixes fetch the complete snapshot. Any other character produces `NonaClientError` with `status === 400`; failed responses are not cached. Each normalized prefix has an independent ETag snapshot and in-flight request identity, so results from different groups cannot be mixed. Only keys returned by the request are primed for later single-key reads.
 
 Call `getAllValues()` again to poll for changes. The client automatically sends the previous ETag; when the server returns `304 Not Modified`, the existing snapshot is reused without downloading the JSON again.
 

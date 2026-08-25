@@ -226,6 +226,8 @@ CLI packages:
 
 Authentication: `X-Api-Key` request header.
 
+Non-empty prefixes may contain only ASCII letters, digits, colons, dots, underscores, and dashes. Invalid prefixes return `400 Bad Request`; an empty prefix is unfiltered.
+
 The API key determines the project. The response body contains the raw stored value, and `X-Nona-Content-Type` tells the client whether the value is `text`, `number`, `boolean`, or `json`.
 
 The API does not accept per-user evaluation context for runtime flag resolution. Query parameters or headers such as `userId` or `X-User-Id` are not part of the Nona read model.

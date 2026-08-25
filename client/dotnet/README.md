@@ -55,7 +55,7 @@ IReadOnlyDictionary<string, NonaConfigValue> releaseGroupA =
     await client.GetAllValuesForReleaseAsync("1.1.0", "GroupA:");
 ```
 
-Prefix matching is literal. Empty and `null` prefixes are unfiltered. Bulk snapshots use independent ETags per release and normalized prefix, prime matching single-key reads, and participate in the shared memory limit.
+Prefixes may contain ASCII letters, digits, colons, dots, underscores, and dashes. Empty and `null` prefixes are unfiltered. Any other character causes `NonaClientException` with `StatusCode == HttpStatusCode.BadRequest`; failed responses are not cached. Bulk snapshots use independent ETags per release and normalized prefix, prime matching single-key reads, and participate in the shared memory limit.
 
 ## Available Methods
 

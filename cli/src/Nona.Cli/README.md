@@ -96,11 +96,14 @@ Manage config entries:
 
 ```bash
 nona entries list --project mobile-app --environment production --base-url https://nona.example.com --token <token>
+nona entries list --project mobile-app --environment production --prefix Features: --base-url https://nona.example.com --token <token>
 nona entries get --project mobile-app --environment production --key welcome_text --base-url https://nona.example.com --token <token>
 nona entries set --project mobile-app --environment production --key welcome_text --value "Hello" --scope all --content-type text --base-url https://nona.example.com --token <token>
 nona entries history --project mobile-app --environment production --key welcome_text --base-url https://nona.example.com --token <token>
 nona entries rollback --project mobile-app --environment production --key welcome_text --version 2 --base-url https://nona.example.com --token <token>
 ```
+
+Prefixes may contain ASCII letters, digits, colons, dots, underscores, and dashes. An invalid prefix prints the API validation error and exits with code `2`.
 
 Manage immutable releases:
 

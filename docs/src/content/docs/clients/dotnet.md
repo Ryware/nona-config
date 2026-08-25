@@ -150,7 +150,7 @@ IReadOnlyDictionary<string, NonaConfigValue> releaseFeatures =
     await client.GetAllValuesForReleaseAsync("1.1.0", "Features:");
 ```
 
-Prefix matching is case-insensitive and literal. Pass `null` or an empty string for an unfiltered snapshot. Bulk reads cache an ETag independently for each release and normalized prefix, reuse the snapshot after `304 Not Modified`, and prime single-key reads only for returned keys. The snapshots share the configured memory/LRU budget and returned dictionaries are defensive copies.
+Prefixes may contain ASCII letters, digits, colons, dots, underscores, and dashes, and matching is case-insensitive. Pass `null` or an empty string for an unfiltered snapshot. Any other character produces `NonaClientException` with `StatusCode == HttpStatusCode.BadRequest`; failed responses are not cached. Bulk reads cache an ETag independently for each release and normalized prefix, reuse the snapshot after `304 Not Modified`, and prime single-key reads only for returned keys. The snapshots share the configured memory/LRU budget and returned dictionaries are defensive copies.
 
 ## Available methods
 

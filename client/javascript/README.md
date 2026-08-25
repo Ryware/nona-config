@@ -95,13 +95,13 @@ const banner = await nona.tryGetConfigValue("App:Banner");
 
 `values` is a map of `{ key: { value, contentType } }`. The reads after `getAllValues()` are served from the in-memory snapshot even when `cacheTtlMs` is not enabled, so six startup flags require one HTTP request.
 
-Pass an optional prefix to fetch one key group. Matching is case-insensitive and literal, so punctuation such as `:` and `%` is not treated as a wildcard:
+Pass an optional prefix to fetch one key group. Matching is case-insensitive, and a prefix may contain ASCII letters, digits, colons, dots, underscores, and dashes:
 
 ```js
 const groupA = await nona.getAllValues({ prefix: "GroupA:" });
 ```
 
-Omitting `prefix` or passing an empty string fetches all values. Each prefix has an independent ETag-backed snapshot; prefix casing variants such as `GroupA:` and `groupa:` share the same cache identity.
+Omitting `prefix` or passing an empty string fetches all values. Each prefix has an independent ETag-backed snapshot; prefix casing variants such as `GroupA:` and `groupa:` share the same cache identity. Any other character causes the server to return `400 Bad Request`; the client throws `NonaClientError` with `status === 400`, and the failed response is not cached.
 
 The bulk endpoint accepts `client` and `all` API keys. It includes client-visible (`client` and `all`) entries and never returns server-only entries.
 

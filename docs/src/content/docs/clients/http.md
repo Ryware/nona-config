@@ -106,7 +106,7 @@ curl -i "https://nona.example.com/api/production?prefix=GroupA%3A" \
   -H "X-Api-Key: $NONA_API_KEY"
 ```
 
-Prefix matching is case-insensitive and literal: `GroupA:` also matches `groupa:Flag`, while `_` and `%` are ordinary characters rather than wildcards. Omit `prefix`, or pass an empty value, for the complete snapshot. Whitespace is not trimmed. A prefix with no matches returns `200` with `{}` and a valid prefix-specific ETag. `prefix` can be combined with `version`.
+Prefix matching is case-insensitive: `GroupA:` also matches `groupa:Flag`. A non-empty prefix may contain only ASCII letters, digits, colons, dots, underscores, and dashes; it remains a fragment, so a trailing colon is valid. Any other character returns `400 Bad Request` with Problem Details before entries or ETags are evaluated. Omit `prefix`, or pass an empty value, for the complete snapshot. A valid prefix with no matches returns `200` with `{}` and a valid prefix-specific ETag. `prefix` can be combined with `version`.
 
 ### Conditional polling with ETag
 
