@@ -138,8 +138,24 @@ var value = await client.GetConfigValueForReleaseAsync("Features:Checkout", "1.1
 
 The named per-request selector takes precedence over `NonaClientOptions.ReleaseVersion`.
 
+## Fetch all values or a prefix group
+
+Fetch every readable value at startup, or restrict the snapshot to keys that begin with a prefix:
+
+```csharp
+IReadOnlyDictionary<string, NonaConfigValue> all = await client.GetAllValuesAsync();
+IReadOnlyDictionary<string, NonaConfigValue> features =
+    await client.GetAllValuesAsync("Features:");
+IReadOnlyDictionary<string, NonaConfigValue> releaseFeatures =
+    await client.GetAllValuesForReleaseAsync("1.1.0", "Features:");
+```
+
+Prefix matching is case-insensitive and literal. Pass `null` or an empty string for an unfiltered snapshot. Bulk reads cache an ETag independently for each release and normalized prefix, reuse the snapshot after `304 Not Modified`, and prime single-key reads only for returned keys. The snapshots share the configured memory/LRU budget and returned dictionaries are defensive copies.
+
 ## Available methods
 
+- `GetAllValuesAsync(string? prefix = null, CancellationToken cancellationToken = default)`
+- `GetAllValuesForReleaseAsync(string releaseVersion, string? prefix = null, CancellationToken cancellationToken = default)`
 - `GetConfigValueAsync(string key, CancellationToken cancellationToken = default)`
 - `GetConfigValueForReleaseAsync(string key, string releaseVersion, CancellationToken cancellationToken = default)`
 - `TryGetConfigValueAsync(string key, CancellationToken cancellationToken = default)`

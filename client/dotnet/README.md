@@ -46,8 +46,21 @@ To select a different release for one request, use the corresponding named relea
 var value = await client.GetConfigValueForReleaseAsync("Features:Checkout", "1.1.0");
 ```
 
+Fetch all client-visible values, or only keys in a case-insensitive prefix group:
+
+```csharp
+IReadOnlyDictionary<string, NonaConfigValue> all = await client.GetAllValuesAsync();
+IReadOnlyDictionary<string, NonaConfigValue> groupA = await client.GetAllValuesAsync("GroupA:");
+IReadOnlyDictionary<string, NonaConfigValue> releaseGroupA =
+    await client.GetAllValuesForReleaseAsync("1.1.0", "GroupA:");
+```
+
+Prefix matching is literal. Empty and `null` prefixes are unfiltered. Bulk snapshots use independent ETags per release and normalized prefix, prime matching single-key reads, and participate in the shared memory limit.
+
 ## Available Methods
 
+- `GetAllValuesAsync(string? prefix = null, CancellationToken cancellationToken = default)`
+- `GetAllValuesForReleaseAsync(string releaseVersion, string? prefix = null, CancellationToken cancellationToken = default)`
 - `GetConfigValueAsync(string key, CancellationToken cancellationToken = default)`
 - `GetConfigValueForReleaseAsync(string key, string releaseVersion, CancellationToken cancellationToken = default)`
 - `TryGetConfigValueAsync(string key, CancellationToken cancellationToken = default)`

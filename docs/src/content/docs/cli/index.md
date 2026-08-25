@@ -159,6 +159,12 @@ nona entries rollback --project mobile-app --environment production --key Featur
 nona entries delete --project mobile-app --environment production --key Features:Checkout
 ```
 
+Filter the list by a case-insensitive, literal key prefix without changing the output format:
+
+```bash
+nona entries list --project mobile-app --environment production --prefix Features:
+```
+
 If you already saved a default project with `nona config set project mobile-app`, the same commands can omit `--project`.
 
 ```bash
