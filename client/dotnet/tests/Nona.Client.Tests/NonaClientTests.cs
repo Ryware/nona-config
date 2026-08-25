@@ -86,6 +86,47 @@ public sealed class NonaClientTests
     }
 
     [Fact]
+    public async Task GetAllValuesAsync_KeepsUnicodePrefixesDistinctAndDoesNotCacheFailures()
+    {
+        const string validationMessage =
+            "Prefix may contain only ASCII letters, digits, colons, dots, underscores, and dashes.";
+        var handler = new StubHttpMessageHandler(request =>
+        {
+            var prefix = Uri.UnescapeDataString(request.RequestUri!.Query.Split('=')[1]);
+            return prefix == "ſ"
+                ? JsonResponse(
+                    $$"""{"title":"Bad Request","status":400,"detail":"{{validationMessage}}"}""",
+                    HttpStatusCode.BadRequest)
+                : BulkValuesResponse(
+                    """{"S:Flag":{"value":"true","contentType":"boolean"}}""",
+                    "\"s\"");
+        });
+        using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://nona.test/") };
+        using var client = new NonaClient(httpClient, new NonaClientOptions
+        {
+            EnvironmentId = "production",
+            ApiKey = "api-key"
+        });
+
+        var invalid = client.GetAllValuesAsync("ſ");
+        var valid = client.GetAllValuesAsync("S");
+
+        var exception = await Assert.ThrowsAsync<NonaClientException>(() => invalid);
+        Assert.Equal(HttpStatusCode.BadRequest, exception.StatusCode);
+        Assert.Equal(validationMessage, exception.Message);
+        Assert.Equal("true", (await valid)["S:Flag"].Value);
+        Assert.Equal(2, handler.Requests.Count);
+        var requests = handler.Requests.ToArray();
+        Assert.Equal("https://nona.test/api/production?prefix=%C5%BF", requests[0].Uri.AbsoluteUri);
+        Assert.Equal("https://nona.test/api/production?prefix=S", requests[1].Uri.AbsoluteUri);
+
+        var retryException = await Assert.ThrowsAsync<NonaClientException>(() =>
+            client.GetAllValuesAsync("ſ"));
+        Assert.Equal(HttpStatusCode.BadRequest, retryException.StatusCode);
+        Assert.Equal(3, handler.Requests.Count);
+    }
+
+    [Fact]
     public async Task PrefixedBulkRead_PrimesOnlyReturnedSingleKeyValues()
     {
         var handler = new StubHttpMessageHandler(request =>

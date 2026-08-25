@@ -66,7 +66,21 @@ public sealed partial class NonaClient
 
     private static string? NormalizePrefix(string? prefix)
     {
-        return string.IsNullOrEmpty(prefix) ? null : prefix!.ToUpperInvariant();
+        if (string.IsNullOrEmpty(prefix))
+        {
+            return null;
+        }
+
+        var normalized = prefix!.ToCharArray();
+        for (var index = 0; index < normalized.Length; index++)
+        {
+            var character = normalized[index];
+            normalized[index] = character is >= 'a' and <= 'z'
+                ? (char)(character - ('a' - 'A'))
+                : character;
+        }
+
+        return new string(normalized);
     }
 
     private static long EstimateCacheEntrySize(string cacheKey, NonaConfigValue value)

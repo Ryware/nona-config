@@ -308,6 +308,18 @@ export function createNonaClient(
   }
 
   function normalizePrefix(prefix: string | undefined): string | undefined {
-    return prefix ? prefix.toUpperCase() : undefined;
+    if (!prefix) {
+      return undefined;
+    }
+
+    let normalized = "";
+    for (let index = 0; index < prefix.length; index += 1) {
+      const code = prefix.charCodeAt(index);
+      normalized += code >= 0x61 && code <= 0x7a
+        ? String.fromCharCode(code - 0x20)
+        : prefix[index];
+    }
+
+    return normalized;
   }
 }
