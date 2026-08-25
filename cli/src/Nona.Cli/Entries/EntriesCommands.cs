@@ -34,19 +34,22 @@ internal sealed class EntriesCommands(CliContext ctx) : ICliCommandGroup
     {
         var handler = new ListEntriesQueryHandler();
         var cmd = new Command("list", "List entries in an environment.");
+        var prefixOpt = new Option<string?>("--prefix", "Return only entries whose keys start with this prefix.");
         cmd.AddOption(baseUrlOpt);
         cmd.AddOption(tokenOpt);
         cmd.AddOption(projectOpt);
         cmd.AddOption(envOpt);
+        cmd.AddOption(prefixOpt);
         cmd.Handler = CommandHandler.Create(async (InvocationContext ic) =>
         {
             var (conn, project) = ResolveConnAndProject(ic, baseUrlOpt, tokenOpt, projectOpt);
             if (conn is null) return;
 
             var environment = CliPrompter.Required(ic.ParseResult.GetValueForOption(envOpt), "Environment");
+            var prefix = ic.ParseResult.GetValueForOption(prefixOpt);
 
             ic.ExitCode = await handler.HandleAsync(
-                new ListEntriesQuery(conn, project!, environment),
+                new ListEntriesQuery(conn, project!, environment, prefix),
                 ic.GetCancellationToken());
         });
         return cmd;

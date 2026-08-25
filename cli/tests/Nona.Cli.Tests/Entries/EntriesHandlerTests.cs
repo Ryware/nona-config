@@ -30,6 +30,28 @@ public sealed class EntriesHandlerTests
     }
 
     [Test]
+    public async Task ListEntriesQueryHandler_ForwardsEncodedPrefix()
+    {
+        Uri? requestedUri = null;
+        var result = await new ListEntriesQueryHandler(() => new HttpClient(
+                new RecordingHandler(request =>
+                {
+                    requestedUri = request.RequestUri;
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = new StringContent("[]", System.Text.Encoding.UTF8, "application/json")
+                    };
+                })))
+            .HandleAsync(
+                new ListEntriesQuery(TestConnection, "my-project", "production", "GroupA:"),
+                CancellationToken.None);
+
+        await Assert.That(result).IsEqualTo(0);
+        await Assert.That(requestedUri).IsNotNull();
+        await Assert.That(requestedUri!.Query).IsEqualTo("?prefix=GroupA%3A");
+    }
+
+    [Test]
     public async Task GetEntryQueryHandler_ReturnsZero_WhenFound()
     {
         var result = await new GetEntryQueryHandler(MockHttp(HttpStatusCode.OK, ConfigEntryJson))
@@ -154,5 +176,13 @@ public sealed class EntriesHandlerTests
             .HandleAsync(new RevokeEntryShareLinkCommand(TestConnection, "my-project", "production", "my.key", 11),
                 CancellationToken.None);
         await Assert.That(result).IsEqualTo(0);
+    }
+
+    private sealed class RecordingHandler(
+        Func<HttpRequestMessage, HttpResponseMessage> handle) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken) => Task.FromResult(handle(request));
     }
 }
