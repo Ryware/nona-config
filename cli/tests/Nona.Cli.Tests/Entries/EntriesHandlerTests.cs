@@ -1,4 +1,8 @@
 using System.Net;
+using System.CommandLine;
+using System.CommandLine.Invocation;
+using System.CommandLine.IO;
+using System.CommandLine.Parsing;
 using Nona.Cli.Entries;
 using Nona.Cli.Entries.Commands;
 using Nona.Cli.Entries.Queries;
@@ -49,6 +53,41 @@ public sealed class EntriesHandlerTests
         await Assert.That(result).IsEqualTo(0);
         await Assert.That(requestedUri).IsNotNull();
         await Assert.That(requestedUri!.Query).IsEqualTo("?prefix=GroupA%3A");
+    }
+
+    [Test]
+    public async Task ListEntriesQueryHandler_InvalidPrefixPrintsValidationErrorAndReturnsTwo()
+    {
+        const string validationMessage =
+            "Prefix may contain only ASCII letters, digits, colons, dots, underscores, and dashes.";
+        var handler = new ListEntriesQueryHandler(MockHttp(
+            HttpStatusCode.BadRequest,
+            $$"""{"title":"Bad Request","status":400,"detail":"{{validationMessage}}"}"""));
+        ApiProblemDetails? exception = null;
+        try
+        {
+            await handler.HandleAsync(
+                new ListEntriesQuery(TestConnection, "my-project", "production", "%"),
+                CancellationToken.None);
+        }
+        catch (ApiProblemDetails caught)
+        {
+            exception = caught;
+        }
+
+        await Assert.That(exception).IsNotNull();
+        var root = new RootCommand();
+        var verboseOption = new Option<bool>("--verbose");
+        root.AddGlobalOption(verboseOption);
+        root.SetHandler((InvocationContext _) => throw exception!);
+        var console = new TestConsole();
+
+        var exitCode = await Program.CreateParser(root, verboseOption).InvokeAsync([], console);
+
+        await Assert.That(exitCode).IsEqualTo(CliExitCodes.ValidationError);
+        await Assert.That(console.Out.ToString()).IsEmpty();
+        await Assert.That(console.Error.ToString()).IsEqualTo(
+            $"Error: {validationMessage} (400){Environment.NewLine}");
     }
 
     [Test]
