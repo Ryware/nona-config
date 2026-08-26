@@ -47,6 +47,11 @@
       <Build Solution="Debug|*" Project="false" />
     </Project>
   </Folder>
+  <Folder Name="/benchmarks/tests/">
+    <Project Path="benchmarks/Tests/Nona.Benchmarks.Tests.csproj">
+      <Build Solution="Debug|*" Project="false" />
+    </Project>
+  </Folder>
   <Folder Name="/cli/" />
   <Folder Name="/cli/src/">
     <Project Path="cli/src/Nona.Cli/Nona.Cli.csproj" />

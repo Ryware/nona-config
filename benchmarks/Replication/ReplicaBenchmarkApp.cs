@@ -15,6 +15,7 @@ public static class ReplicaBenchmarkApp
     private const string EnvironmentName = "medium";
     private const string ApiKey = "BENCH-SCOPED-KEY";
     private const int DatasetRows = 1_000;
+    private const int DefaultConsistencySamples = 100;
 
     public static async Task<int> RunAsync(string[] args)
     {
@@ -256,36 +257,51 @@ public static class ReplicaBenchmarkApp
         ReplicaBenchmarkOptions options,
         CancellationToken cancellationToken)
     {
-        var key = $"REPLICA_LAG_SINGLE_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
-        var now = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture);
-        var insertStarted = Stopwatch.GetTimestamp();
-        await primary.ExecuteAsync(
-            """
-            INSERT OR REPLACE INTO ConfigEntries (Project, Environment, Key, Value, ContentType, Scope, CreatedAt, UpdatedAt)
-            VALUES (@Project, @Environment, @Key, @Value, 'string', 3, @Now, @Now)
-            """,
-            new
-            {
-                Project = ProjectName,
-                Environment = EnvironmentName,
-                Key = key,
-                Value = "single-lag-check",
-                Now = now
-            },
-            cancellationToken);
+        var prefix = $"REPLICA_LAG_SINGLE_{Guid.NewGuid():N}_";
+        var immediateReadsObserved = 0;
+        var totalWriteLatencyMs = 0d;
 
-        var immediate = await CountByKeyAsync(replica, key, cancellationToken);
+        for (var index = 1; index <= options.ConsistencySamples; index++)
+        {
+            var key = $"{prefix}{index:D4}";
+            var writeStarted = Stopwatch.GetTimestamp();
+            await primary.ExecuteAsync(
+                """
+                INSERT OR REPLACE INTO ConfigEntries (Project, Environment, Key, Value, ContentType, Scope, CreatedAt, UpdatedAt)
+                VALUES (@Project, @Environment, @Key, @Value, 'string', 3, @Now, @Now)
+                """,
+                new
+                {
+                    Project = ProjectName,
+                    Environment = EnvironmentName,
+                    Key = key,
+                    Value = $"single-lag-check-{index:D4}",
+                    Now = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture)
+                },
+                cancellationToken);
+            totalWriteLatencyMs += Stopwatch.GetElapsedTime(writeStarted).TotalMilliseconds;
+
+            if (await CountByKeyAsync(replica, key, cancellationToken) >= 1)
+            {
+                immediateReadsObserved++;
+            }
+        }
+
         var observed = await PollUntilAsync(
-            () => CountByKeyAsync(replica, key, cancellationToken),
-            count => count >= 1,
+            () => CountByPrefixAsync(replica, prefix, cancellationToken),
+            count => count >= options.ConsistencySamples,
             options.ReplicationTimeout,
             cancellationToken);
+        var staleness = ReplicationMetrics.Calculate(
+            options.ConsistencySamples,
+            immediateReadsObserved);
 
         return new ReplicationLagResult(
             "single-insert-read-by-key",
-            Stopwatch.GetElapsedTime(insertStarted).TotalMilliseconds,
-            immediate >= 1 ? 0 : 1,
-            immediate >= 1 ? 0 : 100,
+            totalWriteLatencyMs / options.ConsistencySamples,
+            staleness.StaleReads,
+            options.ConsistencySamples,
+            staleness.StaleReadRatePercent,
             observed.Observed,
             observed.ElapsedMs);
     }
@@ -296,8 +312,8 @@ public static class ReplicaBenchmarkApp
         ReplicaBenchmarkOptions options,
         CancellationToken cancellationToken)
     {
-        const int batchSize = 100;
-        var prefix = $"REPLICA_LAG_BATCH_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}_";
+        var batchSize = options.ConsistencySamples;
+        var prefix = $"REPLICA_LAG_BATCH_{Guid.NewGuid():N}_";
         var now = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture);
         var batch = Enumerable.Range(1, batchSize)
             .Select(index => new LibsqlStatement(
@@ -327,12 +343,14 @@ public static class ReplicaBenchmarkApp
             count => count >= batchSize,
             options.ReplicationTimeout,
             cancellationToken);
+        var staleness = ReplicationMetrics.Calculate(batchSize, immediate);
 
         return new ReplicationLagResult(
             "batch-insert-list-query",
             Stopwatch.GetElapsedTime(insertStarted).TotalMilliseconds,
-            immediate >= batchSize ? 0 : 1,
-            immediate >= batchSize ? 0 : 100,
+            staleness.StaleReads,
+            batchSize,
+            staleness.StaleReadRatePercent,
             observed.Observed,
             observed.ElapsedMs);
     }
@@ -668,6 +686,7 @@ public static class ReplicaBenchmarkApp
         var measurementSeconds = 4d;
         var timeoutSeconds = 10d;
         var replicationTimeoutSeconds = 10d;
+        var consistencySamples = DefaultConsistencySamples;
         var unavailableReplicaUrl = "http://127.0.0.1:1";
         var skipSeed = false;
 
@@ -702,6 +721,9 @@ public static class ReplicaBenchmarkApp
                 case "--replication-timeout-seconds":
                     replicationTimeoutSeconds = double.Parse(args[++index], CultureInfo.InvariantCulture);
                     break;
+                case "--consistency-samples":
+                    consistencySamples = int.Parse(args[++index], CultureInfo.InvariantCulture);
+                    break;
                 case "--unavailable-replica-url":
                     unavailableReplicaUrl = args[++index];
                     break;
@@ -727,6 +749,14 @@ public static class ReplicaBenchmarkApp
             throw new ArgumentException("--replica-url is required.");
         }
 
+        if (consistencySamples < DefaultConsistencySamples)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(consistencySamples),
+                consistencySamples,
+                $"--consistency-samples must be at least {DefaultConsistencySamples} to measure the 1% stale-read target.");
+        }
+
         outputDirectory ??= Path.Combine(
             ResolveRepoRoot(),
             "artifacts",
@@ -743,6 +773,7 @@ public static class ReplicaBenchmarkApp
             TimeSpan.FromSeconds(measurementSeconds),
             TimeSpan.FromSeconds(timeoutSeconds),
             TimeSpan.FromSeconds(replicationTimeoutSeconds),
+            consistencySamples,
             unavailableReplicaUrl,
             skipSeed);
     }
@@ -919,7 +950,7 @@ internal static class ReplicaReportWriter
     private static string BuildLagCsv(IReadOnlyList<ReplicationLagResult> results)
     {
         var sb = new StringBuilder();
-        sb.AppendLine("scenario,write_latency_ms,stale_reads,stale_read_rate_percent,observed,replication_lag_ms");
+        sb.AppendLine("scenario,write_latency_ms,stale_reads,samples,stale_read_rate_percent,observed,replication_lag_ms");
         foreach (var result in results)
         {
             AppendCsvLine(sb,
@@ -927,6 +958,7 @@ internal static class ReplicaReportWriter
                 result.Scenario,
                 result.WriteLatencyMs.ToString("F3", CultureInfo.InvariantCulture),
                 result.StaleReads.ToString(CultureInfo.InvariantCulture),
+                result.Samples.ToString(CultureInfo.InvariantCulture),
                 result.StaleReadRatePercent.ToString("F3", CultureInfo.InvariantCulture),
                 result.Observed.ToString(),
                 result.ReplicationLagMs.ToString("F3", CultureInfo.InvariantCulture)
@@ -1029,7 +1061,7 @@ internal static class ReplicaReportWriter
         foreach (var result in summary.ReplicationLagResults)
         {
             sb.AppendLine(
-                $"{result.Scenario}: lag={result.ReplicationLagMs:F3} ms, observed={result.Observed}, stale_read_rate={result.StaleReadRatePercent:F3}%, write_latency={result.WriteLatencyMs:F3} ms");
+                $"{result.Scenario}: lag={result.ReplicationLagMs:F3} ms, observed={result.Observed}, stale_reads={result.StaleReads}/{result.Samples}, stale_read_rate={result.StaleReadRatePercent:F3}%, write_latency={result.WriteLatencyMs:F3} ms");
         }
 
         sb.AppendLine();
@@ -1102,6 +1134,7 @@ internal sealed record ReplicaBenchmarkOptions(
     TimeSpan MeasurementDuration,
     TimeSpan OperationTimeout,
     TimeSpan ReplicationTimeout,
+    int ConsistencySamples,
     string UnavailableReplicaUrl,
     bool SkipSeed);
 
@@ -1150,6 +1183,7 @@ internal sealed record ReplicationLagResult(
     string Scenario,
     double WriteLatencyMs,
     int StaleReads,
+    int Samples,
     double StaleReadRatePercent,
     bool Observed,
     double ReplicationLagMs);
@@ -1185,4 +1219,22 @@ internal sealed record PollResult(
     bool Observed,
     double ElapsedMs,
     int LastValue);
+
+internal static class ReplicationMetrics
+{
+    public static ReplicationStaleness Calculate(int samples, int observedReads)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(samples);
+
+        var observed = Math.Clamp(observedReads, 0, samples);
+        var staleReads = samples - observed;
+        return new ReplicationStaleness(
+            staleReads,
+            staleReads * 100d / samples);
+    }
+}
+
+internal sealed record ReplicationStaleness(
+    int StaleReads,
+    double StaleReadRatePercent);
 
