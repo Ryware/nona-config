@@ -222,8 +222,11 @@ CLI packages:
 | `GET` | `/api/{environmentId}/{key}?version=1.1.0` | Fetch one key from an exact release |
 | `GET` | `/api/{environmentId}/{key}?version=1.1.x` | Fetch one key from the highest patch in a release line |
 | `GET` | `/api/{environmentId}` | Fetch all client-visible keys with ETag support |
+| `GET` | `/api/{environmentId}?prefix=GroupA%3A` | Fetch client-visible keys whose names start with `GroupA:` (case-insensitive) |
 
 Authentication: `X-Api-Key` request header.
+
+Non-empty prefixes may contain only ASCII letters, digits, colons, dots, underscores, and dashes. Invalid prefixes return `400 Bad Request`; an empty prefix is unfiltered.
 
 The API key determines the project. The response body contains the raw stored value, and `X-Nona-Content-Type` tells the client whether the value is `text`, `number`, `boolean`, or `json`.
 

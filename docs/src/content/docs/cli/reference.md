@@ -605,6 +605,7 @@ nona entries list [options]
 --bearer-token, --token <bearer-token>    Admin bearer token.
 --project, --project-name <project-name>  Nona project name.
 --environment <environment>               Nona environment name, for example production.
+--prefix <prefix>                         Return only entries whose keys start with this prefix.
 ```
 
 ## `nona entries get`

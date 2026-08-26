@@ -29,6 +29,71 @@ test("three concurrent identical requests deduplicate to one HTTP call", async (
   assert.equal(rc.value, "v1");
 });
 
+test("concurrent bulk requests deduplicate case-insensitive prefixes", async () => {
+  const pending = deferred();
+  let calls = 0;
+  const client = createNonaClient("https://nona.test", {
+    environmentId: "production",
+    apiKey: "api-key",
+    fetch: async () => {
+      calls += 1;
+      return pending.promise;
+    }
+  });
+
+  const first = client.getAllValues({ prefix: "GroupA:" });
+  const second = client.getAllValues({ prefix: "groupa:" });
+
+  assert.equal(calls, 1);
+  pending.resolve(jsonResponse({
+    "GroupA:One": { value: "1", contentType: "number" }
+  }));
+
+  assert.deepEqual(await first, await second);
+});
+
+test("concurrent bulk requests keep Unicode prefixes distinct from ASCII prefixes", async () => {
+  const calls = [];
+  const validationMessage =
+    "Prefix may contain only ASCII letters, digits, colons, dots, underscores, and dashes.";
+  const client = createNonaClient("https://nona.test", {
+    environmentId: "production",
+    apiKey: "api-key",
+    fetch: async (url) => {
+      calls.push(String(url));
+      const prefix = new URL(url).searchParams.get("prefix");
+      if (prefix === "ß") {
+        return jsonResponse({
+          title: "Bad Request",
+          status: 400,
+          detail: validationMessage
+        }, 400);
+      }
+
+      return jsonResponse({
+        "SS:Flag": { value: "true", contentType: "boolean" }
+      });
+    }
+  });
+
+  const invalid = client.getAllValues({ prefix: "ß" });
+  const valid = client.getAllValues({ prefix: "SS" });
+
+  await assert.rejects(invalid, isNonaError(400, validationMessage));
+  assert.deepEqual(await valid, {
+    "SS:Flag": { value: "true", contentType: "boolean" }
+  });
+  assert.equal(calls.length, 2);
+  assert.match(calls[0], /prefix=%C3%9F$/);
+  assert.match(calls[1], /prefix=SS$/);
+
+  await assert.rejects(
+    () => client.getAllValues({ prefix: "ß" }),
+    isNonaError(400, validationMessage)
+  );
+  assert.equal(calls.length, 3);
+});
+
 test("three concurrent different requests result in three HTTP calls", async () => {
   let calls = 0;
   const client = createNonaClient("https://nona.test", {

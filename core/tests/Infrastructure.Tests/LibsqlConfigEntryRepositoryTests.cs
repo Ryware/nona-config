@@ -85,6 +85,29 @@ public class LibsqlConfigEntryRepositoryTests
     }
 
     [Test]
+    public async Task ListAsync_Sqld_FiltersByLiteralCaseInsensitivePrefix()
+    {
+        await using var server = await LocalSqldTestServer.StartAsync();
+        using var client = server.CreateClient();
+        var migrations = new LibsqlMigrationRunner(client, ResolveMigrationsFolder());
+        await migrations.RunMigrationsAsync();
+        var repository = new LibsqlConfigEntryRepository(client);
+        var createdAt = new DateTime(2026, 8, 1, 10, 0, 0, DateTimeKind.Utc);
+
+        foreach (var key in new[] { "GroupA:One", "groupa:Two", "Group_Three", "GroupX:One" })
+        {
+            await repository.AddAsync(CreateEntry(key, "true", createdAt));
+        }
+
+        var colon = await repository.ListAsync("TEST-PROJECT", "PRODUCTION", "groupa:");
+        var underscore = await repository.ListAsync("test-project", "production", "Group_");
+
+        await Assert.That(colon.Select(entry => entry.Key)).IsEquivalentTo(["GroupA:One", "groupa:Two"]);
+        await Assert.That(underscore).Count().IsEqualTo(1);
+        await Assert.That(underscore[0].Key).IsEqualTo("Group_Three");
+    }
+
+    [Test]
     public async Task AddVersionAsync_ReturnsWrittenProjectionFromWriteBatch()
     {
         var client = new StaleReadLibsqlClient();

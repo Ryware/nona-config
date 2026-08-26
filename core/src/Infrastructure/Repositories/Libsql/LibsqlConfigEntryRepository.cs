@@ -97,7 +97,14 @@ public sealed class LibsqlConfigEntryRepository : IConfigEntryRepository
         return result.Rows.Count == 0 ? null : MapVersion(result.Rows[0]);
     }
 
-    public async Task<IReadOnlyList<ConfigEntry>> ListAsync(string projectName, string environmentName, CancellationToken ct = default)
+    public Task<IReadOnlyList<ConfigEntry>> ListAsync(string projectName, string environmentName, CancellationToken ct = default)
+        => ListAsync(projectName, environmentName, prefix: null, ct);
+
+    public async Task<IReadOnlyList<ConfigEntry>> ListAsync(
+        string projectName,
+        string environmentName,
+        string? prefix,
+        CancellationToken ct = default)
     {
         var result = await _client.ExecuteAsync(
             """
@@ -105,11 +112,13 @@ public sealed class LibsqlConfigEntryRepository : IConfigEntryRepository
             FROM ConfigEntries
             WHERE Project = @ProjectName COLLATE NOCASE
               AND Environment = @EnvironmentName COLLATE NOCASE
+              AND (@Prefix = '' OR substr(Key, 1, length(@Prefix)) = @Prefix COLLATE NOCASE)
             ORDER BY Key
             """,
             LibsqlParameters.Create(
                 ("ProjectName", projectName),
-                ("EnvironmentName", environmentName)),
+                ("EnvironmentName", environmentName),
+                ("Prefix", prefix ?? string.Empty)),
             ct);
 
         return result.Rows.Select(Map).ToList();

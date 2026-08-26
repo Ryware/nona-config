@@ -61,8 +61,8 @@ public sealed partial class NonaClient
         }
     }
 
-    private static async Task<NonaConfigValue> WaitForFetchAsync(
-        Task<NonaConfigValue> fetchTask,
+    private static async Task<T> WaitForFetchAsync<T>(
+        Task<T> fetchTask,
         CancellationToken cancellationToken)
     {
         if (!cancellationToken.CanBeCanceled || fetchTask.IsCompleted)
@@ -91,26 +91,34 @@ public sealed partial class NonaClient
     {
         lock (_cacheLock)
         {
-            if (!_cache.TryGetValue(cacheKey, out var entry))
+            if (_cache.TryGetValue(cacheKey, out var entry))
             {
-                return null;
+                var now = DateTimeOffset.UtcNow;
+                if (entry.ExpiresAt > now)
+                {
+                    entry.Touch();
+                    return Clone(entry.Value);
+                }
+
+                if (_allowStaleCache)
+                {
+                    entry.Touch();
+                    QueueRefresh(cacheKey, path, entry);
+                    return Clone(entry.Value);
+                }
+
+                RemoveCacheEntry(cacheKey);
             }
 
-            var now = DateTimeOffset.UtcNow;
-            if (entry.ExpiresAt > now)
+            if (_primedValues.TryGetValue(cacheKey, out var primed)
+                && _bulkCache.TryGetValue(primed.BulkKey, out var bulk)
+                && bulk.Values.TryGetValue(primed.ValueKey, out var primedValue))
             {
-                entry.Touch();
-                return Clone(entry.Value);
+                bulk.Touch();
+                return Clone(primedValue);
             }
 
-            if (_allowStaleCache)
-            {
-                entry.Touch();
-                QueueRefresh(cacheKey, path, entry);
-                return Clone(entry.Value);
-            }
-
-            RemoveCacheEntry(cacheKey);
+            _primedValues.Remove(cacheKey);
             return null;
         }
     }
@@ -173,22 +181,34 @@ public sealed partial class NonaClient
             return;
         }
 
-        var oldestKeys = new List<string>(_cache.Count);
+        var candidates = new List<CacheCandidate>(_cache.Count + _bulkCache.Count);
         foreach (var item in _cache)
         {
-            oldestKeys.Add(item.Key);
+            candidates.Add(new CacheCandidate(CacheKind.Single, item.Key, item.Value.LastAccessed));
         }
 
-        oldestKeys.Sort((left, right) => _cache[left].LastAccessed.CompareTo(_cache[right].LastAccessed));
+        foreach (var item in _bulkCache)
+        {
+            candidates.Add(new CacheCandidate(CacheKind.Bulk, item.Key, item.Value.LastAccessed));
+        }
 
-        foreach (var key in oldestKeys)
+        candidates.Sort((left, right) => left.LastAccessed.CompareTo(right.LastAccessed));
+
+        foreach (var candidate in candidates)
         {
             if (_cacheSizeBytes <= _cacheMemoryLimitBytes)
             {
                 return;
             }
 
-            RemoveCacheEntry(key);
+            if (candidate.Kind == CacheKind.Single)
+            {
+                RemoveCacheEntry(candidate.Key);
+            }
+            else
+            {
+                RemoveBulkCacheEntry(candidate.Key);
+            }
         }
     }
 
@@ -203,6 +223,64 @@ public sealed partial class NonaClient
         _cacheSizeBytes -= entry.SizeBytes;
     }
 
+    private void SetBulkCacheEntry(
+        string cacheKey,
+        string? etag,
+        IReadOnlyDictionary<string, NonaConfigValue> values,
+        string? releaseVersion)
+    {
+        var cachedValues = Clone(values);
+        var requestKeys = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var pair in cachedValues)
+        {
+            requestKeys[CreateCacheKey(pair.Key, releaseVersion)] = pair.Key;
+        }
+
+        var sizeBytes = EstimateBulkCacheEntrySize(cacheKey, etag, cachedValues, requestKeys);
+        lock (_cacheLock)
+        {
+            RemoveBulkCacheEntry(cacheKey);
+            foreach (var requestKey in requestKeys.Keys)
+            {
+                RemoveCacheEntry(requestKey);
+            }
+
+            if (sizeBytes > _cacheMemoryLimitBytes)
+            {
+                return;
+            }
+
+            var entry = new BulkCacheEntry(etag, cachedValues, requestKeys, sizeBytes);
+            _bulkCache[cacheKey] = entry;
+            _cacheSizeBytes += sizeBytes;
+            foreach (var pair in requestKeys)
+            {
+                _primedValues[pair.Key] = new PrimedValue(cacheKey, pair.Value);
+            }
+
+            CompactCache();
+        }
+    }
+
+    private void RemoveBulkCacheEntry(string cacheKey)
+    {
+        if (!_bulkCache.TryGetValue(cacheKey, out var entry))
+        {
+            return;
+        }
+
+        _bulkCache.Remove(cacheKey);
+        _cacheSizeBytes -= entry.SizeBytes;
+        foreach (var requestKey in entry.RequestKeys.Keys)
+        {
+            if (_primedValues.TryGetValue(requestKey, out var primed)
+                && string.Equals(primed.BulkKey, cacheKey, StringComparison.Ordinal))
+            {
+                _primedValues.Remove(requestKey);
+            }
+        }
+    }
+
     private static NonaConfigValue Clone(NonaConfigValue value)
     {
         return new NonaConfigValue
@@ -210,6 +288,18 @@ public sealed partial class NonaClient
             Value = value.Value,
             ContentType = value.ContentType
         };
+    }
+
+    private static Dictionary<string, NonaConfigValue> Clone(
+        IReadOnlyDictionary<string, NonaConfigValue> values)
+    {
+        var clone = new Dictionary<string, NonaConfigValue>(values.Count, StringComparer.Ordinal);
+        foreach (var pair in values)
+        {
+            clone[pair.Key] = Clone(pair.Value);
+        }
+
+        return clone;
     }
 
     private sealed class CacheEntry
@@ -236,6 +326,72 @@ public sealed partial class NonaClient
         {
             LastAccessed = DateTimeOffset.UtcNow;
         }
+    }
+
+    private sealed class BulkCacheEntry
+    {
+        public BulkCacheEntry(
+            string? etag,
+            Dictionary<string, NonaConfigValue> values,
+            Dictionary<string, string> requestKeys,
+            long sizeBytes)
+        {
+            Etag = etag;
+            Values = values;
+            RequestKeys = requestKeys;
+            SizeBytes = sizeBytes;
+            LastAccessed = DateTimeOffset.UtcNow;
+        }
+
+        public string? Etag { get; }
+
+        public Dictionary<string, NonaConfigValue> Values { get; }
+
+        public Dictionary<string, string> RequestKeys { get; }
+
+        public long SizeBytes { get; }
+
+        public DateTimeOffset LastAccessed { get; private set; }
+
+        public void Touch()
+        {
+            LastAccessed = DateTimeOffset.UtcNow;
+        }
+    }
+
+    private sealed class PrimedValue
+    {
+        public PrimedValue(string bulkKey, string valueKey)
+        {
+            BulkKey = bulkKey;
+            ValueKey = valueKey;
+        }
+
+        public string BulkKey { get; }
+
+        public string ValueKey { get; }
+    }
+
+    private readonly struct CacheCandidate
+    {
+        public CacheCandidate(CacheKind kind, string key, DateTimeOffset lastAccessed)
+        {
+            Kind = kind;
+            Key = key;
+            LastAccessed = lastAccessed;
+        }
+
+        public CacheKind Kind { get; }
+
+        public string Key { get; }
+
+        public DateTimeOffset LastAccessed { get; }
+    }
+
+    private enum CacheKind
+    {
+        Single,
+        Bulk
     }
 
     private sealed class InFlightFetch

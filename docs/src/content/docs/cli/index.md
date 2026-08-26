@@ -159,6 +159,14 @@ nona entries rollback --project mobile-app --environment production --key Featur
 nona entries delete --project mobile-app --environment production --key Features:Checkout
 ```
 
+Filter the list by a case-insensitive, literal key prefix without changing the output format:
+
+```bash
+nona entries list --project mobile-app --environment production --prefix Features:
+```
+
+Prefixes may contain ASCII letters, digits, colons, dots, underscores, and dashes. Any other character prints `Error: Prefix may contain only ASCII letters, digits, colons, dots, underscores, and dashes. (400)` and exits with validation code `2`.
+
 If you already saved a default project with `nona config set project mobile-app`, the same commands can omit `--project`.
 
 ```bash

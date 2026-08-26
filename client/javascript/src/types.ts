@@ -19,6 +19,10 @@ export interface NonaRequestOptions {
   releaseVersion?: string;
 }
 
+export interface NonaGetAllValuesOptions extends NonaRequestOptions {
+  prefix?: string;
+}
+
 export interface NonaConfigValue {
   value: string;
   contentType: string;
