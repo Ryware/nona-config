@@ -115,17 +115,21 @@ internal static class PublishConfigReleaseEntryPayloadValidation
                 }
             }
 
-            var description = entry.Description?.Trim();
-            if (description?.Length > 500)
+            var description = ConfigEntryMetadata.NormalizeDescription(entry.Description);
+            if (description?.Length > ConfigEntryMetadata.MaxDescriptionLength)
             {
-                failures.Add(new($"{propertyName}.Description", "Description must be 500 characters or fewer."));
+                failures.Add(new(
+                    $"{propertyName}.Description",
+                    $"Description must be {ConfigEntryMetadata.MaxDescriptionLength} characters or fewer."));
                 isValid = false;
             }
 
-            var unit = string.IsNullOrWhiteSpace(entry.Unit) ? null : entry.Unit.Trim();
-            if (unit?.Length > 32)
+            var unit = ConfigEntryMetadata.NormalizeUnit(entry.Unit);
+            if (unit?.Length > ConfigEntryMetadata.MaxUnitLength)
             {
-                failures.Add(new($"{propertyName}.Unit", "Unit must be 32 characters or fewer."));
+                failures.Add(new(
+                    $"{propertyName}.Unit",
+                    $"Unit must be {ConfigEntryMetadata.MaxUnitLength} characters or fewer."));
                 isValid = false;
             }
 

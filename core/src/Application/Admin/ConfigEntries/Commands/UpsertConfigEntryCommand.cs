@@ -75,22 +75,31 @@ public class UpsertConfigEntryCommandHandler(
         if (contentTypeError is not null)
             return new UpsertConfigEntryResult(false, null, contentTypeError);
 
-        if (request.Description?.Length > 500)
-            return new UpsertConfigEntryResult(false, null, "Description must be 500 characters or fewer.");
+        var normalizedDescription = ConfigEntryMetadata.NormalizeDescription(request.Description);
+        var normalizedUnit = ConfigEntryMetadata.NormalizeUnit(request.Unit);
 
-        if (request.Unit?.Length > 32)
-            return new UpsertConfigEntryResult(false, null, "Unit must be 32 characters or fewer.");
+        if (normalizedDescription?.Length > ConfigEntryMetadata.MaxDescriptionLength)
+            return new UpsertConfigEntryResult(
+                false,
+                null,
+                $"Description must be {ConfigEntryMetadata.MaxDescriptionLength} characters or fewer.");
 
-        if (!string.IsNullOrWhiteSpace(request.Unit) && contentType is not "number")
+        if (normalizedUnit?.Length > ConfigEntryMetadata.MaxUnitLength)
+            return new UpsertConfigEntryResult(
+                false,
+                null,
+                $"Unit must be {ConfigEntryMetadata.MaxUnitLength} characters or fewer.");
+
+        if (normalizedUnit is not null && contentType is not "number")
             return new UpsertConfigEntryResult(false, null, "Unit is only supported for number parameters.");
 
         var description = request.Description is null
             ? existingEntry?.Description
-            : request.Description.Trim();
+            : normalizedDescription;
         var unit = contentType == "number"
             ? request.Unit is null
                 ? existingEntry?.Unit
-                : NormalizeOptional(request.Unit)
+                : normalizedUnit
             : null;
 
         var now = dateTime.NowUtc;
@@ -127,11 +136,4 @@ public class UpsertConfigEntryCommandHandler(
 
         return new UpsertConfigEntryResult(true, ConfigEntryMapping.ToDto(savedEntry), null);
     }
-
-    private static string? NormalizeOptional(string value)
-    {
-        var normalized = value.Trim();
-        return normalized.Length == 0 ? null : normalized;
-    }
-
 }

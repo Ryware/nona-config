@@ -23,17 +23,21 @@ public class UpsertConfigEntryRequestValidator : AbstractValidator<UpsertConfigE
             .WithMessage($"Content type must be one of: {string.Join(", ", ConfigEntryContentTypes.LogicalTypes)}.");
 
         RuleFor(x => x.Description)
-            .MaximumLength(500)
+            .Must(description =>
+                ConfigEntryMetadata.NormalizeDescription(description)?.Length
+                    <= ConfigEntryMetadata.MaxDescriptionLength)
             .When(x => x.Description is not null)
-            .WithMessage("Description must be 500 characters or fewer.");
+            .WithMessage($"Description must be {ConfigEntryMetadata.MaxDescriptionLength} characters or fewer.");
 
         RuleFor(x => x.Unit)
-            .MaximumLength(32)
+            .Must(unit =>
+                ConfigEntryMetadata.NormalizeUnit(unit)?.Length
+                    <= ConfigEntryMetadata.MaxUnitLength)
             .When(x => x.Unit is not null)
-            .WithMessage("Unit must be 32 characters or fewer.");
+            .WithMessage($"Unit must be {ConfigEntryMetadata.MaxUnitLength} characters or fewer.");
 
         RuleFor(x => x)
-            .Must(request => string.IsNullOrWhiteSpace(request.Unit)
+            .Must(request => ConfigEntryMetadata.NormalizeUnit(request.Unit) is null
                 || ConfigEntryContentTypes.Normalize(request.ContentType) is "number")
             .When(x => x.Unit is not null && x.ContentType is not null)
             .WithMessage("Unit is only supported for number parameters.");

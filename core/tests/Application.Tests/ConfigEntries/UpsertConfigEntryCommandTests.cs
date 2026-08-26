@@ -315,4 +315,37 @@ public class UpsertConfigEntryCommandTests
             Arg.Any<string>(),
             Arg.Any<CancellationToken>());
     }
+
+    [Test]
+    public async Task UpsertConfigEntry_ValidatesTrimmedMetadataLengths()
+    {
+        var fixture = new TestFixture();
+        fixture.SetupAsSystemAdmin();
+        fixture.SetupProjectExists(ProjectName);
+        fixture.SetupEnvironmentExists(ProjectName, EnvironmentName);
+        var handler = new UpsertConfigEntryCommandHandler(
+            fixture.ProjectRepository,
+            fixture.EnvironmentRepository,
+            fixture.ConfigEntryRepository,
+            fixture.ProjectAccessService,
+            fixture.DateTime);
+        var description = new string('d', ConfigEntryMetadata.MaxDescriptionLength);
+        var unit = new string('u', ConfigEntryMetadata.MaxUnitLength);
+
+        var result = await handler.Handle(
+            new UpsertConfigEntryCommand(
+                ProjectName,
+                EnvironmentName,
+                "Checkout:Limit",
+                "42",
+                "number",
+                "client",
+                $" {description} ",
+                $" {unit} "),
+            CancellationToken.None);
+
+        await Assert.That(result.Success).IsTrue();
+        await Assert.That(result.ConfigEntry!.Description).IsEqualTo(description);
+        await Assert.That(result.ConfigEntry.Unit).IsEqualTo(unit);
+    }
 }
