@@ -28,7 +28,6 @@ import { useToast } from "../../../shared/ui/toast";
 import type {
   ConfigEntry,
   ConfigEntryVersion,
-  CreateConfigEntryRequest,
   CreateParameterShareLinkRequest
 } from "../../../types";
 import { ProjectSectionLayout } from "../components/ProjectSectionLayout";
@@ -37,6 +36,21 @@ import { useReleaseActions } from "../hooks/useReleaseActions";
 
 const CREATE_PARAMETER_DRAFT = "parameter-create-draft";
 const EDIT_PARAMETER_DRAFT = "parameter-edit-draft";
+
+interface ProjectEnvironmentTarget {
+  projectId: string;
+  projectSlug: string;
+  environmentName: string;
+}
+
+interface ConfigEntryWrite {
+  key: string;
+  value: string;
+  contentType: ConfigEntry["contentType"];
+  scope: ConfigEntry["scope"];
+  description?: string | null;
+  unit?: string | null;
+}
 
 const errorMessage = (caught: unknown, fallback: string) =>
   caught instanceof Error && caught.message ? caught.message : fallback;
@@ -301,8 +315,10 @@ export default function ParametersSection() {
       setSharingEntry(null);
       setShareLinksQueryKey("");
       setGeneratedShareUrl(null);
+      setRevokingShareLinkId(null);
       setConfirmDeleteEntry(null);
       setEditDescription("");
+      setShowBulkImport(false);
     },
     { defer: true }
   ));
@@ -335,11 +351,22 @@ export default function ParametersSection() {
     );
   });
 
-  const configEntriesQueryKey = () =>
-    projectKeys.configEntries(params.slug, activeEnvName());
+  const currentMutationTarget = (): ProjectEnvironmentTarget => ({
+    projectId: projectId(),
+    projectSlug: params.slug,
+    environmentName: activeEnvName()
+  });
 
-  const patchConfigEntry = (entry: ConfigEntry) => {
-    queryClient.setQueryData<ConfigEntry[]>(configEntriesQueryKey(), current => {
+  const isCurrentMutationTarget = (target: ProjectEnvironmentTarget) =>
+    target.projectId === projectId()
+    && target.projectSlug === params.slug
+    && target.environmentName === activeEnvName();
+
+  const configEntriesQueryKey = (target = currentMutationTarget()) =>
+    projectKeys.configEntries(target.projectSlug, target.environmentName);
+
+  const patchConfigEntry = (target: ProjectEnvironmentTarget, entry: ConfigEntry) => {
+    queryClient.setQueryData<ConfigEntry[]>(configEntriesQueryKey(target), current => {
       const entries = current ?? [];
       const index = entries.findIndex(candidate => candidate.key === entry.key);
       if (index === -1) return [...entries, entry];
@@ -348,28 +375,41 @@ export default function ParametersSection() {
   };
 
   const createConfigMutation = useMutation(() => ({
-    mutationFn: (req: CreateConfigEntryRequest) =>
-      configEntryService.upsert(req.projectId, activeEnvName(), req.key, req),
-    onSuccess: entry => {
-      patchConfigEntry(entry);
-      void queryClient.invalidateQueries({ queryKey: configEntriesQueryKey() });
-      setShowConfigForm(false);
-      setCreateDraftDirty(false);
-      setEditingEntry(entry);
-      setEditDescription(entry.description ?? "");
+    mutationFn: ({ target, entry }: {
+      target: ProjectEnvironmentTarget;
+      entry: ConfigEntryWrite;
+    }) => {
+      const { key, ...request } = entry;
+      return configEntryService.upsert(
+        target.projectId,
+        target.environmentName,
+        key,
+        request
+      );
+    },
+    onSuccess: (entry, { target }) => {
+      patchConfigEntry(target, entry);
+      void queryClient.invalidateQueries({ queryKey: configEntriesQueryKey(target) });
+      if (isCurrentMutationTarget(target) && showConfigForm()) {
+        setShowConfigForm(false);
+        setCreateDraftDirty(false);
+        setEditingEntry(entry);
+        setEditDescription(entry.description ?? "");
+      }
       addToast(MSG.PARAM_CREATED, "success");
     },
     onError: error => addToast(errorMessage(error, MSG.PARAM_CREATE_FAILED), "error")
   }));
 
   const deleteConfigMutation = useMutation(() => ({
-    mutationFn: (id: string) => configEntryService.delete(projectId(), activeEnvName(), id),
-    onSuccess: (_, key) => {
+    mutationFn: ({ target, key }: { target: ProjectEnvironmentTarget; key: string }) =>
+      configEntryService.delete(target.projectId, target.environmentName, key),
+    onSuccess: (_, { target, key }) => {
       queryClient.setQueryData<ConfigEntry[]>(
-        configEntriesQueryKey(),
+        configEntriesQueryKey(target),
         current => (current ?? []).filter(entry => entry.key !== key)
       );
-      void queryClient.invalidateQueries({ queryKey: configEntriesQueryKey() });
+      void queryClient.invalidateQueries({ queryKey: configEntriesQueryKey(target) });
       addToast(MSG.PARAM_DELETED, "success");
     },
     onError: () => addToast(MSG.PARAM_DELETE_FAILED, "error")
@@ -436,40 +476,42 @@ export default function ParametersSection() {
   };
 
   const updateConfigMutation = useMutation(() => ({
-    mutationFn: (req: {
-      key: string;
-      value: string;
-      contentType: ConfigEntry["contentType"];
-      scope: ConfigEntry["scope"];
-      description?: string | null;
-      unit?: string | null;
-    }) =>
-      configEntryService.upsert(projectId(), activeEnvName(), req.key, {
-        value: req.value,
-        contentType: req.contentType,
-        scope: req.scope,
-        ...(req.description !== undefined ? { description: req.description } : {}),
-        ...(req.unit !== undefined ? { unit: req.unit } : {})
+    mutationFn: ({ target, entry }: {
+      target: ProjectEnvironmentTarget;
+      entry: ConfigEntryWrite;
+    }) => configEntryService.upsert(target.projectId, target.environmentName, entry.key, {
+        value: entry.value,
+        contentType: entry.contentType,
+        scope: entry.scope,
+        ...(entry.description !== undefined ? { description: entry.description } : {}),
+        ...(entry.unit !== undefined ? { unit: entry.unit } : {})
       }),
-    onSuccess: (entry, variables) => {
-      patchConfigEntry(entry);
-      setEditingEntry(current => current?.key === entry.key ? entry : current);
-      setEditDescription(entry.description ?? "");
-      setEditDraftDirty(false);
-      void queryClient.invalidateQueries({ queryKey: configEntriesQueryKey() });
+    onSuccess: (entry, { target }) => {
+      patchConfigEntry(target, entry);
+      void queryClient.invalidateQueries({ queryKey: configEntriesQueryKey(target) });
       void queryClient.invalidateQueries({
-        queryKey: projectKeys.configEntryHistory(params.slug, activeEnvName(), variables.key)
+        queryKey: projectKeys.configEntryHistory(
+          target.projectSlug,
+          target.environmentName,
+          entry.key
+        )
       });
+      if (isCurrentMutationTarget(target) && editingEntry()?.key === entry.key) {
+        setEditingEntry(entry);
+        setEditDescription(entry.description ?? "");
+        setEditDraftDirty(false);
+      }
       addToast(MSG.PARAM_UPDATED, "success");
     },
     onError: error => addToast(errorMessage(error, MSG.PARAM_UPDATE_FAILED), "error")
   }));
 
   const handleBulkImport = async (selectedItems: ParsedImport[]) => {
+    const target = currentMutationTarget();
     for (const item of selectedItems) {
       const desc = `Imported parameter: ${item.key}`;
 
-      await configEntryService.upsert(projectId(), activeEnvName(), item.key, {
+      await configEntryService.upsert(target.projectId, target.environmentName, item.key, {
         value: item.value,
         contentType: item.contentType,
         scope: item.scope,
@@ -477,25 +519,35 @@ export default function ParametersSection() {
       });
     }
 
-    void queryClient.invalidateQueries({ queryKey: configEntriesQueryKey() });
-    setShowBulkImport(false);
+    void queryClient.invalidateQueries({ queryKey: configEntriesQueryKey(target) });
+    if (isCurrentMutationTarget(target)) setShowBulkImport(false);
     addToast(MSG.bulkImportSuccess(selectedItems.length), "success");
   };
 
   const rollbackConfigMutation = useMutation(() => ({
-    mutationFn: (req: { key: string; version: number }) =>
-      configEntryService.rollback(projectId(), activeEnvName(), req.key, {
-        version: req.version
+    mutationFn: ({ target, key, version }: {
+      target: ProjectEnvironmentTarget;
+      key: string;
+      version: number;
+    }) =>
+      configEntryService.rollback(target.projectId, target.environmentName, key, {
+        version
       }),
-    onSuccess: (entry, variables) => {
-      patchConfigEntry(entry);
-      void queryClient.invalidateQueries({ queryKey: configEntriesQueryKey() });
+    onSuccess: (entry, { target }) => {
+      patchConfigEntry(target, entry);
+      void queryClient.invalidateQueries({ queryKey: configEntriesQueryKey(target) });
       void queryClient.invalidateQueries({
-        queryKey: projectKeys.configEntryHistory(params.slug, activeEnvName(), variables.key)
+        queryKey: projectKeys.configEntryHistory(
+          target.projectSlug,
+          target.environmentName,
+          entry.key
+        )
       });
-      setEditingEntry(entry);
-      setEditDescription(entry.description ?? "");
-      setEditDraftDirty(false);
+      if (isCurrentMutationTarget(target) && editingEntry()?.key === entry.key) {
+        setEditingEntry(entry);
+        setEditDescription(entry.description ?? "");
+        setEditDraftDirty(false);
+      }
       addToast(MSG.PARAM_ROLLED_BACK, "success");
     },
     onError: error => addToast(errorMessage(error, MSG.PARAM_ROLLBACK_FAILED), "error")
@@ -504,67 +556,77 @@ export default function ParametersSection() {
   const restoreVersion = async (version: ConfigEntryVersion) => {
     const entry = editingEntry();
     if (!entry) return;
-    return rollbackConfigMutation.mutateAsync({ key: entry.key, version: version.version });
+    return rollbackConfigMutation.mutateAsync({
+      target: currentMutationTarget(),
+      key: entry.key,
+      version: version.version
+    });
   };
 
   const createShareLinkMutation = useMutation(() => ({
-    mutationFn: (data: CreateParameterShareLinkRequest) => {
-      if (!isDefaultParametersView()) {
-        throw new Error("Share links can only be created from the default Parameters view");
-      }
-
-      const entry = sharingEntry();
-      if (!entry) {
-        throw new Error("No parameter selected");
-      }
-
-      return configEntryService.createShareLink(projectId(), activeEnvName(), entry.key, data);
-    },
-    onSuccess: shareLink => {
+    mutationFn: ({ target, key, data }: {
+      target: ProjectEnvironmentTarget;
+      key: string;
+      data: CreateParameterShareLinkRequest;
+    }) => configEntryService.createShareLink(
+      target.projectId,
+      target.environmentName,
+      key,
+      data
+    ),
+    onSuccess: (shareLink, { target, key }) => {
       queryClient.invalidateQueries({
-        queryKey: projectKeys.configEntryShareLinks(params.slug, activeEnvName(), shareLink.key)
+        queryKey: projectKeys.configEntryShareLinks(
+          target.projectSlug,
+          target.environmentName,
+          key
+        )
       });
       queryClient.invalidateQueries({
-        queryKey: projectKeys.environmentShareLinks(params.slug, activeEnvName())
+        queryKey: projectKeys.environmentShareLinks(target.projectSlug, target.environmentName)
       });
-      setGeneratedShareUrl(buildShareUrl(shareLink.token));
+      if (isCurrentMutationTarget(target) && sharingEntry()?.key === key) {
+        setGeneratedShareUrl(buildShareUrl(shareLink.token));
+      }
       addToast(MSG.SHARE_LINK_CREATED, "success");
     },
     onError: error => addToast(errorMessage(error, MSG.SHARE_LINK_CREATE_FAILED), "error")
   }));
 
   const revokeShareLinkMutation = useMutation(() => ({
-    mutationFn: (shareLinkId: number) => {
-      if (!isDefaultParametersView()) {
-        throw new Error("Share links can only be managed from the default Parameters view");
-      }
-
-      const entry = sharingEntry();
-      if (!entry) {
-        throw new Error("No parameter selected");
-      }
-
-      return configEntryService.revokeShareLink(
-        projectId(),
-        activeEnvName(),
-        entry.key,
-        shareLinkId
-      );
-    },
-    onSuccess: () => {
-      const entry = sharingEntry();
-      if (entry) {
-        queryClient.invalidateQueries({
-          queryKey: projectKeys.configEntryShareLinks(params.slug, activeEnvName(), entry.key)
-        });
-        queryClient.invalidateQueries({
-          queryKey: projectKeys.environmentShareLinks(params.slug, activeEnvName())
-        });
-      }
+    mutationFn: ({ target, key, shareLinkId }: {
+      target: ProjectEnvironmentTarget;
+      key: string;
+      shareLinkId: number;
+    }) => configEntryService.revokeShareLink(
+      target.projectId,
+      target.environmentName,
+      key,
+      shareLinkId
+    ),
+    onSuccess: (_, { target, key }) => {
+      queryClient.invalidateQueries({
+        queryKey: projectKeys.configEntryShareLinks(
+          target.projectSlug,
+          target.environmentName,
+          key
+        )
+      });
+      queryClient.invalidateQueries({
+        queryKey: projectKeys.environmentShareLinks(target.projectSlug, target.environmentName)
+      });
       addToast(MSG.SHARE_LINK_REVOKED, "success");
     },
     onError: error => addToast(errorMessage(error, MSG.SHARE_LINK_REVOKE_FAILED), "error"),
-    onSettled: () => setRevokingShareLinkId(null)
+    onSettled: (_, __, { target, key, shareLinkId }) => {
+      if (
+        isCurrentMutationTarget(target)
+        && sharingEntry()?.key === key
+        && revokingShareLinkId() === shareLinkId
+      ) {
+        setRevokingShareLinkId(null);
+      }
+    }
   }));
 
   const handlePanelSave = async (data: ParameterPanelSaveData) => {
@@ -572,29 +634,34 @@ export default function ParametersSection() {
 
     if (showConfigForm()) {
       return createConfigMutation.mutateAsync({
-        projectId: projectId(),
-        key: data.key,
-        value: data.value,
-        contentType: data.contentType,
-        scope: data.scope,
-        description: data.description,
-        unit: data.unit
+        target: currentMutationTarget(),
+        entry: {
+          key: data.key,
+          value: data.value,
+          contentType: data.contentType,
+          scope: data.scope,
+          description: data.description,
+          unit: data.unit
+        }
       });
     }
 
     const selected = editingEntry();
     if (!selected) throw new Error("No parameter selected.");
     return updateConfigMutation.mutateAsync({
-      key: selected.key,
-      value: data.value,
-      contentType: data.contentType,
-      scope: data.scope,
-      description: data.description,
-      unit: selected.contentType === "number"
-        && data.contentType === "number"
-        && data.unit === null
-        ? ""
-        : data.unit
+      target: currentMutationTarget(),
+      entry: {
+        key: selected.key,
+        value: data.value,
+        contentType: data.contentType,
+        scope: data.scope,
+        description: data.description,
+        unit: selected.contentType === "number"
+          && data.contentType === "number"
+          && data.unit === null
+          ? ""
+          : data.unit
+      }
     });
   };
 
@@ -753,10 +820,13 @@ export default function ParametersSection() {
                 setUpdatingValueKey(entry.key);
                 try {
                   await updateConfigMutation.mutateAsync({
-                    key: entry.key,
-                    value,
-                    contentType: entry.contentType,
-                    scope: entry.scope
+                    target: currentMutationTarget(),
+                    entry: {
+                      key: entry.key,
+                      value,
+                      contentType: entry.contentType,
+                      scope: entry.scope
+                    }
                   });
                 } finally {
                   setUpdatingValueKey(null);
@@ -836,10 +906,24 @@ export default function ParametersSection() {
           onClose={() => {
             closeShareDialog();
           }}
-          onCreate={data => createShareLinkMutation.mutate(data)}
+          onCreate={data => {
+            const entry = sharingEntry();
+            if (!entry || !isDefaultParametersView()) return;
+            createShareLinkMutation.mutate({
+              target: currentMutationTarget(),
+              key: entry.key,
+              data
+            });
+          }}
           onRevoke={shareLinkId => {
+            const entry = sharingEntry();
+            if (!entry || !isDefaultParametersView()) return;
             setRevokingShareLinkId(shareLinkId);
-            revokeShareLinkMutation.mutate(shareLinkId);
+            revokeShareLinkMutation.mutate({
+              target: currentMutationTarget(),
+              key: entry.key,
+              shareLinkId
+            });
           }}
           onCopy={copyShareUrl}
           buildShareUrl={buildShareUrl}
@@ -862,7 +946,7 @@ export default function ParametersSection() {
         onConfirm={() => {
           const key = confirmDeleteEntry();
           if (key) {
-            deleteConfigMutation.mutate(key);
+            deleteConfigMutation.mutate({ target: currentMutationTarget(), key });
             setConfirmDeleteEntry(null);
           }
         }}

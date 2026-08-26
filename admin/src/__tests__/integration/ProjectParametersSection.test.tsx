@@ -603,6 +603,91 @@ describe('ProjectParametersSection', () => {
     expect(await screen.findByTestId('parameter-row-Checkout:Timeout')).toBeInTheDocument();
   });
 
+  it('keeps a delayed parameter creation bound to its original environment', async () => {
+    const productionEntry = {
+      project: 'my-app',
+      environment: 'production',
+      key: 'API_URL',
+      value: 'https://api.example.com',
+      contentType: 'text',
+      scope: 'server',
+      activeVersion: 1,
+      createdAt: '2024-01-01T00:00:00Z',
+      updatedAt: '2024-01-01T00:00:00Z',
+    };
+    const stagingEntry = {
+      ...productionEntry,
+      environment: 'staging',
+      key: 'STAGING_ONLY_KEY',
+      value: 'staging-value',
+    };
+    let requestEnvironment = '';
+    let releaseResponse: () => void = () => undefined;
+    const responseGate = new Promise<void>(resolve => {
+      releaseResponse = () => resolve();
+    });
+
+    server.use(
+      http.get(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/config-entries',
+        ({ params }) =>
+          HttpResponse.json(params.envName === 'staging' ? [stagingEntry] : [productionEntry]),
+      ),
+      http.put(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/config-entries/:key',
+        async ({ params, request }) => {
+          requestEnvironment = String(params.envName);
+          const body = (await request.json()) as Record<string, unknown>;
+          await responseGate;
+          return HttpResponse.json({
+            ...productionEntry,
+            ...body,
+            environment: requestEnvironment,
+            key: String(params.key),
+          });
+        },
+      ),
+    );
+
+    const { queryClient } = renderProjectSections('/projects/my-app');
+    const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries');
+
+    fireEvent.click(await screen.findByRole('button', { name: /add parameter/i }));
+    fireEvent.input(await screen.findByTestId('parameter-key-input'), {
+      target: { value: 'Checkout:Timeout' },
+    });
+    fireEvent.input(screen.getByTestId('parameter-value-input'), {
+      target: { value: '30s' },
+    });
+    fireEvent.click(screen.getByTestId('parameter-create-submit-button'));
+
+    await waitFor(() => expect(requestEnvironment).toBe('production'));
+    setActiveEnvironmentName('my-app', 'staging');
+    expect(await screen.findByTestId('parameter-row-STAGING_ONLY_KEY')).toBeInTheDocument();
+
+    releaseResponse();
+
+    await waitFor(() => {
+      expect(invalidateQueries).toHaveBeenCalledWith({
+        queryKey: projectKeys.configEntries('my-app', 'production'),
+      });
+    });
+    expect(
+      queryClient
+        .getQueryData<Array<{ key: string }>>(projectKeys.configEntries('my-app', 'production'))
+        ?.some(entry => entry.key === 'Checkout:Timeout'),
+    ).toBe(true);
+    expect(
+      queryClient
+        .getQueryData<Array<{ key: string }>>(projectKeys.configEntries('my-app', 'staging'))
+        ?.some(entry => entry.key === 'Checkout:Timeout'),
+    ).toBe(false);
+    expect(screen.getByTestId('parameter-side-panel')).not.toHaveAttribute(
+      'data-entry-key',
+      'Checkout:Timeout',
+    );
+  });
+
   it('shows backend validation message when parameter creation fails', async () => {
     server.use(
       http.put(
