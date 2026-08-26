@@ -1,4 +1,4 @@
-import { For, Show, createSignal } from "solid-js";
+import { For, Show, createEffect, createSignal } from "solid-js";
 import { Button } from "../../shared/ui/button";
 import { MIcon } from "../../shared/ui/icons";
 import type { Environment } from "../../types";
@@ -31,6 +31,12 @@ export function ProjectEnvironments(props: ProjectEnvironmentsProps) {
     if (createError()) setCreateError("");
     if (props.createEnvError) props.onDismissCreateEnvError?.();
   };
+
+  createEffect(() => {
+    if (props.showEnvForm) return;
+    setEnvName("");
+    clearErrors();
+  });
 
   const handleSubmit = (e: Event) => {
     e.preventDefault();
