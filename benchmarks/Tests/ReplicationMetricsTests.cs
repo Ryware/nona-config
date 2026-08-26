@@ -30,4 +30,14 @@ public class ReplicationMetricsTests
         await Assert.That(negativeObserved.StaleReads).IsEqualTo(100);
         await Assert.That(negativeObserved.StaleReadRatePercent).IsEqualTo(100d);
     }
+
+    [Test]
+    public async Task ReadScenarios_UseSupportedLibsqlParameterCollections()
+    {
+        var pointLookup = ReplicaBenchmarkApp.BuildPointLookup(1, 1);
+        var rangeQuery = ReplicaBenchmarkApp.BuildRangeQuery(1000, 0);
+
+        await Assert.That(pointLookup.Parameters is IReadOnlyDictionary<string, object?>).IsTrue();
+        await Assert.That(rangeQuery.Parameters is IReadOnlyDictionary<string, object?>).IsTrue();
+    }
 }

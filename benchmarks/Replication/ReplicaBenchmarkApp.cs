@@ -270,14 +270,12 @@ public static class ReplicaBenchmarkApp
                 INSERT OR REPLACE INTO ConfigEntries (Project, Environment, Key, Value, ContentType, Scope, CreatedAt, UpdatedAt)
                 VALUES (@Project, @Environment, @Key, @Value, 'string', 3, @Now, @Now)
                 """,
-                new
-                {
-                    Project = ProjectName,
-                    Environment = EnvironmentName,
-                    Key = key,
-                    Value = $"single-lag-check-{index:D4}",
-                    Now = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture)
-                },
+                LibsqlParameters.Create(
+                    ("Project", ProjectName),
+                    ("Environment", EnvironmentName),
+                    ("Key", key),
+                    ("Value", $"single-lag-check-{index:D4}"),
+                    ("Now", DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture))),
                 cancellationToken);
             totalWriteLatencyMs += Stopwatch.GetElapsedTime(writeStarted).TotalMilliseconds;
 
@@ -321,14 +319,12 @@ public static class ReplicaBenchmarkApp
                 INSERT OR REPLACE INTO ConfigEntries (Project, Environment, Key, Value, ContentType, Scope, CreatedAt, UpdatedAt)
                 VALUES (@Project, @Environment, @Key, @Value, 'string', 3, @Now, @Now)
                 """,
-                new
-                {
-                    Project = ProjectName,
-                    Environment = EnvironmentName,
-                    Key = $"{prefix}{index:D4}",
-                    Value = $"batch-lag-check-{index:D4}",
-                    Now = now
-                }))
+                LibsqlParameters.Create(
+                    ("Project", ProjectName),
+                    ("Environment", EnvironmentName),
+                    ("Key", $"{prefix}{index:D4}"),
+                    ("Value", $"batch-lag-check-{index:D4}"),
+                    ("Now", now))))
             .ToArray();
 
         var insertStarted = Stopwatch.GetTimestamp();
@@ -398,10 +394,18 @@ public static class ReplicaBenchmarkApp
 
         await ExecuteBatchWithRetryAsync(primary,
         [
-            new("DELETE FROM ConfigEntries WHERE Project = @Project", new { Project = ProjectName }),
-            new("DELETE FROM ApiKeys WHERE Project = @Project", new { Project = ProjectName }),
-            new("DELETE FROM Environments WHERE Project = @Project", new { Project = ProjectName }),
-            new("DELETE FROM Projects WHERE Name = @Name OR UrlSlug = @Slug", new { Name = ProjectName, Slug = ProjectSlug })
+            new(
+                "DELETE FROM ConfigEntries WHERE Project = @Project",
+                LibsqlParameters.Create(("Project", ProjectName))),
+            new(
+                "DELETE FROM ApiKeys WHERE Project = @Project",
+                LibsqlParameters.Create(("Project", ProjectName))),
+            new(
+                "DELETE FROM Environments WHERE Project = @Project",
+                LibsqlParameters.Create(("Project", ProjectName))),
+            new(
+                "DELETE FROM Projects WHERE Name = @Name OR UrlSlug = @Slug",
+                LibsqlParameters.Create(("Name", ProjectName), ("Slug", ProjectSlug)))
         ], cancellationToken);
 
         var now = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture);
@@ -412,39 +416,33 @@ public static class ReplicaBenchmarkApp
                 INSERT INTO Projects (Name, UrlSlug, CreatedAt, UpdatedAt)
                 VALUES (@Name, @Slug, @CreatedAt, @UpdatedAt)
                 """,
-                new
-                {
-                    Name = ProjectName,
-                    Slug = ProjectSlug,
-                    CreatedAt = now,
-                    UpdatedAt = now
-                }),
+                LibsqlParameters.Create(
+                    ("Name", ProjectName),
+                    ("Slug", ProjectSlug),
+                    ("CreatedAt", now),
+                    ("UpdatedAt", now))),
             new(
                 """
                 INSERT INTO ApiKeys (Name, Key, Project, Environment, Scope, CreatedAt, UpdatedAt)
                 VALUES (@Name, @Key, @Project, NULL, @Scope, @CreatedAt, @UpdatedAt)
                 """,
-                new
-                {
-                    Name = "Benchmark",
-                    Key = ApiKey,
-                    Project = ProjectName,
-                    Scope = 3,
-                    CreatedAt = now,
-                    UpdatedAt = now
-                }),
+                LibsqlParameters.Create(
+                    ("Name", "Benchmark"),
+                    ("Key", ApiKey),
+                    ("Project", ProjectName),
+                    ("Scope", 3),
+                    ("CreatedAt", now),
+                    ("UpdatedAt", now))),
             new(
                 """
                 INSERT INTO Environments (Name, Project, CreatedAt, UpdatedAt)
                 VALUES (@Name, @Project, @CreatedAt, @UpdatedAt)
                 """,
-                new
-                {
-                    Name = EnvironmentName,
-                    Project = ProjectName,
-                    CreatedAt = now,
-                    UpdatedAt = now
-                })
+                LibsqlParameters.Create(
+                    ("Name", EnvironmentName),
+                    ("Project", ProjectName),
+                    ("CreatedAt", now),
+                    ("UpdatedAt", now)))
         ], cancellationToken);
 
         for (var index = 1; index <= DatasetRows; index++)
@@ -455,15 +453,13 @@ public static class ReplicaBenchmarkApp
                 INSERT INTO ConfigEntries (Project, Environment, Key, Value, ContentType, Scope, CreatedAt, UpdatedAt)
                 VALUES (@Project, @Environment, @Key, @Value, 'string', 3, @CreatedAt, @UpdatedAt)
                 """,
-                new
-                {
-                    Project = ProjectName,
-                    Environment = EnvironmentName,
-                    Key = BuildKey(index),
-                    Value = $"medium-value-{index:D7}-abcdefghijklmnopqrstuvwxyz0123456789",
-                    CreatedAt = now,
-                    UpdatedAt = now
-                },
+                LibsqlParameters.Create(
+                    ("Project", ProjectName),
+                    ("Environment", EnvironmentName),
+                    ("Key", BuildKey(index)),
+                    ("Value", $"medium-value-{index:D7}-abcdefghijklmnopqrstuvwxyz0123456789"),
+                    ("CreatedAt", now),
+                    ("UpdatedAt", now)),
                 cancellationToken);
         }
     }
@@ -559,7 +555,7 @@ public static class ReplicaBenchmarkApp
               AND Environment = @Environment COLLATE NOCASE
               AND Key LIKE 'KEY_%'
             """,
-            new { Project = ProjectName, Environment = EnvironmentName },
+            LibsqlParameters.Create(("Project", ProjectName), ("Environment", EnvironmentName)),
             cancellationToken);
         return result.Rows[0].GetInt32(0);
     }
@@ -577,7 +573,10 @@ public static class ReplicaBenchmarkApp
               AND Environment = @Environment COLLATE NOCASE
               AND Key = @Key COLLATE NOCASE
             """,
-            new { Project = ProjectName, Environment = EnvironmentName, Key = key },
+            LibsqlParameters.Create(
+                ("Project", ProjectName),
+                ("Environment", EnvironmentName),
+                ("Key", key)),
             cancellationToken);
         return result.Rows[0].GetInt32(0);
     }
@@ -595,12 +594,15 @@ public static class ReplicaBenchmarkApp
               AND Environment = @Environment COLLATE NOCASE
               AND Key LIKE @Prefix
             """,
-            new { Project = ProjectName, Environment = EnvironmentName, Prefix = $"{prefix}%" },
+            LibsqlParameters.Create(
+                ("Project", ProjectName),
+                ("Environment", EnvironmentName),
+                ("Prefix", $"{prefix}%")),
             cancellationToken);
         return result.Rows[0].GetInt32(0);
     }
 
-    private static (string Sql, object Parameters) BuildPointLookup(int startIndex, int keyCount)
+    internal static (string Sql, object Parameters) BuildPointLookup(int startIndex, int keyCount)
     {
         var parameters = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
         {
@@ -629,7 +631,7 @@ public static class ReplicaBenchmarkApp
     private static string EscapeSqlLiteral(string value)
         => value.Replace("'", "''", StringComparison.Ordinal);
 
-    private static (string Sql, object Parameters) BuildRangeQuery(int limit, int offset)
+    internal static (string Sql, object Parameters) BuildRangeQuery(int limit, int offset)
     {
         return (
             """
@@ -640,13 +642,11 @@ public static class ReplicaBenchmarkApp
             ORDER BY Key
             LIMIT @Limit OFFSET @Offset
             """,
-            new
-            {
-                Project = ProjectName,
-                Environment = EnvironmentName,
-                Limit = limit,
-                Offset = offset
-            });
+            LibsqlParameters.Create(
+                ("Project", ProjectName),
+                ("Environment", EnvironmentName),
+                ("Limit", limit),
+                ("Offset", offset)));
     }
 
     private static IReadOnlyList<ReplicaReadScenario> CreateReadScenarios()
