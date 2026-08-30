@@ -11,6 +11,8 @@
 
   <ItemGroup>
     <PackageReference Include="AWSSDK.SimpleSystemsManagement" Version="4.0.103.3" />
+    <PackageReference Include="AWSSDK.SSO" Version="4.0.100.13" />
+    <PackageReference Include="AWSSDK.SSOOIDC" Version="4.0.100.12" />
   </ItemGroup>
 
   <ItemGroup>
