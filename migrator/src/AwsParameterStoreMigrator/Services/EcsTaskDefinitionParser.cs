@@ -10,13 +10,27 @@ internal static class EcsTaskDefinitionParser
         CancellationToken cancellationToken)
     {
         await using var stream = File.OpenRead(path);
-        var taskDefinition = await JsonSerializer.DeserializeAsync(
+        var document = await JsonSerializer.DeserializeAsync(
             stream,
-            AwsParameterStoreSerializerContext.Default.EcsTaskDefinition,
+            AwsParameterStoreSerializerContext.Default.EcsTaskDefinitionDocument,
             cancellationToken);
 
-        if (taskDefinition is null)
+        if (document is null)
             throw new InvalidOperationException("Task definition JSON is empty.");
+
+        var hasRawShape = document.ContainerDefinitions is not null;
+        var hasWrappedShape = document.TaskDefinition?.ContainerDefinitions is not null;
+
+        if (hasRawShape && hasWrappedShape)
+            throw new InvalidOperationException(
+                "Task definition JSON contains containerDefinitions in both the root and taskDefinition envelope.");
+
+        var taskDefinition = hasWrappedShape
+            ? document.TaskDefinition!
+            : hasRawShape
+                ? new EcsTaskDefinition { ContainerDefinitions = document.ContainerDefinitions }
+                : throw new InvalidOperationException(
+                    "Task definition JSON must contain containerDefinitions at the root or under taskDefinition.");
 
         return Parse(taskDefinition);
     }

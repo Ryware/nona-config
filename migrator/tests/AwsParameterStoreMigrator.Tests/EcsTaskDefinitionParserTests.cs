@@ -6,6 +6,71 @@ namespace Nona.Migrator.AwsParameterStore.Tests;
 public sealed class EcsTaskDefinitionParserTests
 {
     [Test]
+    public async Task Load_AcceptsRawTaskDefinition()
+    {
+        var result = await LoadJsonAsync("""
+            {
+              "containerDefinitions": [
+                {
+                  "name": "api",
+                  "secrets": [
+                    { "name": "RAW_KEY", "valueFrom": "/app/raw" }
+                  ]
+                }
+              ]
+            }
+            """);
+
+        await Assert.That(result.Parameters).Count().IsEqualTo(1);
+        await Assert.That(result.Parameters[0].Key).IsEqualTo("RAW_KEY");
+    }
+
+    [Test]
+    public async Task Load_AcceptsDescribeTaskDefinitionEnvelope()
+    {
+        var result = await LoadJsonAsync("""
+            {
+              "taskDefinition": {
+                "containerDefinitions": [
+                  {
+                    "name": "api",
+                    "secrets": [
+                      { "name": "WRAPPED_KEY", "valueFrom": "/app/wrapped" }
+                    ]
+                  }
+                ]
+              }
+            }
+            """);
+
+        await Assert.That(result.Parameters).Count().IsEqualTo(1);
+        await Assert.That(result.Parameters[0].Key).IsEqualTo("WRAPPED_KEY");
+    }
+
+    [Test]
+    public async Task Load_RejectsDocumentWithoutTaskDefinitionShape()
+    {
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => LoadJsonAsync("{}"));
+
+        await Assert.That(exception!.Message).Contains("containerDefinitions");
+    }
+
+    [Test]
+    public async Task Load_RejectsAmbiguousTaskDefinitionShapes()
+    {
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => LoadJsonAsync("""
+            {
+              "containerDefinitions": [],
+              "taskDefinition": {
+                "containerDefinitions": []
+              }
+            }
+            """));
+
+        await Assert.That(exception!.Message).Contains("both");
+    }
+
+    [Test]
     public async Task Parse_MapsSsmSecretsAcrossContainers_AndSkipsSecretsManager()
     {
         var taskDefinition = new EcsTaskDefinition
@@ -107,5 +172,19 @@ public sealed class EcsTaskDefinitionParserTests
         var exception = Assert.Throws<InvalidOperationException>(() => EcsTaskDefinitionParser.Parse(taskDefinition));
 
         await Assert.That(exception!.Message).Contains("malformed SSM parameter ARN");
+    }
+
+    private static async Task<TaskDefinitionMappings> LoadJsonAsync(string json)
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"nona-ecs-{Guid.NewGuid():N}.json");
+        try
+        {
+            await File.WriteAllTextAsync(path, json);
+            return await EcsTaskDefinitionParser.LoadAsync(path, CancellationToken.None);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
     }
 }

@@ -2,6 +2,15 @@ using System.Text.Json.Serialization;
 
 namespace Nona.Migrator.AwsParameterStore.Models;
 
+internal sealed class EcsTaskDefinitionDocument
+{
+    [JsonPropertyName("taskDefinition")]
+    public EcsTaskDefinition? TaskDefinition { get; set; }
+
+    [JsonPropertyName("containerDefinitions")]
+    public List<EcsContainerDefinition>? ContainerDefinitions { get; set; }
+}
+
 internal sealed class EcsTaskDefinition
 {
     [JsonPropertyName("containerDefinitions")]
