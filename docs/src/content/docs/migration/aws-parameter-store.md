@@ -23,7 +23,7 @@ creates the Nona key `TRANSFER_TOKEN_SALT` when the SSM parameter type is `Strin
 - A configured AWS region for bare parameter names. Full SSM ARNs provide their own region.
 - Nona admin access through a bearer token, email/password, or a saved `nona auth login` session.
 
-The AWS SDK default credential chain is used by default. Pass `--profile` to select a named profile from the shared AWS credentials/config files. The command never accepts access keys directly.
+The AWS SDK default credential chain is used by default. Pass `--profile` to select a named profile from the shared AWS credentials/config files. Profiles created through the AWS CLI browser flow, such as `aws login --profile my-aws-profile`, are supported. The command never accepts access keys directly.
 
 ## Run a dry run
 

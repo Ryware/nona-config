@@ -1,6 +1,6 @@
 namespace Nona.Migrator.AwsParameterStore.Tests;
 
-public sealed class SsoRuntimeDependencyTests
+public sealed class AwsCredentialRuntimeDependencyTests
 {
     [Test]
     public async Task SsoCredentialProviderAssemblies_AreAvailableAtRuntime()
@@ -14,5 +14,15 @@ public sealed class SsoRuntimeDependencyTests
 
         await Assert.That(ssoClientType).IsNotNull();
         await Assert.That(ssoOidcClientType).IsNotNull();
+    }
+
+    [Test]
+    public async Task SigninCredentialProviderAssembly_IsAvailableAtRuntime()
+    {
+        var signinClientType = Type.GetType(
+            "Amazon.Signin.AmazonSigninClient, AWSSDK.Signin",
+            throwOnError: false);
+
+        await Assert.That(signinClientType).IsNotNull();
     }
 }
