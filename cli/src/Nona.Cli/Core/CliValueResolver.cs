@@ -43,6 +43,33 @@ internal sealed class CliValueResolver(CliDefaults defaults, CliAuthSession? ses
         return ConnectionResolutionResult.Ok(new NonaCliConnectionOptions(baseUrl, token));
     }
 
+    public MigrationConnectionResolution ResolveMigrationConnection(
+        string? parsedBaseUrl,
+        string? parsedToken,
+        string? parsedEmail,
+        string? parsedPassword)
+    {
+        var baseUrl = BaseUrl(parsedBaseUrl);
+        var token = Token(parsedToken);
+        var email = Email(parsedEmail);
+        var password = Password(parsedPassword);
+
+        if (string.IsNullOrWhiteSpace(baseUrl) && session is not null && !session.IsExpired)
+            baseUrl = session.BaseUrl;
+
+        if (string.IsNullOrWhiteSpace(token)
+            && string.IsNullOrWhiteSpace(email)
+            && session is not null
+            && !session.IsExpired
+            && !string.IsNullOrWhiteSpace(baseUrl)
+            && session.MatchesBaseUrl(baseUrl))
+        {
+            token = session.Token;
+        }
+
+        return new MigrationConnectionResolution(baseUrl, token, email, password);
+    }
+
     public string[] BuildFirebaseArgs(
         string? config,
         bool dryRun,
@@ -114,3 +141,9 @@ internal sealed record ConnectionResolutionResult(bool Success, string? Error, N
     public static ConnectionResolutionResult Ok(NonaCliConnectionOptions connection) => new(true, null, connection);
     public static ConnectionResolutionResult Fail(string error) => new(false, error, null);
 }
+
+internal sealed record MigrationConnectionResolution(
+    string? BaseUrl,
+    string? Token,
+    string? Email,
+    string? Password);

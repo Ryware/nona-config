@@ -193,6 +193,72 @@ public sealed class CliValueResolverTests
     }
 
     [Test]
+    public async Task ResolveMigrationConnection_UsesSavedSessionWhenConnectionOmitted()
+    {
+        await EnvironmentLock.WaitAsync();
+        try
+        {
+            using var env = ClearMigrationEnvironment();
+            var result = new CliValueResolver(CliDefaults.Empty, CreateSession())
+                .ResolveMigrationConnection(null, null, null, null);
+
+            await Assert.That(result.BaseUrl).IsEqualTo("http://saved.internal:18080");
+            await Assert.That(result.Token).IsEqualTo("saved-token");
+        }
+        finally { EnvironmentLock.Release(); }
+    }
+
+    [Test]
+    public async Task ResolveMigrationConnection_IgnoresExpiredSession()
+    {
+        await EnvironmentLock.WaitAsync();
+        try
+        {
+            using var env = ClearMigrationEnvironment();
+            var result = new CliValueResolver(CliDefaults.Empty, CreateSession(expired: true))
+                .ResolveMigrationConnection(null, null, null, null);
+
+            await Assert.That(result.BaseUrl).IsNull();
+            await Assert.That(result.Token).IsNull();
+        }
+        finally { EnvironmentLock.Release(); }
+    }
+
+    [Test]
+    public async Task ResolveMigrationConnection_DoesNotUseMismatchedSessionToken()
+    {
+        await EnvironmentLock.WaitAsync();
+        try
+        {
+            using var env = ClearMigrationEnvironment();
+            var result = new CliValueResolver(CliDefaults.Empty, CreateSession())
+                .ResolveMigrationConnection("http://other.internal:18080", null, null, null);
+
+            await Assert.That(result.BaseUrl).IsEqualTo("http://other.internal:18080");
+            await Assert.That(result.Token).IsNull();
+        }
+        finally { EnvironmentLock.Release(); }
+    }
+
+    [Test]
+    public async Task ResolveMigrationConnection_UsesSessionBaseUrlForEmailPasswordFlow()
+    {
+        await EnvironmentLock.WaitAsync();
+        try
+        {
+            using var env = ClearMigrationEnvironment();
+            var result = new CliValueResolver(CliDefaults.Empty, CreateSession())
+                .ResolveMigrationConnection(null, null, "admin@example.com", "password-123");
+
+            await Assert.That(result.BaseUrl).IsEqualTo("http://saved.internal:18080");
+            await Assert.That(result.Token).IsNull();
+            await Assert.That(result.Email).IsEqualTo("admin@example.com");
+            await Assert.That(result.Password).IsEqualTo("password-123");
+        }
+        finally { EnvironmentLock.Release(); }
+    }
+
+    [Test]
     public async Task BuildFirebaseArgs_IncludesAllProvidedValues()
     {
         var args = new CliValueResolver(CliDefaults.Empty).BuildFirebaseArgs(
@@ -247,4 +313,24 @@ public sealed class CliValueResolverTests
         await Assert.That(CliValueResolver.NormalizeConfigSettingName("project")).IsEqualTo("project");
         await Assert.That(CliValueResolver.NormalizeConfigSettingName("unknown")).IsNull();
     }
+
+    private static EnvironmentScope ClearMigrationEnvironment() =>
+        new(new Dictionary<string, string?>
+        {
+            ["NONA_CLI_BASE_URL"] = null,
+            ["NONA_CLI_BEARER_TOKEN"] = null,
+            ["NONA_CLI_EMAIL"] = null,
+            ["NONA_CLI_PASSWORD"] = null
+        });
+
+    private static CliAuthSession CreateSession(bool expired = false) =>
+        new()
+        {
+            BaseUrl = "http://saved.internal:18080",
+            Token = "saved-token",
+            Username = "admin@example.com",
+            Role = "Admin",
+            ExpiresAt = expired ? DateTime.UtcNow.AddHours(-1) : DateTime.UtcNow.AddHours(1),
+            SavedAtUtc = DateTime.UtcNow
+        };
 }

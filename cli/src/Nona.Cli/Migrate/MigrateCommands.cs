@@ -36,23 +36,21 @@ internal sealed class MigrateCommands(CliContext ctx) : ICliCommandGroup
         cmd.AddOption(passwordOpt);
         cmd.Handler = CommandHandler.Create(async (InvocationContext ic) =>
         {
-            var baseUrl = ctx.Resolver.BaseUrl(ic.ParseResult.GetValueForOption(baseUrlOpt));
+            var connection = ctx.Resolver.ResolveMigrationConnection(
+                ic.ParseResult.GetValueForOption(baseUrlOpt),
+                ic.ParseResult.GetValueForOption(tokenOpt),
+                ic.ParseResult.GetValueForOption(emailOpt),
+                ic.ParseResult.GetValueForOption(passwordOpt));
             var project = ctx.Resolver.Project(ic.ParseResult.GetValueForOption(projectOpt));
-            var email = ctx.Resolver.Email(ic.ParseResult.GetValueForOption(emailOpt));
-            var password = ctx.Resolver.Password(ic.ParseResult.GetValueForOption(passwordOpt));
-            var token = ctx.Resolver.Token(ic.ParseResult.GetValueForOption(tokenOpt));
-
-            if (string.IsNullOrWhiteSpace(token) && string.IsNullOrWhiteSpace(email) &&
-                ctx.Session is not null && !ctx.Session.IsExpired &&
-                baseUrl is not null && ctx.Session.MatchesBaseUrl(baseUrl))
-            {
-                token = ctx.Session.Token;
-            }
 
             var args = ctx.Resolver.BuildFirebaseArgs(
                 ic.ParseResult.GetValueForOption(configOpt),
                 ic.ParseResult.GetValueForOption(dryRunOpt),
-                baseUrl, project, token, email, password);
+                connection.BaseUrl,
+                project,
+                connection.Token,
+                connection.Email,
+                connection.Password);
 
             ic.ExitCode = await handler.HandleAsync(new FirebaseMigrateCommand(args), ic.GetCancellationToken());
         });
@@ -97,18 +95,12 @@ internal sealed class MigrateCommands(CliContext ctx) : ICliCommandGroup
         cmd.AddOption(passwordOpt);
         cmd.Handler = CommandHandler.Create(async (InvocationContext ic) =>
         {
-            var baseUrl = ctx.Resolver.BaseUrl(ic.ParseResult.GetValueForOption(baseUrlOpt));
+            var connection = ctx.Resolver.ResolveMigrationConnection(
+                ic.ParseResult.GetValueForOption(baseUrlOpt),
+                ic.ParseResult.GetValueForOption(tokenOpt),
+                ic.ParseResult.GetValueForOption(emailOpt),
+                ic.ParseResult.GetValueForOption(passwordOpt));
             var project = ctx.Resolver.Project(ic.ParseResult.GetValueForOption(projectOpt));
-            var email = ctx.Resolver.Email(ic.ParseResult.GetValueForOption(emailOpt));
-            var password = ctx.Resolver.Password(ic.ParseResult.GetValueForOption(passwordOpt));
-            var token = ctx.Resolver.Token(ic.ParseResult.GetValueForOption(tokenOpt));
-
-            if (string.IsNullOrWhiteSpace(token) && string.IsNullOrWhiteSpace(email)
-                && ctx.Session is not null && !ctx.Session.IsExpired
-                && baseUrl is not null && ctx.Session.MatchesBaseUrl(baseUrl))
-            {
-                token = ctx.Session.Token;
-            }
 
             var args = ctx.Resolver.BuildParameterStoreArgs(
                 ic.ParseResult.GetValueForOption(taskDefinitionOpt)!,
@@ -116,11 +108,11 @@ internal sealed class MigrateCommands(CliContext ctx) : ICliCommandGroup
                 ic.ParseResult.GetValueForOption(regionOpt),
                 ic.ParseResult.GetValueForOption(profileOpt),
                 ic.ParseResult.GetValueForOption(dryRunOpt),
-                baseUrl,
+                connection.BaseUrl,
                 project,
-                token,
-                email,
-                password);
+                connection.Token,
+                connection.Email,
+                connection.Password);
 
             ic.ExitCode = await handler.HandleAsync(
                 new ParameterStoreMigrateCommand(args),
