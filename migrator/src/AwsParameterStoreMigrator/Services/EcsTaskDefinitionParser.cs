@@ -51,12 +51,12 @@ internal static class EcsTaskDefinitionParser
                 if (string.IsNullOrWhiteSpace(key) || string.IsNullOrWhiteSpace(reference))
                     throw new InvalidOperationException($"Container '{containerName}' has a secret mapping with a missing name or valueFrom.");
 
-                if (!IsValidNonaKey(key))
-                    throw new InvalidOperationException($"ECS secret name '{key}' is not a valid Nona key.");
-
                 var parsed = ParseReference(key, reference, containerName, warnings);
                 if (parsed is null)
                     continue;
+
+                if (!IsValidNonaKey(key))
+                    throw new InvalidOperationException($"ECS secret name '{key}' is not a valid Nona key.");
 
                 if (!mappings.TryGetValue(key, out var existing))
                 {
@@ -127,6 +127,10 @@ internal static class EcsTaskDefinitionParser
                 return false;
         }
 
-        return hasAlphaNumeric;
+        if (!hasAlphaNumeric)
+            return false;
+
+        var segments = key.Split(':');
+        return segments.Length <= 4 && segments.All(static segment => segment.Length > 0);
     }
 }

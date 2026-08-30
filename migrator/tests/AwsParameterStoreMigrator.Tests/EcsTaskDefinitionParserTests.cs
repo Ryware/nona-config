@@ -174,6 +174,51 @@ public sealed class EcsTaskDefinitionParserTests
         await Assert.That(exception!.Message).Contains("malformed SSM parameter ARN");
     }
 
+    [Test]
+    public async Task Parse_RejectsKeyWithEmptyHierarchySegment()
+    {
+        var taskDefinition = TaskDefinitionWithSecret("one::three", "/app/key");
+
+        var exception = Assert.Throws<InvalidOperationException>(() => EcsTaskDefinitionParser.Parse(taskDefinition));
+
+        await Assert.That(exception!.Message).Contains("not a valid Nona key");
+    }
+
+    [Test]
+    public async Task Parse_RejectsKeyWithMoreThanFourHierarchySegments()
+    {
+        var taskDefinition = TaskDefinitionWithSecret("one:two:three:four:five", "/app/key");
+
+        var exception = Assert.Throws<InvalidOperationException>(() => EcsTaskDefinitionParser.Parse(taskDefinition));
+
+        await Assert.That(exception!.Message).Contains("not a valid Nona key");
+    }
+
+    [Test]
+    public async Task Parse_AcceptsKeyWithFourHierarchySegments()
+    {
+        var taskDefinition = TaskDefinitionWithSecret("one:two:three:four", "/app/key");
+
+        var result = EcsTaskDefinitionParser.Parse(taskDefinition);
+
+        await Assert.That(result.Parameters).Count().IsEqualTo(1);
+        await Assert.That(result.Parameters[0].Key).IsEqualTo("one:two:three:four");
+    }
+
+    [Test]
+    public async Task Parse_SkipsSecretsManagerReferenceBeforeKeyValidation()
+    {
+        var taskDefinition = TaskDefinitionWithSecret(
+            "not/a/nona/key",
+            "arn:aws:secretsmanager:eu-central-1:111122223333:secret:ignored");
+
+        var result = EcsTaskDefinitionParser.Parse(taskDefinition);
+
+        await Assert.That(result.Parameters).IsEmpty();
+        await Assert.That(result.Warnings).Count().IsEqualTo(1);
+        await Assert.That(result.Warnings[0]).Contains("Secrets Manager");
+    }
+
     private static async Task<TaskDefinitionMappings> LoadJsonAsync(string json)
     {
         var path = Path.Combine(Path.GetTempPath(), $"nona-ecs-{Guid.NewGuid():N}.json");
@@ -187,4 +232,16 @@ public sealed class EcsTaskDefinitionParserTests
             File.Delete(path);
         }
     }
+
+    private static EcsTaskDefinition TaskDefinitionWithSecret(string key, string valueFrom) =>
+        new()
+        {
+            ContainerDefinitions =
+            [
+                new EcsContainerDefinition
+                {
+                    Secrets = [new EcsSecret { Name = key, ValueFrom = valueFrom }]
+                }
+            ]
+        };
 }
