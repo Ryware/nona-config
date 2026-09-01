@@ -1,6 +1,6 @@
 ---
 title: CLI
-description: Install the nona CLI and run commands to manage projects, environments, parameters, and Firebase migrations from your terminal.
+description: Install the nona CLI and run commands to manage projects, environments, parameters, and configuration migrations from your terminal.
 ---
 
 The `nona` CLI manages admin workflows from a terminal. Use it for:
@@ -211,7 +211,7 @@ nona users create --name "Jane Doe" --user-email jane@example.com --role member
 
 The CLI returns the invitation result so you can hand the invite link or token to the teammate who needs access.
 
-## Migrate from Firebase Remote Config
+## Migrate existing configuration
 
 ```bash
 nona migrate firebase --config ./nona.migration.json --dry-run
@@ -221,6 +221,18 @@ nona migrate firebase --config ./nona.migration.json
 Use `--dry-run` before applying a migration.
 
 See [Firebase migration](/docs/cli/firebase-migration) for configuration, environment mapping, and conflict behavior.
+
+For backend configuration referenced by an ECS task definition:
+
+```bash
+nona migrate parameter-store \
+  --task-definition ./task-definition.json \
+  --environment production \
+  --project backend-service \
+  --dry-run
+```
+
+See [AWS Parameter Store migration](/docs/migration/aws-parameter-store) for AWS credentials, mapping, filtering, and apply behavior.
 
 ## Why the CLI matters for migration
 
