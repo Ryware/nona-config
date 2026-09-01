@@ -115,23 +115,25 @@ describe("project navigation state", () => {
     expect(within(screen.getByRole("navigation")).getByText("Parameters")).toBeInTheDocument();
   });
 
-  it("keeps release creation current while its exit confirmation is open", async () => {
+  it("keeps dirty release creation current while its discard confirmation is open", async () => {
     renderReleaseDraftNavigation("/projects/my-app?release=1.3.0");
 
     const parametersLink = await screen.findByRole("link", { name: "Parameters" });
     const releasesLink = screen.getByRole("link", { name: "Releases" });
-    await screen.findByTestId("release-create-confirm-button");
+    fireEvent.input(await screen.findByTestId("parameter-value-input-API_URL"), {
+      target: { value: "https://draft.example.com" }
+    });
     fireEvent.click(parametersLink);
 
-    expect(await screen.findByTestId("release-exit-dialog")).toBeInTheDocument();
+    expect(await screen.findByTestId("parameter-discard-dialog")).toBeInTheDocument();
     expect(window.location.search).toBe("?release=1.3.0");
     expect(releasesLink).toHaveAttribute("aria-current", "page");
 
-    fireEvent.click(screen.getByTestId("release-exit-cancel-button"));
+    fireEvent.click(screen.getByTestId("parameter-discard-cancel-button"));
     expect(window.location.search).toBe("?release=1.3.0");
 
     fireEvent.click(parametersLink);
-    fireEvent.click(await screen.findByTestId("release-exit-confirm-button"));
+    fireEvent.click(await screen.findByTestId("parameter-discard-confirm-button"));
 
     await waitFor(() => {
       expect(window.location.pathname).toBe("/projects/my-app");

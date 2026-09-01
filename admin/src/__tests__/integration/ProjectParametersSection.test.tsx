@@ -786,19 +786,31 @@ describe('ProjectParametersSection', () => {
     });
   });
 
-  it('asks before exiting release parameter changes', async () => {
+  it('exits a clean release creation draft without prompting', async () => {
     renderProjectSections('/projects/my-app?release=1.2.0');
 
     fireEvent.click(await screen.findByTestId('release-create-cancel-button'));
 
-    expect(await screen.findByTestId('release-exit-dialog')).toBeInTheDocument();
-    fireEvent.click(screen.getByTestId('release-exit-cancel-button'));
+    expect(await screen.findByTestId('project-releases-heading')).toBeInTheDocument();
+    expect(screen.queryByTestId('parameter-discard-dialog')).not.toBeInTheDocument();
+  });
 
-    expect(screen.queryByTestId('release-exit-dialog')).not.toBeInTheDocument();
+  it('asks once before discarding a dirty release creation draft', async () => {
+    renderProjectSections('/projects/my-app?release=1.2.0');
+
+    const input = await screen.findByTestId('parameter-value-input-API_URL');
+    fireEvent.input(input, { target: { value: 'https://draft.example.com' } });
+    fireEvent.click(screen.getByTestId('release-create-cancel-button'));
+
+    expect(await screen.findByTestId('parameter-discard-dialog')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('parameter-discard-cancel-button'));
+
+    expect(screen.queryByTestId('parameter-discard-dialog')).not.toBeInTheDocument();
     expect(screen.getByTestId('release-create-confirm-button')).toBeInTheDocument();
+    expect(input).toHaveValue('https://draft.example.com');
 
     fireEvent.click(screen.getByTestId('release-create-cancel-button'));
-    fireEvent.click(await screen.findByTestId('release-exit-confirm-button'));
+    fireEvent.click(await screen.findByTestId('parameter-discard-confirm-button'));
 
     expect(await screen.findByTestId('project-releases-heading')).toBeInTheDocument();
   });
@@ -890,6 +902,80 @@ describe('ProjectParametersSection', () => {
     expect(screen.queryByTestId('parameter-side-panel')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId('release-amend-confirm-button'));
+
+    await waitFor(() => {
+      expect(publishRequests).toHaveLength(1);
+    });
+    expect(publishRequests[0].url).toContain('/environments/staging/releases');
+    expect(publishRequests[0].url).not.toContain('/environments/production/');
+    expect(publishRequests[0].body).toContain('STAGING_ONLY_KEY');
+    expect(publishRequests[0].body).not.toContain('production-secret-value');
+    expect(publishRequests[0].body).not.toContain('production-draft-value');
+  });
+
+  it('replaces the create buffer from only the confirmed environment after a switch', async () => {
+    let releaseStagingSource: (() => void) | undefined;
+    const publishRequests: Array<{ url: string; body: string }> = [];
+
+    server.use(
+      http.get(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/config-entries',
+        async ({ params }) => {
+          const environmentName = String(params.envName);
+          if (environmentName === 'staging') {
+            await new Promise<void>(resolve => {
+              releaseStagingSource = resolve;
+            });
+          }
+
+          return HttpResponse.json([
+            {
+              project: params.projectId,
+              environment: environmentName,
+              key: environmentName === 'production' ? 'PRODUCTION_SECRET' : 'STAGING_ONLY_KEY',
+              value: environmentName === 'production' ? 'production-secret-value' : 'staging-value',
+              contentType: 'text',
+              scope: 'server',
+              description: '',
+              unit: null,
+              activeVersion: 1,
+              createdAt: '2024-01-01T00:00:00Z',
+              updatedAt: '2024-01-01T00:00:00Z',
+            },
+          ]);
+        },
+      ),
+      http.post(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/releases',
+        async ({ request }) => {
+          publishRequests.push({
+            url: request.url,
+            body: await request.text(),
+          });
+          return HttpResponse.json({}, { status: 201 });
+        },
+      ),
+    );
+
+    renderProjectSections('/projects/my-app?release=1.2.0');
+
+    const productionInput = await screen.findByTestId('parameter-value-input-PRODUCTION_SECRET');
+    fireEvent.input(productionInput, { target: { value: 'production-draft-value' } });
+
+    setActiveEnvironmentName('my-app', 'staging');
+
+    await waitFor(() => {
+      expect(releaseStagingSource).toBeTypeOf('function');
+    });
+    expect(screen.queryByTestId('parameter-row-PRODUCTION_SECRET')).not.toBeInTheDocument();
+    expect(screen.getByTestId('release-create-confirm-button')).toBeDisabled();
+
+    releaseStagingSource!();
+
+    expect(await screen.findByTestId('parameter-row-STAGING_ONLY_KEY')).toBeInTheDocument();
+    expect(screen.queryByTestId('parameter-row-PRODUCTION_SECRET')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('release-create-confirm-button'));
 
     await waitFor(() => {
       expect(publishRequests).toHaveLength(1);

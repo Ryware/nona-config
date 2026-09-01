@@ -1,7 +1,7 @@
 import { writeClipboard } from "@solid-primitives/clipboard";
-import { useBeforeLeave, useLocation, useNavigate, useParams, useSearchParams } from "@solidjs/router";
+import { useLocation, useNavigate, useParams, useSearchParams } from "@solidjs/router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/solid-query";
-import { Show, createEffect, createMemo, createSignal, on, onCleanup } from "solid-js";
+import { Show, createEffect, createMemo, createSignal, on } from "solid-js";
 
 import { configEntryService } from "../../../entities/project/api/config-entry.service";
 import { configReleaseService } from "../../../entities/project/api/config-release.service";
@@ -28,6 +28,7 @@ import { useToast } from "../../../shared/ui/toast";
 import type {
   ConfigEntry,
   ConfigEntryVersion,
+  ConfigReleaseEntry,
   CreateParameterShareLinkRequest
 } from "../../../types";
 import { ProjectSectionLayout } from "../components/ProjectSectionLayout";
@@ -85,7 +86,6 @@ export default function ParametersSection() {
   const [editDescription, setEditDescription] = createSignal("");
   const [updatingValueKey, setUpdatingValueKey] = createSignal<string | null>(null);
   const [showBulkImport, setShowBulkImport] = createSignal(false);
-  const [pendingReleaseExit, setPendingReleaseExit] = createSignal<(() => void) | null>(null);
   const [createDraftDirty, setCreateDraftDirty] = createSignal(false);
   const [editDraftDirty, setEditDraftDirty] = createSignal(false);
   let panelOpener: HTMLElement | undefined;
@@ -195,32 +195,6 @@ export default function ParametersSection() {
     releases
   });
 
-  const shouldConfirmReleaseExit = () =>
-    !!releaseDraftVersion() && !isAmendMode() && !publishReleaseMutation.isPending;
-
-  useBeforeLeave(event => {
-    if (!shouldConfirmReleaseExit() || event.defaultPrevented) {
-      return;
-    }
-
-    event.preventDefault();
-    setPendingReleaseExit(() => () => event.retry(true));
-  });
-
-  createEffect(() => {
-    if (!shouldConfirmReleaseExit()) {
-      return;
-    }
-
-    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      event.preventDefault();
-      event.returnValue = "";
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    onCleanup(() => window.removeEventListener("beforeunload", handleBeforeUnload));
-  });
-
   const normalizeContentType = (contentType: string): ConfigEntry["contentType"] =>
     contentType === "number" ||
     contentType === "boolean" ||
@@ -254,6 +228,19 @@ export default function ParametersSection() {
 
     return configQuery.status === "success" ? (configQuery.data ?? []) : [];
   });
+
+  const workingReleaseEntries = createMemo<ConfigReleaseEntry[]>(() =>
+    configQuery.status === "success"
+      ? (configQuery.data ?? []).map(entry => ({
+          key: entry.key,
+          value: entry.value,
+          contentType: entry.contentType,
+          scope: entry.scope,
+          description: entry.description,
+          unit: entry.unit
+        }))
+      : []
+  );
 
   const parametersLoading = createMemo(() =>
     isViewingReleaseSnapshot() ? releaseDetailsQuery.isLoading : configQuery.isLoading
@@ -708,21 +695,34 @@ export default function ParametersSection() {
           </div>
         </Show>
 
-        <Show when={isAmendMode()}>
+        <Show when={canManageProject() && releaseDraftVersion()}>
           <ReleaseDraftPanel
-            mode="amend"
+            mode={isAmendMode() ? "amend" : "create"}
             projectId={projectId()}
             environmentName={activeEnvName()}
-            sourceVersion={amendSourceVersion()!}
+            sourceVersion={amendSourceVersion()}
             targetVersion={releaseDraftVersion() ?? ""}
-            sourceEntries={amendSourceQuery.data?.entries ?? []}
-            sourceReady={amendSourceQuery.status === "success"}
-            sourceError={
-              amendSourceQuery.isError
-                ? errorMessage(amendSourceQuery.error, "The release could not be loaded.")
-                : undefined
+            sourceEntries={
+              isAmendMode() ? (amendSourceQuery.data?.entries ?? []) : workingReleaseEntries()
             }
-            onRetrySource={() => void amendSourceQuery.refetch()}
+            sourceReady={
+              isAmendMode()
+                ? amendSourceQuery.status === "success"
+                : configQuery.status === "success"
+            }
+            sourceError={
+              isAmendMode()
+                ? amendSourceQuery.isError
+                  ? errorMessage(amendSourceQuery.error, "The release could not be loaded.")
+                  : undefined
+                : configQuery.isError
+                  ? errorMessage(configQuery.error, "Working parameters could not be loaded.")
+                  : undefined
+            }
+            onRetrySource={() => {
+              if (isAmendMode()) void amendSourceQuery.refetch();
+              else void configQuery.refetch();
+            }}
             isPublishing={publishReleaseMutation.isPending}
             onPublish={(environmentName, entries, onPublished) =>
               publishReleaseMutation.mutate({
@@ -739,55 +739,7 @@ export default function ParametersSection() {
           />
         </Show>
 
-        <Show when={canManageProject() && releaseDraftVersion() && !isAmendMode()}>
-          <div
-            data-testid="release-draft-banner"
-            class="border-primary/25 bg-primary/5 animate-fade-in flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between"
-          >
-            <div class="flex items-center gap-2 text-[14px]">
-              <span class="material-symbols-outlined text-primary text-[18px]">
-                deployed_code_history
-              </span>
-              <span class="text-on-surface-variant">
-                Composing release{" "}
-                <span class="text-primary font-mono font-bold">{releaseDraftVersion()}</span> -
-                adjust the parameters below, then create it.
-              </span>
-            </div>
-            <div class="flex shrink-0 flex-wrap justify-end gap-2">
-              <button
-                data-testid="release-create-confirm-button"
-                type="button"
-                disabled={publishReleaseMutation.isPending || !activeEnvName()}
-                onClick={() =>
-                  publishReleaseMutation.mutate({
-                    environmentName: activeEnvName(),
-                    request: {
-                      version: releaseDraftVersion()!,
-                      makeActive: false
-                    }
-                  })
-                }
-                class="bg-primary text-on-primary inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border-0 px-4 text-[13px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] disabled:opacity-50"
-              >
-                <span class="material-symbols-outlined text-[16px]">check</span>
-                {publishReleaseMutation.isPending ? "Creating..." : "Create release"}
-              </button>
-              <button
-                data-testid="release-create-cancel-button"
-                type="button"
-                disabled={publishReleaseMutation.isPending}
-                onClick={() => navigate(`/projects/${params.slug}/releases`)}
-                class="border-outline-variant/30 bg-surface-container-low text-on-surface-variant hover:bg-surface-container inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border px-4 text-[13px] font-semibold transition-all disabled:opacity-50"
-              >
-                <span class="material-symbols-outlined text-[16px]">close</span>
-                Cancel
-              </button>
-            </div>
-          </div>
-        </Show>
-
-        <Show when={!isAmendMode()}>
+        <Show when={!releaseDraftVersion()}>
           <ProjectParamsTab
             activeEnvName={activeEnvName()}
             configEntries={parameterEntries()}
@@ -848,7 +800,7 @@ export default function ParametersSection() {
           />
         </Show>
 
-        <Show when={!isAmendMode()}>
+        <Show when={!releaseDraftVersion()}>
           <ProjectParamPanel
             open={showConfigForm() || !!editingEntry()}
             mode={
@@ -964,29 +916,6 @@ export default function ParametersSection() {
         cancelTestId="delete-parameter-cancel-button"
       />
 
-      <ConfirmDialog
-        open={pendingReleaseExit() !== null}
-        title="Exit Release Creation?"
-        message={
-          <>
-            You are changing parameters for release{" "}
-            <span class="text-primary font-mono font-bold">{releaseDraftVersion()}</span>. Exit
-            this process and discard the in-progress release changes?
-          </>
-        }
-        confirmLabel="Exit"
-        cancelLabel="Keep Editing"
-        variant="warning"
-        onConfirm={() => {
-          const retry = pendingReleaseExit();
-          setPendingReleaseExit(null);
-          retry?.();
-        }}
-        onCancel={() => setPendingReleaseExit(null)}
-        testId="release-exit-dialog"
-        confirmTestId="release-exit-confirm-button"
-        cancelTestId="release-exit-cancel-button"
-      />
     </>
   );
 }

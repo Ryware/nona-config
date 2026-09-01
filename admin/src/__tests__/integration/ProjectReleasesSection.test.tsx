@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@solidjs/testing-library';
+import { fireEvent, screen, waitFor, within } from '@solidjs/testing-library';
 import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -16,7 +16,11 @@ describe('ProjectReleasesSection', () => {
   });
 
   it('publishes a configuration release without auto-activating when a release is already active', async () => {
-    const publishRequests: Array<{ version: string; makeActive: boolean }> = [];
+    const publishRequests: Array<{
+      version: string;
+      makeActive: boolean;
+      entries?: Array<{ key: string; value: string; contentType: string; scope: string }>;
+    }> = [];
     server.use(
       http.post(
         'http://localhost:5027/admin/projects/:projectId/environments/:envName/releases',
@@ -48,18 +52,52 @@ describe('ProjectReleasesSection', () => {
     });
     fireEvent.click(screen.getByTestId('release-version-confirm-button'));
 
-    fireEvent.click(await screen.findByTestId('release-create-confirm-button'));
+    expect(await screen.findByTestId('release-create-panel')).toBeInTheDocument();
+    const createRelease = await screen.findByTestId('release-create-confirm-button');
+    await waitFor(() => expect(createRelease).toBeEnabled());
+    fireEvent.click(createRelease);
 
     await waitFor(() => {
-      expect(publishRequests).toEqual([{ version: '1.2.0', makeActive: false }]);
+      expect(publishRequests).toEqual([
+        {
+          version: '1.2.0',
+          makeActive: false,
+          entries: [
+            {
+              key: 'API_URL',
+              value: 'https://api.example.com',
+              contentType: 'text',
+              scope: 'server',
+            },
+            {
+              key: 'MAX_RETRIES',
+              value: '3',
+              contentType: 'number',
+              scope: 'all',
+            },
+            {
+              key: 'FEATURE_FLAGS',
+              value: '{"dark_mode": true}',
+              contentType: 'json',
+              scope: 'client',
+            },
+          ],
+        },
+      ]);
     });
   });
 
   it('keeps you on the parameters step when creating the release fails', async () => {
+    const publishRequests: Array<{ entries?: Array<{ key: string; value: string }> }> = [];
     server.use(
       http.post(
         'http://localhost:5027/admin/projects/:projectId/environments/:envName/releases',
-        () => HttpResponse.json({ detail: 'Release already exists' }, { status: 409 }),
+        async ({ request }) => {
+          publishRequests.push((await request.json()) as (typeof publishRequests)[number]);
+          return publishRequests.length === 1
+            ? HttpResponse.json({ detail: 'Temporary publish failure' }, { status: 503 })
+            : HttpResponse.json({}, { status: 201 });
+        },
       ),
     );
 
@@ -71,10 +109,258 @@ describe('ProjectReleasesSection', () => {
     });
     fireEvent.click(screen.getByTestId('release-version-confirm-button'));
 
-    fireEvent.click(await screen.findByTestId('release-create-confirm-button'));
+    const createRelease = await screen.findByTestId('release-create-confirm-button');
+    await waitFor(() => expect(createRelease).toBeEnabled());
+    const input = screen.getByTestId('parameter-value-input-API_URL');
+    fireEvent.input(input, { target: { value: 'https://retry.example.com' } });
+    fireEvent.click(screen.getByTestId('parameter-update-API_URL'));
+    await waitFor(() => expect(createRelease).toBeEnabled());
+    fireEvent.click(createRelease);
 
-    expect(await screen.findByText('Release already exists')).toBeInTheDocument();
+    expect(await screen.findByText('Temporary publish failure')).toBeInTheDocument();
     expect(screen.getByTestId('release-create-confirm-button')).toBeInTheDocument();
+    expect(input).toHaveValue('https://retry.example.com');
+
+    await waitFor(() => expect(createRelease).toBeEnabled());
+    fireEvent.click(createRelease);
+    expect(await screen.findByTestId('project-releases-heading')).toBeInTheDocument();
+    expect(publishRequests).toHaveLength(2);
+    expect(
+      publishRequests.every(
+        request => request.entries?.find(entry => entry.key === 'API_URL')?.value
+          === 'https://retry.example.com',
+      ),
+    ).toBe(true);
+  });
+
+  it('publishes an applied create-draft value without updating working configuration', async () => {
+    let workingUpdateCount = 0;
+    let publishRequest: {
+      entries?: Array<{ key: string; value: string }>;
+    } | undefined;
+    server.use(
+      http.put(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/config-entries/:key',
+        () => {
+          workingUpdateCount += 1;
+          return HttpResponse.json({});
+        },
+      ),
+      http.post(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/releases',
+        async ({ request }) => {
+          publishRequest = (await request.json()) as typeof publishRequest;
+          return HttpResponse.json({}, { status: 201 });
+        },
+      ),
+    );
+
+    renderProjectSections('/projects/my-app?release=1.2.0');
+
+    const createRelease = await screen.findByTestId('release-create-confirm-button');
+    await waitFor(() => expect(createRelease).toBeEnabled());
+    const input = screen.getByTestId('parameter-value-input-API_URL');
+    fireEvent.input(input, { target: { value: 'https://draft.example.com' } });
+
+    expect(screen.getByTestId('parameter-update-API_URL')).toHaveTextContent('Apply to draft');
+    expect(createRelease).toBeDisabled();
+    expect(
+      screen.getByText('Apply or revert inline edits before creating the release.'),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('parameter-update-API_URL'));
+    await waitFor(() => expect(createRelease).toBeEnabled());
+    fireEvent.click(createRelease);
+
+    await waitFor(() => expect(publishRequest).toBeDefined());
+    expect(publishRequest?.entries?.find(entry => entry.key === 'API_URL')?.value).toBe(
+      'https://draft.example.com',
+    );
+    expect(workingUpdateCount).toBe(0);
+  });
+
+  it('blocks publishing an invalid unapplied create-draft value', async () => {
+    let publishCount = 0;
+    server.use(
+      http.post(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/releases',
+        () => {
+          publishCount += 1;
+          return HttpResponse.json({}, { status: 201 });
+        },
+      ),
+    );
+
+    renderProjectSections('/projects/my-app?release=1.2.0');
+
+    const createRelease = await screen.findByTestId('release-create-confirm-button');
+    await waitFor(() => expect(createRelease).toBeEnabled());
+    fireEvent.input(screen.getByTestId('parameter-value-input-FEATURE_FLAGS'), {
+      target: { value: '{invalid' },
+    });
+
+    expect(screen.getByTestId('parameter-update-FEATURE_FLAGS')).toBeDisabled();
+    expect(createRelease).toBeDisabled();
+    fireEvent.click(createRelease);
+    expect(publishCount).toBe(0);
+  });
+
+  it('adds and removes parameters only inside the create draft', async () => {
+    let workingWriteCount = 0;
+    let publishRequest: { entries?: Array<{ key: string; value: string }> } | undefined;
+    server.use(
+      http.put(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/config-entries/:key',
+        () => {
+          workingWriteCount += 1;
+          return HttpResponse.json({});
+        },
+      ),
+      http.delete(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/config-entries/:key',
+        () => {
+          workingWriteCount += 1;
+          return new HttpResponse(null, { status: 204 });
+        },
+      ),
+      http.post(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/releases',
+        async ({ request }) => {
+          publishRequest = (await request.json()) as typeof publishRequest;
+          return HttpResponse.json({}, { status: 201 });
+        },
+      ),
+    );
+
+    renderProjectSections('/projects/my-app?release=1.2.0');
+
+    await screen.findByTestId('parameter-row-API_URL');
+    fireEvent.click(screen.getByRole('button', { name: /add parameter/i }));
+    fireEvent.input(await screen.findByTestId('parameter-key-input'), {
+      target: { value: 'DRAFT_ONLY' },
+    });
+    fireEvent.input(screen.getByTestId('parameter-value-input'), {
+      target: { value: 'draft-value' },
+    });
+    fireEvent.input(screen.getByTestId('parameter-edit-description-input'), {
+      target: { value: 'Draft-only parameter' },
+    });
+    expect(screen.getByTestId('release-create-confirm-button')).toBeDisabled();
+    expect(
+      screen.getByText('Save or discard parameter editor changes before creating the release.'),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('parameter-create-submit-button'));
+
+    expect(await screen.findByTestId('parameter-row-DRAFT_ONLY')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('parameter-panel-close-button'));
+    await waitFor(() => expect(screen.queryByTestId('parameter-side-panel')).not.toBeInTheDocument());
+    fireEvent.click(screen.getByTestId('parameter-delete-API_URL'));
+    const removeDialog = await screen.findByTestId('delete-release-create-parameter-dialog');
+    fireEvent.click(within(removeDialog).getByRole('button', { name: 'Remove Parameter' }));
+    await waitFor(() => expect(screen.queryByTestId('parameter-row-API_URL')).not.toBeInTheDocument());
+
+    const createRelease = screen.getByTestId('release-create-confirm-button');
+    await waitFor(() => expect(createRelease).toBeEnabled());
+    fireEvent.click(createRelease);
+
+    await waitFor(() => expect(publishRequest).toBeDefined());
+    expect(publishRequest?.entries).toContainEqual({
+      key: 'DRAFT_ONLY',
+      value: 'draft-value',
+      contentType: 'text',
+      scope: 'all',
+      description: 'Draft-only parameter',
+      unit: null,
+    });
+    expect(publishRequest?.entries?.some(entry => entry.key === 'API_URL')).toBe(false);
+    expect(workingWriteCount).toBe(0);
+  });
+
+  it('keeps a create draft frozen when the working query cache changes', async () => {
+    let publishRequest: { entries?: Array<{ key: string; value: string }> } | undefined;
+    server.use(
+      http.post(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/releases',
+        async ({ request }) => {
+          publishRequest = (await request.json()) as typeof publishRequest;
+          return HttpResponse.json({}, { status: 201 });
+        },
+      ),
+    );
+
+    const { queryClient } = renderProjectSections('/projects/my-app?release=1.2.0');
+    const input = await screen.findByTestId('parameter-value-input-API_URL');
+    expect(input).toHaveValue('https://api.example.com');
+
+    const queryKey = projectKeys.configEntries('my-app', 'production');
+    const workingEntries = queryClient.getQueryData<Array<Record<string, unknown>>>(queryKey) ?? [];
+    queryClient.setQueryData(
+      queryKey,
+      workingEntries.map(entry =>
+        entry.key === 'API_URL' ? { ...entry, value: 'https://changed-elsewhere.example.com' } : entry,
+      ),
+    );
+
+    expect(input).toHaveValue('https://api.example.com');
+    const createRelease = screen.getByTestId('release-create-confirm-button');
+    await waitFor(() => expect(createRelease).toBeEnabled());
+    fireEvent.click(createRelease);
+
+    await waitFor(() => expect(publishRequest).toBeDefined());
+    expect(publishRequest?.entries?.find(entry => entry.key === 'API_URL')?.value).toBe(
+      'https://api.example.com',
+    );
+  });
+
+  it('publishes an explicitly loaded empty create draft', async () => {
+    let publishRequest: { entries?: unknown[] } | undefined;
+    server.use(
+      http.get(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/config-entries',
+        () => HttpResponse.json([]),
+      ),
+      http.post(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/releases',
+        async ({ request }) => {
+          publishRequest = (await request.json()) as typeof publishRequest;
+          return HttpResponse.json({}, { status: 201 });
+        },
+      ),
+    );
+
+    renderProjectSections('/projects/my-app?release=1.2.0');
+
+    expect(await screen.findByText('This release has no parameters.')).toBeInTheDocument();
+    const createRelease = screen.getByTestId('release-create-confirm-button');
+    await waitFor(() => expect(createRelease).toBeEnabled());
+    fireEvent.click(createRelease);
+
+    await waitFor(() => expect(publishRequest).toBeDefined());
+    expect(publishRequest?.entries).toEqual([]);
+  });
+
+  it('does not turn a working-parameter load failure into an empty create draft', async () => {
+    let loadCount = 0;
+    server.use(
+      http.get(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/config-entries',
+        () => {
+          loadCount += 1;
+          return HttpResponse.json(
+            { detail: 'Working parameters are unavailable' },
+            { status: 503 },
+          );
+        },
+      ),
+    );
+
+    renderProjectSections('/projects/my-app?release=1.2.0');
+
+    expect(await screen.findByText('Working parameters are unavailable')).toBeInTheDocument();
+    expect(screen.getByTestId('release-create-confirm-button')).toBeDisabled();
+    expect(screen.queryByText('This release has no parameters.')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    await waitFor(() => expect(loadCount).toBe(2));
   });
 
   it('amends a release into a new patch without touching working config', async () => {
