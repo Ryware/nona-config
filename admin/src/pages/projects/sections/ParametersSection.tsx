@@ -196,7 +196,7 @@ export default function ParametersSection() {
   });
 
   const shouldConfirmReleaseExit = () =>
-    !!releaseDraftVersion() && !publishReleaseMutation.isPending;
+    !!releaseDraftVersion() && !isAmendMode() && !publishReleaseMutation.isPending;
 
   useBeforeLeave(event => {
     if (!shouldConfirmReleaseExit() || event.defaultPrevented) {
@@ -717,9 +717,10 @@ export default function ParametersSection() {
             sourceEntries={amendSourceQuery.data?.entries ?? []}
             isLoading={amendSourceQuery.isLoading}
             isPublishing={publishReleaseMutation.isPending}
-            onPublish={(environmentName, entries) =>
+            onPublish={(environmentName, entries, onPublished) =>
               publishReleaseMutation.mutate({
                 environmentName,
+                beforeNavigate: onPublished,
                 request: {
                   version: releaseDraftVersion() ?? "",
                   makeActive: false,

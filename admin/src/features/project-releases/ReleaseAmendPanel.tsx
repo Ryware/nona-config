@@ -61,7 +61,11 @@ interface ReleaseAmendPanelProps {
   sourceEntries: ConfigReleaseEntry[];
   isLoading: boolean;
   isPublishing: boolean;
-  onPublish: (environmentName: string, entries: ConfigReleaseEntry[]) => void;
+  onPublish: (
+    environmentName: string,
+    entries: ConfigReleaseEntry[],
+    onPublished: () => void
+  ) => void;
   onCancel: () => void;
 }
 
@@ -77,6 +81,7 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
   const [deleteKey, setDeleteKey] = createSignal<string | null>(null);
   const [search, setSearch] = createSignal("");
   const [draftValues, setDraftValues] = createSignal<Record<string, string>>({});
+  const [published, setPublished] = createSignal(false);
   const { requestAction } = useUnsavedChanges();
   let panelOpener: HTMLElement | undefined;
 
@@ -99,7 +104,9 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
   });
   const hasPendingValueDrafts = createMemo(() => Object.keys(draftValues()).length > 0);
   const isReleaseDirty = createMemo(() =>
-    isBufferReady() && (hasPendingValueDrafts() || !entriesMatch(rows, props.sourceEntries))
+    !published()
+    && isBufferReady()
+    && (hasPendingValueDrafts() || !entriesMatch(rows, props.sourceEntries))
   );
 
   const returnFocus = () => {
@@ -141,6 +148,7 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
     setBufferEnvironmentName("");
     setSearch("");
     setDraftValues({});
+    setPublished(false);
     closePanel();
     if (props.isLoading) return;
     setRows(props.sourceEntries.map(entry => ({ ...entry })));
@@ -242,8 +250,12 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
           <Button
             data-testid="release-amend-confirm-button"
             type="button"
-            disabled={props.isPublishing || !isBufferReady() || hasPendingValueDrafts()}
-            onClick={() => props.onPublish(bufferEnvironmentName(), rows.map(entry => ({ ...entry })))}
+            disabled={published() || props.isPublishing || !isBufferReady() || hasPendingValueDrafts()}
+            onClick={() => props.onPublish(
+              bufferEnvironmentName(),
+              rows.map(entry => ({ ...entry })),
+              () => setPublished(true)
+            )}
           >
             <MIcon name="check" class="text-[16px]" />
             {props.isPublishing ? "Creating…" : "Create release"}

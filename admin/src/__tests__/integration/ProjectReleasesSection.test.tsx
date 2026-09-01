@@ -202,6 +202,9 @@ describe('ProjectReleasesSection', () => {
 
   it('requires a valid inline change to be applied to the amend draft before publishing', async () => {
     let publishRequest: { entries?: Array<{ key: string; value: string }> } | undefined;
+    let publishCount = 0;
+    let workingUpdateCount = 0;
+    let activationCount = 0;
     server.use(
       http.get(
         'http://localhost:5027/admin/projects/:projectId/environments/:envName/releases/:version',
@@ -221,8 +224,23 @@ describe('ProjectReleasesSection', () => {
       http.post(
         'http://localhost:5027/admin/projects/:projectId/environments/:envName/releases',
         async ({ request }) => {
+          publishCount += 1;
           publishRequest = (await request.json()) as typeof publishRequest;
           return HttpResponse.json({}, { status: 201 });
+        },
+      ),
+      http.put(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/config-entries/:key',
+        () => {
+          workingUpdateCount += 1;
+          return HttpResponse.json({});
+        },
+      ),
+      http.put(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/active-release',
+        () => {
+          activationCount += 1;
+          return HttpResponse.json({});
         },
       ),
     );
@@ -251,7 +269,82 @@ describe('ProjectReleasesSection', () => {
     fireEvent.click(screen.getByTestId('release-amend-confirm-button'));
 
     await waitFor(() => expect(publishRequest).toBeDefined());
+    expect(publishCount).toBe(1);
+    expect(workingUpdateCount).toBe(0);
+    expect(activationCount).toBe(0);
     expect(publishRequest?.entries?.[0].value).toBe('false');
+    await waitFor(() => expect(window.location.pathname).toBe('/projects/my-app/releases'));
+    expect(window.location.search).toBe('');
+    expect(screen.queryByTestId('release-exit-dialog')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('parameter-discard-dialog')).not.toBeInTheDocument();
+    expect(await screen.findByText('Release published')).toBeInTheDocument();
+    expect((await screen.findByText('Active release:')).parentElement).toHaveTextContent(
+      /Active release:\s*1\.0\.0/,
+    );
+  });
+
+  it('keeps an applied amend draft retryable when publishing fails', async () => {
+    server.use(
+      http.get(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/releases/:version',
+        ({ params }) => HttpResponse.json({
+          project: params.projectId,
+          environment: params.envName,
+          version: params.version,
+          entryCount: 1,
+          isActive: false,
+          createdAt: '2024-01-01T00:00:00Z',
+          actor: 'alice',
+          entries: [
+            { key: 'feature.x', value: 'true', contentType: 'boolean', scope: 'client' },
+          ],
+        }),
+      ),
+      http.post(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/releases',
+        () => HttpResponse.json({ detail: 'Temporary publish failure' }, { status: 503 }),
+      ),
+    );
+
+    renderProjectSections('/projects/my-app/releases');
+    fireEvent.click(await screen.findByTestId('release-amend-1.1.0'));
+    fireEvent.click(await screen.findByRole('switch', { name: 'Value for feature.x' }));
+    fireEvent.click(screen.getByTestId('parameter-update-feature.x'));
+    fireEvent.click(screen.getByTestId('release-amend-confirm-button'));
+
+    expect(await screen.findByText('Temporary publish failure')).toBeInTheDocument();
+    expect(screen.getByTestId('release-amend-panel')).toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: 'Value for feature.x' })).toHaveAttribute('aria-checked', 'false');
+    await waitFor(() => expect(screen.getByTestId('release-amend-confirm-button')).toBeEnabled());
+    expect(window.location.search).toBe('?release=1.1.1&amend=1.1.0');
+  });
+
+  it('exits a clean amend directly and prompts once before discarding a dirty amend', async () => {
+    renderProjectSections('/projects/my-app/releases');
+
+    fireEvent.click(await screen.findByTestId('release-amend-1.1.0'));
+    await screen.findByTestId('parameter-row-API_URL');
+    fireEvent.click(screen.getByTestId('release-amend-cancel-button'));
+
+    await waitFor(() => expect(window.location.pathname).toBe('/projects/my-app/releases'));
+    expect(screen.queryByTestId('release-exit-dialog')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('parameter-discard-dialog')).not.toBeInTheDocument();
+
+    fireEvent.click(await screen.findByTestId('release-amend-1.1.0'));
+    const input = await screen.findByTestId('parameter-value-input-API_URL');
+    fireEvent.input(input, { target: { value: 'https://amended.example.com' } });
+    fireEvent.click(screen.getByTestId('parameter-update-API_URL'));
+    fireEvent.click(screen.getByTestId('release-amend-cancel-button'));
+
+    expect(await screen.findByTestId('parameter-discard-dialog')).toBeInTheDocument();
+    expect(screen.queryByTestId('release-exit-dialog')).not.toBeInTheDocument();
+    expect(window.location.search).toBe('?release=1.1.1&amend=1.1.0');
+
+    fireEvent.click(screen.getByTestId('parameter-discard-confirm-button'));
+    await waitFor(() => expect(window.location.pathname).toBe('/projects/my-app/releases'));
+    expect(window.location.search).toBe('');
+    expect(screen.queryByTestId('parameter-discard-dialog')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('release-exit-dialog')).not.toBeInTheDocument();
   });
 
   it('copies a historical live snapshot into the isolated amend draft', async () => {
