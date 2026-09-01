@@ -15,7 +15,7 @@ import {
   type ParameterPanelSaveData
 } from "../../../features/project-param-edit/ProjectParamPanel";
 import { ProjectParamsTab } from "../../../features/project-params/ProjectParamsTab";
-import { ReleaseAmendPanel } from "../../../features/project-releases/ReleaseAmendPanel";
+import { ReleaseDraftPanel } from "../../../features/project-releases/ReleaseDraftPanel";
 import { useEscapeKey } from "../../../shared/hooks/useEscapeKey";
 import {
   useUnsavedChanges,
@@ -709,13 +709,20 @@ export default function ParametersSection() {
         </Show>
 
         <Show when={isAmendMode()}>
-          <ReleaseAmendPanel
+          <ReleaseDraftPanel
+            mode="amend"
             projectId={projectId()}
             environmentName={activeEnvName()}
             sourceVersion={amendSourceVersion()!}
             targetVersion={releaseDraftVersion() ?? ""}
             sourceEntries={amendSourceQuery.data?.entries ?? []}
-            isLoading={amendSourceQuery.isLoading}
+            sourceReady={amendSourceQuery.status === "success"}
+            sourceError={
+              amendSourceQuery.isError
+                ? errorMessage(amendSourceQuery.error, "The release could not be loaded.")
+                : undefined
+            }
+            onRetrySource={() => void amendSourceQuery.refetch()}
             isPublishing={publishReleaseMutation.isPending}
             onPublish={(environmentName, entries, onPublished) =>
               publishReleaseMutation.mutate({

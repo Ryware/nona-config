@@ -7,6 +7,7 @@ import { Button } from "../../shared/ui/button";
 import { ConfirmDialog } from "../../shared/ui/confirm-dialog";
 import { MIcon } from "../../shared/ui/icons";
 import { Input } from "../../shared/ui/input";
+import { QueryErrorBanner } from "../../shared/ui/QueryGuard";
 import type { ConfigEntry, ConfigEntryVersion, ConfigReleaseEntry } from "../../types";
 import {
   ProjectParamPanel,
@@ -15,8 +16,8 @@ import {
 import { clearLegacyParameterDensityPreference } from "../project-params/ProjectParamsTab";
 import { ProjectParamsTable } from "../project-params/ProjectParamsTable";
 
-const RELEASE_AMEND_DRAFT = "release-amend-draft";
-const RELEASE_AMEND_PANEL_DRAFT = "release-amend-panel-draft";
+const RELEASE_DRAFT = "release-draft";
+const RELEASE_PARAMETER_DRAFT = "release-parameter-draft";
 
 function entriesMatch(left: ConfigReleaseEntry[], right: ConfigReleaseEntry[]) {
   return left.length === right.length && left.every((entry, index) => {
@@ -53,13 +54,16 @@ function normalizeEntry(
   };
 }
 
-interface ReleaseAmendPanelProps {
+interface ReleaseDraftPanelProps {
+  mode: "create" | "amend";
   projectId: string;
   environmentName: string;
-  sourceVersion: string;
+  sourceVersion?: string;
   targetVersion: string;
   sourceEntries: ConfigReleaseEntry[];
-  isLoading: boolean;
+  sourceReady: boolean;
+  sourceError?: string;
+  onRetrySource?: () => void;
   isPublishing: boolean;
   onPublish: (
     environmentName: string,
@@ -69,9 +73,10 @@ interface ReleaseAmendPanelProps {
   onCancel: () => void;
 }
 
-/** Keeps all amendments isolated in a client-side release buffer until publish. */
-export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
+/** Keeps release composition isolated in a client-side buffer until publish. */
+export function ReleaseDraftPanel(props: ReleaseDraftPanelProps) {
   const [rows, setRows] = createStore<ConfigReleaseEntry[]>([]);
+  const [baselineRows, setBaselineRows] = createStore<ConfigReleaseEntry[]>([]);
   const [seededIdentity, setSeededIdentity] = createSignal("");
   const [bufferEnvironmentName, setBufferEnvironmentName] = createSignal("");
   const [selectedEntry, setSelectedEntry] = createSignal<ConfigEntry | null>(null);
@@ -87,8 +92,14 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
 
   onMount(clearLegacyParameterDensityPreference);
 
-  const identity = () => JSON.stringify([props.projectId, props.environmentName, props.sourceVersion]);
-  const isBufferReady = () => !props.isLoading && seededIdentity() === identity();
+  const identity = () => JSON.stringify([
+    props.mode,
+    props.projectId,
+    props.environmentName,
+    props.sourceVersion ?? "working",
+    props.targetVersion
+  ]);
+  const isBufferReady = () => props.sourceReady && seededIdentity() === identity();
   const normalizedRows = createMemo(() => rows.map(row =>
     normalizeEntry(props.projectId, bufferEnvironmentName() || props.environmentName, row)
   ));
@@ -106,7 +117,7 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
   const isReleaseDirty = createMemo(() =>
     !published()
     && isBufferReady()
-    && (hasPendingValueDrafts() || !entriesMatch(rows, props.sourceEntries))
+    && (hasPendingValueDrafts() || panelDirty() || !entriesMatch(rows, baselineRows))
   );
 
   const returnFocus = () => {
@@ -124,7 +135,7 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
   };
 
   const resetRelease = () => {
-    setRows(props.sourceEntries.map(entry => ({ ...entry })));
+    setRows(baselineRows.map(entry => ({ ...entry })));
     setDraftValues({});
     closePanel();
   };
@@ -138,26 +149,29 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
     });
   };
 
-  useUnsavedChangesBlocker({ id: RELEASE_AMEND_DRAFT, isDirty: isReleaseDirty, discard: resetRelease });
-  useUnsavedChangesBlocker({ id: RELEASE_AMEND_PANEL_DRAFT, isDirty: panelDirty, discard: closePanel });
+  useUnsavedChangesBlocker({ id: RELEASE_DRAFT, isDirty: isReleaseDirty, discard: resetRelease });
+  useUnsavedChangesBlocker({ id: RELEASE_PARAMETER_DRAFT, isDirty: panelDirty, discard: closePanel });
 
   createEffect(() => {
     const nextIdentity = identity();
     if (seededIdentity() === nextIdentity) return;
     setRows([]);
+    setBaselineRows([]);
     setBufferEnvironmentName("");
     setSearch("");
     setDraftValues({});
     setPublished(false);
     closePanel();
-    if (props.isLoading) return;
-    setRows(props.sourceEntries.map(entry => ({ ...entry })));
+    if (!props.sourceReady) return;
+    const sourceEntries = props.sourceEntries.map(entry => ({ ...entry }));
+    setBaselineRows(sourceEntries.map(entry => ({ ...entry })));
+    setRows(sourceEntries);
     setBufferEnvironmentName(props.environmentName);
     setSeededIdentity(nextIdentity);
   });
 
   const historyQuery = useQuery(() => ({
-    queryKey: ["amend-parameter-history", props.projectId, props.environmentName, historyKey()],
+    queryKey: ["release-draft-parameter-history", props.projectId, props.environmentName, historyKey()],
     queryFn: () => configEntryService.history(props.projectId, props.environmentName, historyKey()),
     enabled: !!historyKey(),
     staleTime: 60_000
@@ -171,7 +185,7 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
       setSelectedEntry(entry);
       setPanelDirty(false);
       setHistoryKey("");
-    }, [RELEASE_AMEND_PANEL_DRAFT]);
+    }, [RELEASE_PARAMETER_DRAFT]);
   };
 
   const openCreate = (opener: HTMLElement) => {
@@ -181,7 +195,7 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
       setSelectedEntry(null);
       setPanelDirty(false);
       setHistoryKey("");
-    }, [RELEASE_AMEND_PANEL_DRAFT]);
+    }, [RELEASE_PARAMETER_DRAFT]);
   };
 
   const savePanel = async (data: ParameterPanelSaveData) => {
@@ -233,13 +247,23 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
     return updated;
   };
 
+  const testPrefix = () => props.mode === "amend" ? "release-amend" : "release-create";
+  const deleteDialogTestId = () => props.mode === "amend"
+    ? "delete-amend-parameter-dialog"
+    : "delete-release-create-parameter-dialog";
+
   return (
-    <section data-testid="release-amend-panel" class="bg-surface-container-low border-outline-variant/15 space-y-4 rounded-2xl border p-4 sm:p-5">
+    <section data-testid={`${testPrefix()}-panel`} class="bg-surface-container-low border-outline-variant/15 space-y-4 rounded-2xl border p-4 sm:p-5">
       <div class="border-primary/25 bg-primary/5 flex flex-col gap-3 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between">
         <div class="flex items-center gap-2 text-[14px]">
-          <MIcon name="edit" class="text-primary text-[18px]" />
+          <MIcon name={props.mode === "amend" ? "edit" : "deployed_code_history"} class="text-primary text-[18px]" />
           <span class="text-on-surface-variant">
-            Amending <span class="text-on-surface font-mono font-bold">{props.sourceVersion}</span> → creating patch <span class="text-primary font-mono font-bold">{props.targetVersion}</span>.
+            <Show
+              when={props.mode === "amend"}
+              fallback={<>Creating release <span class="text-primary font-mono font-bold">{props.targetVersion}</span> from a snapshot of <span class="text-on-surface font-medium">{props.environmentName}</span> working parameters.</>}
+            >
+              Amending <span class="text-on-surface font-mono font-bold">{props.sourceVersion}</span> → creating patch <span class="text-primary font-mono font-bold">{props.targetVersion}</span>.
+            </Show>
           </span>
         </div>
         <div class="flex shrink-0 flex-wrap justify-end gap-2">
@@ -248,9 +272,9 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
             Add parameter
           </Button>
           <Button
-            data-testid="release-amend-confirm-button"
+            data-testid={`${testPrefix()}-confirm-button`}
             type="button"
-            disabled={published() || props.isPublishing || !isBufferReady() || hasPendingValueDrafts()}
+            disabled={published() || props.isPublishing || !isBufferReady() || hasPendingValueDrafts() || panelDirty()}
             onClick={() => props.onPublish(
               bufferEnvironmentName(),
               rows.map(entry => ({ ...entry })),
@@ -260,20 +284,29 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
             <MIcon name="check" class="text-[16px]" />
             {props.isPublishing ? "Creating…" : "Create release"}
           </Button>
-          <Button data-testid="release-amend-cancel-button" type="button" variant="outline" disabled={props.isPublishing} onClick={props.onCancel}>
+          <Button data-testid={`${testPrefix()}-cancel-button`} type="button" variant="outline" disabled={props.isPublishing} onClick={props.onCancel}>
             <MIcon name="close" class="text-[16px]" />
             Cancel
           </Button>
         </div>
       </div>
 
-      <Show when={hasPendingValueDrafts()}>
+      <Show when={hasPendingValueDrafts() || panelDirty()}>
         <p class="text-warning text-[13px]" role="status">
-          Apply or revert inline edits before creating the release.
+          {hasPendingValueDrafts()
+            ? "Apply or revert inline edits before creating the release."
+            : "Save or discard parameter editor changes before creating the release."}
         </p>
       </Show>
 
-      <Show when={isBufferReady()} fallback={<div class="skeleton h-40 w-full rounded-xl" />}>
+      <Show
+        when={isBufferReady()}
+        fallback={
+          <Show when={props.sourceError} fallback={<div class="skeleton h-40 w-full rounded-xl" />}>
+            {error => <QueryErrorBanner message={error()} onRetry={props.onRetrySource} />}
+          </Show>
+        }
+      >
         <Show
           when={rows.length > 0}
           fallback={<div class="bg-surface-container rounded-xl px-4 py-8 text-center text-[13px] text-on-surface-variant">This release has no parameters.</div>}
@@ -332,7 +365,7 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
         historyVersions={historyQuery.data ?? []}
         isHistoryLoading={historyQuery.isLoading}
         isHistoryActionPending={false}
-        onRequestClose={() => requestAction(closePanel, [RELEASE_AMEND_PANEL_DRAFT])}
+        onRequestClose={() => requestAction(closePanel, [RELEASE_PARAMETER_DRAFT])}
         onDirtyChange={setPanelDirty}
         onSave={savePanel}
         onHistoryOpen={setHistoryKey}
@@ -353,7 +386,7 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
           setDeleteKey(null);
         }}
         onCancel={() => setDeleteKey(null)}
-        testId="delete-amend-parameter-dialog"
+        testId={deleteDialogTestId()}
       />
     </section>
   );
