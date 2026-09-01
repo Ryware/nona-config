@@ -80,6 +80,7 @@ describe("ProjectParamsTable", () => {
 
     const input = screen.getByTestId("parameter-value-input-Settings");
     const update = screen.getByTestId("parameter-update-Settings");
+    expect(update).toHaveTextContent("Update");
     fireEvent.input(input, { target: { value: '{"enabled":' } });
 
     expect(input).toHaveValue('{"enabled":');
@@ -131,6 +132,34 @@ describe("ProjectParamsTable", () => {
       screen.getByTestId(`parameter-update-${entry().key}`)
     ).toBeEnabled());
     expect(screen.getByTestId(`parameter-value-input-${entry().key}`)).toHaveValue("35");
+  });
+
+  it("keeps a controlled draft across row remounts and uses the supplied action label", () => {
+    const [draftValues, setDraftValues] = createSignal<Record<string, string>>({});
+    const onDraftValueChange = vi.fn((current: ConfigEntry, value: string) => {
+      setDraftValues(previous => ({ ...previous, [current.key]: value }));
+    });
+    const props = () => ({
+      ...tableProps(),
+      draftValues: draftValues(),
+      onDraftValueChange,
+      updateLabel: "Apply to draft"
+    }) as ProjectParamsTableProps;
+
+    render(() => <ProjectParamsTable {...props()} />);
+
+    const inputId = `parameter-value-input-${entry().key}`;
+    fireEvent.input(screen.getByTestId(inputId), { target: { value: "30" } });
+    expect(onDraftValueChange).toHaveBeenCalledWith(
+      expect.objectContaining({ key: entry().key }),
+      "30"
+    );
+    expect(screen.getByTestId(`parameter-update-${entry().key}`)).toHaveTextContent("Apply to draft");
+
+    fireEvent.click(screen.getByTestId("parameter-group-Checkout"));
+    expect(screen.queryByTestId(inputId)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("parameter-group-Checkout"));
+    expect(screen.getByTestId(inputId)).toHaveValue("30");
   });
 
   it("uses an accessible boolean switch and shows number units", () => {

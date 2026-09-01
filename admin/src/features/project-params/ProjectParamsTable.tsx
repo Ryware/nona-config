@@ -15,6 +15,9 @@ export interface ProjectParamsTableProps {
   onSelectEntry: (entry: ConfigEntry, opener?: HTMLElement) => void;
   onDeleteEntry: (key: string) => void;
   onUpdateValue?: (entry: ConfigEntry, value: string) => Promise<void> | void;
+  draftValues?: Readonly<Record<string, string>>;
+  onDraftValueChange?: (entry: ConfigEntry, value: string) => void;
+  updateLabel?: string;
   updatingKey?: string | null;
   canManage: boolean;
   search: string;
@@ -44,13 +47,18 @@ function ParameterRow(props: {
   const [isSubmitting, setIsSubmitting] = createSignal(false);
   let submittedKey: string | undefined;
   let submittedValue: string | undefined;
+  const isControlled = () => !!props.table.onDraftValueChange;
+  const currentValue = () => isControlled()
+    ? props.table.draftValues?.[props.entry.key] ?? props.entry.value
+    : draft();
   const errorId = () => `parameter-value-error-${encodeURIComponent(props.entry.key)}`;
-  const valueError = createMemo(() => getConfigEntryValueError(props.entry.contentType, draft()));
-  const isDirty = () => draft() !== props.entry.value;
+  const valueError = createMemo(() => getConfigEntryValueError(props.entry.contentType, currentValue()));
+  const isDirty = () => currentValue() !== props.entry.value;
 
   createEffect(on(
     () => [props.entry.key, props.entry.value] as const,
     ([key, value]) => {
+      if (isControlled()) return;
       if (
         submittedKey === key
         && submittedValue !== undefined
@@ -65,7 +73,7 @@ function ParameterRow(props: {
 
   const update = async () => {
     if (!props.table.onUpdateValue || !isDirty() || valueError()) return;
-    const nextValue = draft();
+    const nextValue = currentValue();
     submittedKey = props.entry.key;
     submittedValue = nextValue;
     setIsSubmitting(true);
@@ -123,9 +131,13 @@ function ParameterRow(props: {
       <div class="min-w-0" onClick={event => event.stopPropagation()}>
         <ParameterValueEditor
           entry={props.entry}
-          value={draft()}
+          value={currentValue()}
           onChange={value => {
-            setDraft(value);
+            if (props.table.onDraftValueChange) {
+              props.table.onDraftValueChange(props.entry, value);
+            } else {
+              setDraft(value);
+            }
             setSubmitError("");
           }}
           readOnly={props.table.isReadOnly || !props.table.canManage}
@@ -164,7 +176,9 @@ function ParameterRow(props: {
                 : "bg-primary text-on-primary hover:brightness-105"
             )}
           >
-            {isSubmitting() || props.table.updatingKey === props.entry.key ? "Updating…" : "Update"}
+            {isSubmitting() || props.table.updatingKey === props.entry.key
+              ? "Updating…"
+              : props.table.updateLabel ?? "Update"}
           </button>
         </Show>
         <button

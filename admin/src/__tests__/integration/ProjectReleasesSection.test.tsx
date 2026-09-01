@@ -191,12 +191,67 @@ describe('ProjectReleasesSection', () => {
     expect(input).toHaveValue('{"enabled":');
     expect(screen.getByRole('alert')).toHaveTextContent(/invalid json:/i);
     expect(screen.getByTestId('parameter-update-json.settings')).toBeDisabled();
+    expect(screen.getByTestId('release-amend-confirm-button')).toBeDisabled();
+    expect(screen.getByText('Apply or revert inline edits before creating the release.')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('release-amend-confirm-button'));
+
+    expect(publishRequest).toBeUndefined();
+    expect(input).toHaveValue('{"enabled":');
+    expect(screen.getByTestId('release-amend-panel')).toBeInTheDocument();
+  });
+
+  it('requires a valid inline change to be applied to the amend draft before publishing', async () => {
+    let publishRequest: { entries?: Array<{ key: string; value: string }> } | undefined;
+    server.use(
+      http.get(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/releases/:version',
+        ({ params }) => HttpResponse.json({
+          project: params.projectId,
+          environment: params.envName,
+          version: params.version,
+          entryCount: 1,
+          isActive: false,
+          createdAt: '2024-01-01T00:00:00Z',
+          actor: 'alice',
+          entries: [
+            { key: 'feature.x', value: 'true', contentType: 'boolean', scope: 'client' },
+          ],
+        }),
+      ),
+      http.post(
+        'http://localhost:5027/admin/projects/:projectId/environments/:envName/releases',
+        async ({ request }) => {
+          publishRequest = (await request.json()) as typeof publishRequest;
+          return HttpResponse.json({}, { status: 201 });
+        },
+      ),
+    );
+
+    renderProjectSections('/projects/my-app/releases');
+
+    fireEvent.click(await screen.findByTestId('release-amend-1.1.0'));
+    fireEvent.click(await screen.findByRole('switch', { name: 'Value for feature.x' }));
+
+    const apply = screen.getByTestId('parameter-update-feature.x');
+    expect(apply).toHaveTextContent('Apply to draft');
+    expect(apply).toBeEnabled();
+    expect(screen.getByTestId('release-amend-confirm-button')).toBeDisabled();
+    expect(screen.getByText('Apply or revert inline edits before creating the release.')).toBeInTheDocument();
+    expect(publishRequest).toBeUndefined();
+
+    fireEvent.click(screen.getByRole('switch', { name: 'Value for feature.x' }));
+    expect(screen.getByTestId('release-amend-confirm-button')).toBeEnabled();
+    expect(screen.queryByText('Apply or revert inline edits before creating the release.')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('switch', { name: 'Value for feature.x' }));
+    expect(screen.getByTestId('release-amend-confirm-button')).toBeDisabled();
+    fireEvent.click(apply);
+    expect(screen.getByTestId('release-amend-confirm-button')).toBeEnabled();
+    expect(screen.queryByText('Apply or revert inline edits before creating the release.')).not.toBeInTheDocument();
     fireEvent.click(screen.getByTestId('release-amend-confirm-button'));
 
     await waitFor(() => expect(publishRequest).toBeDefined());
-    expect(publishRequest?.entries?.[0].value).toBe('{"enabled":true}');
-    expect(input).toHaveValue('{"enabled":');
-    expect(screen.getByTestId('release-amend-panel')).toBeInTheDocument();
+    expect(publishRequest?.entries?.[0].value).toBe('false');
   });
 
   it('copies a historical live snapshot into the isolated amend draft', async () => {

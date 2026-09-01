@@ -76,6 +76,7 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
   const [historyKey, setHistoryKey] = createSignal("");
   const [deleteKey, setDeleteKey] = createSignal<string | null>(null);
   const [search, setSearch] = createSignal("");
+  const [draftValues, setDraftValues] = createSignal<Record<string, string>>({});
   const { requestAction } = useUnsavedChanges();
   let panelOpener: HTMLElement | undefined;
 
@@ -96,8 +97,9 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
       || (entry.unit ?? "").toLowerCase().includes(query)
     );
   });
+  const hasPendingValueDrafts = createMemo(() => Object.keys(draftValues()).length > 0);
   const isReleaseDirty = createMemo(() =>
-    isBufferReady() && !entriesMatch(rows, props.sourceEntries)
+    isBufferReady() && (hasPendingValueDrafts() || !entriesMatch(rows, props.sourceEntries))
   );
 
   const returnFocus = () => {
@@ -116,7 +118,17 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
 
   const resetRelease = () => {
     setRows(props.sourceEntries.map(entry => ({ ...entry })));
+    setDraftValues({});
     closePanel();
+  };
+
+  const clearDraftValue = (key: string) => {
+    setDraftValues(current => {
+      if (!(key in current)) return current;
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
   };
 
   useUnsavedChangesBlocker({ id: RELEASE_AMEND_DRAFT, isDirty: isReleaseDirty, discard: resetRelease });
@@ -128,6 +140,7 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
     setRows([]);
     setBufferEnvironmentName("");
     setSearch("");
+    setDraftValues({});
     closePanel();
     if (props.isLoading) return;
     setRows(props.sourceEntries.map(entry => ({ ...entry })));
@@ -186,6 +199,7 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
     const index = selected ? rows.findIndex(row => row.key === selected.key) : -1;
     if (index < 0) throw new Error("The draft parameter could not be found.");
     setRows(index, releaseEntry);
+    clearDraftValue(releaseEntry.key);
     const updated = normalizeEntry(props.projectId, bufferEnvironmentName(), releaseEntry);
     setSelectedEntry(updated);
     setPanelDirty(false);
@@ -205,6 +219,7 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
       unit: version.unit
     };
     setRows(index, releaseEntry);
+    clearDraftValue(releaseEntry.key);
     const updated = normalizeEntry(props.projectId, bufferEnvironmentName(), releaseEntry);
     setSelectedEntry(updated);
     return updated;
@@ -227,7 +242,7 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
           <Button
             data-testid="release-amend-confirm-button"
             type="button"
-            disabled={props.isPublishing || !isBufferReady()}
+            disabled={props.isPublishing || !isBufferReady() || hasPendingValueDrafts()}
             onClick={() => props.onPublish(bufferEnvironmentName(), rows.map(entry => ({ ...entry })))}
           >
             <MIcon name="check" class="text-[16px]" />
@@ -239,6 +254,12 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
           </Button>
         </div>
       </div>
+
+      <Show when={hasPendingValueDrafts()}>
+        <p class="text-warning text-[13px]" role="status">
+          Apply or revert inline edits before creating the release.
+        </p>
+      </Show>
 
       <Show when={isBufferReady()} fallback={<div class="skeleton h-40 w-full rounded-xl" />}>
         <Show
@@ -263,10 +284,23 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
             filteredConfig={filteredRows()}
             onSelectEntry={selectEntry}
             onDeleteEntry={setDeleteKey}
+            draftValues={draftValues()}
+            onDraftValueChange={(entry, nextValue) => {
+              setDraftValues(current => {
+                const next = { ...current };
+                if (nextValue === entry.value) delete next[entry.key];
+                else next[entry.key] = nextValue;
+                return next;
+              });
+            }}
             onUpdateValue={(entry, nextValue) => {
               const index = rows.findIndex(row => row.key === entry.key);
-              if (index >= 0) setRows(index, "value", nextValue);
+              if (index >= 0) {
+                setRows(index, "value", nextValue);
+                clearDraftValue(entry.key);
+              }
             }}
+            updateLabel="Apply to draft"
             canManage
             search={search()}
           />
@@ -300,7 +334,10 @@ export function ReleaseAmendPanel(props: ReleaseAmendPanelProps) {
         confirmLabel="Remove Parameter"
         onConfirm={() => {
           const key = deleteKey();
-          if (key) setRows(rows.filter(row => row.key !== key));
+          if (key) {
+            setRows(rows.filter(row => row.key !== key));
+            clearDraftValue(key);
+          }
           setDeleteKey(null);
         }}
         onCancel={() => setDeleteKey(null)}
