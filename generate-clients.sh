@@ -126,8 +126,8 @@ if [[ "$BUILD_SPEC" == "1" ]]; then
   mkdir -p "$OPENAPI_DIR"
   rm -f "$SPEC" "$WEBAPI_PROJECT_DIR/obj/openapi/WebApi.json" "$WEBAPI_PROJECT_DIR"/obj/*.OpenApiFiles.cache
   Storage__Type=InMemory dotnet build "$WEBAPI_PROJECT" \
-    /p:OpenApiGenerateDocuments=true \
-    /p:OpenApiDocumentsDirectory="$OPENAPI_DIR"
+    -p:OpenApiGenerateDocuments=true \
+    -p:OpenApiDocumentsDirectory="$OPENAPI_DIR"
   if [[ ! -f "$SPEC" && -f "$WEBAPI_PROJECT_DIR/obj/openapi/WebApi.json" ]]; then
     cp "$WEBAPI_PROJECT_DIR/obj/openapi/WebApi.json" "$SPEC"
   fi
