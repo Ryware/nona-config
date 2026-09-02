@@ -308,8 +308,8 @@ public class GetAllConfigValuesQueryTests
     [Test]
     public async Task InvalidKey_ReturnsAuthenticationError()
     {
-        _apiKeyService.GetCurrentApiKey().Returns("unknown-key");
-        _apiKeyRepository.GetByKeyAsync("unknown-key", Arg.Any<CancellationToken>())
+        _apiKeyService.GetCurrentApiKeyHash().Returns("unknown-key-hash");
+        _apiKeyRepository.GetByKeyHashAsync("unknown-key-hash", Arg.Any<CancellationToken>())
             .Returns((ApiKeyAuthenticationResult?)null);
 
         var result = await CreateHandler().Handle(
@@ -549,8 +549,8 @@ public class GetAllConfigValuesQueryTests
 
     private void SetupApiKey(KeyScope scope, string? environment = EnvironmentName)
     {
-        _apiKeyService.GetCurrentApiKey().Returns(ApiKey);
-        _apiKeyRepository.GetByKeyAsync(ApiKey, Arg.Any<CancellationToken>())
+        _apiKeyService.GetCurrentApiKeyHash().Returns(ApiKey);
+        _apiKeyRepository.GetByKeyHashAsync(ApiKey, Arg.Any<CancellationToken>())
             .Returns(new ApiKeyAuthenticationResult(
                 new Project { Name = ProjectName },
                 scope,

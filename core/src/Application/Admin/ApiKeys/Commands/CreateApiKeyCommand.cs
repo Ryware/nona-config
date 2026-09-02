@@ -6,7 +6,6 @@ using Nona.Application.Common.Interfaces;
 using Nona.Domain.Entities;
 using Nona.Domain.Enums;
 using Nona.Domain.Interfaces;
-using System.Security.Cryptography;
 
 namespace Nona.Application.Admin.ApiKeys.Commands;
 
@@ -15,7 +14,7 @@ public record CreateApiKeyRequest(string Name, string? Environment = null, strin
 public record CreateApiKeyCommand(string ProjectId, string Name, string? Environment, string? Scope)
     : IRequest<CreateApiKeyResult>;
 
-public record CreateApiKeyResult(bool Success, ApiKeyDto? ApiKey, string? Error);
+public record CreateApiKeyResult(bool Success, CreatedApiKeyDto? ApiKey, string? Error);
 
 public class CreateApiKeyCommandHandler(
     IProjectRepository projectRepository,
@@ -46,11 +45,14 @@ public class CreateApiKeyCommandHandler(
             return new CreateApiKeyResult(false, null, "Environment not found");
         }
 
+        var secret = await GenerateUniqueApiKeyAsync(apiKeyRepository, cancellationToken);
         var now = dateTime.NowUtc;
         var apiKey = new ApiKey
         {
             Name = request.Name.Trim(),
-            Key = await GenerateUniqueApiKeyAsync(apiKeyRepository, cancellationToken),
+            KeyHash = ApiKeySecret.Hash(secret),
+            Fingerprint = ApiKeySecret.Fingerprint(secret),
+            HashVersion = ApiKeySecret.CurrentHashVersion,
             Project = project.Name,
             Environment = environment,
             Scope = scope,
@@ -60,7 +62,7 @@ public class CreateApiKeyCommandHandler(
 
         await apiKeyRepository.AddAsync(apiKey, cancellationToken);
 
-        return new CreateApiKeyResult(true, apiKey.ToDto(), null);
+        return new CreateApiKeyResult(true, apiKey.ToCreatedDto(secret), null);
     }
 
     private static bool TryParseScope(string? value, out KeyScope scope)
@@ -83,9 +85,10 @@ public class CreateApiKeyCommandHandler(
     {
         for (var attempt = 0; attempt < 5; attempt++)
         {
-            var apiKey = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
-            if (await apiKeyRepository.GetByKeyAsync(apiKey, cancellationToken) is null)
-                return apiKey;
+            var secret = ApiKeySecret.Generate();
+            var keyHash = ApiKeySecret.Hash(secret);
+            if (await apiKeyRepository.GetByKeyHashAsync(keyHash, cancellationToken) is null)
+                return secret;
         }
 
         throw new InvalidOperationException("Unable to generate a unique API key.");

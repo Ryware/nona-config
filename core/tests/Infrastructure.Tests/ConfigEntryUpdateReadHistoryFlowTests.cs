@@ -35,7 +35,8 @@ public class ConfigEntryUpdateReadHistoryFlowTests
         await apiKeyRepository.AddAsync(new ApiKey
         {
             Name = "frontend",
-            Key = apiKeyValue,
+            KeyHash = apiKeyValue,
+            Fingerprint = "key-123",
             Project = projectName,
             Scope = KeyScope.Frontend
         });
@@ -133,7 +134,8 @@ public class ConfigEntryUpdateReadHistoryFlowTests
         await apiKeyRepository.AddAsync(new ApiKey
         {
             Name = "frontend",
-            Key = apiKeyValue,
+            KeyHash = apiKeyValue,
+            Fingerprint = "key-123",
             Project = projectName,
             Scope = KeyScope.Frontend
         });
@@ -237,7 +239,8 @@ public class ConfigEntryUpdateReadHistoryFlowTests
         await apiKeyRepository.AddAsync(new ApiKey
         {
             Name = "frontend",
-            Key = apiKeyValue,
+            KeyHash = apiKeyValue,
+            Fingerprint = "key-123",
             Project = projectName,
             Scope = KeyScope.Frontend
         });
@@ -336,7 +339,7 @@ public class ConfigEntryUpdateReadHistoryFlowTests
 
     private sealed class FixedApiKeyService(string apiKey) : IApiKeyService
     {
-        public string? GetCurrentApiKey() => apiKey;
+        public string? GetCurrentApiKeyHash() => apiKey;
     }
 
     private sealed class MutableCurrentUserService(string username) : ICurrentUserService

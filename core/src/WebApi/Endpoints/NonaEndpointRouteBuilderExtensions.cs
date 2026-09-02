@@ -154,7 +154,7 @@ public static class NonaEndpointRouteBuilderExtensions
         apiKeys.MapGet("/", ListApiKeysAsync)
             .Produces<IReadOnlyList<ApiKeyDto>>();
         apiKeys.MapPost("/", CreateApiKeyAsync)
-            .Produces<ApiKeyDto>(StatusCodes.Status201Created);
+            .Produces<CreatedApiKeyDto>(StatusCodes.Status201Created);
         apiKeys.MapDelete("/{apiKeyId}", DeleteApiKeyAsync);
 
         var configEntries = projects.MapGroup("/{projectId}/environments/{environmentName}/config-entries");

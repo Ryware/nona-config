@@ -5,6 +5,9 @@ using Nona.Domain.Entities;
 using Nona.Domain.Enums;
 using Nona.Domain.Interfaces;
 using NSubstitute;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 
 namespace Nona.Application.Tests.ApiKeys;
 
@@ -19,8 +22,12 @@ public class ApiKeyCommandTests
         var fixture = new TestFixture();
         fixture.SetupAsSystemAdmin();
         SetupProject(fixture);
-        fixture.ApiKeyRepository.GetByKeyAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        fixture.ApiKeyRepository.GetByKeyHashAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns((ApiKeyAuthenticationResult?)null);
+        ApiKey? storedApiKey = null;
+        fixture.ApiKeyRepository
+            .When(repository => repository.AddAsync(Arg.Any<ApiKey>(), Arg.Any<CancellationToken>()))
+            .Do(call => storedApiKey = call.ArgAt<ApiKey>(0));
 
         var handler = CreateCreateHandler(fixture);
 
@@ -34,10 +41,17 @@ public class ApiKeyCommandTests
         await Assert.That(result.ApiKey!.Project).IsEqualTo(ProjectName);
         await Assert.That(result.ApiKey!.Environment).IsNull();
         await Assert.That(result.ApiKey!.Scope).IsEqualTo("client");
+        var expectedHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(result.ApiKey.Key)));
+        var expectedFingerprint = result.ApiKey.Key[^8..];
+        await Assert.That(storedApiKey).IsNotNull();
+        await Assert.That(storedApiKey!.KeyHash).IsEqualTo(expectedHash);
+        await Assert.That(storedApiKey.KeyHash).IsNotEqualTo(result.ApiKey.Key);
+        await Assert.That(storedApiKey.Fingerprint).IsEqualTo(expectedFingerprint);
         await fixture.ApiKeyRepository.Received(1).AddAsync(
             Arg.Is<ApiKey>(k =>
                 k.Name == "Mobile App" &&
-                k.Key.Length == 64 &&
+                k.KeyHash.Length == 64 &&
+                k.Fingerprint == expectedFingerprint &&
                 k.Project == ProjectName &&
                 k.Environment == null &&
                 k.Scope == KeyScope.Frontend),
@@ -52,7 +66,7 @@ public class ApiKeyCommandTests
         SetupProject(fixture);
         fixture.EnvironmentRepository.ExistsAsync(ProjectName, EnvironmentName, Arg.Any<CancellationToken>())
             .Returns(true);
-        fixture.ApiKeyRepository.GetByKeyAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+        fixture.ApiKeyRepository.GetByKeyHashAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns((ApiKeyAuthenticationResult?)null);
 
         var handler = CreateCreateHandler(fixture);
@@ -134,7 +148,8 @@ public class ApiKeyCommandTests
                 {
                     Id = 7,
                     Name = "Mobile App",
-                    Key = new string('A', 64),
+                    KeyHash = new string('A', 64),
+                    Fingerprint = "AAAAAAAA",
                     Project = ProjectName,
                     Environment = EnvironmentName,
                     Scope = KeyScope.Frontend
@@ -151,6 +166,10 @@ public class ApiKeyCommandTests
         await Assert.That(result.Success).IsTrue();
         await Assert.That(result.ApiKeys.Count).IsEqualTo(1);
         await Assert.That(result.ApiKeys[0].Environment).IsEqualTo(EnvironmentName);
+        var json = JsonSerializer.Serialize(result.ApiKeys[0], new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        await Assert.That(json).DoesNotContain("\"key\":");
+        await Assert.That(json).DoesNotContain(new string('A', 64));
+        await Assert.That(json).Contains("\"fingerprint\":\"AAAAAAAA\"");
     }
 
     [Test]
@@ -183,7 +202,8 @@ public class ApiKeyCommandTests
             {
                 Id = 7,
                 Name = "Mobile App",
-                Key = new string('A', 64),
+                KeyHash = new string('A', 64),
+                Fingerprint = "AAAAAAAA",
                 Project = ProjectName
             });
 
@@ -209,7 +229,8 @@ public class ApiKeyCommandTests
             {
                 Id = 7,
                 Name = "Other App",
-                Key = new string('A', 64),
+                KeyHash = new string('A', 64),
+                Fingerprint = "AAAAAAAA",
                 Project = "other-project"
             });
 
@@ -223,6 +244,28 @@ public class ApiKeyCommandTests
         await Assert.That(result.Success).IsFalse();
         await Assert.That(result.Error).IsEqualTo("API key not found");
         await fixture.ApiKeyRepository.DidNotReceive().DeleteAsync(Arg.Any<long>(), Arg.Any<CancellationToken>());
+    }
+
+    [Test]
+    public async Task ProjectViewer_CannotDeleteApiKey()
+    {
+        var fixture = new TestFixture();
+        fixture.SetupAsProjectUser("viewer", ProjectName);
+        SetupProject(fixture);
+        var handler = new DeleteApiKeyCommandHandler(
+            fixture.ProjectRepository,
+            fixture.ApiKeyRepository,
+            fixture.ProjectAccessService);
+
+        var result = await handler.Handle(
+            new DeleteApiKeyCommand(ProjectName, 7),
+            CancellationToken.None);
+
+        await Assert.That(result.Success).IsFalse();
+        await Assert.That(result.Error).IsEqualTo("Access denied");
+        await fixture.ApiKeyRepository.DidNotReceive().DeleteAsync(
+            Arg.Any<long>(),
+            Arg.Any<CancellationToken>());
     }
 
     private static void SetupProject(TestFixture fixture)

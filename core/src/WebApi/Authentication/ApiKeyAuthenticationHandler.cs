@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 using Nona.WebApi.Endpoints;
+using Nona.Application.Common;
 
 namespace Nona.WebApi.Authentication;
 
@@ -27,10 +28,10 @@ public class ApiKeyAuthenticationHandler(
         if (apiKey.Length != 64)
             return Task.FromResult(AuthenticateResult.Fail("API key must be 64 characters"));
 
-        // Create claims with the API key; project and environment validation happens in the query handler.
+        // Keep only the digest in claims; project and environment validation happens in the query handler.
         var claims = new[]
         {
-            new Claim("ApiKey", apiKey)
+            new Claim("ApiKeyHash", ApiKeySecret.Hash(apiKey))
         };
 
         var identity = new ClaimsIdentity(claims, Scheme.Name);

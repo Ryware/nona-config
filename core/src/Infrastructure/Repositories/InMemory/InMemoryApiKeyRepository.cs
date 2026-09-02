@@ -26,9 +26,10 @@ public sealed class InMemoryApiKeyRepository : IApiKeyRepository
         return Task.FromResult(apiKey);
     }
 
-    public async Task<ApiKeyAuthenticationResult?> GetByKeyAsync(string key, CancellationToken ct = default)
+    public async Task<ApiKeyAuthenticationResult?> GetByKeyHashAsync(string keyHash, CancellationToken ct = default)
     {
-        var apiKey = _apiKeys.Values.FirstOrDefault(k => k.Key == key);
+        var apiKey = _apiKeys.Values.FirstOrDefault(k =>
+            k.HashVersion == 1 && string.Equals(k.KeyHash, keyHash, StringComparison.Ordinal));
         if (apiKey is null)
             return null;
 

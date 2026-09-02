@@ -43,11 +43,11 @@ public class GetAllConfigValuesQueryHandler(
         if (!ConfigEntryPrefix.IsValid(request.Prefix))
             return Failure(ConfigEntryPrefix.ValidationError);
 
-        var apiKey = apiKeyService.GetCurrentApiKey();
-        if (string.IsNullOrEmpty(apiKey))
+        var apiKeyHash = apiKeyService.GetCurrentApiKeyHash();
+        if (string.IsNullOrEmpty(apiKeyHash))
             return Failure("API key is required");
 
-        var lookupResult = await apiKeyRepository.GetByKeyAsync(apiKey, cancellationToken);
+        var lookupResult = await apiKeyRepository.GetByKeyHashAsync(apiKeyHash, cancellationToken);
         if (lookupResult is null)
             return Failure("Invalid API key");
 

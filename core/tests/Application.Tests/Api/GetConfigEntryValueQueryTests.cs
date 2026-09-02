@@ -40,7 +40,7 @@ public class GetConfigEntryValueQueryTests
     public async Task GetConfigEntryValue_WithNoApiKey_ReturnsError()
     {
         // Arrange
-        _apiKeyService.GetCurrentApiKey().Returns((string?)null);
+        _apiKeyService.GetCurrentApiKeyHash().Returns((string?)null);
 
         var handler = CreateHandler();
         var query = new GetConfigEntryValueQuery(EnvironmentName, ConfigKey);
@@ -57,7 +57,7 @@ public class GetConfigEntryValueQueryTests
     public async Task GetConfigEntryValue_WithEmptyApiKey_ReturnsError()
     {
         // Arrange
-        _apiKeyService.GetCurrentApiKey().Returns(string.Empty);
+        _apiKeyService.GetCurrentApiKeyHash().Returns(string.Empty);
 
         var handler = CreateHandler();
         var query = new GetConfigEntryValueQuery(EnvironmentName, ConfigKey);
@@ -74,8 +74,8 @@ public class GetConfigEntryValueQueryTests
     public async Task GetConfigEntryValue_WithInvalidApiKey_ReturnsError()
     {
         // Arrange
-        _apiKeyService.GetCurrentApiKey().Returns("invalid-api-key");
-        _apiKeyRepository.GetByKeyAsync("invalid-api-key", Arg.Any<CancellationToken>())
+        _apiKeyService.GetCurrentApiKeyHash().Returns("invalid-api-key-hash");
+        _apiKeyRepository.GetByKeyHashAsync("invalid-api-key-hash", Arg.Any<CancellationToken>())
             .Returns((ApiKeyAuthenticationResult?)null);
 
         var handler = CreateHandler();
@@ -99,8 +99,8 @@ public class GetConfigEntryValueQueryTests
         // Arrange
         const string managedApiKey = "managed-api-key";
         var project = new Project { Name = ProjectName };
-        _apiKeyService.GetCurrentApiKey().Returns(managedApiKey);
-        _apiKeyRepository.GetByKeyAsync(managedApiKey, Arg.Any<CancellationToken>())
+        _apiKeyService.GetCurrentApiKeyHash().Returns(managedApiKey);
+        _apiKeyRepository.GetByKeyHashAsync(managedApiKey, Arg.Any<CancellationToken>())
             .Returns(new ApiKeyAuthenticationResult(project, KeyScope.Frontend, EnvironmentName));
         SetupEnvironmentExists();
         SetupConfigEntry(KeyScope.Frontend);
@@ -122,8 +122,8 @@ public class GetConfigEntryValueQueryTests
         // Arrange
         const string managedApiKey = "managed-api-key";
         var project = new Project { Name = ProjectName };
-        _apiKeyService.GetCurrentApiKey().Returns(managedApiKey);
-        _apiKeyRepository.GetByKeyAsync(managedApiKey, Arg.Any<CancellationToken>())
+        _apiKeyService.GetCurrentApiKeyHash().Returns(managedApiKey);
+        _apiKeyRepository.GetByKeyHashAsync(managedApiKey, Arg.Any<CancellationToken>())
             .Returns(new ApiKeyAuthenticationResult(project, KeyScope.Frontend, "staging"));
 
         var handler = CreateHandler();
@@ -592,8 +592,8 @@ public class GetConfigEntryValueQueryTests
             Name = ProjectName
         };
 
-        _apiKeyService.GetCurrentApiKey().Returns(BackendScopedApiKey);
-        _apiKeyRepository.GetByKeyAsync(BackendScopedApiKey, Arg.Any<CancellationToken>())
+        _apiKeyService.GetCurrentApiKeyHash().Returns(BackendScopedApiKey);
+        _apiKeyRepository.GetByKeyHashAsync(BackendScopedApiKey, Arg.Any<CancellationToken>())
             .Returns(new ApiKeyAuthenticationResult(project, KeyScope.Backend, null));
     }
 
@@ -604,8 +604,8 @@ public class GetConfigEntryValueQueryTests
             Name = ProjectName
         };
 
-        _apiKeyService.GetCurrentApiKey().Returns(FrontendScopedApiKey);
-        _apiKeyRepository.GetByKeyAsync(FrontendScopedApiKey, Arg.Any<CancellationToken>())
+        _apiKeyService.GetCurrentApiKeyHash().Returns(FrontendScopedApiKey);
+        _apiKeyRepository.GetByKeyHashAsync(FrontendScopedApiKey, Arg.Any<CancellationToken>())
             .Returns(new ApiKeyAuthenticationResult(project, KeyScope.Frontend, null));
     }
 
