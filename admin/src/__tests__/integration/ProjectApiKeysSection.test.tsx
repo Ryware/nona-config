@@ -272,39 +272,64 @@ describe('ProjectApiKeysSection', () => {
     await waitFor(() => expect(screen.queryByText('Temporary Key')).not.toBeInTheDocument());
   });
 
-  it('clears a one-time secret when navigating to another project', async () => {
+  it('keeps a delayed API key creation scoped to its original project', async () => {
     const secret = 'FEDCBA9876543210FEDCBA9876543210FEDCBA9876543210FEDCBA9876543210';
+    let releaseCreateResponse: (() => void) | undefined;
+    let requestedProjectId: string | undefined;
     server.use(
       http.post(
         'http://localhost:5027/admin/projects/:projectId/api-keys',
-        ({ params }) => HttpResponse.json({
-          id: 'key-new',
-          name: 'Temporary Key',
-          key: secret,
-          fingerprint: '76543210',
-          project: params.projectId,
-          environment: null,
-          scope: 'client',
-          createdAt: '2026-01-01T00:00:00Z',
-          updatedAt: '2026-01-01T00:00:00Z',
-        }, { status: 201 }),
+        async ({ params }) => {
+          requestedProjectId = String(params.projectId);
+          await new Promise<void>(resolve => {
+            releaseCreateResponse = resolve;
+          });
+
+          return HttpResponse.json({
+            id: 'key-new',
+            name: 'Temporary Key',
+            key: secret,
+            fingerprint: '76543210',
+            project: params.projectId,
+            environment: null,
+            scope: 'client',
+            createdAt: '2026-01-01T00:00:00Z',
+            updatedAt: '2026-01-01T00:00:00Z',
+          }, { status: 201 });
+        },
       ),
     );
 
-    renderProjectSections('/projects/my-app/api-keys');
+    const { queryClient } = renderProjectSections('/projects/my-app/api-keys');
+    const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries');
     await screen.findByText('Web Client');
     fireEvent.click(screen.getByRole('button', { name: /add api key/i }));
     fireEvent.input(await screen.findByTestId('api-key-name-input'), {
       target: { value: 'Temporary Key' },
     });
     fireEvent.click(screen.getByTestId('api-key-create-button'));
-    expect(await screen.findByTestId('one-time-api-key-value')).toHaveTextContent(secret);
+    await waitFor(() => expect(releaseCreateResponse).toBeTypeOf('function'));
+    expect(requestedProjectId).toBe('my-app');
 
     window.history.pushState({}, '', '/projects/backend-api/api-keys');
     window.dispatchEvent(new PopStateEvent('popstate'));
 
     await waitFor(() => expect(window.location.pathname).toBe('/projects/backend-api/api-keys'));
-    await waitFor(() => expect(screen.queryByText(secret)).not.toBeInTheDocument());
+    releaseCreateResponse?.();
+
+    await waitFor(() => {
+      expect(invalidateQueries).toHaveBeenCalledWith({
+        queryKey: projectKeys.apiKeys('my-app'),
+      });
+    });
+    expect(invalidateQueries).not.toHaveBeenCalledWith({
+      queryKey: projectKeys.apiKeys('backend-api'),
+    });
+    expect(screen.queryByText(/cannot be recovered/i)).not.toBeInTheDocument();
+    expect(screen.queryByTestId('one-time-api-key-value')).not.toBeInTheDocument();
+    expect(screen.queryByText(secret)).not.toBeInTheDocument();
+    expect(JSON.stringify(queryClient.getMutationCache().getAll().map(mutation => mutation.state.data)))
+      .not.toContain(secret);
   });
 
   it('requires confirmation before deletion and removes the deleted row', async () => {

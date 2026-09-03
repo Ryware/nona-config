@@ -14,6 +14,11 @@ import { ProjectApiKeys } from "../components/ProjectApiKeys";
 import { ProjectSectionLayout } from "../components/ProjectSectionLayout";
 import { useProjectContext } from "../hooks/useProjectContext";
 
+interface ApiKeyMutationTarget {
+  projectId: string;
+  projectSlug: string;
+}
+
 export default function ApiKeysSection() {
   const params = useParams<{ slug: string }>();
   const queryClient = useQueryClient();
@@ -26,6 +31,13 @@ export default function ApiKeysSection() {
 
   const { projectsQuery, project, projectId, activeEnvName, canManageProject } =
     useProjectContext();
+
+  const currentMutationTarget = (): ApiKeyMutationTarget => ({
+    projectId: projectId(),
+    projectSlug: params.slug
+  });
+  const isCurrentMutationTarget = (target: ApiKeyMutationTarget) =>
+    target.projectId === projectId() && target.projectSlug === params.slug;
 
   const apiKeysQuery = useQuery(() => ({
     queryKey: projectKeys.apiKeys(params.slug),
@@ -55,16 +67,31 @@ export default function ApiKeysSection() {
   });
 
   const createApiKeyMutation = useMutation(() => ({
-    mutationFn: async (data: CreateApiKeyRequest) => {
+    mutationFn: async ({
+      target,
+      data
+    }: {
+      target: ApiKeyMutationTarget;
+      data: CreateApiKeyRequest;
+    }) => {
       setOneTimeApiKey(null);
-      setOneTimeApiKey(await projectService.createApiKey(projectId(), data));
+      const createdApiKey = await projectService.createApiKey(target.projectId, data);
+      if (isCurrentMutationTarget(target)) {
+        setOneTimeApiKey(createdApiKey);
+      }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: projectKeys.apiKeys(params.slug) });
+    onSuccess: (_data, { target }) => {
+      queryClient.invalidateQueries({ queryKey: projectKeys.apiKeys(target.projectSlug) });
+      if (!isCurrentMutationTarget(target)) return;
+
       setShowApiKeyForm(false);
       addToast(MSG.API_KEY_CREATED, "success");
     },
-    onError: () => addToast(MSG.API_KEY_CREATE_FAILED, "error")
+    onError: (_error, { target }) => {
+      if (isCurrentMutationTarget(target)) {
+        addToast(MSG.API_KEY_CREATE_FAILED, "error");
+      }
+    }
   }));
 
   const deleteApiKeyMutation = useMutation(() => ({
@@ -106,7 +133,7 @@ export default function ApiKeysSection() {
           activeEnvironmentName={activeEnvName()}
           showCreateForm={showApiKeyForm()}
           setShowCreateForm={setShowApiKeyForm}
-          onCreate={data => createApiKeyMutation.mutate(data)}
+          onCreate={data => createApiKeyMutation.mutate({ target: currentMutationTarget(), data })}
           onDelete={setConfirmDeleteApiKey}
           onDismissSecret={clearOneTimeApiKey}
           onCopied={msg => addToast(msg, "success")}
