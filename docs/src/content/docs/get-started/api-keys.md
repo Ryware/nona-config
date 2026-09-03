@@ -51,7 +51,9 @@ For a simple first test, create a project-scoped key, limit it to `production` i
 7. click `Create`
 8. copy the generated key value before you leave the page
 
-The same section lets you reveal, copy, and delete existing keys.
+The key appears in a one-time panel with a copy button. After you dismiss that panel, the secret cannot be recovered. The key list shows a masked fingerprint instead of the secret.
+
+The same section lets you delete an existing key after confirmation. To replace a credential without interrupting consumers, create another key, migrate and verify its consumers, then delete the old key.
 
 ## With the CLI
 
@@ -73,11 +75,23 @@ nona keys list --project storefront
 
 `nona keys show --project storefront` also works.
 
-Delete a key when it is no longer needed:
+Create a replacement when a secret needs to be changed:
+
+```bash
+nona keys create \
+  --project storefront \
+  --name "Web app replacement" \
+  --scope client \
+  --environment production
+```
+
+After updating and verifying consumers, delete the old key:
 
 ```bash
 nona keys delete --project storefront --id 42
 ```
+
+Create prints the secret once with a warning. List output contains only metadata and the fingerprint.
 
 ## A simple decision guide
 
@@ -93,7 +107,9 @@ nona keys delete --project storefront --id 42
 - store API keys in your secrets system or environment variables
 - do not hardcode them in source code
 - do not give frontend apps a broader scope than they need
-- rotate keys when your access model changes
+- replace keys when your access model changes or a secret may have been exposed
+- copy each new key immediately; it cannot be retrieved later
+- create, migrate to, and verify a replacement before deleting the old key when uninterrupted access matters
 - prefer creating a new narrowly scoped key over reusing one broad key everywhere
 
 ## Validate the key

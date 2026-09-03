@@ -436,7 +436,7 @@ nona keys [command] [options]
 
 - `list, show` List API keys for a project.
 - `create` Create an API key for a project.
-- `delete` Delete an API key.
+- `delete` Permanently delete an API key.
 
 ## `nona keys list`
 
@@ -479,7 +479,7 @@ nona keys create [options]
 
 ## `nona keys delete`
 
-Delete an API key.
+Permanently delete an API key.
 
 **Usage**
 
@@ -492,7 +492,7 @@ nona keys delete [options]
 ```text
 --api-url, --base-url <base-url>          Nona base URL.
 --project, --project-name <project-name>  Nona project name.
---id <id>                                 API key id to delete.
+--id <id>                                 API key id.
 --bearer-token, --token <bearer-token>    Admin bearer token.
 ```
 
@@ -518,7 +518,6 @@ nona init [options]
 --no-seed-flag                            Skip starter flag creation.
 --scope <scope>                           API key and entry scope: client, server, or all. Default: client.
 --format <format>                         Output format: dotenv, json, or env-export. Default: dotenv.
---print-key                               Print the full API key. By default only the last four characters are shown.
 --yes                                     Non-interactive mode; never prompt.
 ```
 

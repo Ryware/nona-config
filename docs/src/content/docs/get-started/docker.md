@@ -64,11 +64,10 @@ nona init \
   --base-url http://localhost:18080 \
   --email admin@example.com \
   --password <password> \
-  --project storefront \
-  --print-key
+  --project storefront
 ```
 
-This registers or logs in the admin, creates or reuses the `storefront` project, creates or reuses the `production` environment, seeds `Features:Example=true`, creates or reuses an API key, and prints a ready-to-paste `.env` block.
+This registers or logs in the admin, creates or reuses the `storefront` project, creates or reuses the `production` environment, seeds `Features:Example=true`, creates an API key, and prints a ready-to-paste `.env` block. Save the key immediately because it is printed only once.
 
 `--yes` makes this safe for scripts and CI: the command never prompts and exits with an invalid-args error if a required value is missing.
 
