@@ -64,8 +64,8 @@ public class ApiKeyCommandTests
         var fixture = new TestFixture();
         fixture.SetupAsSystemAdmin();
         SetupProject(fixture);
-        fixture.EnvironmentRepository.ExistsAsync(ProjectName, EnvironmentName, Arg.Any<CancellationToken>())
-            .Returns(true);
+        fixture.EnvironmentRepository.GetAsync(ProjectName, EnvironmentName, Arg.Any<CancellationToken>())
+            .Returns(new ProjectEnvironment { Name = EnvironmentName, Project = ProjectName });
         fixture.ApiKeyRepository.GetByKeyHashAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns((ApiKeyAuthenticationResult?)null);
 
@@ -81,13 +81,46 @@ public class ApiKeyCommandTests
     }
 
     [Test]
+    public async Task CreateApiKey_UsesCanonicalEnvironmentName()
+    {
+        const string canonicalEnvironmentName = "Production";
+        const string requestedEnvironmentName = " PrOdUcTiOn ";
+        var fixture = new TestFixture();
+        fixture.SetupAsSystemAdmin();
+        SetupProject(fixture);
+        fixture.EnvironmentRepository.GetAsync(
+                ProjectName,
+                requestedEnvironmentName.Trim(),
+                Arg.Any<CancellationToken>())
+            .Returns(new ProjectEnvironment
+            {
+                Name = canonicalEnvironmentName,
+                Project = ProjectName
+            });
+        fixture.ApiKeyRepository.GetByKeyHashAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns((ApiKeyAuthenticationResult?)null);
+        ApiKey? storedApiKey = null;
+        fixture.ApiKeyRepository
+            .When(repository => repository.AddAsync(Arg.Any<ApiKey>(), Arg.Any<CancellationToken>()))
+            .Do(call => storedApiKey = call.ArgAt<ApiKey>(0));
+
+        var result = await CreateCreateHandler(fixture).Handle(
+            new CreateApiKeyCommand(ProjectName, "Production App", requestedEnvironmentName, "client"),
+            CancellationToken.None);
+
+        await Assert.That(result.Success).IsTrue();
+        await Assert.That(result.ApiKey!.Environment).IsEqualTo(canonicalEnvironmentName);
+        await Assert.That(storedApiKey!.Environment).IsEqualTo(canonicalEnvironmentName);
+    }
+
+    [Test]
     public async Task CreateApiKey_EnvironmentNotFound_ReturnsError()
     {
         var fixture = new TestFixture();
         fixture.SetupAsSystemAdmin();
         SetupProject(fixture);
-        fixture.EnvironmentRepository.ExistsAsync(ProjectName, EnvironmentName, Arg.Any<CancellationToken>())
-            .Returns(false);
+        fixture.EnvironmentRepository.GetAsync(ProjectName, EnvironmentName, Arg.Any<CancellationToken>())
+            .Returns((ProjectEnvironment?)null);
 
         var handler = CreateCreateHandler(fixture);
 

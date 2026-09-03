@@ -35,14 +35,18 @@ public class CreateApiKeyCommandHandler(
         if (!TryParseScope(request.Scope, out var scope))
             return new CreateApiKeyResult(false, null, "Invalid scope. Must be 'client', 'server', or 'all'.");
 
-        var environment = string.IsNullOrWhiteSpace(request.Environment)
-            ? null
-            : request.Environment.Trim();
-
-        if (environment is not null &&
-            !await environmentRepository.ExistsAsync(project.Name, environment, cancellationToken))
+        string? environment = null;
+        if (!string.IsNullOrWhiteSpace(request.Environment))
         {
-            return new CreateApiKeyResult(false, null, "Environment not found");
+            var requestedEnvironment = request.Environment.Trim();
+            var resolvedEnvironment = await environmentRepository.GetAsync(
+                project.Name,
+                requestedEnvironment,
+                cancellationToken);
+            if (resolvedEnvironment is null)
+                return new CreateApiKeyResult(false, null, "Environment not found");
+
+            environment = resolvedEnvironment.Name;
         }
 
         var secret = await GenerateUniqueApiKeyAsync(apiKeyRepository, cancellationToken);
