@@ -1,5 +1,5 @@
 import { createMemo, createSignal, For, Show } from "solid-js";
-import type { ApiKey, CreateApiKeyRequest } from "../../../types";
+import type { ApiKey, CreatedApiKey, CreateApiKeyRequest } from "../../../types";
 import { useClipboard } from "../../../shared/hooks/useClipboard";
 import { Button } from "../../../shared/ui/button";
 import { Select } from "../../../shared/ui/select";
@@ -13,12 +13,14 @@ interface ProjectApiKeysProps {
   isLoading: boolean;
   isCreating: boolean;
   deletingId: string | null;
+  oneTimeApiKey: CreatedApiKey | null;
   canManage: boolean;
   activeEnvironmentName: string;
   showCreateForm: boolean;
   setShowCreateForm: (value: boolean) => void;
   onCreate: (data: CreateApiKeyRequest) => void;
-  onDelete: (apiKeyId: string) => void;
+  onDelete: (apiKey: ApiKey) => void;
+  onDismissSecret: () => void;
   onCopied: (message: string) => void;
 }
 
@@ -48,7 +50,6 @@ function ScopeBadge(props: { scope: ApiKey["scope"] }) {
 export function ProjectApiKeys(props: ProjectApiKeysProps) {
   const [name, setName] = createSignal("");
   const [scope, setScope] = createSignal<ApiKey["scope"]>("client");
-  const [revealed, setRevealed] = createSignal<Record<string, boolean>>({});
   const { copy } = useClipboard();
 
   const canCreate = createMemo(() => name().trim().length > 0 && !props.isCreating);
@@ -69,10 +70,6 @@ export function ProjectApiKeys(props: ProjectApiKeysProps) {
     if (await copy(value)) {
       props.onCopied("Copied to clipboard");
     }
-  };
-
-  const toggleReveal = (id: string) => {
-    setRevealed(current => ({ ...current, [id]: !current[id] }));
   };
 
   return (
@@ -161,6 +158,51 @@ export function ProjectApiKeys(props: ProjectApiKeysProps) {
         </div>
       </Show>
 
+      <Show when={props.oneTimeApiKey} keyed>
+        {created => (
+          <div
+            class="bg-primary/10 border-primary/30 animate-fade-in rounded-2xl border p-5"
+            data-testid="one-time-api-key-panel"
+          >
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <h3 class="text-primary font-headline text-[13px] font-bold tracking-wider uppercase">
+                  Save this API key now
+                </h3>
+                <p class="text-on-surface-variant mt-1 text-[13px]">
+                  Copy it now. This API key cannot be recovered after you dismiss this panel.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={props.onDismissSecret}
+                aria-label="Dismiss API key"
+                class="text-outline hover:text-on-surface cursor-pointer rounded-lg border-0 bg-transparent p-1"
+              >
+                <MIcon name="close" class="text-[18px]" />
+              </button>
+            </div>
+            <div class="mt-4 flex flex-col gap-2 sm:flex-row">
+              <code
+                data-testid="one-time-api-key-value"
+                class="text-on-surface bg-surface-container-lowest min-w-0 flex-1 overflow-x-auto rounded-lg px-3 py-2 font-mono text-[13px]"
+              >
+                {created.key}
+              </code>
+              <Button
+                type="button"
+                variant="outline"
+                aria-label="Copy new API key"
+                onClick={() => handleCopy(created.key)}
+              >
+                <MIcon name="content_copy" class="text-[16px]" />
+                Copy
+              </Button>
+            </div>
+          </div>
+        )}
+      </Show>
+
       <Show
         when={!props.isLoading}
         fallback={<div class="skeleton h-11 w-full rounded-xl" />}
@@ -193,40 +235,18 @@ export function ProjectApiKeys(props: ProjectApiKeysProps) {
                     data-testid={`api-key-value-${apiKey.id}`}
                     class="text-on-surface bg-surface-container-lowest rounded-lg px-3 py-2 font-mono text-[13px]"
                   >
-                    {revealed()[apiKey.id] ? apiKey.key : "•".repeat(32)}
+                    {"•".repeat(8)}{apiKey.fingerprint}
                   </code>
 
                   <div class="flex items-center justify-end gap-1">
-                    <Tooltip content={revealed()[apiKey.id] ? "Hide API key" : "Reveal API key"}><TooltipTrigger as="button"
-                      data-testid={`api-key-toggle-${apiKey.id}`}
-                      type="button"
-                      onClick={() => toggleReveal(apiKey.id)}
-                      class="text-outline hover:text-on-surface hover:bg-surface-bright cursor-pointer rounded-lg border-0 p-1.5 transition-all"
-                      aria-label={revealed()[apiKey.id] ? "Hide API key" : "Reveal API key"}
-                      data-tooltip-trigger
-                    >
-                      <MIcon
-                        name={revealed()[apiKey.id] ? "visibility_off" : "visibility"}
-                        class="text-[16px]"
-                      />
-                    </TooltipTrigger></Tooltip>
-                    <Tooltip content="Copy API key"><TooltipTrigger as="button"
-                      type="button"
-                      onClick={() => handleCopy(apiKey.key)}
-                      class="text-outline hover:text-on-surface hover:bg-surface-bright cursor-pointer rounded-lg border-0 p-1.5 transition-all"
-                      aria-label="Copy API key"
-                      data-tooltip-trigger
-                    >
-                      <MIcon name="content_copy" class="text-[16px]" />
-                    </TooltipTrigger></Tooltip>
                     <Show when={props.canManage}>
                       <Tooltip content={props.deletingId === apiKey.id ? "Deleting API key" : "Delete API key"}><TooltipTrigger as="button"
                         data-testid={`api-key-delete-${apiKey.id}`}
                         type="button"
-                        onClick={() => props.onDelete(apiKey.id)}
+                        onClick={() => props.onDelete(apiKey)}
                         disabled={props.deletingId === apiKey.id}
                         class="text-outline hover:text-error hover:bg-error/10 cursor-pointer rounded-lg border-0 p-1.5 transition-all disabled:opacity-40"
-                        aria-label="Delete API key"
+                        aria-label={`Delete ${apiKey.name} API key`}
                         data-tooltip-trigger
                       >
                         <MIcon name="delete" class="text-[16px]" />

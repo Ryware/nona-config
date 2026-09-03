@@ -39,6 +39,7 @@ export type {
   UpdateConfigEntryRequest,
   RollbackConfigEntryRequest,
   ApiKey,
+  CreatedApiKey,
   CreateApiKeyRequest,
 } from "../entities/project/model/types";
 

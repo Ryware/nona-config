@@ -156,12 +156,16 @@ export interface SetActiveConfigReleaseRequest {
 export interface ApiKey {
   id: string;
   name: string;
-  key: string;
+  fingerprint: string;
   project: string;
   environment: string | null;
   scope: 'client' | 'server' | 'all';
   createdAt: string;
   updatedAt: string;
+}
+
+export interface CreatedApiKey extends ApiKey {
+  key: string;
 }
 
 export interface CreateApiKeyRequest {
