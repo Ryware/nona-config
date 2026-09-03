@@ -160,6 +160,54 @@ public class ConfigApiEndpointTests
             .IsEqualTo(ConfigEntryPrefix.ValidationError);
     }
 
+    [Test]
+    public async Task GetConfigValue_MasksInvalidApiKeyFailure()
+    {
+        var mediator = new StubMediator(new GetConfigEntryValueResult(false, null, null, "Invalid API key"));
+        var httpContext = CreateHttpContext();
+
+        var result = await NonaEndpointRouteBuilderExtensions.GetConfigValueAsync(
+            "production",
+            "features",
+            null,
+            httpContext,
+            mediator,
+            CancellationToken.None);
+        await result.ExecuteAsync(httpContext);
+
+        await AssertGenericApiKeyFailureAsync(httpContext);
+    }
+
+    [Test]
+    public async Task GetAllConfigValues_MasksInvalidApiKeyFailure()
+    {
+        var mediator = new StubMediator(new GetAllConfigValuesResult(false, null, "Invalid API key"));
+        var httpContext = CreateHttpContext();
+
+        var result = await NonaEndpointRouteBuilderExtensions.GetAllConfigValuesAsync(
+            "production",
+            null,
+            null,
+            httpContext,
+            mediator,
+            CancellationToken.None);
+        await result.ExecuteAsync(httpContext);
+
+        await AssertGenericApiKeyFailureAsync(httpContext);
+    }
+
+    private static async Task AssertGenericApiKeyFailureAsync(DefaultHttpContext httpContext)
+    {
+        await Assert.That(httpContext.Response.StatusCode).IsEqualTo(StatusCodes.Status401Unauthorized);
+        await Assert.That(httpContext.Response.ContentType).IsEqualTo("application/problem+json");
+        httpContext.Response.Body.Seek(0, SeekOrigin.Begin);
+        using var body = await JsonDocument.ParseAsync(httpContext.Response.Body);
+        await Assert.That(body.RootElement.GetProperty("title").GetString()).IsEqualTo("Unauthorized");
+        await Assert.That(body.RootElement.GetProperty("status").GetInt32()).IsEqualTo(401);
+        await Assert.That(body.RootElement.GetProperty("detail").GetString())
+            .IsEqualTo("An API key is required or invalid.");
+    }
+
     private static DefaultHttpContext CreateHttpContext()
     {
         var context = new DefaultHttpContext

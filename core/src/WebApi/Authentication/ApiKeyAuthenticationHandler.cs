@@ -15,18 +15,17 @@ public class ApiKeyAuthenticationHandler(
 {
     public const string SchemeName = "ApiKey";
     public const string ApiKeyHeaderName = "X-Api-Key";
+    internal const string InvalidCredentialDetail = "An API key is required or invalid.";
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
         if (!Request.Headers.TryGetValue(ApiKeyHeaderName, out var apiKeyHeader))
             return Task.FromResult(AuthenticateResult.Fail("API key header not found"));
 
-        var apiKey = apiKeyHeader.ToString();
-        if (string.IsNullOrWhiteSpace(apiKey))
-            return Task.FromResult(AuthenticateResult.Fail("API key is empty"));
+        if (apiKeyHeader.Count != 1 || !IsCanonicalApiKey(apiKeyHeader[0]))
+            return Task.FromResult(AuthenticateResult.Fail("API key is malformed"));
 
-        if (apiKey.Length != 64)
-            return Task.FromResult(AuthenticateResult.Fail("API key must be 64 characters"));
+        var apiKey = apiKeyHeader[0]!;
 
         // Keep only the digest in claims; project and environment validation happens in the query handler.
         var claims = new[]
@@ -43,11 +42,15 @@ public class ApiKeyAuthenticationHandler(
 
     protected override Task HandleChallengeAsync(AuthenticationProperties properties)
         => ApiProblemResults
-            .Unauthorized("An API key is required or invalid.")
+            .Unauthorized(InvalidCredentialDetail)
             .ExecuteAsync(Context);
 
     protected override Task HandleForbiddenAsync(AuthenticationProperties properties)
         => ApiProblemResults
             .Forbidden("The API key does not grant access to this resource.")
             .ExecuteAsync(Context);
+
+    private static bool IsCanonicalApiKey(string? value)
+        => value is { Length: 64 }
+           && value.All(character => character is >= '0' and <= '9' or >= 'A' and <= 'F');
 }

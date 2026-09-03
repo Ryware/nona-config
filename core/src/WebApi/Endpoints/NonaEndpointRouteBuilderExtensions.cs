@@ -1433,7 +1433,8 @@ public static class NonaEndpointRouteBuilderExtensions
         {
             return result.Error switch
             {
-                "API key is required" or "Invalid API key" => Unauthorized(result.Error),
+                "API key is required" or "Invalid API key" =>
+                    Unauthorized(ApiKeyAuthenticationHandler.InvalidCredentialDetail),
                 "Version must use major.minor.patch or major.minor.x format." => BadRequest(result.Error),
                 _ => NotFound(result.Error ?? "Config value not found")
             };
@@ -1464,7 +1465,8 @@ public static class NonaEndpointRouteBuilderExtensions
         {
             return result.Error switch
             {
-                "API key is required" or "Invalid API key" => Unauthorized(result.Error),
+                "API key is required" or "Invalid API key" =>
+                    Unauthorized(ApiKeyAuthenticationHandler.InvalidCredentialDetail),
                 "Version must use major.minor.patch or major.minor.x format." => BadRequest(result.Error),
                 ConfigEntryPrefix.ValidationError => BadRequest(result.Error),
                 _ => NotFound(result.Error ?? "Config values not found")
