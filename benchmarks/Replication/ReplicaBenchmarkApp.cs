@@ -13,7 +13,6 @@ public static class ReplicaBenchmarkApp
     private const string ProjectName = "bench-project";
     private const string ProjectSlug = "bench-project";
     private const string EnvironmentName = "medium";
-    private const string ApiKey = "BENCH-SCOPED-KEY";
     private const int DatasetRows = 1_000;
     private const int DefaultConsistencySamples = 100;
 
@@ -421,18 +420,13 @@ public static class ReplicaBenchmarkApp
                     ("Slug", ProjectSlug),
                     ("CreatedAt", now),
                     ("UpdatedAt", now))),
-            new(
-                """
-                INSERT INTO ApiKeys (Name, Key, Project, Environment, Scope, CreatedAt, UpdatedAt)
-                VALUES (@Name, @Key, @Project, NULL, @Scope, @CreatedAt, @UpdatedAt)
-                """,
-                LibsqlParameters.Create(
-                    ("Name", "Benchmark"),
-                    ("Key", ApiKey),
-                    ("Project", ProjectName),
-                    ("Scope", 3),
-                    ("CreatedAt", now),
-                    ("UpdatedAt", now))),
+            DatabaseSeeder.CreateApiKeyInsertStatement(
+                "Benchmark",
+                DatabaseSeeder.ApiKey,
+                ProjectName,
+                null,
+                3,
+                now),
             new(
                 """
                 INSERT INTO Environments (Name, Project, CreatedAt, UpdatedAt)
