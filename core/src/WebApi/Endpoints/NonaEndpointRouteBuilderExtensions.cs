@@ -909,6 +909,7 @@ public static class NonaEndpointRouteBuilderExtensions
         CreateApiKeyRequest request,
         IValidator<CreateApiKeyRequest> validator,
         IMediator mediator,
+        HttpContext httpContext,
         CancellationToken cancellationToken)
     {
         if (await ValidateRequestAsync(request, validator, cancellationToken) is { } validationResult)
@@ -922,6 +923,7 @@ public static class NonaEndpointRouteBuilderExtensions
 
         if (result.Success)
         {
+            httpContext.Response.Headers.CacheControl = "no-store";
             return Results.Created($"/admin/projects/{projectId}/api-keys", result.ApiKey);
         }
 
