@@ -54,7 +54,7 @@ Direct `dotnet publish` output is named `Nona.Cli` (`Nona.Cli.exe` on Windows). 
 Bootstrap a fresh Nona instance and print app-ready environment variables:
 
 ```bash
-nona init --yes --base-url http://nona.internal:18080 --email admin@example.com --password secret --project mobile-app --print-key
+nona init --yes --base-url http://nona.internal:18080 --email admin@example.com --password secret --project mobile-app
 ```
 
 `init` registers or logs in the admin, creates or reuses the project and environment, seeds a starter flag, creates or reuses a scoped API key, and prints a `.env` block plus a verification curl.
