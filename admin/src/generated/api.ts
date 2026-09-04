@@ -1573,7 +1573,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ApiKeyDto"];
+                        "application/json": components["schemas"]["CreatedApiKeyDto"];
                     };
                 };
                 /** @description Client Error */
@@ -3081,7 +3081,7 @@ export interface components {
             /** Format: int64 */
             id: number | string;
             name: string;
-            key: string;
+            fingerprint: string;
             project: string;
             environment: null | string;
             scope: string;
@@ -3214,6 +3214,20 @@ export interface components {
             name: string;
             environment?: null | string;
             scope?: null | string;
+        };
+        CreatedApiKeyDto: {
+            /** Format: int64 */
+            id: number | string;
+            name: string;
+            key: string;
+            fingerprint: string;
+            project: string;
+            environment: null | string;
+            scope: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
         };
         CreatedParameterShareLinkDto: {
             /** Format: int64 */

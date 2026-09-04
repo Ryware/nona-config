@@ -5,6 +5,7 @@ using Nona.WebApi;
 using Nona.WebApi.Endpoints;
 using Nona.WebApi.Serialization;
 using Scalar.AspNetCore;
+using System.Text;
 
 public partial class Program
 {
@@ -13,6 +14,16 @@ public partial class Program
     private static async Task Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
+        builder.WebHost.ConfigureKestrel(options =>
+        {
+            options.RequestHeaderEncodingSelector = static headerName =>
+                string.Equals(
+                    headerName,
+                    Nona.WebApi.Authentication.ApiKeyAuthenticationHandler.ApiKeyHeaderName,
+                    StringComparison.OrdinalIgnoreCase)
+                    ? Encoding.Latin1
+                    : Encoding.ASCII;
+        });
         builder.Configuration.AddUserSecrets(typeof(Program).Assembly);
         PersistentJwtConfiguration.Apply(builder.Configuration);
         builder.Configuration.AddEnvironmentVariables();

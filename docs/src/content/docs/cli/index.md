@@ -45,11 +45,12 @@ nona init \
   --base-url https://nona.example.com \
   --email admin@example.com \
   --password secret \
-  --project mobile-app \
-  --print-key
+  --project mobile-app
 ```
 
-`init` registers the first admin when needed, logs in on existing instances, creates or reuses the project and environment, seeds a starter flag, creates or reuses a scoped API key, and prints app-ready environment variables.
+`init` registers the first admin when needed, logs in on existing instances, creates or reuses the project and environment, seeds a starter flag, creates a scoped API key, and prints app-ready environment variables. The generated API key is printed once because it cannot be retrieved later.
+
+If a matching `nona init` key already exists, the command stops because its secret cannot be recovered. It tells you to create a separate replacement and later delete the old key, or delete the old key first and rerun `nona init`.
 
 ```bash
 nona auth register --base-url https://nona.example.com --email admin@example.com --password secret
@@ -69,8 +70,7 @@ The default `init` output is directly appendable to an app `.env` file:
 # Nona - project "mobile-app", env "production"
 VITE_NONA_BASE_URL=https://nona.example.com
 VITE_NONA_ENV_ID=production
-VITE_NONA_API_KEY=****158D
-# API key masked; re-run with --print-key to emit a working value.
+VITE_NONA_API_KEY=<one-time-generated-secret>
 # Verify: curl -H "X-Api-Key: $VITE_NONA_API_KEY" https://nona.example.com/api/production/Features%3AExample
 ```
 
@@ -83,7 +83,6 @@ Useful options:
 - `--scope client|server|all` controls the API key and starter flag scope.
 - `--format dotenv|json|env-export` changes the output format.
 - `--password -` reads the password from stdin.
-- `--print-key` prints the full API key instead of masking it.
 
 ## Create a project
 
@@ -200,8 +199,9 @@ nona keys delete --project mobile-app --id 42
 ```
 
 `nona keys show --project mobile-app` also works. `show` is an alias for `list`.
+Deleting a key permanently revokes it and takes effect immediately.
 
-Use client-scoped API keys for frontend/mobile apps and server-scoped keys for backend-only reads whenever possible.
+Use client-scoped API keys for frontend/mobile apps and server-scoped keys for backend-only reads whenever possible. Create prints a one-time secret; list output shows only metadata and a masked fingerprint. To rotate a credential, create a replacement, update and verify its consumers, then delete the old key.
 
 ## Invite a user
 

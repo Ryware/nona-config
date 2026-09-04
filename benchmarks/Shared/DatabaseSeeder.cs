@@ -1,5 +1,7 @@
 using Microsoft.Data.Sqlite;
 using Nona.Libsql;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Nona.Benchmarks;
 
@@ -7,8 +9,9 @@ public static class DatabaseSeeder
 {
     public const string ProjectName = "bench-project";
     public const string ProjectSlug = "bench-project";
-    public const string ApiKey = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+    public const string ApiKey = "0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF";
     public const string ReleaseVersion = "1.0.0";
+    internal static string ApiKeyHash { get; } = HashApiKey(ApiKey);
 
     public static readonly IReadOnlyDictionary<DatasetSize, int> DatasetRows = new Dictionary<DatasetSize, int>
     {
@@ -114,18 +117,8 @@ public static class DatabaseSeeder
                 ("UpdatedAt", now)),
             cancellationToken);
 
-        await client.ExecuteAsync(
-            """
-            INSERT INTO ApiKeys (Name, Key, Project, Environment, Scope, CreatedAt, UpdatedAt)
-            VALUES (@Name, @Key, @Project, NULL, @Scope, @CreatedAt, @UpdatedAt)
-            """,
-            LibsqlParameters.Create(
-                ("Name", "Benchmark"),
-                ("Key", ApiKey),
-                ("Project", ProjectName),
-                ("Scope", 3),
-                ("CreatedAt", now),
-                ("UpdatedAt", now)),
+        await client.ExecuteBatchAsync(
+            [CreateApiKeyInsertStatement("Benchmark", ApiKey, ProjectName, null, 3, now)],
             cancellationToken);
 
         foreach (var dataset in DatasetRows.Keys)
@@ -256,5 +249,36 @@ public static class DatabaseSeeder
             string.Equals(GetEnvironmentName(dataset), environment, StringComparison.OrdinalIgnoreCase));
         return BuildValue(dataset, environment, index);
     }
+
+    internal static LibsqlStatement CreateApiKeyInsertStatement(
+        string name,
+        string secret,
+        string project,
+        string? environment,
+        int scope,
+        string timestamp)
+    {
+        return new LibsqlStatement(
+            """
+            INSERT INTO ApiKeys (
+                Name, KeyHash, Fingerprint, HashVersion, Project, Environment, Scope, CreatedAt, UpdatedAt
+            )
+            VALUES (
+                @Name, @KeyHash, @Fingerprint, 1, @Project, @Environment, @Scope, @CreatedAt, @UpdatedAt
+            )
+            """,
+            LibsqlParameters.Create(
+                ("Name", name),
+                ("KeyHash", HashApiKey(secret)),
+                ("Fingerprint", secret[^8..]),
+                ("Project", project),
+                ("Environment", environment),
+                ("Scope", scope),
+                ("CreatedAt", timestamp),
+                ("UpdatedAt", timestamp)));
+    }
+
+    private static string HashApiKey(string secret)
+        => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(secret)));
 }
 

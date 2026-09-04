@@ -154,7 +154,7 @@ public static class NonaEndpointRouteBuilderExtensions
         apiKeys.MapGet("/", ListApiKeysAsync)
             .Produces<IReadOnlyList<ApiKeyDto>>();
         apiKeys.MapPost("/", CreateApiKeyAsync)
-            .Produces<ApiKeyDto>(StatusCodes.Status201Created);
+            .Produces<CreatedApiKeyDto>(StatusCodes.Status201Created);
         apiKeys.MapDelete("/{apiKeyId}", DeleteApiKeyAsync);
 
         var configEntries = projects.MapGroup("/{projectId}/environments/{environmentName}/config-entries");
@@ -909,6 +909,7 @@ public static class NonaEndpointRouteBuilderExtensions
         CreateApiKeyRequest request,
         IValidator<CreateApiKeyRequest> validator,
         IMediator mediator,
+        HttpContext httpContext,
         CancellationToken cancellationToken)
     {
         if (await ValidateRequestAsync(request, validator, cancellationToken) is { } validationResult)
@@ -922,6 +923,7 @@ public static class NonaEndpointRouteBuilderExtensions
 
         if (result.Success)
         {
+            httpContext.Response.Headers.CacheControl = "no-store";
             return Results.Created($"/admin/projects/{projectId}/api-keys", result.ApiKey);
         }
 
@@ -1431,7 +1433,8 @@ public static class NonaEndpointRouteBuilderExtensions
         {
             return result.Error switch
             {
-                "API key is required" or "Invalid API key" => Unauthorized(result.Error),
+                "API key is required" or "Invalid API key" =>
+                    Unauthorized(ApiKeyAuthenticationHandler.InvalidCredentialDetail),
                 "Version must use major.minor.patch or major.minor.x format." => BadRequest(result.Error),
                 _ => NotFound(result.Error ?? "Config value not found")
             };
@@ -1462,7 +1465,8 @@ public static class NonaEndpointRouteBuilderExtensions
         {
             return result.Error switch
             {
-                "API key is required" or "Invalid API key" => Unauthorized(result.Error),
+                "API key is required" or "Invalid API key" =>
+                    Unauthorized(ApiKeyAuthenticationHandler.InvalidCredentialDetail),
                 "Version must use major.minor.patch or major.minor.x format." => BadRequest(result.Error),
                 ConfigEntryPrefix.ValidationError => BadRequest(result.Error),
                 _ => NotFound(result.Error ?? "Config values not found")

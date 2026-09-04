@@ -74,12 +74,12 @@ internal sealed class DatabaseClientBenchmarkDatabase : IBenchmarkDatabase
             SELECT p.Name
             FROM ApiKeys ak
             INNER JOIN Projects p ON p.Name = ak.Project COLLATE NOCASE
-            WHERE ak.Key = @ApiKey
+            WHERE ak.KeyHash = @ApiKeyHash
             LIMIT 1
             """,
             new Dictionary<string, object?>
             {
-                ["ApiKey"] = DatabaseSeeder.ApiKey
+                ["ApiKeyHash"] = DatabaseSeeder.ApiKeyHash
             },
             cancellationToken);
 
@@ -264,12 +264,12 @@ internal sealed class SqliteBenchmarkDatabase : IBenchmarkDatabase
             SELECT p.Name
             FROM ApiKeys ak
             INNER JOIN Projects p ON p.Name = ak.Project COLLATE NOCASE
-            WHERE ak.Key = @ApiKey
+            WHERE ak.KeyHash = @ApiKeyHash
             LIMIT 1
             """,
             new Dictionary<string, object?>
             {
-                ["ApiKey"] = DatabaseSeeder.ApiKey
+                ["ApiKeyHash"] = DatabaseSeeder.ApiKeyHash
             },
             cancellationToken);
 

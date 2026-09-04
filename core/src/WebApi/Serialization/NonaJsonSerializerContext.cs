@@ -62,6 +62,7 @@ namespace Nona.WebApi.Serialization;
 [JsonSerializable(typeof(IReadOnlyList<ConfigReleaseDto>))]
 [JsonSerializable(typeof(CreateApiKeyRequest))]
 [JsonSerializable(typeof(ApiKeyDto))]
+[JsonSerializable(typeof(CreatedApiKeyDto))]
 [JsonSerializable(typeof(IReadOnlyList<ApiKeyDto>))]
 [JsonSerializable(typeof(CreateUserRequest))]
 [JsonSerializable(typeof(UpdateUserRequest))]
