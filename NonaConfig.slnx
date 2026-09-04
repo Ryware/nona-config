@@ -21,9 +21,6 @@
     <Project Path="core/tests/Infrastructure.Tests/Infrastructure.Tests.csproj">
       <Build Solution="Debug|*" Project="false" />
     </Project>
-    <Project Path="core/tests/StorageBenchmarks/StorageBenchmarks.csproj">
-      <Build Solution="Debug|*" Project="false" />
-    </Project>
   </Folder>
   <Folder Name="/libsql/" />
   <Folder Name="/libsql/src/">
@@ -36,6 +33,25 @@
       <Build Solution="Debug|*" Project="false" />
     </Project>
   </Folder>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/Performance/Nona.Benchmarks.Performance.csproj">
+      <Build Solution="Debug|*" Project="false" />
+    </Project>
+    <Project Path="benchmarks/Replication/Nona.Benchmarks.Replication.csproj">
+      <Build Solution="Debug|*" Project="false" />
+    </Project>
+    <Project Path="benchmarks/Resources/Nona.Benchmarks.Resources.csproj">
+      <Build Solution="Debug|*" Project="false" />
+    </Project>
+    <Project Path="benchmarks/Shared/Nona.Benchmarks.Shared.csproj">
+      <Build Solution="Debug|*" Project="false" />
+    </Project>
+  </Folder>
+  <Folder Name="/benchmarks/tests/">
+    <Project Path="benchmarks/Tests/Nona.Benchmarks.Tests.csproj">
+      <Build Solution="Debug|*" Project="false" />
+    </Project>
+  </Folder>
   <Folder Name="/cli/" />
   <Folder Name="/cli/src/">
     <Project Path="cli/src/Nona.Cli/Nona.Cli.csproj" />
@@ -45,10 +61,13 @@
   </Folder>
   <Folder Name="/migrator/" />
   <Folder Name="/migrator/src/">
+    <Project Path="migrator/src/AwsParameterStoreMigrator/Migrator.AwsParameterStore.csproj" />
     <Project Path="migrator/src/ConfigMigrator.Core/Migrator.Core.csproj" />
     <Project Path="migrator/src/FirebaseRemoteConfigMigrator/Migrator.FirebaseRemoteConfig.csproj" />
   </Folder>
   <Folder Name="/migrator/tests/">
+    <Project Path="migrator/tests/AwsParameterStoreMigrator.Tests/Migrator.AwsParameterStore.Tests.csproj" />
     <Project Path="migrator/tests/FirebaseRemoteConfigMigrator.Tests/Migrator.FirebaseRemoteConfig.Tests.csproj" />
   </Folder>
 </Solution>
+

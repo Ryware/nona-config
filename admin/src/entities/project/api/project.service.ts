@@ -4,6 +4,7 @@ import type {
   CreateProjectRequest,
   UpdateProjectRequest,
   ApiKey,
+  CreatedApiKey,
   CreateApiKeyRequest,
 } from "../../../types";
 
@@ -32,8 +33,8 @@ export const projectService = {
     return apiClient.get<ApiKey[]>(`/admin/projects/${projectId}/api-keys`);
   },
 
-  async createApiKey(projectId: string, data: CreateApiKeyRequest): Promise<ApiKey> {
-    return apiClient.post<ApiKey>(`/admin/projects/${projectId}/api-keys`, data);
+  async createApiKey(projectId: string, data: CreateApiKeyRequest): Promise<CreatedApiKey> {
+    return apiClient.post<CreatedApiKey>(`/admin/projects/${projectId}/api-keys`, data);
   },
 
   async deleteApiKey(projectId: string, apiKeyId: string): Promise<void> {

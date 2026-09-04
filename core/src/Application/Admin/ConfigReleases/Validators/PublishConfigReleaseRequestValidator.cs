@@ -38,7 +38,9 @@ internal sealed record ValidatedPublishConfigReleaseEntry(
     string Key,
     string Value,
     string ContentType,
-    KeyScope Scope);
+    KeyScope Scope,
+    string? Description,
+    string? Unit);
 
 internal sealed record PublishConfigReleaseEntryValidationFailure(
     string PropertyName,
@@ -113,13 +115,39 @@ internal static class PublishConfigReleaseEntryPayloadValidation
                 }
             }
 
+            var description = ConfigEntryMetadata.NormalizeDescription(entry.Description);
+            if (description?.Length > ConfigEntryMetadata.MaxDescriptionLength)
+            {
+                failures.Add(new(
+                    $"{propertyName}.Description",
+                    $"Description must be {ConfigEntryMetadata.MaxDescriptionLength} characters or fewer."));
+                isValid = false;
+            }
+
+            var unit = ConfigEntryMetadata.NormalizeUnit(entry.Unit);
+            if (unit?.Length > ConfigEntryMetadata.MaxUnitLength)
+            {
+                failures.Add(new(
+                    $"{propertyName}.Unit",
+                    $"Unit must be {ConfigEntryMetadata.MaxUnitLength} characters or fewer."));
+                isValid = false;
+            }
+
+            if (unit is not null && contentType is not "number")
+            {
+                failures.Add(new($"{propertyName}.Unit", "Unit is only supported for number parameters."));
+                isValid = false;
+            }
+
             if (isValid)
             {
                 validatedEntries.Add(new(
                     entry.Key,
                     entry.Value!,
                     contentType!,
-                    scope!.Value));
+                    scope!.Value,
+                    description,
+                    unit));
             }
         }
 

@@ -24,6 +24,12 @@ Good habits:
 - scope keys to `client`, `server`, or `all` deliberately
 - scope keys to the specific environment they need when possible
 - keep keys in environment variables or a secrets system
+- copy a new secret immediately because Nona shows it only once
+- create and verify a replacement before deleting an old key when uninterrupted access matters
+
+Nona stores uppercase SHA-256 hashes for API-key verification. Requests are hashed before lookup, and the plaintext secret is never returned by list endpoints or retained in API-key records. Existing plaintext keys are hashed automatically during the storage migration and continue to authenticate with the same client-side secret.
+
+Key lists expose only an eight-character fingerprint for identification. To replace a credential, create a new key, update and verify its consumers, then delete the old key. Deletion permanently invalidates a key immediately, and Nona keeps no recoverable secret history.
 
 API keys protect the runtime config API. They are not replaced by SSO.
 

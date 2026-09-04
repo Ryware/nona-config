@@ -1,8 +1,7 @@
 import { writeClipboard } from "@solid-primitives/clipboard";
-import { createTimer } from "@solid-primitives/timer";
-import { useBeforeLeave, useNavigate, useParams, useSearchParams } from "@solidjs/router";
+import { useLocation, useNavigate, useParams, useSearchParams } from "@solidjs/router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/solid-query";
-import { Show, createEffect, createMemo, createSignal, onCleanup } from "solid-js";
+import { Show, createEffect, createMemo, createSignal, on } from "solid-js";
 
 import { configEntryService } from "../../../entities/project/api/config-entry.service";
 import { configReleaseService } from "../../../entities/project/api/config-release.service";
@@ -11,27 +10,55 @@ import { projectKeys } from "../../../entities/project/queries/keys";
 import type { ParsedImport } from "../../../features/project-bulk-import/ProjectBulkImport";
 import { ProjectBulkImport } from "../../../features/project-bulk-import/ProjectBulkImport";
 import { ParameterShareDialog } from "../../../features/project-param-share/ParameterShareDialog";
+import {
+  ProjectParamPanel,
+  type ParameterPanelSaveData
+} from "../../../features/project-param-edit/ProjectParamPanel";
 import { ProjectParamsTab } from "../../../features/project-params/ProjectParamsTab";
-import { ReleaseAmendPanel } from "../../../features/project-releases/ReleaseAmendPanel";
+import { ReleaseDraftPanel } from "../../../features/project-releases/ReleaseDraftPanel";
 import { useEscapeKey } from "../../../shared/hooks/useEscapeKey";
+import {
+  useUnsavedChanges,
+  useUnsavedChangesBlocker
+} from "../../../shared/hooks/useUnsavedChanges";
 import { MSG } from "../../../shared/lib/messages";
+import { getProjectPageSection } from "../../../shared/lib/project-navigation";
 import { ConfirmDialog } from "../../../shared/ui/confirm-dialog";
 import { useToast } from "../../../shared/ui/toast";
 import type {
   ConfigEntry,
   ConfigEntryVersion,
-  CreateConfigEntryRequest,
+  ConfigReleaseEntry,
   CreateParameterShareLinkRequest
 } from "../../../types";
 import { ProjectSectionLayout } from "../components/ProjectSectionLayout";
 import { useProjectContext } from "../hooks/useProjectContext";
 import { useReleaseActions } from "../hooks/useReleaseActions";
 
+const CREATE_PARAMETER_DRAFT = "parameter-create-draft";
+const EDIT_PARAMETER_DRAFT = "parameter-edit-draft";
+
+interface ProjectEnvironmentTarget {
+  projectId: string;
+  projectSlug: string;
+  environmentName: string;
+}
+
+interface ConfigEntryWrite {
+  key: string;
+  value: string;
+  contentType: ConfigEntry["contentType"];
+  scope: ConfigEntry["scope"];
+  description?: string | null;
+  unit?: string | null;
+}
+
 const errorMessage = (caught: unknown, fallback: string) =>
   caught instanceof Error && caught.message ? caught.message : fallback;
 
 export default function ParametersSection() {
   const params = useParams<{ slug: string }>();
+  const location = useLocation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
@@ -45,7 +72,6 @@ export default function ParametersSection() {
     typeof searchParams.amend === "string" ? searchParams.amend : undefined;
 
   const [paramSearch, setParamSearch] = createSignal("");
-  const [copiedKey, setCopiedKey] = createSignal<string | null>(null);
   const [showConfigForm, setShowConfigForm] = createSignal(false);
   const [autoOpenedConfigFormsByEnvironment, setAutoOpenedConfigFormsByEnvironment] = createSignal<
     Record<string, boolean>
@@ -58,11 +84,47 @@ export default function ParametersSection() {
   const [generatedShareUrl, setGeneratedShareUrl] = createSignal<string | null>(null);
   const [revokingShareLinkId, setRevokingShareLinkId] = createSignal<number | null>(null);
   const [editDescription, setEditDescription] = createSignal("");
+  const [updatingValueKey, setUpdatingValueKey] = createSignal<string | null>(null);
   const [showBulkImport, setShowBulkImport] = createSignal(false);
-  const [pendingReleaseExit, setPendingReleaseExit] = createSignal<(() => void) | null>(null);
+  const [createDraftDirty, setCreateDraftDirty] = createSignal(false);
+  const [editDraftDirty, setEditDraftDirty] = createSignal(false);
+  let panelOpener: HTMLElement | undefined;
+  const { requestAction, isPromptOpen } = useUnsavedChanges();
+
+  const returnPanelFocus = () => {
+    const opener = panelOpener;
+    panelOpener = undefined;
+    requestAnimationFrame(() => opener?.focus({ preventScroll: true }));
+  };
+
+  const closeCreateDraft = () => {
+    setCreateDraftDirty(false);
+    setShowConfigForm(false);
+    returnPanelFocus();
+  };
+
+  const closeEditDraft = () => {
+    setEditDraftDirty(false);
+    setEditingEntry(null);
+    setEditHistoryQueryKey("");
+    returnPanelFocus();
+  };
+
+  useUnsavedChangesBlocker({
+    id: CREATE_PARAMETER_DRAFT,
+    isDirty: createDraftDirty,
+    discard: closeCreateDraft
+  });
+  useUnsavedChangesBlocker({
+    id: EDIT_PARAMETER_DRAFT,
+    isDirty: editDraftDirty,
+    discard: closeEditDraft
+  });
 
   const isViewingReleaseSnapshot = () => !!viewedReleaseVersion();
   const isAmendMode = () => !!amendSourceVersion();
+  const isDefaultParametersView = () =>
+    !releaseDraftVersion() && !viewedReleaseVersion() && !amendSourceVersion();
 
   const {
     projectsQuery,
@@ -76,8 +138,7 @@ export default function ParametersSection() {
   const configQuery = useQuery(() => ({
     queryKey: projectKeys.configEntries(params.slug, activeEnvName()),
     queryFn: () => configEntryService.getAll(projectId(), activeEnvName()),
-    enabled:
-      !!project() && !!activeEnvName() && !isViewingReleaseSnapshot() && !isAmendMode()
+    enabled: !!project() && !!activeEnvName()
   }));
 
   const releaseDetailsQuery = useQuery(() => ({
@@ -110,8 +171,7 @@ export default function ParametersSection() {
     enabled:
       !!project() &&
       !!activeEnvName() &&
-      !!editHistoryQueryKey() &&
-      !isViewingReleaseSnapshot(),
+      !!editHistoryQueryKey(),
     staleTime: 60_000
   }));
 
@@ -123,7 +183,7 @@ export default function ParametersSection() {
       !!project() &&
       !!activeEnvName() &&
       !!shareLinksQueryKey() &&
-      !isViewingReleaseSnapshot(),
+      isDefaultParametersView(),
     staleTime: 60_000
   }));
 
@@ -134,38 +194,6 @@ export default function ParametersSection() {
     activeEnvName,
     releases
   });
-
-  const shouldConfirmReleaseExit = () =>
-    !!releaseDraftVersion() && !publishReleaseMutation.isPending;
-
-  useBeforeLeave(event => {
-    if (!shouldConfirmReleaseExit() || event.defaultPrevented) {
-      return;
-    }
-
-    event.preventDefault();
-    setPendingReleaseExit(() => () => event.retry(true));
-  });
-
-  createEffect(() => {
-    if (!shouldConfirmReleaseExit()) {
-      return;
-    }
-
-    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      event.preventDefault();
-      event.returnValue = "";
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    onCleanup(() => window.removeEventListener("beforeunload", handleBeforeUnload));
-  });
-
-  createTimer(
-    () => setCopiedKey(null),
-    () => (copiedKey() ? 1500 : false),
-    setTimeout
-  );
 
   const normalizeContentType = (contentType: string): ConfigEntry["contentType"] =>
     contentType === "number" ||
@@ -192,12 +220,27 @@ export default function ParametersSection() {
         scope: normalizeScope(entry.scope),
         activeVersion: 1,
         createdAt: release?.createdAt ?? "",
-        updatedAt: release?.createdAt ?? ""
+        updatedAt: release?.createdAt ?? "",
+        description: entry.description,
+        unit: entry.unit
       }));
     }
 
     return configQuery.status === "success" ? (configQuery.data ?? []) : [];
   });
+
+  const workingReleaseEntries = createMemo<ConfigReleaseEntry[]>(() =>
+    configQuery.status === "success"
+      ? (configQuery.data ?? []).map(entry => ({
+          key: entry.key,
+          value: entry.value,
+          contentType: entry.contentType,
+          scope: entry.scope,
+          description: entry.description,
+          unit: entry.unit
+        }))
+      : []
+  );
 
   const parametersLoading = createMemo(() =>
     isViewingReleaseSnapshot() ? releaseDetailsQuery.isLoading : configQuery.isLoading
@@ -211,10 +254,12 @@ export default function ParametersSection() {
       (entry: ConfigEntry) =>
         entry.key.toLowerCase().includes(q) ||
         entry.value.toLowerCase().includes(q) ||
-        localParamMetadataService
+        (entry.description ?? localParamMetadataService
           .getMeta(projectId(), activeEnvName(), entry.key)
-          .displayName.toLowerCase()
-          .includes(q)
+          .description)
+          .toLowerCase()
+          .includes(q) ||
+        (entry.unit ?? "").toLowerCase().includes(q)
     );
   });
 
@@ -249,32 +294,21 @@ export default function ParametersSection() {
     }
   });
 
-  createEffect(() => {
-    const currentProjectSlug = project()?.urlSlug ?? "";
-    const currentEnvironmentName = activeEnvName();
-
-    if (!currentProjectSlug && !currentEnvironmentName) {
-      return;
-    }
-
-    setEditingEntry(null);
-    setEditHistoryQueryKey("");
-    setSharingEntry(null);
-    setShareLinksQueryKey("");
-    setGeneratedShareUrl(null);
-    setConfirmDeleteEntry(null);
-    setEditDescription("");
-  });
-
-  const copyValue = async (key: string, value: string) => {
-    try {
-      await writeClipboard(value);
-      setCopiedKey(key);
-      addToast(MSG.COPIED, "success");
-    } catch {
-      addToast(MSG.COPY_FAILED, "error");
-    }
-  };
+  createEffect(on(
+    () => `${project()?.urlSlug ?? ""}:${activeEnvName()}`,
+    () => {
+      setEditingEntry(null);
+      setEditHistoryQueryKey("");
+      setSharingEntry(null);
+      setShareLinksQueryKey("");
+      setGeneratedShareUrl(null);
+      setRevokingShareLinkId(null);
+      setConfirmDeleteEntry(null);
+      setEditDescription("");
+      setShowBulkImport(false);
+    },
+    { defer: true }
+  ));
 
   const copyShareUrl = async (value: string) => {
     try {
@@ -289,63 +323,134 @@ export default function ParametersSection() {
     `${window.location.origin}/share/${encodeURIComponent(token)}`;
 
   useEscapeKey(() => {
-    setEditingEntry(null);
-    setEditHistoryQueryKey("");
-    setSharingEntry(null);
-    setShareLinksQueryKey("");
-    setGeneratedShareUrl(null);
-    setShowConfigForm(false);
-    setShowBulkImport(false);
+    if (isPromptOpen()) return;
+
+    requestAction(
+      () => {
+        closeEditDraft();
+        closeCreateDraft();
+        setSharingEntry(null);
+        setShareLinksQueryKey("");
+        setGeneratedShareUrl(null);
+        setShowBulkImport(false);
+      },
+      [CREATE_PARAMETER_DRAFT, EDIT_PARAMETER_DRAFT]
+    );
   });
 
+  const currentMutationTarget = (): ProjectEnvironmentTarget => ({
+    projectId: projectId(),
+    projectSlug: params.slug,
+    environmentName: activeEnvName()
+  });
+
+  const isCurrentMutationTarget = (target: ProjectEnvironmentTarget) =>
+    target.projectId === projectId()
+    && target.projectSlug === params.slug
+    && target.environmentName === activeEnvName();
+
+  const configEntriesQueryKey = (target = currentMutationTarget()) =>
+    projectKeys.configEntries(target.projectSlug, target.environmentName);
+
+  const patchConfigEntry = (target: ProjectEnvironmentTarget, entry: ConfigEntry) => {
+    queryClient.setQueryData<ConfigEntry[]>(configEntriesQueryKey(target), current => {
+      const entries = current ?? [];
+      const index = entries.findIndex(candidate => candidate.key === entry.key);
+      if (index === -1) return [...entries, entry];
+      return entries.map(candidate => candidate.key === entry.key ? entry : candidate);
+    });
+  };
+
   const createConfigMutation = useMutation(() => ({
-    mutationFn: (req: CreateConfigEntryRequest) =>
-      configEntryService.upsert(req.projectId, activeEnvName(), req.key, req),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: projectKeys.configEntries(params.slug, activeEnvName())
-      });
-      setShowConfigForm(false);
+    mutationFn: ({ target, entry }: {
+      target: ProjectEnvironmentTarget;
+      entry: ConfigEntryWrite;
+    }) => {
+      const { key, ...request } = entry;
+      return configEntryService.upsert(
+        target.projectId,
+        target.environmentName,
+        key,
+        request
+      );
+    },
+    onSuccess: (entry, { target }) => {
+      patchConfigEntry(target, entry);
+      void queryClient.invalidateQueries({ queryKey: configEntriesQueryKey(target) });
+      if (isCurrentMutationTarget(target) && showConfigForm()) {
+        setShowConfigForm(false);
+        setCreateDraftDirty(false);
+        setEditingEntry(entry);
+        setEditDescription(entry.description ?? "");
+      }
       addToast(MSG.PARAM_CREATED, "success");
     },
     onError: error => addToast(errorMessage(error, MSG.PARAM_CREATE_FAILED), "error")
   }));
 
   const deleteConfigMutation = useMutation(() => ({
-    mutationFn: (id: string) => configEntryService.delete(projectId(), activeEnvName(), id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: projectKeys.configEntries(params.slug, activeEnvName())
-      });
+    mutationFn: ({ target, key }: { target: ProjectEnvironmentTarget; key: string }) =>
+      configEntryService.delete(target.projectId, target.environmentName, key),
+    onSuccess: (_, { target, key }) => {
+      queryClient.setQueryData<ConfigEntry[]>(
+        configEntriesQueryKey(target),
+        current => (current ?? []).filter(entry => entry.key !== key)
+      );
+      void queryClient.invalidateQueries({ queryKey: configEntriesQueryKey(target) });
       addToast(MSG.PARAM_DELETED, "success");
     },
     onError: () => addToast(MSG.PARAM_DELETE_FAILED, "error")
   }));
 
-  const handleOpenEditDrawer = (entry: ConfigEntry) => {
-    if (editingEntry()?.key === entry.key) {
-      setEditingEntry(null);
+  const handleOpenEditDrawer = (entry: ConfigEntry, opener?: HTMLElement) => {
+    const isCurrentEntry = editingEntry()?.key === entry.key;
+    const currentProjectId = projectId();
+    const currentEnvironmentName = activeEnvName();
+
+    if (isCurrentEntry && !showConfigForm()) return;
+
+    requestAction(() => {
+      panelOpener = opener;
+      setShowConfigForm(false);
+      setCreateDraftDirty(false);
+
+      setEditDraftDirty(false);
+      setEditingEntry(entry);
       setEditHistoryQueryKey("");
-      return;
-    }
+      const localDescription = localParamMetadataService.getMeta(
+        currentProjectId,
+        currentEnvironmentName,
+        entry.key
+      ).description;
+      setEditDescription(entry.description ?? localDescription);
 
-    setEditingEntry(entry);
-    setEditHistoryQueryKey("");
-    const meta = localParamMetadataService.getMeta(projectId(), activeEnvName(), entry.key);
-    setEditDescription(meta.description);
-
-    if (isViewingReleaseSnapshot()) {
-      return;
-    }
-
-    requestAnimationFrame(() => {
-      if (editingEntry()?.key === entry.key) {
-        setEditHistoryQueryKey(entry.key);
-      }
-    });
+    }, [CREATE_PARAMETER_DRAFT, EDIT_PARAMETER_DRAFT]);
   };
 
+  const handleOpenCreatePanel = (opener: HTMLElement) => {
+    requestAction(() => {
+      panelOpener = opener;
+      setEditingEntry(null);
+      setEditHistoryQueryKey("");
+      setEditDraftDirty(false);
+      setShowBulkImport(false);
+      setShowConfigForm(true);
+    }, [CREATE_PARAMETER_DRAFT, EDIT_PARAMETER_DRAFT]);
+  };
+
+  const closeShareDialog = () => {
+    setSharingEntry(null);
+    setShareLinksQueryKey("");
+    setGeneratedShareUrl(null);
+  };
+
+  createEffect(on(isDefaultParametersView, isDefaultView => {
+    if (!isDefaultView) closeShareDialog();
+  }));
+
   const handleOpenShareDialog = (entry: ConfigEntry) => {
+    if (!isDefaultParametersView()) return;
+
     setSharingEntry(entry);
     setShareLinksQueryKey("");
     setGeneratedShareUrl(null);
@@ -358,149 +463,199 @@ export default function ParametersSection() {
   };
 
   const updateConfigMutation = useMutation(() => ({
-    mutationFn: (req: {
-      key: string;
-      value: string;
-      contentType: ConfigEntry["contentType"];
-      scope: ConfigEntry["scope"];
-      description?: string;
-    }) =>
-      configEntryService.upsert(projectId(), activeEnvName(), req.key, {
-        value: req.value,
-        contentType: req.contentType,
-        scope: req.scope
+    mutationFn: ({ target, entry }: {
+      target: ProjectEnvironmentTarget;
+      entry: ConfigEntryWrite;
+    }) => configEntryService.upsert(target.projectId, target.environmentName, entry.key, {
+        value: entry.value,
+        contentType: entry.contentType,
+        scope: entry.scope,
+        ...(entry.description !== undefined ? { description: entry.description } : {}),
+        ...(entry.unit !== undefined ? { unit: entry.unit } : {})
       }),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: projectKeys.configEntries(params.slug, activeEnvName())
+    onSuccess: (entry, { target }) => {
+      patchConfigEntry(target, entry);
+      void queryClient.invalidateQueries({ queryKey: configEntriesQueryKey(target) });
+      void queryClient.invalidateQueries({
+        queryKey: projectKeys.configEntryHistory(
+          target.projectSlug,
+          target.environmentName,
+          entry.key
+        )
       });
-
-      const desc =
-        variables.description !== undefined
-          ? variables.description.trim()
-          : editDescription().trim();
-
-      if (editingEntry()) {
-        localParamMetadataService.setMeta(projectId(), activeEnvName(), editingEntry()!.key, {
-          description: desc
-        });
+      if (isCurrentMutationTarget(target) && editingEntry()?.key === entry.key) {
+        setEditingEntry(entry);
+        setEditDescription(entry.description ?? "");
+        setEditDraftDirty(false);
       }
-
-      queryClient.invalidateQueries({
-        queryKey: projectKeys.configEntryHistory(params.slug, activeEnvName(), variables.key)
-      });
-
-      setEditingEntry(null);
       addToast(MSG.PARAM_UPDATED, "success");
     },
     onError: error => addToast(errorMessage(error, MSG.PARAM_UPDATE_FAILED), "error")
   }));
 
   const handleBulkImport = async (selectedItems: ParsedImport[]) => {
+    const target = currentMutationTarget();
     for (const item of selectedItems) {
       const desc = `Imported parameter: ${item.key}`;
 
-      localParamMetadataService.setMeta(projectId(), activeEnvName(), item.key, {
-        description: desc
-      });
-      await configEntryService.upsert(projectId(), activeEnvName(), item.key, {
+      await configEntryService.upsert(target.projectId, target.environmentName, item.key, {
         value: item.value,
         contentType: item.contentType,
-        scope: item.scope
+        scope: item.scope,
+        description: desc
       });
     }
 
-    queryClient.invalidateQueries({
-      queryKey: projectKeys.configEntries(params.slug, activeEnvName())
-    });
-    setShowBulkImport(false);
+    void queryClient.invalidateQueries({ queryKey: configEntriesQueryKey(target) });
+    if (isCurrentMutationTarget(target)) setShowBulkImport(false);
     addToast(MSG.bulkImportSuccess(selectedItems.length), "success");
   };
 
   const rollbackConfigMutation = useMutation(() => ({
-    mutationFn: (req: { key: string; version: number }) =>
-      configEntryService.rollback(projectId(), activeEnvName(), req.key, {
-        version: req.version
+    mutationFn: ({ target, key, version }: {
+      target: ProjectEnvironmentTarget;
+      key: string;
+      version: number;
+    }) =>
+      configEntryService.rollback(target.projectId, target.environmentName, key, {
+        version
       }),
-    onSuccess: (entry, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: projectKeys.configEntries(params.slug, activeEnvName())
+    onSuccess: (entry, { target }) => {
+      patchConfigEntry(target, entry);
+      void queryClient.invalidateQueries({ queryKey: configEntriesQueryKey(target) });
+      void queryClient.invalidateQueries({
+        queryKey: projectKeys.configEntryHistory(
+          target.projectSlug,
+          target.environmentName,
+          entry.key
+        )
       });
-      queryClient.invalidateQueries({
-        queryKey: projectKeys.configEntryHistory(params.slug, activeEnvName(), variables.key)
-      });
-      setEditingEntry(entry);
+      if (isCurrentMutationTarget(target) && editingEntry()?.key === entry.key) {
+        setEditingEntry(entry);
+        setEditDescription(entry.description ?? "");
+        setEditDraftDirty(false);
+      }
       addToast(MSG.PARAM_ROLLED_BACK, "success");
     },
     onError: error => addToast(errorMessage(error, MSG.PARAM_ROLLBACK_FAILED), "error")
   }));
 
-  const handleRollbackVersion = (version: ConfigEntryVersion) => {
+  const restoreVersion = async (version: ConfigEntryVersion) => {
     const entry = editingEntry();
-    if (entry) {
-      rollbackConfigMutation.mutate({
-        key: entry.key,
-        version: version.version
-      });
-    }
+    if (!entry) return;
+    return rollbackConfigMutation.mutateAsync({
+      target: currentMutationTarget(),
+      key: entry.key,
+      version: version.version
+    });
   };
 
   const createShareLinkMutation = useMutation(() => ({
-    mutationFn: (data: CreateParameterShareLinkRequest) => {
-      const entry = sharingEntry();
-      if (!entry) {
-        throw new Error("No parameter selected");
+    mutationFn: ({ target, key, data }: {
+      target: ProjectEnvironmentTarget;
+      key: string;
+      data: CreateParameterShareLinkRequest;
+    }) => configEntryService.createShareLink(
+      target.projectId,
+      target.environmentName,
+      key,
+      data
+    ),
+    onSuccess: (shareLink, { target, key }) => {
+      queryClient.invalidateQueries({
+        queryKey: projectKeys.configEntryShareLinks(
+          target.projectSlug,
+          target.environmentName,
+          key
+        )
+      });
+      queryClient.invalidateQueries({
+        queryKey: projectKeys.environmentShareLinks(target.projectSlug, target.environmentName)
+      });
+      if (isCurrentMutationTarget(target) && sharingEntry()?.key === key) {
+        setGeneratedShareUrl(buildShareUrl(shareLink.token));
       }
-
-      return configEntryService.createShareLink(projectId(), activeEnvName(), entry.key, data);
-    },
-    onSuccess: shareLink => {
-      queryClient.invalidateQueries({
-        queryKey: projectKeys.configEntryShareLinks(params.slug, activeEnvName(), shareLink.key)
-      });
-      queryClient.invalidateQueries({
-        queryKey: projectKeys.environmentShareLinks(params.slug, activeEnvName())
-      });
-      setGeneratedShareUrl(buildShareUrl(shareLink.token));
       addToast(MSG.SHARE_LINK_CREATED, "success");
     },
     onError: error => addToast(errorMessage(error, MSG.SHARE_LINK_CREATE_FAILED), "error")
   }));
 
   const revokeShareLinkMutation = useMutation(() => ({
-    mutationFn: (shareLinkId: number) => {
-      const entry = sharingEntry();
-      if (!entry) {
-        throw new Error("No parameter selected");
-      }
-
-      return configEntryService.revokeShareLink(
-        projectId(),
-        activeEnvName(),
-        entry.key,
-        shareLinkId
-      );
-    },
-    onSuccess: () => {
-      const entry = sharingEntry();
-      if (entry) {
-        queryClient.invalidateQueries({
-          queryKey: projectKeys.configEntryShareLinks(params.slug, activeEnvName(), entry.key)
-        });
-        queryClient.invalidateQueries({
-          queryKey: projectKeys.environmentShareLinks(params.slug, activeEnvName())
-        });
-      }
+    mutationFn: ({ target, key, shareLinkId }: {
+      target: ProjectEnvironmentTarget;
+      key: string;
+      shareLinkId: number;
+    }) => configEntryService.revokeShareLink(
+      target.projectId,
+      target.environmentName,
+      key,
+      shareLinkId
+    ),
+    onSuccess: (_, { target, key }) => {
+      queryClient.invalidateQueries({
+        queryKey: projectKeys.configEntryShareLinks(
+          target.projectSlug,
+          target.environmentName,
+          key
+        )
+      });
+      queryClient.invalidateQueries({
+        queryKey: projectKeys.environmentShareLinks(target.projectSlug, target.environmentName)
+      });
       addToast(MSG.SHARE_LINK_REVOKED, "success");
     },
     onError: error => addToast(errorMessage(error, MSG.SHARE_LINK_REVOKE_FAILED), "error"),
-    onSettled: () => setRevokingShareLinkId(null)
+    onSettled: (_, __, { target, key, shareLinkId }) => {
+      if (
+        isCurrentMutationTarget(target)
+        && sharingEntry()?.key === key
+        && revokingShareLinkId() === shareLinkId
+      ) {
+        setRevokingShareLinkId(null);
+      }
+    }
   }));
+
+  const handlePanelSave = async (data: ParameterPanelSaveData) => {
+    if (!canManageProject()) throw new Error("You do not have permission to manage parameters.");
+
+    if (showConfigForm()) {
+      return createConfigMutation.mutateAsync({
+        target: currentMutationTarget(),
+        entry: {
+          key: data.key,
+          value: data.value,
+          contentType: data.contentType,
+          scope: data.scope,
+          description: data.description,
+          unit: data.unit
+        }
+      });
+    }
+
+    const selected = editingEntry();
+    if (!selected) throw new Error("No parameter selected.");
+    return updateConfigMutation.mutateAsync({
+      target: currentMutationTarget(),
+      entry: {
+        key: selected.key,
+        value: data.value,
+        contentType: data.contentType,
+        scope: data.scope,
+        description: data.description,
+        unit: selected.contentType === "number"
+          && data.contentType === "number"
+          && data.unit === null
+          ? ""
+          : data.unit
+      }
+    });
+  };
 
   return (
     <>
       <ProjectSectionLayout
-        section="parameters"
+        section={getProjectPageSection(location.pathname, location.search) ?? "parameters"}
         project={project()}
         projectLoading={projectsQuery.isLoading}
       >
@@ -509,7 +664,7 @@ export default function ParametersSection() {
             data-testid="release-view-banner"
             class="border-secondary/25 bg-secondary/5 animate-fade-in flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between"
           >
-            <div class="flex items-center gap-2 text-[13px]">
+            <div class="flex items-center gap-2 text-[14px]">
               <span class="material-symbols-outlined text-secondary text-[18px]">visibility</span>
               <span class="text-on-surface-variant">
                 Viewing release{" "}
@@ -522,7 +677,7 @@ export default function ParametersSection() {
                 data-testid="release-view-back-to-releases-button"
                 type="button"
                 onClick={() => navigate(`/projects/${params.slug}/releases`)}
-                class="bg-surface-container-high text-on-surface hover:bg-surface-bright inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border-0 px-4 text-[12px] font-semibold"
+                class="bg-surface-container-high text-on-surface hover:bg-surface-bright inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border-0 px-4 text-[13px] font-semibold"
               >
                 <span class="material-symbols-outlined text-[16px]">arrow_back</span>
                 Back to releases
@@ -531,7 +686,7 @@ export default function ParametersSection() {
                 data-testid="release-view-back-button"
                 type="button"
                 onClick={() => navigate(`/projects/${params.slug}`)}
-                class="border-outline-variant/30 bg-surface-container-low text-on-surface-variant hover:bg-surface-container inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border px-4 text-[12px] font-semibold"
+                class="border-outline-variant/30 bg-surface-container-low text-on-surface-variant hover:bg-surface-container inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border px-4 text-[13px] font-semibold"
               >
                 <span class="material-symbols-outlined text-[16px]">tune</span>
                 Live parameters
@@ -540,18 +695,39 @@ export default function ParametersSection() {
           </div>
         </Show>
 
-        <Show when={isAmendMode()}>
-          <ReleaseAmendPanel
+        <Show when={canManageProject() && releaseDraftVersion()}>
+          <ReleaseDraftPanel
+            mode={isAmendMode() ? "amend" : "create"}
             projectId={projectId()}
             environmentName={activeEnvName()}
-            sourceVersion={amendSourceVersion()!}
+            sourceVersion={amendSourceVersion()}
             targetVersion={releaseDraftVersion() ?? ""}
-            sourceEntries={amendSourceQuery.data?.entries ?? []}
-            isLoading={amendSourceQuery.isLoading}
+            sourceEntries={
+              isAmendMode() ? (amendSourceQuery.data?.entries ?? []) : workingReleaseEntries()
+            }
+            sourceReady={
+              isAmendMode()
+                ? amendSourceQuery.status === "success"
+                : configQuery.status === "success"
+            }
+            sourceError={
+              isAmendMode()
+                ? amendSourceQuery.isError
+                  ? errorMessage(amendSourceQuery.error, "The release could not be loaded.")
+                  : undefined
+                : configQuery.isError
+                  ? errorMessage(configQuery.error, "Working parameters could not be loaded.")
+                  : undefined
+            }
+            onRetrySource={() => {
+              if (isAmendMode()) void amendSourceQuery.refetch();
+              else void configQuery.refetch();
+            }}
             isPublishing={publishReleaseMutation.isPending}
-            onPublish={(environmentName, entries) =>
+            onPublish={(environmentName, entries, onPublished) =>
               publishReleaseMutation.mutate({
                 environmentName,
+                beforeNavigate: onPublished,
                 request: {
                   version: releaseDraftVersion() ?? "",
                   makeActive: false,
@@ -563,55 +739,7 @@ export default function ParametersSection() {
           />
         </Show>
 
-        <Show when={canManageProject() && releaseDraftVersion() && !isAmendMode()}>
-          <div
-            data-testid="release-draft-banner"
-            class="border-primary/25 bg-primary/5 animate-fade-in flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between"
-          >
-            <div class="flex items-center gap-2 text-[13px]">
-              <span class="material-symbols-outlined text-primary text-[18px]">
-                deployed_code_history
-              </span>
-              <span class="text-on-surface-variant">
-                Composing release{" "}
-                <span class="text-primary font-mono font-bold">{releaseDraftVersion()}</span> -
-                adjust the parameters below, then create it.
-              </span>
-            </div>
-            <div class="flex shrink-0 flex-wrap justify-end gap-2">
-              <button
-                data-testid="release-create-confirm-button"
-                type="button"
-                disabled={publishReleaseMutation.isPending || !activeEnvName()}
-                onClick={() =>
-                  publishReleaseMutation.mutate({
-                    environmentName: activeEnvName(),
-                    request: {
-                      version: releaseDraftVersion()!,
-                      makeActive: false
-                    }
-                  })
-                }
-                class="bg-primary text-on-primary inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border-0 px-4 text-[12px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] disabled:opacity-50"
-              >
-                <span class="material-symbols-outlined text-[16px]">check</span>
-                {publishReleaseMutation.isPending ? "Creating..." : "Create release"}
-              </button>
-              <button
-                data-testid="release-create-cancel-button"
-                type="button"
-                disabled={publishReleaseMutation.isPending}
-                onClick={() => navigate(`/projects/${params.slug}/releases`)}
-                class="border-outline-variant/30 bg-surface-container-low text-on-surface-variant hover:bg-surface-container inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border px-4 text-[12px] font-semibold transition-all disabled:opacity-50"
-              >
-                <span class="material-symbols-outlined text-[16px]">close</span>
-                Cancel
-              </button>
-            </div>
-          </div>
-        </Show>
-
-        <Show when={!isAmendMode()}>
+        <Show when={!releaseDraftVersion()}>
           <ProjectParamsTab
             activeEnvName={activeEnvName()}
             configEntries={parameterEntries()}
@@ -620,14 +748,13 @@ export default function ParametersSection() {
             paramSearch={paramSearch()}
             onParamSearch={setParamSearch}
             onToggleBulkImport={() => {
-              setShowBulkImport(!showBulkImport());
-              setShowConfigForm(false);
+              const nextShowBulkImport = !showBulkImport();
+              requestAction(() => {
+                setShowBulkImport(nextShowBulkImport);
+                closeCreateDraft();
+              }, [CREATE_PARAMETER_DRAFT]);
             }}
-            onToggleConfigForm={() => {
-              setShowConfigForm(!showConfigForm());
-              setShowBulkImport(false);
-            }}
-            showConfigForm={showConfigForm()}
+            onAddParameter={handleOpenCreatePanel}
             bulkImportPanel={
               !isViewingReleaseSnapshot() && canManageProject() && showBulkImport() ? (
                 <ProjectBulkImport
@@ -642,68 +769,91 @@ export default function ParametersSection() {
             canManage={canManageProject() && !isViewingReleaseSnapshot()}
             isReadOnly={isViewingReleaseSnapshot()}
             viewingReleaseVersion={viewedReleaseVersion()}
-            createForm={{
-              onCancel: () => setShowConfigForm(false),
-              onSubmit: data => {
-                if (!canManageProject()) return;
-                localParamMetadataService.setMeta(projectId(), activeEnvName(), data.key, {
-                  description: data.description
-                });
-                createConfigMutation.mutate({
-                  projectId: projectId(),
-                  key: data.key,
-                  value: data.value,
-                  contentType: data.contentType,
-                  scope: data.scope
-                });
-              },
-              isPending: createConfigMutation.isPending
-            }}
             table={{
               isLoading: parametersLoading(),
               projectId: projectId(),
               activeEnvName: activeEnvName(),
               filteredConfig: filteredConfig(),
-              editingEntry: editingEntry(),
               onSelectEntry: handleOpenEditDrawer,
-              onShareEntry: handleOpenShareDialog,
               onDeleteEntry: setConfirmDeleteEntry,
+              onUpdateValue: async (entry, value) => {
+                setUpdatingValueKey(entry.key);
+                try {
+                  await updateConfigMutation.mutateAsync({
+                    target: currentMutationTarget(),
+                    entry: {
+                      key: entry.key,
+                      value,
+                      contentType: entry.contentType,
+                      scope: entry.scope
+                    }
+                  });
+                } finally {
+                  setUpdatingValueKey(null);
+                }
+              },
+              updatingKey: updatingValueKey(),
               canManage: canManageProject() && !isViewingReleaseSnapshot(),
-              copiedKey: copiedKey(),
-              onCopyValue: copyValue,
-              getParamMeta: (proj, env, key) =>
-                localParamMetadataService.getMeta(proj, env, key),
-              initialDescription: editDescription(),
-              onCloseEntry: () => {
-                setEditingEntry(null);
-                setEditHistoryQueryKey("");
-              },
-              onSaveSettings: data => {
-                if (!canManageProject()) return;
-                setEditDescription(data.description);
-                updateConfigMutation.mutate({
-                  key: editingEntry()!.key,
-                  value: data.value,
-                  contentType: data.contentType,
-                  scope: data.scope,
-                  description: data.description
-                });
-              },
-              isSaving: updateConfigMutation.isPending,
-              historyVersions:
-                configHistoryQuery.status === "success" ? (configHistoryQuery.data ?? []) : [],
-              isHistoryLoading: configHistoryQuery.isLoading,
-              isRollingBack: rollbackConfigMutation.isPending,
-              onRollbackVersion: handleRollbackVersion,
               search: paramSearch(),
-              isReadOnly: isViewingReleaseSnapshot(),
-              releaseVersion: viewedReleaseVersion()
+              isReadOnly: isViewingReleaseSnapshot()
             }}
           />
         </Show>
 
+        <Show when={!releaseDraftVersion()}>
+          <ProjectParamPanel
+            open={showConfigForm() || !!editingEntry()}
+            mode={
+              showConfigForm()
+                ? "create"
+                : isViewingReleaseSnapshot()
+                  ? "snapshot"
+                  : "live"
+            }
+            entry={editingEntry()}
+            projectId={projectId()}
+            environmentName={activeEnvName()}
+            releaseVersion={viewedReleaseVersion()}
+            existingEntries={parameterEntries()}
+            canManage={canManageProject() && !isViewingReleaseSnapshot()}
+            initialDescription={editDescription()}
+            isSaving={createConfigMutation.isPending || updateConfigMutation.isPending}
+            historyVersions={
+              configHistoryQuery.status === "success" ? (configHistoryQuery.data ?? []) : []
+            }
+            isHistoryLoading={configHistoryQuery.isLoading}
+            isHistoryActionPending={rollbackConfigMutation.isPending}
+            shareEnabled={
+              !!editingEntry()
+              && canManageProject()
+              && !showConfigForm()
+              && isDefaultParametersView()
+            }
+            shareDisabledReason={
+              !canManageProject()
+                ? "You do not have permission to create share links."
+                : "Share links are available only for default parameters."
+            }
+            onRequestClose={() => {
+              const blocker = showConfigForm() ? CREATE_PARAMETER_DRAFT : EDIT_PARAMETER_DRAFT;
+              requestAction(
+                showConfigForm() ? closeCreateDraft : closeEditDraft,
+                [blocker]
+              );
+            }}
+            onDirtyChange={dirty => {
+              if (showConfigForm()) setCreateDraftDirty(dirty);
+              else setEditDraftDirty(dirty);
+            }}
+            onSave={handlePanelSave}
+            onHistoryOpen={key => setEditHistoryQueryKey(key)}
+            onHistoryAction={restoreVersion}
+            onShare={isDefaultParametersView() ? handleOpenShareDialog : undefined}
+          />
+        </Show>
+
         <ParameterShareDialog
-          entry={sharingEntry()}
+          entry={isDefaultParametersView() ? sharingEntry() : null}
           shareLinks={
             parameterShareLinksQuery.status === "success"
               ? (parameterShareLinksQuery.data ?? [])
@@ -714,14 +864,26 @@ export default function ParametersSection() {
           isCreating={createShareLinkMutation.isPending}
           revokingId={revokingShareLinkId()}
           onClose={() => {
-            setSharingEntry(null);
-            setShareLinksQueryKey("");
-            setGeneratedShareUrl(null);
+            closeShareDialog();
           }}
-          onCreate={data => createShareLinkMutation.mutate(data)}
+          onCreate={data => {
+            const entry = sharingEntry();
+            if (!entry || !isDefaultParametersView()) return;
+            createShareLinkMutation.mutate({
+              target: currentMutationTarget(),
+              key: entry.key,
+              data
+            });
+          }}
           onRevoke={shareLinkId => {
+            const entry = sharingEntry();
+            if (!entry || !isDefaultParametersView()) return;
             setRevokingShareLinkId(shareLinkId);
-            revokeShareLinkMutation.mutate(shareLinkId);
+            revokeShareLinkMutation.mutate({
+              target: currentMutationTarget(),
+              key: entry.key,
+              shareLinkId
+            });
           }}
           onCopy={copyShareUrl}
           buildShareUrl={buildShareUrl}
@@ -744,7 +906,7 @@ export default function ParametersSection() {
         onConfirm={() => {
           const key = confirmDeleteEntry();
           if (key) {
-            deleteConfigMutation.mutate(key);
+            deleteConfigMutation.mutate({ target: currentMutationTarget(), key });
             setConfirmDeleteEntry(null);
           }
         }}
@@ -754,29 +916,6 @@ export default function ParametersSection() {
         cancelTestId="delete-parameter-cancel-button"
       />
 
-      <ConfirmDialog
-        open={pendingReleaseExit() !== null}
-        title="Exit Release Creation?"
-        message={
-          <>
-            You are changing parameters for release{" "}
-            <span class="text-primary font-mono font-bold">{releaseDraftVersion()}</span>. Exit
-            this process and discard the in-progress release changes?
-          </>
-        }
-        confirmLabel="Exit"
-        cancelLabel="Keep Editing"
-        variant="warning"
-        onConfirm={() => {
-          const retry = pendingReleaseExit();
-          setPendingReleaseExit(null);
-          retry?.();
-        }}
-        onCancel={() => setPendingReleaseExit(null)}
-        testId="release-exit-dialog"
-        confirmTestId="release-exit-confirm-button"
-        cancelTestId="release-exit-cancel-button"
-      />
     </>
   );
 }

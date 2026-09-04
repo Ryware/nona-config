@@ -1,4 +1,4 @@
-# Nona — Open Source Firebase Remote Config Alternative
+# <a href="https://nonaconfig.com"><img src=".github/assets/nona-logo.svg" alt="" width="38" height="38" /></a> Nona - Open Source Firebase Remote Config Alternative
 
 **Self-hosted feature flags and remote configuration for web, mobile, and backend apps.**
 
@@ -36,7 +36,7 @@ so change whatever you like.
 - [Client Libraries](#client-libraries)
 - [API](#api)
 - [Docker Compose](#docker-compose)
-- [Migrate from Firebase Remote Config](#migrate-from-firebase-remote-config)
+- [Migrate existing configuration](#migrate-existing-configuration)
 - [Performance](#performance)
 - [Architecture](#architecture)
 
@@ -222,8 +222,11 @@ CLI packages:
 | `GET` | `/api/{environmentId}/{key}?version=1.1.0` | Fetch one key from an exact release |
 | `GET` | `/api/{environmentId}/{key}?version=1.1.x` | Fetch one key from the highest patch in a release line |
 | `GET` | `/api/{environmentId}` | Fetch all client-visible keys with ETag support |
+| `GET` | `/api/{environmentId}?prefix=GroupA%3A` | Fetch client-visible keys whose names start with `GroupA:` (case-insensitive) |
 
 Authentication: `X-Api-Key` request header.
+
+Non-empty prefixes may contain only ASCII letters, digits, colons, dots, underscores, and dashes. Invalid prefixes return `400 Bad Request`; an empty prefix is unfiltered.
 
 The API key determines the project. The response body contains the raw stored value, and `X-Nona-Content-Type` tells the client whether the value is `text`, `number`, `boolean`, or `json`.
 
@@ -284,7 +287,7 @@ docker run -d \
 
 ---
 
-## Migrate from Firebase Remote Config
+## Migrate existing configuration
 
 The Nona CLI includes a built-in Firebase Remote Config migration command that imports your existing parameters using a migration config file.
 
@@ -299,6 +302,16 @@ nona migrate firebase \
 ```
 
 See [`cli/src/Nona.Cli/README.md`](cli/src/Nona.Cli/README.md) for the full CLI reference.
+
+The CLI can also import AWS Parameter Store `String` values referenced by an ECS task definition:
+
+```bash
+nona migrate parameter-store \
+  --task-definition ./task-definition.json \
+  --environment production \
+  --project backend-service \
+  --dry-run
+```
 
 ---
 

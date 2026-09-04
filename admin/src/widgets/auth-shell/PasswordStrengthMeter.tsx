@@ -38,7 +38,7 @@ export function PasswordStrengthMeter(props: PasswordStrengthMeterProps) {
             <For each={PASSWORD_REQUIREMENTS}>
               {(req) => (
                 <div
-                  class={`flex items-center gap-1.5 text-[10px] transition-colors ${
+                  class={`flex items-center gap-1.5 text-[11px] transition-colors ${
                     req.test(props.password || "") ? "text-success" : "text-outline"
                   }`}
                 >
@@ -52,7 +52,7 @@ export function PasswordStrengthMeter(props: PasswordStrengthMeterProps) {
           </div>
           <Show when={strengthLabel().label}>
             <span
-              class={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+              class={`text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
                 strengthLabel().badge
               }`}
             >

@@ -1,5 +1,7 @@
 import { For, Show } from "solid-js";
 import type { Project } from "../../../types";
+import { Tooltip, TooltipTrigger } from "../../../shared/ui/tooltip";
+import { tooltipCopy } from "../../../shared/lib/tooltip-copy";
 
 interface UserProjectScopeProps {
   projects: Project[];
@@ -11,18 +13,20 @@ export function UserProjectScope(props: UserProjectScopeProps) {
   return (
     <section class="bg-surface-container-low border-outline-variant/15 space-y-5 rounded-xl border p-4 shadow-sm sm:p-8">
       <div class="flex items-center gap-3">
-        <div class="bg-primary/10 border-primary/20 text-primary flex h-7 w-7 shrink-0 items-center justify-center rounded-full border font-mono text-xs font-bold shadow-[0_0_12px_rgba(99,102,241,0.15)]">
+        <div class="bg-primary/10 border-primary/20 text-primary flex h-7 w-7 shrink-0 items-center justify-center rounded-full border font-mono text-[13px] font-bold shadow-[0_0_12px_rgba(99,102,241,0.15)]">
           03
         </div>
-        <h3 class="font-headline text-on-surface text-lg font-bold">Project Scope</h3>
+        <Tooltip content={`${tooltipCopy.viewer} ${tooltipCopy.editor}`}>
+          <TooltipTrigger as="h3" tabindex="0" data-tooltip-trigger class="font-headline text-on-surface cursor-help border-b border-dotted border-outline/60 text-lg font-bold">Project Scope</TooltipTrigger>
+        </Tooltip>
       </div>
       <div class="bg-surface-container-low border-outline-variant/15 overflow-hidden rounded-xl border">
-        <div class="bg-surface-container-low border-outline-variant/15 text-outline hidden grid-cols-2 border-b px-6 py-3.5 text-[10px] font-bold tracking-widest uppercase sm:grid">
+        <div class="bg-surface-container-low border-outline-variant/15 text-outline hidden grid-cols-2 border-b px-6 py-3.5 text-[11px] font-bold tracking-widest uppercase sm:grid">
           <span>Active Projects</span>
           <span class="text-right">Access Level</span>
         </div>
         <Show when={props.projects.length === 0}>
-          <div class="text-outline px-6 py-8 text-center text-sm">No projects found</div>
+          <div class="text-outline px-6 py-8 text-center text-[15px]">No projects found</div>
         </Show>
         <div class="divide-outline-variant/10 divide-y">
           <For each={props.projects}>
@@ -34,7 +38,7 @@ export function UserProjectScope(props: UserProjectScopeProps) {
                   class="hover:bg-surface-container-high/40 border-outline-variant/10 grid gap-3 border-b px-4 py-4 transition-colors last:border-b-0 sm:grid-cols-2 sm:items-center sm:px-6"
                 >
                   <div class="flex items-center gap-3">
-                    <span class="text-on-surface font-mono text-sm font-semibold">
+                    <span class="text-on-surface font-mono text-[15px] font-semibold">
                       {project.urlSlug}
                     </span>
                   </div>
@@ -51,7 +55,7 @@ export function UserProjectScope(props: UserProjectScopeProps) {
                             : (event.currentTarget.value as "editor" | "viewer")
                         )
                       }
-                      class="bg-surface-container-low border-outline-variant/20 text-on-surface h-9 rounded-lg border px-3 text-sm"
+                      class="bg-surface-container-low border-outline-variant/20 text-on-surface h-9 rounded-lg border px-3 text-[15px]"
                     >
                       <option value="none">None</option>
                       <option value="viewer">Viewer</option>

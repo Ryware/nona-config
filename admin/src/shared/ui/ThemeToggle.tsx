@@ -1,6 +1,7 @@
 import { type JSX } from "solid-js";
 import { useTheme } from "../hooks/useTheme";
 import { cn } from "../lib/utils";
+import { Tooltip, TooltipTrigger } from "./tooltip";
 
 type ThemeToggleProps = JSX.ButtonHTMLAttributes<HTMLButtonElement>;
 
@@ -10,10 +11,10 @@ export function ThemeToggle(props: ThemeToggleProps): JSX.Element {
   const label = () => `Switch to ${isLight() ? "dark" : "light"} theme`;
 
   return (
-    <button
+    <Tooltip content={label()}><TooltipTrigger as="button"
       type="button"
-      title={label()}
       aria-label={label()}
+      data-tooltip-trigger
       {...props}
       onClick={() => toggleTheme()}
       class={cn(
@@ -24,6 +25,6 @@ export function ThemeToggle(props: ThemeToggleProps): JSX.Element {
       <span class="material-symbols-outlined text-[17px]">
         {isLight() ? "dark_mode" : "light_mode"}
       </span>
-    </button>
+    </TooltipTrigger></Tooltip>
   );
 }

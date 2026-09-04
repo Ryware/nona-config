@@ -20,7 +20,7 @@ internal sealed class KeysCommands(CliContext ctx) : ICliCommandGroup
         var nameOpt = new Option<string?>(["--name"], "API key name.");
         var envOpt = new Option<string?>(["--environment", "--env"], "Limit the key to one environment.");
         var scopeOpt = new Option<string?>(["--scope"], "Read scope for the key: client, server, or all.");
-        var idOpt = new Option<string?>(["--id"], "API key id to delete.");
+        var idOpt = new Option<string?>(["--id"], "API key id.");
 
         keys.AddCommand(BuildShow(baseUrlOpt, projectOpt, tokenOpt));
         keys.AddCommand(BuildCreate(baseUrlOpt, projectOpt, nameOpt, envOpt, scopeOpt, tokenOpt));
@@ -42,7 +42,7 @@ internal sealed class KeysCommands(CliContext ctx) : ICliCommandGroup
             var project = ctx.Resolver.Project(ic.ParseResult.GetValueForOption(projectOpt));
             if (string.IsNullOrWhiteSpace(project))
             {
-                Console.Error.WriteLine("Keys show requires --project, NONA_CLI_PROJECT_NAME, or a saved default project.");
+                Console.Error.WriteLine("Keys list requires --project, NONA_CLI_PROJECT_NAME, or a saved default project.");
                 ic.ExitCode = 1;
                 return;
             }
@@ -120,7 +120,7 @@ internal sealed class KeysCommands(CliContext ctx) : ICliCommandGroup
         Option<string?> idOpt, Option<string?> tokenOpt)
     {
         var handler = new DeleteApiKeyCommandHandler();
-        var cmd = new Command("delete", "Delete an API key.");
+        var cmd = new Command("delete", "Permanently delete an API key.");
         cmd.AddOption(baseUrlOpt);
         cmd.AddOption(projectOpt);
         cmd.AddOption(idOpt);

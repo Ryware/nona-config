@@ -57,10 +57,19 @@ public class InMemoryConfigEntryRepository : IConfigEntryRepository
     }
 
     public Task<IReadOnlyList<ConfigEntry>> ListAsync(string projectName, string environmentName, CancellationToken ct = default)
+        => ListAsync(projectName, environmentName, prefix: null, ct);
+
+    public Task<IReadOnlyList<ConfigEntry>> ListAsync(
+        string projectName,
+        string environmentName,
+        string? prefix,
+        CancellationToken ct = default)
     {
         var entries = _entries.Values
             .Where(e => e.Project.Equals(projectName, StringComparison.OrdinalIgnoreCase)
-                     && e.Environment.Equals(environmentName, StringComparison.OrdinalIgnoreCase))
+                     && e.Environment.Equals(environmentName, StringComparison.OrdinalIgnoreCase)
+                     && ConfigEntryPrefix.StartsWith(e.Key, prefix))
+            .OrderBy(e => e.Key, StringComparer.Ordinal)
             .ToList();
         return Task.FromResult<IReadOnlyList<ConfigEntry>>(entries);
     }
@@ -188,6 +197,8 @@ public class InMemoryConfigEntryRepository : IConfigEntryRepository
             Version = nextVersion,
             Value = entry.Value,
             ContentType = entry.ContentType,
+            Description = entry.Description,
+            Unit = entry.Unit,
             Scope = entry.Scope,
             CreatedAt = versionTimestamp,
             Actor = normalizedActor
@@ -200,6 +211,8 @@ public class InMemoryConfigEntryRepository : IConfigEntryRepository
             Key = entry.Key,
             Value = entry.Value,
             ContentType = entry.ContentType,
+            Description = entry.Description,
+            Unit = entry.Unit,
             Scope = entry.Scope,
             ActiveVersion = nextVersion,
             CreatedAt = createdAt,
@@ -219,6 +232,8 @@ public class InMemoryConfigEntryRepository : IConfigEntryRepository
             Key = entry.Key,
             Value = entry.Value,
             ContentType = entry.ContentType,
+            Description = entry.Description,
+            Unit = entry.Unit,
             Scope = entry.Scope,
             ActiveVersion = entry.ActiveVersion,
             CreatedAt = entry.CreatedAt,
@@ -239,6 +254,8 @@ public class InMemoryConfigEntryRepository : IConfigEntryRepository
             Version = version.Version,
             Value = version.Value,
             ContentType = version.ContentType,
+            Description = version.Description,
+            Unit = version.Unit,
             Scope = version.Scope,
             CreatedAt = version.CreatedAt,
             Actor = version.Actor

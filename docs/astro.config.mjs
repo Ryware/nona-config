@@ -125,6 +125,7 @@ export default defineConfig({
 						{ label: 'CLI reference', slug: 'cli/reference' },
 						{ label: 'Migration overview', slug: 'migration' },
 						{ label: 'Migrate from Firebase Remote Config', slug: 'migration/firebase-remote-config' },
+						{ label: 'Migrate from AWS Parameter Store', slug: 'migration/aws-parameter-store' },
 						{ label: 'Firebase concept mapping', slug: 'migration/firebase-concept-mapping' },
 						{ label: 'Migration validation', slug: 'migration/validation' },
 					],

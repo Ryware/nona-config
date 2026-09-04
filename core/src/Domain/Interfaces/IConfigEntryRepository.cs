@@ -14,6 +14,12 @@ public interface IConfigEntryRepository
 
     Task<IReadOnlyList<ConfigEntry>> ListAsync(string projectName, string environmentName, CancellationToken ct = default);
 
+    Task<IReadOnlyList<ConfigEntry>> ListAsync(
+        string projectName,
+        string environmentName,
+        string? prefix,
+        CancellationToken ct = default);
+
     Task<IReadOnlyList<ConfigEntry>> ListByProjectAsync(string projectName, CancellationToken ct = default);
 
     Task<bool> ExistsAsync(string projectName, string environmentName, string key, CancellationToken ct = default);

@@ -2,6 +2,7 @@ using Mediator;
 using Nona.Application.Admin.ConfigReleases;
 using Nona.Application.Common;
 using Nona.Application.Common.Interfaces;
+using Nona.Domain;
 using Nona.Domain.Entities;
 using Nona.Domain.Enums;
 using Nona.Domain.Interfaces;
@@ -14,6 +15,7 @@ namespace Nona.Application.Api.ConfigEntries.Queries;
 public record GetAllConfigValuesQuery(
     string EnvironmentId,
     string? Version = null,
+    string? Prefix = null,
     string? IfNoneMatch = null)
     : IRequest<GetAllConfigValuesResult>;
 
@@ -38,11 +40,14 @@ public class GetAllConfigValuesQueryHandler(
         GetAllConfigValuesQuery request,
         CancellationToken cancellationToken)
     {
-        var apiKey = apiKeyService.GetCurrentApiKey();
-        if (string.IsNullOrEmpty(apiKey))
+        if (!ConfigEntryPrefix.IsValid(request.Prefix))
+            return Failure(ConfigEntryPrefix.ValidationError);
+
+        var apiKeyHash = apiKeyService.GetCurrentApiKeyHash();
+        if (string.IsNullOrEmpty(apiKeyHash))
             return Failure("API key is required");
 
-        var lookupResult = await apiKeyRepository.GetByKeyAsync(apiKey, cancellationToken);
+        var lookupResult = await apiKeyRepository.GetByKeyHashAsync(apiKeyHash, cancellationToken);
         if (lookupResult is null)
             return Failure("Invalid API key");
 
@@ -66,13 +71,21 @@ public class GetAllConfigValuesQueryHandler(
         if (environment is null)
             return Failure("Environment not found");
 
+        var normalizedPrefix = ConfigEntryPrefix.Normalize(request.Prefix);
+
         if (string.IsNullOrWhiteSpace(request.Version)
             && string.IsNullOrWhiteSpace(environment.ActiveReleaseVersion))
         {
-            var workingEntries = await configEntryRepository.ListAsync(
-                project.Name,
-                environment.Name,
-                cancellationToken);
+            var workingEntries = string.IsNullOrEmpty(request.Prefix)
+                ? await configEntryRepository.ListAsync(
+                    project.Name,
+                    environment.Name,
+                    cancellationToken)
+                : await configEntryRepository.ListAsync(
+                    project.Name,
+                    environment.Name,
+                    request.Prefix,
+                    cancellationToken);
             var workingValues = workingEntries
                 .Where(entry => (entry.Scope & KeyScope.Frontend) != 0)
                 .OrderBy(entry => entry.Key, StringComparer.Ordinal)
@@ -86,6 +99,7 @@ public class GetAllConfigValuesQueryHandler(
             var workingEtag = CreateWorkingConfigEtag(
                 project.Name,
                 environment.Name,
+                normalizedPrefix,
                 workingValues);
 
             return MatchesIfNoneMatch(request.IfNoneMatch, workingEtag)
@@ -103,16 +117,28 @@ public class GetAllConfigValuesQueryHandler(
             return Failure(release.Error);
 
         var resolvedRelease = release.Release!;
-        var etag = CreateReleaseEtag(project.Name, environment.Name, resolvedRelease);
+        var etag = CreateReleaseEtag(
+            project.Name,
+            environment.Name,
+            normalizedPrefix,
+            resolvedRelease);
         if (MatchesIfNoneMatch(request.IfNoneMatch, etag))
             return new GetAllConfigValuesResult(true, null, null, etag, true);
 
-        var entries = await configReleaseRepository.ListEntriesAsync(
-            project.Name,
-            environment.Name,
-            resolvedRelease.Version,
-            KeyScope.Frontend,
-            cancellationToken);
+        var entries = string.IsNullOrEmpty(request.Prefix)
+            ? await configReleaseRepository.ListEntriesAsync(
+                project.Name,
+                environment.Name,
+                resolvedRelease.Version,
+                KeyScope.Frontend,
+                cancellationToken)
+            : await configReleaseRepository.ListEntriesAsync(
+                project.Name,
+                environment.Name,
+                resolvedRelease.Version,
+                KeyScope.Frontend,
+                request.Prefix,
+                cancellationToken);
         var values = entries
             .Where(entry => (entry.Scope & KeyScope.Frontend) != 0)
             .OrderBy(entry => entry.Key, StringComparer.Ordinal)
@@ -171,11 +197,13 @@ public class GetAllConfigValuesQueryHandler(
     private static string CreateReleaseEtag(
         string projectName,
         string environmentName,
+        string? normalizedPrefix,
         ConfigRelease release)
     {
         var canonical = new StringBuilder("client-config-v1");
         AppendEtagPart(canonical, projectName);
         AppendEtagPart(canonical, environmentName);
+        AppendPrefixEtagPart(canonical, normalizedPrefix);
         AppendEtagPart(canonical, release.Version);
         AppendEtagPart(
             canonical,
@@ -188,11 +216,13 @@ public class GetAllConfigValuesQueryHandler(
     private static string CreateWorkingConfigEtag(
         string projectName,
         string environmentName,
+        string? normalizedPrefix,
         IReadOnlyDictionary<string, ClientConfigValueDto> values)
     {
         var canonical = new StringBuilder("client-config-working-v1");
         AppendEtagPart(canonical, projectName);
         AppendEtagPart(canonical, environmentName);
+        AppendPrefixEtagPart(canonical, normalizedPrefix);
         foreach (var pair in values.OrderBy(pair => pair.Key, StringComparer.Ordinal))
         {
             AppendEtagPart(canonical, pair.Key);
@@ -207,6 +237,15 @@ public class GetAllConfigValuesQueryHandler(
     private static void AppendEtagPart(StringBuilder builder, string value)
     {
         builder.Append(value.Length).Append(':').Append(value);
+    }
+
+    private static void AppendPrefixEtagPart(StringBuilder builder, string? normalizedPrefix)
+    {
+        if (normalizedPrefix is null)
+            return;
+
+        AppendEtagPart(builder, "prefix-v2");
+        AppendEtagPart(builder, normalizedPrefix);
     }
 
     private static bool MatchesIfNoneMatch(string? headerValue, string etag)

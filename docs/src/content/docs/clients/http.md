@@ -99,6 +99,15 @@ The API key must have `client` or `all` scope. The response includes entries wit
 
 The bulk route also accepts `?version=1.1.0` and `?version=1.1.x`.
 
+Add an optional `prefix` to fetch only keys that start with a group name:
+
+```bash
+curl -i "https://nona.example.com/api/production?prefix=GroupA%3A" \
+  -H "X-Api-Key: $NONA_API_KEY"
+```
+
+Prefix matching is case-insensitive: `GroupA:` also matches `groupa:Flag`. A non-empty prefix may contain only ASCII letters, digits, colons, dots, underscores, and dashes; it remains a fragment, so a trailing colon is valid. Any other character returns `400 Bad Request` with Problem Details before entries or ETags are evaluated. Omit `prefix`, or pass an empty value, for the complete snapshot. A valid prefix with no matches returns `200` with `{}` and a valid prefix-specific ETag. `prefix` can be combined with `version`.
+
 ### Conditional polling with ETag
 
 Every successful bulk response includes an `ETag`. Send it back in `If-None-Match` when polling:
@@ -109,7 +118,7 @@ curl -i "https://nona.example.com/api/production" \
   -H 'If-None-Match: "<etag-from-the-previous-response>"'
 ```
 
-If the client-visible snapshot has not changed, Nona returns `304 Not Modified` with no response body. Server-only entry changes do not change this client snapshot ETag.
+If the client-visible snapshot has not changed, Nona returns `304 Not Modified` with no response body. Server-only entry changes do not change this client snapshot ETag. Each non-empty prefix has its own ETag identity, while casing variants of the same prefix share an ETag. An ETag from an unfiltered or different-prefix request cannot produce `304` for the current prefix.
 
 If you want to see the response headers too:
 

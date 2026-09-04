@@ -24,6 +24,14 @@ namespace Nona.Migrator.Core.Generated.Models
 #else
         public string Environment { get; set; }
 #endif
+        /// <summary>The fingerprint property</summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
+#nullable enable
+        public string? Fingerprint { get; set; }
+#nullable restore
+#else
+        public string Fingerprint { get; set; }
+#endif
         /// <summary>The id property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
@@ -31,14 +39,6 @@ namespace Nona.Migrator.Core.Generated.Models
 #nullable restore
 #else
         public UntypedNode Id { get; set; }
-#endif
-        /// <summary>The key property</summary>
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-        public string? Key { get; set; }
-#nullable restore
-#else
-        public string Key { get; set; }
 #endif
         /// <summary>The name property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
@@ -93,8 +93,8 @@ namespace Nona.Migrator.Core.Generated.Models
             {
                 { "createdAt", n => { CreatedAt = n.GetDateTimeOffsetValue(); } },
                 { "environment", n => { Environment = n.GetStringValue(); } },
+                { "fingerprint", n => { Fingerprint = n.GetStringValue(); } },
                 { "id", n => { Id = n.GetObjectValue<UntypedNode>(UntypedNode.CreateFromDiscriminatorValue); } },
-                { "key", n => { Key = n.GetStringValue(); } },
                 { "name", n => { Name = n.GetStringValue(); } },
                 { "project", n => { Project = n.GetStringValue(); } },
                 { "scope", n => { Scope = n.GetStringValue(); } },
@@ -110,8 +110,8 @@ namespace Nona.Migrator.Core.Generated.Models
             if(ReferenceEquals(writer, null)) throw new ArgumentNullException(nameof(writer));
             writer.WriteDateTimeOffsetValue("createdAt", CreatedAt);
             writer.WriteStringValue("environment", Environment);
+            writer.WriteStringValue("fingerprint", Fingerprint);
             writer.WriteObjectValue<UntypedNode>("id", Id);
-            writer.WriteStringValue("key", Key);
             writer.WriteStringValue("name", Name);
             writer.WriteStringValue("project", Project);
             writer.WriteStringValue("scope", Scope);

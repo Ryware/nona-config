@@ -373,6 +373,7 @@ nona migrate [command] [options]
 **Commands**
 
 - `firebase` Import Firebase Remote Config into Nona.
+- `parameter-store` Import AWS Parameter Store values referenced by an ECS task definition into Nona.
 
 ## `nona migrate firebase`
 
@@ -396,6 +397,31 @@ nona migrate firebase [options]
 --password <password>                     Admin password used by the migrator when no token is supplied.
 ```
 
+## `nona migrate parameter-store`
+
+Import AWS Parameter Store values referenced by an ECS task definition into Nona.
+
+**Usage**
+
+```text
+nona migrate parameter-store [options]
+```
+
+**Options**
+
+```text
+--task-definition <task-definition> (REQUIRED)  Local ECS task definition JSON path.
+--environment <environment> (REQUIRED)          Target Nona environment.
+--region <region>                               AWS region for non-ARN Parameter Store references.
+--profile <profile>                             AWS shared credentials profile.
+--dry-run                                       Preview changes without applying them.
+--api-url, --base-url <base-url>                Nona base URL.
+--project, --project-name <project-name>        Nona project name.
+--bearer-token, --token <bearer-token>          Admin bearer token.
+--email <email>                                 Admin email used by the migrator when no token is supplied.
+--password <password>                           Admin password used by the migrator when no token is supplied.
+```
+
 ## `nona keys`
 
 List, create, and delete project API keys.
@@ -410,7 +436,7 @@ nona keys [command] [options]
 
 - `list, show` List API keys for a project.
 - `create` Create an API key for a project.
-- `delete` Delete an API key.
+- `delete` Permanently delete an API key.
 
 ## `nona keys list`
 
@@ -453,7 +479,7 @@ nona keys create [options]
 
 ## `nona keys delete`
 
-Delete an API key.
+Permanently delete an API key.
 
 **Usage**
 
@@ -466,7 +492,7 @@ nona keys delete [options]
 ```text
 --api-url, --base-url <base-url>          Nona base URL.
 --project, --project-name <project-name>  Nona project name.
---id <id>                                 API key id to delete.
+--id <id>                                 API key id.
 --bearer-token, --token <bearer-token>    Admin bearer token.
 ```
 
@@ -492,7 +518,6 @@ nona init [options]
 --no-seed-flag                            Skip starter flag creation.
 --scope <scope>                           API key and entry scope: client, server, or all. Default: client.
 --format <format>                         Output format: dotenv, json, or env-export. Default: dotenv.
---print-key                               Print the full API key. By default only the last four characters are shown.
 --yes                                     Non-interactive mode; never prompt.
 ```
 
@@ -605,6 +630,7 @@ nona entries list [options]
 --bearer-token, --token <bearer-token>    Admin bearer token.
 --project, --project-name <project-name>  Nona project name.
 --environment <environment>               Nona environment name, for example production.
+--prefix <prefix>                         Return only entries whose keys start with this prefix.
 ```
 
 ## `nona entries get`

@@ -61,6 +61,8 @@ public class RollbackConfigEntryCommandHandler(
             Key = request.Key,
             Value = targetVersion.Value,
             ContentType = targetVersion.ContentType,
+            Description = targetVersion.Description,
+            Unit = targetVersion.Unit,
             Scope = targetVersion.Scope,
             CreatedAt = currentEntry.CreatedAt,
             UpdatedAt = now

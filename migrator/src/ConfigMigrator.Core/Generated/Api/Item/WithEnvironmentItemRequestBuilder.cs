@@ -35,7 +35,7 @@ namespace Nona.Migrator.Core.Generated.Api.Item
         /// </summary>
         /// <param name="pathParameters">Path parameters for the request</param>
         /// <param name="requestAdapter">The request adapter to use to execute the requests.</param>
-        public WithEnvironmentItemRequestBuilder(Dictionary<string, object> pathParameters, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/{environmentId}{?version*}", pathParameters)
+        public WithEnvironmentItemRequestBuilder(Dictionary<string, object> pathParameters, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/{environmentId}{?prefix*,version*}", pathParameters)
         {
         }
         /// <summary>
@@ -43,7 +43,7 @@ namespace Nona.Migrator.Core.Generated.Api.Item
         /// </summary>
         /// <param name="rawUrl">The raw URL to use for the request builder.</param>
         /// <param name="requestAdapter">The request adapter to use to execute the requests.</param>
-        public WithEnvironmentItemRequestBuilder(string rawUrl, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/{environmentId}{?version*}", rawUrl)
+        public WithEnvironmentItemRequestBuilder(string rawUrl, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/{environmentId}{?prefix*,version*}", rawUrl)
         {
         }
         /// <returns>A <see cref="global::Nona.Migrator.Core.Generated.Api.Item.WithEnvironmentGetResponse"/></returns>
@@ -129,6 +129,15 @@ namespace Nona.Migrator.Core.Generated.Api.Item
         public partial class WithEnvironmentItemRequestBuilderGetQueryParameters 
         #pragma warning restore CS1591
         {
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
+#nullable enable
+            [QueryParameter("prefix")]
+            public string? Prefix { get; set; }
+#nullable restore
+#else
+            [QueryParameter("prefix")]
+            public string Prefix { get; set; }
+#endif
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
             [QueryParameter("version")]

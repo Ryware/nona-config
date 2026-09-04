@@ -13,7 +13,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "verify:openapi": "./scripts/verify-openapi.sh",
+    "verify:openapi": "bash ../verify-generated-clients.sh --admin-path . --skip-tool-restore",
     "analyze": "ANALYZE=true npm run build",
     "test:visual": "playwright test",
     "test:visual:update": "playwright test --update-snapshots"

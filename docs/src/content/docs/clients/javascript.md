@@ -142,6 +142,14 @@ const banner = await nona.tryGetConfigValue("App:Banner");
 
 The server response contains only entries visible to clients: `client` and `all` entries are included, while server-only entries are excluded. Use a `client` or `all` API key.
 
+Pass a prefix to load one key group:
+
+```js
+const features = await nona.getAllValues({ prefix: "Features:" });
+```
+
+Prefixes may contain ASCII letters, digits, colons, dots, underscores, and dashes, and matching is case-insensitive. Empty or omitted prefixes fetch the complete snapshot. Any other character produces `NonaClientError` with `status === 400`; failed responses are not cached. Each normalized prefix has an independent ETag snapshot and in-flight request identity, so results from different groups cannot be mixed. Only keys returned by the request are primed for later single-key reads.
+
 Call `getAllValues()` again to poll for changes. The client automatically sends the previous ETag; when the server returns `304 Not Modified`, the existing snapshot is reused without downloading the JSON again.
 
 ## Pin a release version

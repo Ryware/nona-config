@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Nona.Benchmarks.Tests</RootNamespace>
+    <AssemblyName>Nona.Benchmarks.Tests</AssemblyName>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="TUnit" Version="1.6.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+	<ProjectReference Include="..\Performance\Nona.Benchmarks.Performance.csproj" />
+    <ProjectReference Include="..\Replication\Nona.Benchmarks.Replication.csproj" />
+  </ItemGroup>
+
+</Project>

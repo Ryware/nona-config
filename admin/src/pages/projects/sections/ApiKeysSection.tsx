@@ -1,17 +1,23 @@
 import { useParams } from "@solidjs/router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/solid-query";
-import { Show, createEffect, createSignal } from "solid-js";
+import { Show, createEffect, createSignal, on, onCleanup } from "solid-js";
 
 import { projectService } from "../../../entities/project/api/project.service";
 import { projectKeys } from "../../../entities/project/queries/keys";
 import { useEscapeKey } from "../../../shared/hooks/useEscapeKey";
 import { MSG } from "../../../shared/lib/messages";
 import { AccessDenied } from "../../../shared/ui/AccessDenied";
+import { ConfirmDialog } from "../../../shared/ui/confirm-dialog";
 import { useToast } from "../../../shared/ui/toast";
-import type { CreateApiKeyRequest } from "../../../types";
+import type { ApiKey, CreatedApiKey, CreateApiKeyRequest } from "../../../types";
 import { ProjectApiKeys } from "../components/ProjectApiKeys";
 import { ProjectSectionLayout } from "../components/ProjectSectionLayout";
 import { useProjectContext } from "../hooks/useProjectContext";
+
+interface ApiKeyMutationTarget {
+  projectId: string;
+  projectSlug: string;
+}
 
 export default function ApiKeysSection() {
   const params = useParams<{ slug: string }>();
@@ -20,9 +26,18 @@ export default function ApiKeysSection() {
   const [showApiKeyForm, setShowApiKeyForm] = createSignal(false);
   const [hasAutoOpenedApiKeyForm, setHasAutoOpenedApiKeyForm] = createSignal(false);
   const [deletingApiKeyId, setDeletingApiKeyId] = createSignal<string | null>(null);
+  const [oneTimeApiKey, setOneTimeApiKey] = createSignal<CreatedApiKey | null>(null);
+  const [confirmDeleteApiKey, setConfirmDeleteApiKey] = createSignal<ApiKey | null>(null);
 
   const { projectsQuery, project, projectId, activeEnvName, canManageProject } =
     useProjectContext();
+
+  const currentMutationTarget = (): ApiKeyMutationTarget => ({
+    projectId: projectId(),
+    projectSlug: params.slug
+  });
+  const isCurrentMutationTarget = (target: ApiKeyMutationTarget) =>
+    target.projectId === projectId() && target.projectSlug === params.slug;
 
   const apiKeysQuery = useQuery(() => ({
     queryKey: projectKeys.apiKeys(params.slug),
@@ -52,18 +67,39 @@ export default function ApiKeysSection() {
   });
 
   const createApiKeyMutation = useMutation(() => ({
-    mutationFn: (data: CreateApiKeyRequest) => projectService.createApiKey(projectId(), data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: projectKeys.apiKeys(params.slug) });
+    mutationFn: async ({
+      target,
+      data
+    }: {
+      target: ApiKeyMutationTarget;
+      data: CreateApiKeyRequest;
+    }) => {
+      setOneTimeApiKey(null);
+      const createdApiKey = await projectService.createApiKey(target.projectId, data);
+      if (isCurrentMutationTarget(target)) {
+        setOneTimeApiKey(createdApiKey);
+      }
+    },
+    onSuccess: (_data, { target }) => {
+      queryClient.invalidateQueries({ queryKey: projectKeys.apiKeys(target.projectSlug) });
+      if (!isCurrentMutationTarget(target)) return;
+
       setShowApiKeyForm(false);
       addToast(MSG.API_KEY_CREATED, "success");
     },
-    onError: () => addToast(MSG.API_KEY_CREATE_FAILED, "error")
+    onError: (_error, { target }) => {
+      if (isCurrentMutationTarget(target)) {
+        addToast(MSG.API_KEY_CREATE_FAILED, "error");
+      }
+    }
   }));
 
   const deleteApiKeyMutation = useMutation(() => ({
     mutationFn: (apiKeyId: string) => projectService.deleteApiKey(projectId(), apiKeyId),
-    onSuccess: () => {
+    onSuccess: (_data, apiKeyId) => {
+      if (oneTimeApiKey()?.id === apiKeyId) {
+        setOneTimeApiKey(null);
+      }
       queryClient.invalidateQueries({ queryKey: projectKeys.apiKeys(params.slug) });
       addToast(MSG.API_KEY_DELETED, "success");
     },
@@ -71,7 +107,16 @@ export default function ApiKeysSection() {
     onSettled: () => setDeletingApiKeyId(null)
   }));
 
+  const clearOneTimeApiKey = () => {
+    setOneTimeApiKey(null);
+    createApiKeyMutation.reset();
+  };
+
+  createEffect(on(() => params.slug, clearOneTimeApiKey, { defer: true }));
+  onCleanup(clearOneTimeApiKey);
+
   return (
+    <>
     <ProjectSectionLayout
       section="apiKeys"
       project={project()}
@@ -83,18 +128,39 @@ export default function ApiKeysSection() {
           isLoading={apiKeysQuery.isLoading}
           isCreating={createApiKeyMutation.isPending}
           deletingId={deletingApiKeyId()}
+          oneTimeApiKey={oneTimeApiKey()}
           canManage={canManageProject()}
           activeEnvironmentName={activeEnvName()}
           showCreateForm={showApiKeyForm()}
           setShowCreateForm={setShowApiKeyForm}
-          onCreate={data => createApiKeyMutation.mutate(data)}
-          onDelete={apiKeyId => {
-            setDeletingApiKeyId(apiKeyId);
-            deleteApiKeyMutation.mutate(apiKeyId);
-          }}
+          onCreate={data => createApiKeyMutation.mutate({ target: currentMutationTarget(), data })}
+          onDelete={setConfirmDeleteApiKey}
+          onDismissSecret={clearOneTimeApiKey}
           onCopied={msg => addToast(msg, "success")}
         />
       </Show>
     </ProjectSectionLayout>
+
+    <ConfirmDialog
+      open={confirmDeleteApiKey() !== null}
+      title="Delete API Key?"
+      message={<>Permanently delete <span class="text-primary font-bold">{confirmDeleteApiKey()?.name}</span>? Applications using it will lose access immediately.</>}
+      confirmLabel="Delete API Key"
+      variant="danger"
+      isLoading={deleteApiKeyMutation.isPending}
+      onConfirm={() => {
+        const apiKey = confirmDeleteApiKey();
+        if (apiKey) {
+          setDeletingApiKeyId(apiKey.id);
+          deleteApiKeyMutation.mutate(apiKey.id);
+          setConfirmDeleteApiKey(null);
+        }
+      }}
+      onCancel={() => setConfirmDeleteApiKey(null)}
+      testId="delete-api-key-dialog"
+      confirmTestId="delete-api-key-confirm-button"
+      cancelTestId="delete-api-key-cancel-button"
+    />
+    </>
   );
 }

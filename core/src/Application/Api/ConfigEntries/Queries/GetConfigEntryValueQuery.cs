@@ -22,11 +22,11 @@ public class GetConfigEntryValueQueryHandler(
 {
     public async ValueTask<GetConfigEntryValueResult> Handle(GetConfigEntryValueQuery request, CancellationToken cancellationToken)
     {
-        var apiKey = apiKeyService.GetCurrentApiKey();
-        if (string.IsNullOrEmpty(apiKey))
+        var apiKeyHash = apiKeyService.GetCurrentApiKeyHash();
+        if (string.IsNullOrEmpty(apiKeyHash))
             return new GetConfigEntryValueResult(false, null, null, "API key is required");
 
-        var lookupResult = await apiKeyRepository.GetByKeyAsync(apiKey, cancellationToken);
+        var lookupResult = await apiKeyRepository.GetByKeyHashAsync(apiKeyHash, cancellationToken);
         if (lookupResult is null)
             return new GetConfigEntryValueResult(false, null, null, "Invalid API key");
 

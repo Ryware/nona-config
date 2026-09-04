@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+	<TargetFramework>net10.0</TargetFramework>
+	<ImplicitUsings>enable</ImplicitUsings>
+	<Nullable>enable</Nullable>
+	<RootNamespace>Nona.Benchmarks</RootNamespace>
+	<AssemblyName>Nona.Benchmarks.Shared</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+	<PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.10" />
+	<ProjectReference Include="..\..\libsql\src\Libsql\Libsql.csproj" />
+  </ItemGroup>
+
+</Project>
+

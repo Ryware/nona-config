@@ -125,7 +125,7 @@ export default function SharedParameterPage() {
               <h1 class="font-headline text-on-surface text-lg font-bold">
                 Shared link unavailable
               </h1>
-              <p class="text-on-surface-variant mt-2 text-sm leading-relaxed">
+              <p class="text-on-surface-variant mt-2 text-[15px] leading-relaxed">
                 {errorMessage(query.error)}
               </p>
             </div>
@@ -138,7 +138,7 @@ export default function SharedParameterPage() {
                 class="bg-surface-container-low border-outline-variant/15 rounded-2xl border p-6 shadow-xl"
               >
                 <div class="border-outline-variant/15 mb-5 border-b pb-4">
-                  <p class="text-outline mb-1 text-[11px] font-bold tracking-[0.08em] uppercase">
+                  <p class="text-outline mb-1 text-[12px] font-bold tracking-[0.08em] uppercase">
                     Shared parameter
                   </p>
                   <h1
@@ -150,17 +150,24 @@ export default function SharedParameterPage() {
                   <div class="mt-3 flex flex-wrap gap-2">
                     <span
                       data-testid="shared-parameter-environment"
-                      class="bg-primary/10 text-primary rounded-full px-2.5 py-1 font-mono text-[11px] font-semibold"
+                      class="bg-primary/10 text-primary rounded-full px-2.5 py-1 font-mono text-[12px] font-semibold"
                     >
                       {current().environment}
                     </span>
-                    <span class="bg-secondary/10 text-secondary rounded-full px-2.5 py-1 text-[11px] font-semibold">
+                    <span class="bg-secondary/10 text-secondary rounded-full px-2.5 py-1 text-[12px] font-semibold">
                       {current().canEdit ? "Editable" : "View only"}
                     </span>
                   </div>
                 </div>
 
                 <div class="space-y-4">
+                  <p
+                    data-testid="shared-parameter-default-note"
+                    class="border-primary/20 bg-primary/5 text-on-surface-variant rounded-xl border px-3 py-2.5 text-[13px] leading-relaxed"
+                  >
+                    This link targets the default parameter only. Active and historical releases remain unchanged.
+                  </p>
+
                   <div class="space-y-2">
                     <Label class="mb-0">Current value</Label>
                     <Show
@@ -169,17 +176,22 @@ export default function SharedParameterPage() {
                         <Show
                           when={current().contentType === "json"}
                           fallback={
-                            <Input
-                              value={current().value}
-                              readOnly
-                              data-testid="shared-parameter-value"
-                              class="font-mono"
-                            />
+                            <div class="flex items-center gap-2">
+                              <Input
+                                value={current().value}
+                                readOnly
+                                data-testid="shared-parameter-value"
+                                class="font-mono"
+                              />
+                              <Show when={current().contentType === "number" && current().unit}>
+                                <span class="text-outline shrink-0 text-[12px]">{current().unit}</span>
+                              </Show>
+                            </div>
                           }
                         >
                           <pre
                             data-testid="shared-parameter-value"
-                            class="bg-surface-container-lowest border-outline-variant/20 text-on-surface max-h-72 overflow-auto rounded-xl border p-3 font-mono text-[12px]"
+                            class="bg-surface-container-lowest border-outline-variant/20 text-on-surface max-h-72 overflow-auto rounded-xl border p-3 font-mono text-[13px]"
                           >
                             {formatJson(current().value)}
                           </pre>
@@ -197,15 +209,20 @@ export default function SharedParameterPage() {
                         />
                       </Show>
                       <Show when={current().contentType === "number"}>
-                        <Input
-                          type="number"
-                          value={editValue()}
-                          onInput={(e: InputEvent & { currentTarget: HTMLInputElement }) =>
-                            setEditValue(e.currentTarget.value)
-                          }
-                          data-testid="shared-parameter-value-input"
-                          class="font-mono"
-                        />
+                        <div class="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            value={editValue()}
+                            onInput={(e: InputEvent & { currentTarget: HTMLInputElement }) =>
+                              setEditValue(e.currentTarget.value)
+                            }
+                            data-testid="shared-parameter-value-input"
+                            class="font-mono"
+                          />
+                          <Show when={current().unit}>
+                            <span class="text-outline shrink-0 text-[12px]">{current().unit}</span>
+                          </Show>
+                        </div>
                       </Show>
                       <Show when={current().contentType === "json"}>
                         <VisualJsonEditor
@@ -229,11 +246,11 @@ export default function SharedParameterPage() {
                   </div>
 
                   <Show when={saveError()}>
-                    {message => <p class="text-error text-[12px]">{message()}</p>}
+                    {message => <p class="text-error text-[13px]">{message()}</p>}
                   </Show>
 
                   <div class="flex flex-wrap items-center justify-between gap-3 pt-2">
-                    <p class="text-outline text-[11px]">
+                    <p class="text-outline text-[12px]">
                       Expires {formatExpiry(current().expiresAt)}
                     </p>
                     <Show when={current().canEdit}>

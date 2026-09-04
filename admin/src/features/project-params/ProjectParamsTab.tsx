@@ -1,27 +1,12 @@
 import type { JSX } from "solid-js";
+import { onMount, Show } from "solid-js";
 import { MIcon } from "../../shared/ui/icons";
 import { Input } from "../../shared/ui/input";
-import { Show } from "solid-js";
-import type {
-  ConfigEntry,
-  CreateConfigEntryRequest,
-} from "../../types";
-import { ProjectParamCreateForm } from "../project-param-edit/ProjectParamCreateForm";
-import { ProjectParamsTable, type ProjectParamsTableProps } from "./ProjectParamsTable";
-
-interface ProjectParamsCreateFormData {
-  key: string;
-  value: string;
-  contentType: CreateConfigEntryRequest["contentType"];
-  scope: CreateConfigEntryRequest["scope"];
-  description: string;
-}
-
-interface ProjectParamsCreateFormProps {
-  onCancel: () => void;
-  onSubmit: (data: ProjectParamsCreateFormData) => void;
-  isPending: boolean;
-}
+import type { ConfigEntry } from "../../types";
+import {
+  ProjectParamsTable,
+  type ProjectParamsTableProps
+} from "./ProjectParamsTable";
 
 interface ProjectParamsTabProps {
   activeEnvName: string;
@@ -31,33 +16,44 @@ interface ProjectParamsTabProps {
   paramSearch: string;
   onParamSearch: (q: string) => void;
   onToggleBulkImport: () => void;
-  onToggleConfigForm: () => void;
-  showConfigForm: boolean;
+  onAddParameter: (opener: HTMLElement) => void;
   bulkImportPanel?: JSX.Element;
   canManage: boolean;
   isReadOnly?: boolean;
   viewingReleaseVersion?: string;
-  createForm: ProjectParamsCreateFormProps;
   table: ProjectParamsTableProps;
 }
 
+const LEGACY_PARAMETER_DENSITY_STORAGE_KEY = "nona_parameter_density";
+
+export function clearLegacyParameterDensityPreference() {
+  try {
+    localStorage.removeItem(LEGACY_PARAMETER_DENSITY_STORAGE_KEY);
+  } catch {
+    // Storage is optional; compact rendering does not depend on it.
+  }
+}
+
 export function ProjectParamsTab(props: ProjectParamsTabProps) {
+  onMount(clearLegacyParameterDensityPreference);
+
   return (
     <section
       id="parameters"
       data-testid="project-parameters-section"
-      class="bg-surface-container-low border-outline-variant/15 space-y-4 rounded-2xl border p-5 scroll-mt-20"
+      data-density="compact"
+      class="bg-surface-container-low border-outline-variant/15 space-y-2.5 rounded-xl border p-3 scroll-mt-20 sm:p-4"
     >
       <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
           <p
             data-testid="project-parameters-heading"
-            class="text-outline font-headline flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase"
+            class="text-outline font-headline flex items-center gap-1.5 text-[11px] font-bold tracking-widest uppercase"
           >
             <MIcon name="tune" class="text-[15px]" />
             Parameters
           </p>
-          <p class="text-on-surface-variant mt-1 text-xs">
+          <p class="text-on-surface-variant mt-1 text-[13px]">
             <Show
               when={props.isReadOnly && props.viewingReleaseVersion}
               fallback={
@@ -97,7 +93,7 @@ export function ProjectParamsTab(props: ProjectParamsTabProps) {
                 onClick={() => props.onToggleBulkImport()}
                 aria-label="Bulk Import"
                 title="Bulk Import"
-                class="bg-surface-container-high text-on-surface-variant hover:bg-surface-bright hover:text-on-surface inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg border-0 px-0 text-[13px] font-semibold transition-all active:scale-[0.98] md:w-auto md:gap-1.5 md:px-4"
+                class="bg-surface-container-high text-on-surface-variant hover:bg-surface-bright hover:text-on-surface inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg border-0 px-0 text-[14px] font-semibold transition-all active:scale-[0.98] md:w-auto md:gap-1.5 md:px-4"
               >
                 <MIcon name="publish" class="text-[17px]" />
                 <span class="hidden md:inline">Bulk Import</span>
@@ -105,10 +101,10 @@ export function ProjectParamsTab(props: ProjectParamsTabProps) {
               <button
                 data-testid="project-add-parameter-button"
                 type="button"
-                onClick={() => props.onToggleConfigForm()}
+                onClick={event => props.onAddParameter(event.currentTarget)}
                 aria-label="Add Parameter"
                 title="Add Parameter"
-                class="bg-primary text-on-primary inline-flex h-10 w-10 cursor-pointer items-center justify-center self-end rounded-lg border-0 px-0 text-[13px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] md:w-auto md:gap-1.5 md:px-4 md:self-auto"
+                class="bg-primary text-on-primary inline-flex h-10 w-10 cursor-pointer items-center justify-center self-end rounded-lg border-0 px-0 text-[14px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] md:w-auto md:gap-1.5 md:px-4 md:self-auto"
               >
                 <MIcon name="add" class="text-[16px]" />
                 <span class="hidden md:inline">Add Parameter</span>
@@ -120,17 +116,8 @@ export function ProjectParamsTab(props: ProjectParamsTabProps) {
 
       {props.bulkImportPanel}
 
-      <Show when={!props.isReadOnly && props.canManage && props.activeEnvName && props.showConfigForm}>
-        <ProjectParamCreateForm
-          onCancel={props.createForm.onCancel}
-          onSubmit={props.createForm.onSubmit}
-          isPending={props.createForm.isPending}
-          existingEntries={props.configEntries}
-        />
-      </Show>
-
       <Show when={!props.activeEnvName}>
-        <div class="bg-surface-container rounded-xl px-4 py-5 text-center text-xs text-on-surface-variant">
+        <div class="bg-surface-container rounded-xl px-4 py-5 text-center text-[13px] text-on-surface-variant">
           Select an active environment from the header to view its parameters.
         </div>
       </Show>
@@ -139,12 +126,11 @@ export function ProjectParamsTab(props: ProjectParamsTabProps) {
         <ProjectParamsTable
           {...props.table}
           search={props.paramSearch}
-          releaseVersion={props.viewingReleaseVersion}
         />
       </Show>
 
       <Show when={props.activeEnvName && !props.isLoading && props.filteredConfig.length === 0}>
-        <div class="bg-surface-container rounded-xl px-4 py-5 text-center text-xs text-on-surface-variant">
+        <div class="bg-surface-container rounded-xl px-4 py-5 text-center text-[13px] text-on-surface-variant">
           <Show
             when={props.isReadOnly && props.viewingReleaseVersion}
             fallback={<>No parameters yet for this environment</>}

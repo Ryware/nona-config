@@ -167,7 +167,7 @@ export function ContentLoader(props: { message?: string }) {
           <div class="absolute inset-0 rounded-full border-2 border-primary border-t-transparent animate-spin" />
         </div>
         {props.message && (
-          <p class="text-[12px] text-outline">{props.message}</p>
+          <p class="text-[13px] text-outline">{props.message}</p>
         )}
       </div>
     </div>

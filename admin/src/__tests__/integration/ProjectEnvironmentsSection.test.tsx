@@ -1,4 +1,4 @@
-import { fireEvent, screen } from '@solidjs/testing-library';
+import { fireEvent, screen, waitFor } from '@solidjs/testing-library';
 import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -45,6 +45,26 @@ describe('ProjectEnvironmentsSection', () => {
     fireEvent.click(addEnvButton);
 
     expect(screen.getByLabelText(/environment name/i)).toBeInTheDocument();
+  });
+
+  it('clears a cancelled environment draft and its validation error', async () => {
+    renderProjectSections('/projects/my-app/environments');
+
+    fireEvent.click(await screen.findByRole('button', { name: /add environment/i }));
+    const input = screen.getByLabelText(/environment name/i);
+    fireEvent.input(input, { target: { value: 'invalid environment' } });
+    fireEvent.click(screen.getByTestId('environment-create-submit-button'));
+
+    expect(await screen.findByTestId('environment-create-error')).toHaveTextContent(
+      /letters, numbers and hyphens only/i,
+    );
+    fireEvent.click(screen.getByTestId('environment-create-cancel-button'));
+    await waitFor(() => expect(screen.queryByLabelText(/environment name/i)).not.toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole('button', { name: /add environment/i }));
+
+    expect(screen.getByLabelText(/environment name/i)).toHaveValue('');
+    expect(screen.queryByTestId('environment-create-error')).not.toBeInTheDocument();
   });
 
   it('auto-opens the environment form when there are no environments', async () => {

@@ -1,6 +1,6 @@
 ---
 title: CLI
-description: Install the nona CLI and run commands to manage projects, environments, parameters, and Firebase migrations from your terminal.
+description: Install the nona CLI and run commands to manage projects, environments, parameters, and configuration migrations from your terminal.
 ---
 
 The `nona` CLI manages admin workflows from a terminal. Use it for:
@@ -45,11 +45,12 @@ nona init \
   --base-url https://nona.example.com \
   --email admin@example.com \
   --password secret \
-  --project mobile-app \
-  --print-key
+  --project mobile-app
 ```
 
-`init` registers the first admin when needed, logs in on existing instances, creates or reuses the project and environment, seeds a starter flag, creates or reuses a scoped API key, and prints app-ready environment variables.
+`init` registers the first admin when needed, logs in on existing instances, creates or reuses the project and environment, seeds a starter flag, creates a scoped API key, and prints app-ready environment variables. The generated API key is printed once because it cannot be retrieved later.
+
+If a matching `nona init` key already exists, the command stops because its secret cannot be recovered. It tells you to create a separate replacement and later delete the old key, or delete the old key first and rerun `nona init`.
 
 ```bash
 nona auth register --base-url https://nona.example.com --email admin@example.com --password secret
@@ -69,8 +70,7 @@ The default `init` output is directly appendable to an app `.env` file:
 # Nona - project "mobile-app", env "production"
 VITE_NONA_BASE_URL=https://nona.example.com
 VITE_NONA_ENV_ID=production
-VITE_NONA_API_KEY=****158D
-# API key masked; re-run with --print-key to emit a working value.
+VITE_NONA_API_KEY=<one-time-generated-secret>
 # Verify: curl -H "X-Api-Key: $VITE_NONA_API_KEY" https://nona.example.com/api/production/Features%3AExample
 ```
 
@@ -83,7 +83,6 @@ Useful options:
 - `--scope client|server|all` controls the API key and starter flag scope.
 - `--format dotenv|json|env-export` changes the output format.
 - `--password -` reads the password from stdin.
-- `--print-key` prints the full API key instead of masking it.
 
 ## Create a project
 
@@ -159,6 +158,14 @@ nona entries rollback --project mobile-app --environment production --key Featur
 nona entries delete --project mobile-app --environment production --key Features:Checkout
 ```
 
+Filter the list by a case-insensitive, literal key prefix without changing the output format:
+
+```bash
+nona entries list --project mobile-app --environment production --prefix Features:
+```
+
+Prefixes may contain ASCII letters, digits, colons, dots, underscores, and dashes. Any other character prints `Error: Prefix may contain only ASCII letters, digits, colons, dots, underscores, and dashes. (400)` and exits with validation code `2`.
+
 If you already saved a default project with `nona config set project mobile-app`, the same commands can omit `--project`.
 
 ```bash
@@ -192,8 +199,9 @@ nona keys delete --project mobile-app --id 42
 ```
 
 `nona keys show --project mobile-app` also works. `show` is an alias for `list`.
+Deleting a key permanently revokes it and takes effect immediately.
 
-Use client-scoped API keys for frontend/mobile apps and server-scoped keys for backend-only reads whenever possible.
+Use client-scoped API keys for frontend/mobile apps and server-scoped keys for backend-only reads whenever possible. Create prints a one-time secret; list output shows only metadata and a masked fingerprint. To rotate a credential, create a replacement, update and verify its consumers, then delete the old key.
 
 ## Invite a user
 
@@ -203,7 +211,7 @@ nona users create --name "Jane Doe" --user-email jane@example.com --role member
 
 The CLI returns the invitation result so you can hand the invite link or token to the teammate who needs access.
 
-## Migrate from Firebase Remote Config
+## Migrate existing configuration
 
 ```bash
 nona migrate firebase --config ./nona.migration.json --dry-run
@@ -213,6 +221,18 @@ nona migrate firebase --config ./nona.migration.json
 Use `--dry-run` before applying a migration.
 
 See [Firebase migration](/docs/cli/firebase-migration) for configuration, environment mapping, and conflict behavior.
+
+For backend configuration referenced by an ECS task definition:
+
+```bash
+nona migrate parameter-store \
+  --task-definition ./task-definition.json \
+  --environment production \
+  --project backend-service \
+  --dry-run
+```
+
+See [AWS Parameter Store migration](/docs/migration/aws-parameter-store) for AWS credentials, mapping, filtering, and apply behavior.
 
 ## Why the CLI matters for migration
 

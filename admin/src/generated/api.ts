@@ -1573,7 +1573,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ApiKeyDto"];
+                        "application/json": components["schemas"]["CreatedApiKeyDto"];
                     };
                 };
                 /** @description Client Error */
@@ -1665,7 +1665,9 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    prefix?: string;
+                };
                 header?: never;
                 path: {
                     projectId: string;
@@ -1682,6 +1684,15 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["ConfigEntryDto"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
                     };
                 };
                 /** @description Client Error */
@@ -2819,6 +2830,7 @@ export interface paths {
             parameters: {
                 query?: {
                     version?: string;
+                    prefix?: string;
                 };
                 header?: never;
                 path: {
@@ -3069,7 +3081,7 @@ export interface components {
             /** Format: int64 */
             id: number | string;
             name: string;
-            key: string;
+            fingerprint: string;
             project: string;
             environment: null | string;
             scope: string;
@@ -3149,6 +3161,8 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             updatedAt: string;
+            description?: null | string;
+            unit?: null | string;
         };
         ConfigEntryVersionDto: {
             project: string;
@@ -3162,6 +3176,8 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
             actor: string;
+            description?: null | string;
+            unit?: null | string;
         };
         ConfigReleaseDetailsDto: {
             project: string;
@@ -3191,11 +3207,27 @@ export interface components {
             value: string;
             contentType: string;
             scope: string;
+            description?: null | string;
+            unit?: null | string;
         };
         CreateApiKeyRequest: {
             name: string;
             environment?: null | string;
             scope?: null | string;
+        };
+        CreatedApiKeyDto: {
+            /** Format: int64 */
+            id: number | string;
+            name: string;
+            key: string;
+            fingerprint: string;
+            project: string;
+            environment: null | string;
+            scope: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
         };
         CreatedParameterShareLinkDto: {
             /** Format: int64 */
@@ -3346,6 +3378,7 @@ export interface components {
             canEdit: boolean;
             /** Format: date-time */
             expiresAt: string;
+            unit?: null | string;
         };
         SsoLoginRequest: {
             idToken: string;
@@ -3372,6 +3405,8 @@ export interface components {
             value: string;
             contentType: null | string;
             scope: null | string;
+            description?: null | string;
+            unit?: null | string;
         };
         UserDto: {
             /** Format: int64 */

@@ -13,8 +13,7 @@ internal sealed record InitCommand(
     string Environment,
     SeedFlag? SeedFlag,
     string Scope,
-    string Format,
-    bool PrintKey);
+    string Format);
 
 internal sealed class InitCommandHandler(Func<HttpClient>? httpClientFactory = null)
 {
@@ -67,6 +66,8 @@ internal sealed class InitCommandHandler(Func<HttpClient>? httpClientFactory = n
         if (apiKey is null)
             return 1;
 
+        Console.Error.WriteLine(
+            "Warning: store this API key now; it cannot be recovered after this command exits.");
         WriteOutput(command, apiKey);
         return 0;
     }
@@ -266,13 +267,19 @@ internal sealed class InitCommandHandler(Func<HttpClient>? httpClientFactory = n
             .FirstOrDefault(k =>
                 string.Equals(k.Name, keyName, StringComparison.OrdinalIgnoreCase) &&
                 string.Equals(k.Environment, environment, StringComparison.OrdinalIgnoreCase) &&
-                string.Equals(k.Scope, scope, StringComparison.OrdinalIgnoreCase) &&
-                !string.IsNullOrWhiteSpace(k.Key));
+                string.Equals(k.Scope, scope, StringComparison.OrdinalIgnoreCase));
 
         if (existing is not null)
-            return existing.Key;
+        {
+            Console.Error.WriteLine(
+                $"API key {existing.Id} already exists, but its secret cannot be recovered. " +
+                $"Create a replacement with 'nona keys create --project {project} --name \"Replacement key\" " +
+                $"--environment {environment} --scope {scope}', update its consumers, then delete the old key with " +
+                $"'nona keys delete --project {project} --id {existing.Id}'. Alternatively, delete it first and rerun 'nona init'.");
+            return null;
+        }
 
-        var create = await SendAsync<ApiKeyDto>(
+        var create = await SendAsync<CreatedApiKeyDto>(
             connection,
             HttpMethod.Post,
             $"admin/projects/{Segment(project)}/api-keys",
@@ -328,7 +335,6 @@ internal sealed class InitCommandHandler(Func<HttpClient>? httpClientFactory = n
 
     private void WriteOutput(InitCommand command, string apiKey)
     {
-        var displayKey = command.PrintKey ? apiKey : MaskApiKey(apiKey);
         var verificationUrl = BuildVerificationUrl(command.BaseUrl, command.Environment, command.SeedFlag?.Key);
 
         switch (command.Format)
@@ -338,7 +344,7 @@ internal sealed class InitCommandHandler(Func<HttpClient>? httpClientFactory = n
                 {
                     baseUrl = command.BaseUrl,
                     environmentId = command.Environment,
-                    apiKey = displayKey,
+                    apiKey,
                     project = command.Project,
                     seededFlag = command.SeedFlag?.Key
                 }, _jsonOptions));
@@ -348,25 +354,22 @@ internal sealed class InitCommandHandler(Func<HttpClient>? httpClientFactory = n
                 Console.WriteLine($"# Nona - project \"{command.Project}\", env \"{command.Environment}\"");
                 Console.WriteLine($"export VITE_NONA_BASE_URL={ShellQuote(command.BaseUrl)}");
                 Console.WriteLine($"export VITE_NONA_ENV_ID={ShellQuote(command.Environment)}");
-                Console.WriteLine($"export VITE_NONA_API_KEY={ShellQuote(displayKey)}");
-                WriteVerificationComment(verificationUrl, command.PrintKey);
+                Console.WriteLine($"export VITE_NONA_API_KEY={ShellQuote(apiKey)}");
+                WriteVerificationComment(verificationUrl);
                 break;
 
             default:
                 Console.WriteLine($"# Nona - project \"{command.Project}\", env \"{command.Environment}\"");
                 Console.WriteLine($"VITE_NONA_BASE_URL={command.BaseUrl}");
                 Console.WriteLine($"VITE_NONA_ENV_ID={command.Environment}");
-                Console.WriteLine($"VITE_NONA_API_KEY={displayKey}");
-                WriteVerificationComment(verificationUrl, command.PrintKey);
+                Console.WriteLine($"VITE_NONA_API_KEY={apiKey}");
+                WriteVerificationComment(verificationUrl);
                 break;
         }
     }
 
-    private static void WriteVerificationComment(string verificationUrl, bool printKey)
+    private static void WriteVerificationComment(string verificationUrl)
     {
-        if (!printKey)
-            Console.WriteLine("# API key masked; re-run with --print-key to emit a working value.");
-
         Console.WriteLine($"# Verify: curl -H \"X-Api-Key: $VITE_NONA_API_KEY\" {verificationUrl}");
     }
 
@@ -377,14 +380,6 @@ internal sealed class InitCommandHandler(Func<HttpClient>? httpClientFactory = n
     }
 
     private static string BuildKeyName(string scope) => $"{InitKeyNamePrefix} {scope}";
-
-    private static string MaskApiKey(string key)
-    {
-        if (key.Length <= 4)
-            return "****";
-
-        return $"****{key[^4..]}";
-    }
 
     private static string ShellQuote(string value) => $"'{value.Replace("'", "'\\''", StringComparison.Ordinal)}'";
 
@@ -429,9 +424,14 @@ internal sealed class InitCommandHandler(Func<HttpClient>? httpClientFactory = n
     {
         public long Id { get; set; }
         public string? Name { get; set; }
-        public string? Key { get; set; }
+        public string? Fingerprint { get; set; }
         public string? Environment { get; set; }
         public string? Scope { get; set; }
+    }
+
+    private sealed class CreatedApiKeyDto
+    {
+        public string? Key { get; set; }
     }
 }
 

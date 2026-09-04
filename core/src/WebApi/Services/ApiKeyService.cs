@@ -4,8 +4,8 @@ namespace Nona.WebApi.Services;
 
 public class ApiKeyService(IHttpContextAccessor httpContextAccessor) : IApiKeyService
 {
-    public string? GetCurrentApiKey()
+    public string? GetCurrentApiKeyHash()
     {
-        return httpContextAccessor.HttpContext?.User.FindFirst("ApiKey")?.Value;
+        return httpContextAccessor.HttpContext?.User.FindFirst("ApiKeyHash")?.Value;
     }
 }

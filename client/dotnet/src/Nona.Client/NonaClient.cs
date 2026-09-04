@@ -20,7 +20,11 @@ public sealed partial class NonaClient : IDisposable
     private readonly string _environmentSegment;
     private readonly object _cacheLock = new object();
     private readonly Dictionary<string, CacheEntry> _cache = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, BulkCacheEntry> _bulkCache = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, PrimedValue> _primedValues = new(StringComparer.Ordinal);
     private readonly Dictionary<string, Task<NonaConfigValue>> _inFlightFetches = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, Task<IReadOnlyDictionary<string, NonaConfigValue>>> _inFlightBulkFetches =
+        new(StringComparer.Ordinal);
     private readonly TimeSpan _cacheTtl;
     private readonly long _cacheMemoryLimitBytes;
     private readonly bool _allowStaleCache;
@@ -80,6 +84,21 @@ public sealed partial class NonaClient : IDisposable
     public string? ReleaseVersion => _releaseVersion;
 
     public string EnvironmentId => _environmentId;
+
+    public Task<IReadOnlyDictionary<string, NonaConfigValue>> GetAllValuesAsync(
+        string? prefix = null,
+        CancellationToken cancellationToken = default)
+    {
+        return GetAllValuesCoreAsync(_releaseVersion, prefix, cancellationToken);
+    }
+
+    public Task<IReadOnlyDictionary<string, NonaConfigValue>> GetAllValuesForReleaseAsync(
+        string releaseVersion,
+        string? prefix = null,
+        CancellationToken cancellationToken = default)
+    {
+        return GetAllValuesCoreAsync(releaseVersion, prefix, cancellationToken);
+    }
 
     public async Task<NonaConfigValue> GetConfigValueAsync(
         string key,

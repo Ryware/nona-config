@@ -54,7 +54,7 @@ Direct `dotnet publish` output is named `Nona.Cli` (`Nona.Cli.exe` on Windows). 
 Bootstrap a fresh Nona instance and print app-ready environment variables:
 
 ```bash
-nona init --yes --base-url http://nona.internal:18080 --email admin@example.com --password secret --project mobile-app --print-key
+nona init --yes --base-url http://nona.internal:18080 --email admin@example.com --password secret --project mobile-app
 ```
 
 `init` registers or logs in the admin, creates or reuses the project and environment, seeds a starter flag, creates or reuses a scoped API key, and prints a `.env` block plus a verification curl.
@@ -96,11 +96,14 @@ Manage config entries:
 
 ```bash
 nona entries list --project mobile-app --environment production --base-url https://nona.example.com --token <token>
+nona entries list --project mobile-app --environment production --prefix Features: --base-url https://nona.example.com --token <token>
 nona entries get --project mobile-app --environment production --key welcome_text --base-url https://nona.example.com --token <token>
 nona entries set --project mobile-app --environment production --key welcome_text --value "Hello" --scope all --content-type text --base-url https://nona.example.com --token <token>
 nona entries history --project mobile-app --environment production --key welcome_text --base-url https://nona.example.com --token <token>
 nona entries rollback --project mobile-app --environment production --key welcome_text --version 2 --base-url https://nona.example.com --token <token>
 ```
+
+Prefixes may contain ASCII letters, digits, colons, dots, underscores, and dashes. An invalid prefix prints the API validation error and exits with code `2`.
 
 Manage immutable releases:
 
@@ -130,6 +133,21 @@ Run a Firebase Remote Config migration:
 ```bash
 nona migrate firebase --config ./nona.migration.json --base-url https://nona.example.com --email admin@example.com --password secret
 ```
+
+Import string parameters referenced by an ECS task definition:
+
+```bash
+nona migrate parameter-store \
+  --task-definition ./task-definition.json \
+  --environment production \
+  --profile my-aws-profile \
+  --base-url https://nona.example.com \
+  --project backend-service \
+  --token "$NONA_ADMIN_TOKEN" \
+  --dry-run
+```
+
+The Parameter Store migrator uses ECS `secrets[].name` as the Nona key and imports only parameters whose AWS type is exactly `String`. Entries are written as server-scoped text. `SecureString`, `StringList`, Secrets Manager references, and plaintext ECS `environment` entries are skipped. Run without `--dry-run` to apply the upserts.
 
 ## On-Prem
 

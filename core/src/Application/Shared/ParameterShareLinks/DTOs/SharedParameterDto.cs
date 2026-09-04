@@ -6,4 +6,5 @@ public record SharedParameterDto(
     string Value,
     string ContentType,
     bool CanEdit,
-    DateTime ExpiresAt);
+    DateTime ExpiresAt,
+    string? Unit = null);
