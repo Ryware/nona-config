@@ -3,7 +3,7 @@ title: OpenFeature
 description: Use Nona through OpenFeature so your application reads flags and config through a standard, vendor-neutral interface with no lock-in.
 ---
 
-Nona ships OpenFeature integration for JavaScript and .NET. Use OpenFeature when you want a standard flag/config interface, less vendor-specific application code, and cleaner portability at the application layer. It is especially useful when your team thinks in feature flags first but still wants access to the same underlying Nona values and scopes.
+Nona ships OpenFeature integration for JavaScript (server and browser) and .NET. Use OpenFeature when you want a standard flag/config interface, less vendor-specific application code, and cleaner portability at the application layer. It is especially useful when your team thinks in feature flags first but still wants access to the same underlying Nona values and scopes.
 
 ## What to set up first
 
@@ -43,7 +43,7 @@ In practice, most teams start with boolean flags such as `Features:Checkout`, th
 
 OpenFeature gives you the application-side abstraction, while Nona still provides the underlying projects, environments, scopes, API keys, history, and rollback. That lets you keep a vendor-neutral read API without giving up a practical self-hosted operations model.
 
-## JavaScript
+## JavaScript (server)
 
 Install the packages:
 
@@ -79,6 +79,56 @@ The provider only needs:
 - environment id
 
 That works because the API key is already bound to one project.
+
+## JavaScript (browser)
+
+OpenFeature has two paradigms, and the browser uses the other one. The server SDK evaluates per request against a dynamic context; the web SDK evaluates **synchronously** against a static context. That needs a different package:
+
+```bash
+npm install nona-client nona-openfeature-web-provider @openfeature/web-sdk
+```
+
+Basic setup:
+
+```js
+import { OpenFeature } from "@openfeature/web-sdk";
+import { createNonaOpenFeatureWebProvider } from "nona-openfeature-web-provider";
+
+await OpenFeature.setProviderAndWait(
+  createNonaOpenFeatureWebProvider({
+    baseUrl: "https://nona.example.com",
+    apiKey: "your-frontend-api-key",
+    environmentId: "production"
+  })
+);
+
+const client = OpenFeature.getClient();
+
+// Synchronous — the snapshot is already in memory.
+const enabled = client.getBooleanValue("Features:Checkout", false);
+```
+
+The web provider loads the whole environment as one snapshot during startup and resolves every flag from memory. Two things follow from that:
+
+- It needs an API key with the **frontend** scope, and it only ever sees **frontend-scoped** parameters. A backend-only key gets a `404`, on purpose, so that a server key cannot be used to enumerate environments. See [Client vs server scope](/docs/concepts/client-vs-server-scope).
+- Your Nona server has to allow the site's origin via CORS.
+
+By default the provider re-checks Nona every 30 seconds, sending the snapshot's `ETag` so an unchanged environment costs a `304`. When values do change it emits `PROVIDER_CONFIGURATION_CHANGED` with the changed keys, which is what triggers re-evaluation in the web SDK and re-renders in the React SDK. Set `pollIntervalMs: 0` to turn polling off and refresh at your own moments instead:
+
+```js
+const changed = await provider.refresh();
+```
+
+Nona snapshots are currently the same for every caller, so there is no targeting yet: setting an evaluation context is safe and forward-compatible, but it only causes a refetch.
+
+### Which JavaScript package?
+
+| | Package | OpenFeature SDK | Evaluation |
+| --- | --- | --- | --- |
+| Node.js, backends | `nona-openfeature-provider` | `@openfeature/server-sdk` | `await` per flag |
+| Browsers | `nona-openfeature-web-provider` | `@openfeature/web-sdk` | synchronous, from a snapshot |
+
+An app that renders on the server and hydrates in the browser uses both — the server provider on the server, the web provider in the browser.
 
 ## .NET
 
@@ -154,6 +204,12 @@ OpenFeature only changes the application-side interface. Nona still provides the
 Usually only if your team already thinks in OpenFeature terms.
 
 Otherwise, many teams start with the direct client or raw HTTP first, then add OpenFeature once the basic read path is proven.
+
+### Can I use OpenFeature in the browser?
+
+Yes, with `nona-openfeature-web-provider` and `@openfeature/web-sdk`.
+
+It is a separate package because OpenFeature's browser paradigm evaluates synchronously against a preloaded snapshot rather than awaiting each flag. It needs a frontend-scoped API key and only sees frontend-scoped parameters.
 
 ### What is the best first OpenFeature test?
 

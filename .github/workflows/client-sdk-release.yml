@@ -66,12 +66,39 @@ jobs:
       - name: Test
         run: npm test --prefix client/javascript-openfeature-provider
 
+  test-javascript-openfeature-web:
+    name: Test JavaScript OpenFeature web provider
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            client/javascript/package-lock.json
+            client/javascript-openfeature-web-provider/package-lock.json
+
+      - name: Install JavaScript SDK dependencies
+        run: npm ci --prefix client/javascript
+
+      - name: Install OpenFeature web provider dependencies
+        run: npm ci --prefix client/javascript-openfeature-web-provider
+
+      - name: Test
+        run: npm test --prefix client/javascript-openfeature-web-provider
+
   publish-javascript-npm:
     name: Publish JavaScript SDK to npm
     runs-on: ubuntu-latest
     needs:
       - test-javascript
       - test-javascript-openfeature
+      - test-javascript-openfeature-web
     permissions:
       contents: read
       id-token: write
@@ -118,6 +145,7 @@ jobs:
     needs:
       - test-javascript
       - test-javascript-openfeature
+      - test-javascript-openfeature-web
     permissions:
       contents: read
       id-token: write
@@ -158,6 +186,58 @@ jobs:
       - name: Publish JavaScript OpenFeature provider
         run: npm publish --access public --provenance
         working-directory: client/javascript-openfeature-provider
+
+  publish-javascript-openfeature-web-npm:
+    name: Publish JavaScript OpenFeature web provider to npm
+    runs-on: ubuntu-latest
+    needs:
+      - test-javascript
+      - test-javascript-openfeature
+      - test-javascript-openfeature-web
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          cache: npm
+          cache-dependency-path: client/javascript-openfeature-web-provider/package-lock.json
+
+      - name: Resolve package version
+        id: version
+        shell: bash
+        run: |
+          version="${{ inputs.package_version }}"
+          if [ -z "$version" ] && [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            version="${GITHUB_REF_NAME#client-v}"
+          fi
+          echo "value=$version" >> "$GITHUB_OUTPUT"
+
+      # The web provider builds nona-client from source via its file: dependency.
+      - name: Install JavaScript SDK dependencies
+        run: npm ci --prefix client/javascript
+
+      - name: Install OpenFeature web provider dependencies
+        run: npm ci --prefix client/javascript-openfeature-web-provider
+
+      - name: Set package versions
+        if: steps.version.outputs.value != ''
+        shell: bash
+        run: |
+          version="${{ steps.version.outputs.value }}"
+          npm --prefix client/javascript-openfeature-web-provider version "$version" --no-git-tag-version --allow-same-version
+          npm --prefix client/javascript-openfeature-web-provider pkg set "peerDependencies.nona-client=^$version"
+
+      - name: Publish JavaScript OpenFeature web provider
+        run: npm publish --access public --provenance
+        working-directory: client/javascript-openfeature-web-provider
 
   publish-nuget:
     name: Test and publish .NET packages to NuGet
