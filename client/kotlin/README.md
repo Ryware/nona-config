@@ -60,7 +60,18 @@ The split exists so config cannot change under a user mid-session. Fetch wheneve
 
 `reset()` discards in-flight fetch results as well as clearing memory and disk; those fetches return `FetchStatus.DISCARDED`.
 
-`activate()` returns `true` when values actually changed, and `configUpdates` emits the changed keys:
+`activate()` returns `true` when values actually changed. `configUpdates` is a
+`Flow<Set<String>>` with an independent subscription for each collector. Slow
+collectors receive the union of unread changed keys, including deletions. Read
+current values when notified; notifications are not a snapshot history. New
+collectors receive no replay, and reset/default changes do not emit notifications.
+Cancel collection with the screen's lifecycle. Pending sets grow with the number
+of distinct unread keys, not the number of activations.
+
+`Flow` is the API for the first release. Earlier development snapshots exposed
+`SharedFlow`; the SDK has no existing users requiring migration.
+
+Collect updates:
 
 ```kotlin
 lifecycleScope.launch {
@@ -155,3 +166,21 @@ config.initializeAsync()
 ```
 
 `initializeAsync`, `fetchAsync`, `fetchAndActivateAsync`, and `resetAsync` return `CompletableFuture` (Android API 24+). Cancelling the future cancels its coroutine; blocking transport may take until its timeout to finish. Kotlin callers can continue using the suspending methods and `Duration` options.
+
+### Concurrency and cancellation
+
+Reuse one client per server/key/environment/selector identity. Fetches serialize;
+cache I/O runs on the supplied I/O dispatcher, outside the state lock. Cache
+serialization is per client (and per built-in file-store instance), not a
+cross-process transaction. Custom stores must be thread-safe and best effort.
+Cancellation is checked before committing state; it does not undo a completed
+commit or interrupt a blocking transport/store immediately. The default transport
+uses connect/read timeouts, not a total wall-clock request deadline. Inject a
+transport with a total deadline if your application requires one. Custom transports
+must enforce their own redirect and streaming limits; returned bodies are also
+checked by the SDK. Use HTTPS and frontend keys in applications.
+
+`getDouble` accepts finite decimal values with optional sign, fraction and
+exponent. Integer getters require a decimal integer within the signed 64-bit range.
+Language-specific suffixes and hexadecimal syntax are rejected. A missing
+or null `contentType` defaults to `text`; a non-string type rejects the snapshot.

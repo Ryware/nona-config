@@ -1,10 +1,12 @@
 package com.nonaconfig.client
 
 /**
- * Coercion from Nona's stored strings to typed values, kept deliberately in
- * step with the JavaScript providers so a value reads the same everywhere.
+ * Coercion from Nona's stored strings, checked against the shared mobile SDK
+ * contract. Numbers use finite decimal syntax, without language-specific suffixes.
  */
 internal object ValueParsing {
+    private val integer = Regex("[+-]?[0-9]+")
+    private val decimal = Regex("[+-]?(?:[0-9]+(?:\\.[0-9]*)?|\\.[0-9]+)(?:[eE][+-]?[0-9]+)?")
 
     fun parseBoolean(key: String, raw: String): ParseResult<Boolean> =
         when (raw.trim().lowercase()) {
@@ -17,10 +19,10 @@ internal object ValueParsing {
         ParseResult.Ok(raw)
 
     fun parseLong(key: String, raw: String): ParseResult<Long> =
-        raw.trim().toLongOrNull()?.let { ParseResult.Ok(it) } ?: mismatch(key, "long")
+        raw.trim().takeIf { integer.matches(it) }?.toLongOrNull()?.let { ParseResult.Ok(it) } ?: mismatch(key, "long")
 
     fun parseDouble(key: String, raw: String): ParseResult<Double> =
-        raw.trim().toDoubleOrNull()?.takeIf(Double::isFinite)?.let { ParseResult.Ok(it) }
+        raw.trim().takeIf { decimal.matches(it) }?.toDoubleOrNull()?.takeIf(Double::isFinite)?.let { ParseResult.Ok(it) }
             ?: mismatch(key, "double")
 
     private fun mismatch(key: String, type: String) = ParseResult.Err(

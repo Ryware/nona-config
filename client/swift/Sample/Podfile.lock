@@ -1,0 +1,16 @@
+PODS:
+  - NonaClient (0.1.0)
+
+DEPENDENCIES:
+  - NonaClient (from `../../..`)
+
+EXTERNAL SOURCES:
+  NonaClient:
+    :path: "../../.."
+
+SPEC CHECKSUMS:
+  NonaClient: 3942d8a1e076d04f6c38d06997a77774394c660b
+
+PODFILE CHECKSUM: ab821a974c12fe5a68a3d718ed3166bb3f2baa4d
+
+COCOAPODS: 1.17.0

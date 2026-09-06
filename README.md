@@ -109,7 +109,7 @@ This repository is the Nona monorepo:
 
 - `core`, `cli`, `libsql`, `migrator`: backend API, CLI, storage library, and migration tooling
 - `admin`: admin web UI
-- `client`: JavaScript SDK, .NET SDK, Kotlin/Android SDK, and the OpenFeature providers
+- `client`: JavaScript SDK, .NET SDK, Kotlin/Android SDK, Swift SDK, and the OpenFeature providers
 - `docs`: documentation site
 
 ---
@@ -157,6 +157,12 @@ Console.WriteLine(value.Value);
 📦 [nuget.org/packages/Nona.Client](https://www.nuget.org/packages/Nona.Client)
 
 ---
+
+### Swift / iOS
+
+The Swift client supports CocoaPods and Swift Package Manager, with defaults,
+offline caching, and explicit fetch/activate. See
+[client/swift/README.md](client/swift/README.md) for branch installation and usage.
 
 ### Kotlin / Android
 

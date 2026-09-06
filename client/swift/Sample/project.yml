@@ -1,0 +1,82 @@
+name: NonaSample
+options:
+  deploymentTarget:
+    iOS: '15.0'
+settings:
+  base:
+    SWIFT_VERSION: '5.9'
+    SWIFT_STRICT_CONCURRENCY: complete
+    CODE_SIGNING_ALLOWED: NO
+packages:
+  NonaClient:
+    path: ../../..
+targets:
+  NonaSample:
+    type: application
+    platform: iOS
+    sources: [App]
+    dependencies:
+      - package: NonaClient
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.nonaconfig.swift.sample
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsLocalNetworking: YES
+        TARGETED_DEVICE_FAMILY: '1,2'
+    info:
+      path: Info.plist
+      properties:
+        CFBundleDisplayName: Nona SDK
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+  NonaPodSample:
+    type: application
+    platform: iOS
+    sources: [App]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.nonaconfig.swift.podsample
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        TARGETED_DEVICE_FAMILY: '1,2'
+    info:
+      path: PodInfo.plist
+      properties:
+        CFBundleDisplayName: Nona CocoaPods
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+  NonaSampleTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - ../Tests/NonaClientTests
+      - IntegrationTests
+    dependencies:
+      - target: NonaSample
+      - package: NonaClient
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.nonaconfig.swift.sampletests
+        GENERATE_INFOPLIST_FILE: YES
+  NonaSampleUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [UITests]
+    dependencies:
+      - target: NonaSample
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.nonaconfig.swift.sampleuitests
+        GENERATE_INFOPLIST_FILE: YES
+schemes:
+  NonaSample:
+    build:
+      targets:
+        NonaSample: all
+    test:
+      targets: [NonaSampleTests, NonaSampleUITests]
+  NonaPodSample:
+    build:
+      targets:
+        NonaPodSample: all
