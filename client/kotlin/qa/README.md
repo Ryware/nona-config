@@ -19,13 +19,16 @@ python3 qa/run-device-tests.py --serial emulator-5554 \
 ```
 
 Run once per emulator, sequentially: rollback tests change the same disposable
-release. The tests use `10.0.2.2` to reach the host, exercise the actual Android
+release. The runner configures `adb reverse` for the selected emulator and uses
+`127.0.0.1` to reach the host. Tests exercise the actual Android
 HTTP/JSON/file implementations, and cover Java API, fetch/activate/304, prefix and
 pinned releases, throttling, defaults on invalid values, cache identity, backend
 scope rejection, invalid API keys, malformed responses, network timeouts, rejected
 redirects, bounded response sizes and invalid sample setup. Fault endpoints use
-loopback ports 18687 and 18688. The runner maps the fixture server to the emulator
-host alias while preserving its port and path.
+loopback ports 18687 and 18688. The runner preserves the fixture server port and path, forwards both fault
+ports, reuses matching reverse mappings and refuses to replace conflicting ones.
+Mappings remain available until the emulator or ADB connection closes. Failed
+suites also save `.network.txt` diagnostics beside the test output.
 
 `kotlin-client.yml` runs the suite on API 24 and 36 for pull requests, using its own
 ephemeral backend per matrix job. No repository secrets are needed.

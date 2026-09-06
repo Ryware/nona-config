@@ -1,5 +1,21 @@
 # Kotlin SDK final validation — 2026-09-06
 
+## CI transport follow-up
+
+GitHub run `34043116262` passed JVM checks and API 24, but API 36 failed
+connecting to `10.0.2.2:18686` in the `activeRelease` fixture setup, before the
+cache assertions. This establishes a connection timeout, not its precise cause.
+The runner now uses explicit ADB reverse mappings for the backend and both fault
+ports, with `127.0.0.1` URLs. It reuses matching mappings, rejects conflicts before
+installing APKs, and records routing/mapping diagnostics on test failure. No SDK
+behavior, timeout or test retry policy was changed.
+
+Local API 24 and API 36 suites both passed all 14 tests through the new transport.
+All 12 Python contract tests passed. Linux x86_64 hosted CI still needs to confirm
+this change; local emulators are ARM64. Evidence: `/tmp/nona-reverse-api24.txt`
+and `/tmp/nona-reverse-api36.txt`.
+
+
 ## Latest failure and compatibility checks
 
 46 JVM tests, 14 device tests on each of API 24 and API 37, SDK/sample lint

@@ -83,7 +83,10 @@ class FixtureTests(unittest.TestCase):
                 contextlib.redirect_stdout(io.StringIO()):
             runpy.run_path(str(client / 'kotlin/qa/run-device-tests.py'), run_name='__main__')
         command = run.call_args.args[0]
-        self.assertIn('http://10.0.2.2:18786', command)
+        self.assertIn('http://127.0.0.1:18786', command)
+        self.assertIn('http://127.0.0.1:18687', command)
+        mappings = [call.args[0][-2:] for call in run.call_args_list if '--no-rebind' in call.args[0]]
+        self.assertEqual(mappings, [['tcp:18687', 'tcp:18687'], ['tcp:18688', 'tcp:18688'], ['tcp:18786', 'tcp:18786']])
         self.assertIn('test-a', command)
         self.assertIn('test-b', command)
 
@@ -93,3 +96,53 @@ class FixtureTests(unittest.TestCase):
         for host in ['127.0.0.1', 'localhost', '10.0.2.2']:
             self.assertEqual(target(host + ':18687'), f'http://{host}:18688/capture')
         self.assertEqual(target('external.example:18687'), 'http://127.0.0.1:18688/capture')
+
+
+class AdbTransportTests(unittest.TestCase):
+    def configure(self, response, ports):
+        module = runpy.run_path(str(Path(__file__).resolve().parents[1] / 'kotlin/qa/adb_transport.py'))
+        with patch('subprocess.run', return_value=subprocess.CompletedProcess([], 0, response)) as run:
+            module['configure_reverse'](['adb', '-s', 'qa-device'], ports)
+        return run
+
+    def test_reuses_existing_mapping(self):
+        run = self.configure('device tcp:18686 tcp:18686\n', [18686, 18686])
+        self.assertEqual(run.call_count, 1)
+
+    def test_does_not_overwrite_other_mapping(self):
+        with self.assertRaisesRegex(RuntimeError, 'Conflicting'):
+            self.configure('device tcp:18686 tcp:9999\n', [18686])
+
+    def test_reverse_failure_stops_before_installation(self):
+        client = Path(__file__).resolve().parents[1]
+        with tempfile.TemporaryDirectory() as directory:
+            fixture = Path(directory) / 'fixtures.json'
+            fixture.write_text(json.dumps({'baseUrl': 'http://127.0.0.1:18686', 'sdk-qa-a': 'a',
+                'sdk-qa-b': 'b', 'backendKey': 'backend', 'adminToken': 'admin'}))
+            with patch('subprocess.run', side_effect=subprocess.CalledProcessError(1, 'adb')) as run, \
+                    patch.dict('os.environ', {'ANDROID_HOME': directory}), \
+                    patch.object(sys, 'argv', ['runner', '--fixtures', str(fixture), '--serial', 'test', '--output', 'unused']), \
+                    self.assertRaises(subprocess.CalledProcessError):
+                runpy.run_path(str(client / 'kotlin/qa/run-device-tests.py'), run_name='__main__')
+            self.assertEqual(run.call_count, 1)
+            self.assertNotIn('install', run.call_args.args[0])
+
+
+    def test_failed_suite_runs_once_and_saves_network_diagnostics(self):
+        client = Path(__file__).resolve().parents[1]
+        with tempfile.TemporaryDirectory() as directory:
+            fixture = Path(directory) / 'fixtures.json'
+            fixture.write_text(json.dumps({'baseUrl': 'http://127.0.0.1:18686', 'sdk-qa-a': 'a',
+                'sdk-qa-b': 'b', 'backendKey': 'backend', 'adminToken': 'admin'}))
+            output = Path(directory) / 'result.txt'
+            def reply(command, **kwargs):
+                text = 'FAILURES!!!' if 'instrument' in command else ''
+                return subprocess.CompletedProcess(command, 0, text)
+            with patch('subprocess.run', side_effect=reply) as run, \
+                    patch.dict('os.environ', {'ANDROID_HOME': directory}), \
+                    patch.object(sys, 'argv', ['runner', '--fixtures', str(fixture), '--serial', 'test', '--output', str(output)]), \
+                    contextlib.redirect_stdout(io.StringIO()), self.assertRaises(SystemExit) as error:
+                runpy.run_path(str(client / 'kotlin/qa/run-device-tests.py'), run_name='__main__')
+            self.assertEqual(error.exception.code, 1)
+            self.assertEqual(sum('instrument' in call.args[0] for call in run.call_args_list), 1)
+            self.assertIn('ip route', output.with_suffix('.txt.network.txt').read_text())

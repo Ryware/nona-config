@@ -29,7 +29,9 @@ setup, recreate the database and fixtures: project names and fixture keys change
 
 Fault endpoints listen on loopback ports 18687 and 18688 and exercise malformed
 JSON, HTTP errors, timeouts, redirects and response-size limits. Swift connects
-through `127.0.0.1`; the Android runner maps the backend URL to `10.0.2.2`.
+through `127.0.0.1`; the Android test runner forwards the backend and fault
+ports with `adb reverse` and also uses `127.0.0.1`. Manual emulator connections
+and the opt-in process-kill probe can still use `10.0.2.2`.
 Redirect targets preserve the requesting simulator's loopback/host alias, so they
 are reachable on either platform. Both SDKs must reject redirects before contacting
 the target. Other Host values fall back to loopback.
