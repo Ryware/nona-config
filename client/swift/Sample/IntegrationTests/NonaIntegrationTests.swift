@@ -7,9 +7,12 @@ final class NonaIntegrationTests: XCTestCase {
         try XCTUnwrap(ProcessInfo.processInfo.environment[name], "Run the integration suite using qa/run-simulator-tests.py; missing \(name)")
     }
     private func options(key: String? = nil, prefix: String? = nil, version: String? = nil) throws -> NonaOptions {
+        // These tests check backend behavior, not latency. Allow for the first
+        // request and scheduling delays on shared CI runners. Fault-server tests
+        // below keep their explicit short timeouts to verify timeout handling.
         try NonaOptions(baseURL: URL(string: environment("NONA_BASE_URL"))!, environmentID: "Production",
                         apiKey: key ?? environment("NONA_FRONTEND_A"), releaseVersion: version, prefix: prefix,
-                        minimumFetchInterval: 0, requestTimeout: 3)
+                        minimumFetchInterval: 0, requestTimeout: 15)
     }
 
     func testRealServerFetch304DefaultsAndRestore() async throws {
