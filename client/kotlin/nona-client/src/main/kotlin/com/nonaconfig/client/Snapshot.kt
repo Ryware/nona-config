@@ -2,6 +2,7 @@ package com.nonaconfig.client
 
 import org.json.JSONException
 import org.json.JSONObject
+import org.json.JSONTokener
 
 /** An immutable set of values, plus what is needed to revalidate it. */
 internal data class Snapshot(
@@ -14,7 +15,11 @@ internal data class Snapshot(
         /** Parses the `GET /api/{environmentId}` body: `{"key":{"value":..,"contentType":..}}`. */
         fun fromResponseBody(body: String, etag: String?, fetchedAtMillis: Long): Snapshot {
             val root = try {
-                JSONObject(body)
+                val input = JSONTokener(body)
+                val objectValue = input.nextValue() as? JSONObject
+                    ?: throw JSONException("Expected object")
+                if (input.nextClean() != '\u0000') throw JSONException("Trailing data")
+                objectValue
             } catch (cause: JSONException) {
                 throw NonaException("Nona returned an invalid config snapshot.", cause)
             }
@@ -25,7 +30,12 @@ internal data class Snapshot(
                     ?: throw NonaException("Nona returned an invalid entry for '$key'.")
                 val value = entry.opt("value") as? String
                     ?: throw NonaException("Nona returned a non-string value for '$key'.")
-                val contentType = entry.opt("contentType") as? String ?: "text"
+                val rawType = entry.opt("contentType")
+                val contentType = when (rawType) {
+                    null, JSONObject.NULL -> "text"
+                    is String -> rawType
+                    else -> throw NonaException("Nona returned an invalid content type for '$key'.")
+                }
                 values[key] = NonaEntry(value, contentType)
             }
 
@@ -37,19 +47,19 @@ internal data class Snapshot(
                 val root = JSONObject(json)
                 if (root.optString("identity") != identity) return null
                 val valuesJson = root.getJSONObject(FIELD_VALUES)
-                val values = LinkedHashMap<String, NonaEntry>(valuesJson.length())
-                for (key in valuesJson.keys()) {
-                    val entry = valuesJson.getJSONObject(key)
-                    values[key] = NonaEntry(
-                        value = entry.getString(FIELD_VALUE),
-                        contentType = entry.optString(FIELD_CONTENT_TYPE, "text"),
-                    )
+                val rawEtag = root.opt(FIELD_ETAG)
+                val etag = when (rawEtag) {
+                    null, JSONObject.NULL -> null
+                    is String -> rawEtag.ifEmpty { null }
+                    else -> return null
                 }
-                Snapshot(
-                    values = values,
-                    etag = root.optString(FIELD_ETAG).ifEmpty { null },
-                    fetchedAtMillis = root.optLong(FIELD_FETCHED_AT),
-                )
+                val timestamp = root.opt(FIELD_FETCHED_AT) as? Number ?: return null
+                val millis = timestamp.toString().toLongOrNull() ?: return null
+                // Android JSONObject.getString coerces numbers/booleans; use the same
+                // explicit entry validation as the wire format instead.
+                fromResponseBody(valuesJson.toString(), etag, millis)
+            } catch (_: NonaException) {
+                null
             } catch (_: JSONException) {
                 // A corrupt cache is not worth failing over; refetch instead.
                 null

@@ -25,7 +25,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Verify shared QA contracts
-        run: python3 -m unittest discover -s client/qa -p 'test_*.py'
+        run: |
+          python3 client/qa/generate-contracts.py --check
+          python3 -m unittest discover -s client/qa -p 'test_*.py'
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x

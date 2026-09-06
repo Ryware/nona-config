@@ -1,0 +1,228 @@
+{
+  "snapshots": [
+    {
+      "name": "empty",
+      "body": "{}",
+      "valid": true,
+      "expected": {}
+    },
+    {
+      "name": "unicode",
+      "body": "{\"флаг🚀\": {\"value\": \"é\\n東京\", \"contentType\": \"custom\"}}",
+      "valid": true,
+      "expected": {
+        "флаг🚀": {
+          "value": "é\n東京",
+          "contentType": "custom"
+        }
+      }
+    },
+    {
+      "name": "missing_type",
+      "body": "{\"flag\":{\"value\":\"A\"}}",
+      "valid": true,
+      "expected": {
+        "flag": {
+          "value": "A",
+          "contentType": "text"
+        }
+      }
+    },
+    {
+      "name": "null_type",
+      "body": "{\"flag\":{\"value\":\"A\",\"contentType\":null}}",
+      "valid": true,
+      "expected": {
+        "flag": {
+          "value": "A",
+          "contentType": "text"
+        }
+      }
+    },
+    {
+      "name": "unknown_type",
+      "body": "{\"flag\":{\"value\":\"A\",\"contentType\":\"future-type\",\"extra\":true}}",
+      "valid": true,
+      "expected": {
+        "flag": {
+          "value": "A",
+          "contentType": "future-type"
+        }
+      }
+    },
+    {
+      "name": "null_root",
+      "body": "null",
+      "valid": false,
+      "expected": {}
+    },
+    {
+      "name": "array_root",
+      "body": "[]",
+      "valid": false,
+      "expected": {}
+    },
+    {
+      "name": "number_root",
+      "body": "1",
+      "valid": false,
+      "expected": {}
+    },
+    {
+      "name": "null_entry",
+      "body": "{\"flag\":null}",
+      "valid": false,
+      "expected": {}
+    },
+    {
+      "name": "missing_value",
+      "body": "{\"flag\":{}}",
+      "valid": false,
+      "expected": {}
+    },
+    {
+      "name": "null_value",
+      "body": "{\"flag\":{\"value\":null}}",
+      "valid": false,
+      "expected": {}
+    },
+    {
+      "name": "number_value",
+      "body": "{\"flag\":{\"value\":123}}",
+      "valid": false,
+      "expected": {}
+    },
+    {
+      "name": "boolean_value",
+      "body": "{\"flag\":{\"value\":true}}",
+      "valid": false,
+      "expected": {}
+    },
+    {
+      "name": "wrong_type",
+      "body": "{\"flag\":{\"value\":\"A\",\"contentType\":123}}",
+      "valid": false,
+      "expected": {}
+    },
+    {
+      "name": "truncated",
+      "body": "{\"flag\":",
+      "valid": false,
+      "expected": {}
+    },
+    {
+      "name": "trailing_data",
+      "body": "{}garbage",
+      "valid": false,
+      "expected": {}
+    }
+  ],
+  "values": [
+    {
+      "value": "42",
+      "long": "42",
+      "double": 42,
+      "boolean": false
+    },
+    {
+      "value": "-9223372036854775808",
+      "long": "-9223372036854775808",
+      "double": -9223372036854775808,
+      "boolean": false
+    },
+    {
+      "value": "9223372036854775808",
+      "long": null,
+      "double": 9223372036854775808,
+      "boolean": false
+    },
+    {
+      "value": "  +12  ",
+      "long": "12",
+      "double": 12,
+      "boolean": false
+    },
+    {
+      "value": "1e2",
+      "long": null,
+      "double": 100,
+      "boolean": false
+    },
+    {
+      "value": ".5",
+      "long": null,
+      "double": 0.5,
+      "boolean": false
+    },
+    {
+      "value": "NaN",
+      "long": null,
+      "double": null,
+      "boolean": false
+    },
+    {
+      "value": "Infinity",
+      "long": null,
+      "double": null,
+      "boolean": false
+    },
+    {
+      "value": "1e9999",
+      "long": null,
+      "double": null,
+      "boolean": false
+    },
+    {
+      "value": "1.0f",
+      "long": null,
+      "double": null,
+      "boolean": false
+    },
+    {
+      "value": "0x1.0p3",
+      "long": null,
+      "double": null,
+      "boolean": false
+    },
+    {
+      "value": "١٢",
+      "long": null,
+      "double": null,
+      "boolean": false
+    },
+    {
+      "value": "",
+      "long": null,
+      "double": null,
+      "boolean": false
+    },
+    {
+      "value": " TRUE\n",
+      "long": null,
+      "double": null,
+      "boolean": true
+    },
+    {
+      "value": "false",
+      "long": null,
+      "double": null,
+      "boolean": false
+    },
+    {
+      "value": "yes",
+      "long": null,
+      "double": null,
+      "boolean": false
+    }
+  ],
+  "cacheFixtures": {
+    "swift": {
+      "baselineRef": "6782f7c60b50543bd357d3286a38117f85062b33",
+      "json": "{\"values\":{\"flag\":{\"value\":\"compatible\",\"contentType\":\"text\"}},\"fetchedAt\":1788708618.569237,\"identity\":\"1f4e28f091346ee8d7091eb2eda6266dd775018030de43fc9554d8767cd0647a\"}"
+    },
+    "kotlin": {
+      "baselineRef": "6782f7c60b50543bd357d3286a38117f85062b33",
+      "json": "{\"identity\":\"1a94a9d1388761219b8326cfa2322c05c25d5ab259c236fde0c3c45f308dd48a\",\"values\":{\"flag\":{\"value\":\"compatible\",\"contentType\":\"text\"}},\"fetchedAt\":1788708619291}"
+    }
+  }
+}

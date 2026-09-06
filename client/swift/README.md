@@ -177,3 +177,8 @@ To regenerate the checked-in Xcode project, run
 `xcodegen generate --spec client/swift/Sample/project.yml`, then rerun `pod install`.
 
 See [qa/README.md](qa/README.md) for simulator tests against a real disposable backend.
+
+`getDouble` accepts finite decimal values with optional sign, fraction and
+exponent. Integer getters require a decimal integer within the signed 64-bit range.
+Language-specific suffixes and hexadecimal syntax are rejected. A missing
+or null `contentType` defaults to `text`; a non-string type rejects the snapshot.

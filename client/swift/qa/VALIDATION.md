@@ -1,5 +1,15 @@
 # Swift SDK validation — 2026-09-06
 
+## Latest failure and compatibility checks
+
+33 Swift unit tests with Thread Sanitizer, 40 iOS simulator tests, Swift 6
+compilation, CocoaPods lint and independent SwiftPM consumer builds pass.
+The [shared report](../../qa/RISK-VALIDATION.md) records parser/cache corrections,
+shared fixtures, upgrade and process-kill checks, commands and remaining limits.
+The Kotlin JVM signature check reports the known SharedFlow-to-Flow binary break;
+it requires a release/migration decision and is not a passing gate. Earlier
+results below remain historical.
+
 ## Latest architecture follow-up
 
 The subsequent working-tree audit based on `6070d8e` is recorded in

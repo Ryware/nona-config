@@ -3,6 +3,7 @@
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import time
 import threading
+import socket
 
 def redirect_target(host_header):
     host = host_header.split(':', 1)[0].lower()
@@ -12,6 +13,28 @@ def redirect_target(host_header):
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
+        if self.path.startswith(('/short-body/', '/partial-json/', '/disconnect/')):
+            body = b'{"flag":{"value":"should-not-activate"}}' if self.path.startswith('/short-body/') else b'{"flag":'
+            if not self.path.startswith('/disconnect/'):
+                self.send_response(200)
+                self.send_header('Content-Length', str(len(body) + 100))
+                self.end_headers()
+                self.wfile.write(body)
+                self.wfile.flush()
+            self.close_connection = True
+            self.connection.shutdown(socket.SHUT_RDWR)
+            return
+        if self.path.startswith('/trickle/'):
+            self.send_response(200)
+            self.end_headers()
+            try:
+                for byte in b'{"flag":{"value":"' + b'x' * 256 + b'"}}':
+                    self.wfile.write(bytes([byte]))
+                    self.wfile.flush()
+                    time.sleep(0.01)
+            except (BrokenPipeError, ConnectionResetError):
+                pass
+            return
         if self.path.startswith('/redirect/'):
             self.send_response(302)
             self.send_header('Location', redirect_target(self.headers.get('Host', '')))

@@ -1,5 +1,8 @@
 # Android SDK verification
 
+See the [architecture audit](ARCHITECTURE.md) for corrections, concurrency
+contracts and the `configUpdates` API migration.
+
 Start and seed a disposable backend using the [shared SDK QA setup](../../qa/README.md).
 Then follow the Android-specific steps below. Requires JDK 17, Android SDK 36
 and an Android emulator in addition to the shared prerequisites.

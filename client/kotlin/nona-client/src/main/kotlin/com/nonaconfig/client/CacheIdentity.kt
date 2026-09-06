@@ -10,6 +10,7 @@ internal fun NonaOptions.normalizedBaseUrl(): String {
     require(uri.host != null && uri.rawUserInfo == null && uri.rawQuery == null && uri.rawFragment == null) {
         "baseUrl must have a host and no credentials, query or fragment"
     }
+    require(uri.port == -1 || uri.port in 1..65535) { "baseUrl port must be between 1 and 65535" }
     val port = if ((scheme == "https" && uri.port == 443) || (scheme == "http" && uri.port == 80)) -1 else uri.port
     val origin = URI(scheme, null, uri.host.lowercase(), port, null, null, null).toASCIIString()
     return origin + uri.rawPath.orEmpty().trimEnd('/')

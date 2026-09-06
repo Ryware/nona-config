@@ -432,3 +432,148 @@ final class NonaConfigTests: XCTestCase {
         }
     }
 }
+
+extension NonaConfigTests {
+    func testSharedSnapshotContract() async throws {
+        struct Entry: Decodable { let value: String; let contentType: String }
+        struct Case: Decodable { let name: String; let body: String; let valid: Bool; let expected: [String: Entry] }
+        struct Corpus: Decodable { let snapshots: [Case] }
+        let corpus = try JSONDecoder().decode(Corpus.self, from: Data(SharedContracts.json.utf8))
+        for item in corpus.snapshots {
+            let config = NonaConfig(options: try options(), store: InMemorySnapshotStore(), http: StubHTTP { _, _ in
+                NonaHTTPResponse(statusCode: 200, body: Data(item.body.utf8), etag: "etag")
+            })
+            if !item.valid {
+                do { try await config.fetch(); XCTFail("Expected rejection: \(item.name)") }
+                catch let error as NonaError { XCTAssertEqual(error, .invalidSnapshot, item.name) }
+                XCTAssertFalse(config.activate(), item.name)
+                continue
+            }
+            try await config.fetchAndActivate()
+            XCTAssertEqual(config.keys, Set(item.expected.keys), item.name)
+            for (key, expected) in item.expected {
+                guard case .success(let value, _, let type) = config.resolveString(key) else { XCTFail(item.name); continue }
+                XCTAssertEqual(value, expected.value, item.name)
+                XCTAssertEqual(type, expected.contentType, item.name)
+            }
+        }
+    }
+
+    func testSharedValueContract() async throws {
+        struct Case: Decodable { let value: String; let long: String?; let double: Double?; let boolean: Bool }
+        struct Corpus: Decodable { let values: [Case] }
+        let corpus = try JSONDecoder().decode(Corpus.self, from: Data(SharedContracts.json.utf8))
+        for item in corpus.values {
+            let config = try client(item.value)
+            try await config.fetchAndActivate()
+            XCTAssertEqual(config.getLong("flag"), item.long.flatMap(Int64.init) ?? 0, item.value)
+            XCTAssertEqual(config.getDouble("flag"), item.double ?? 0, item.value)
+            XCTAssertEqual(config.getBoolean("flag"), item.boolean, item.value)
+        }
+    }
+}
+
+extension NonaConfigTests {
+    func testFailedDiskWritesPreserveMemoryAndRecover() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let parent = root.appendingPathComponent("blocked")
+        try Data("not a directory".utf8).write(to: parent)
+        let store = FileSnapshotStore(fileURL: parent.appendingPathComponent("snapshot.json"))
+        let config = try client(store: store)
+        try await config.fetchAndActivate()
+        XCTAssertEqual(config.getString("flag"), "A")
+        XCTAssertNil(store.read())
+        try FileManager.default.removeItem(at: parent)
+        try await config.fetch()
+        let restarted = try client(store: store)
+        let restored = try await restarted.initialize()
+        XCTAssertTrue(restored)
+        XCTAssertEqual(restarted.getString("flag"), "A")
+    }
+
+    func testCancelledResetWaitingForWriteDoesNotClearCommittedValues() async throws {
+        let store = BlockingStore()
+        let config = try client(store: store)
+        store.operation.withLock { $0 = "write" }
+        let fetch = Task { try await config.fetch() }
+        await fulfillment(of: [store.entered], timeout: 5)
+        XCTAssertTrue(config.activate())
+        let started = expectation(description: "Reset started")
+        let reset = Task { started.fulfill(); try await config.reset() }
+        await fulfillment(of: [started], timeout: 5)
+        reset.cancel()
+        store.resume.signal()
+        _ = try await fetch.value
+        do { try await reset.value; XCTFail("Expected cancellation") } catch is CancellationError {}
+        XCTAssertEqual(config.getString("flag"), "A")
+        XCTAssertNotNil(store.read())
+    }
+
+    func testConcurrentFileStoreInstancesNeverExposePartialJSON() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let path = root.appendingPathComponent("snapshot.json")
+        let a = FileSnapshotStore(fileURL: path), b = FileSnapshotStore(fileURL: path)
+        let payloads = [body(String(repeating: "A", count: 8192)), body(String(repeating: "B", count: 8192))]
+        a.write(payloads[0])
+        await withTaskGroup(of: Void.self) { group in
+            for index in 0..<50 {
+                group.addTask {
+                    (index.isMultiple(of: 2) ? a : b).write(payloads[index % 2])
+                    XCTAssertTrue(a.read().map(payloads.contains) ?? false)
+                }
+            }
+        }
+    }
+
+    func testCacheRejectsWrongValueTypeWithoutLosingDefaults() async throws {
+        let store = InMemorySnapshotStore()
+        let config = try client(store: store)
+        try await config.fetch()
+        var json = try XCTUnwrap(JSONSerialization.jsonObject(with: XCTUnwrap(store.read())) as? [String: Any])
+        json["values"] = ["flag": ["value": 123, "contentType": "text"]]
+        store.write(try JSONSerialization.data(withJSONObject: json))
+        let restarted = try client(store: store)
+        restarted.setDefaults(["flag": "default"])
+        let restored = try await restarted.initialize()
+        XCTAssertFalse(restored)
+        XCTAssertEqual(restarted.getString("flag"), "default")
+    }
+}
+
+extension NonaConfigTests {
+    func testRepeatedSubscriberCancellationDoesNotBreakFutureDelivery() async throws {
+        let config = try client()
+        for _ in 0..<200 {
+            let stream = config.updates()
+            let consumer = Task { var iterator = stream.makeAsyncIterator(); return await iterator.next() }
+            consumer.cancel()
+            let result = await consumer.value
+            XCTAssertNil(result)
+        }
+        var iterator = config.updates().makeAsyncIterator()
+        try await config.fetchAndActivate()
+        let delivered = await iterator.next()
+        XCTAssertEqual(delivered, ["flag"])
+    }
+}
+
+extension NonaConfigTests {
+    func testCacheWrittenByBaselineSDKStillRestores() async throws {
+        struct Fixture: Decodable { let baselineRef: String; let json: String }
+        struct Corpus: Decodable { let cacheFixtures: [String: Fixture] }
+        let corpus = try JSONDecoder().decode(Corpus.self, from: Data(SharedContracts.json.utf8))
+        let fixture = try XCTUnwrap(corpus.cacheFixtures["swift"])
+        let store = InMemorySnapshotStore()
+        store.write(Data(fixture.json.utf8))
+        let options = try NonaOptions(baseURL: URL(string: "https://nona.test")!, environmentID: "Production")
+        let config = NonaConfig(options: options, store: store, http: StubHTTP { _, _ in
+            XCTFail("Restore must not use HTTP"); throw NonaError.transport
+        })
+        let restored = try await config.initialize()
+        XCTAssertTrue(restored, fixture.baselineRef)
+        XCTAssertEqual(config.getString("flag"), "compatible")
+    }
+}

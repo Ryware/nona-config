@@ -186,7 +186,11 @@ public final class NonaConfig: Sendable {
         switch trim(value).lowercased() { case "true": return true; case "false": return false; default: return nil }
     }
     private static func double(_ value: String) -> Double? {
-        guard let result = Double(trim(value)), result.isFinite else { return nil }
+        let text = trim(value)
+        // Match the decimal grammar used by the Kotlin SDK, excluding hex and suffixes.
+        guard text.range(of: #"^[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?$"#,
+                         options: .regularExpression) != nil,
+              let result = Double(text), result.isFinite else { return nil }
         return result
     }
 

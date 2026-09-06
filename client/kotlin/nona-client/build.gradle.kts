@@ -77,7 +77,7 @@ mavenPublishing {
 }
 
 dependencies {
-    // SharedFlow and CoroutineDispatcher appear in the public API.
+    // Flow and CoroutineDispatcher appear in the public API.
     api(libs.kotlinx.coroutines.android)
 
     testImplementation(kotlin("test"))

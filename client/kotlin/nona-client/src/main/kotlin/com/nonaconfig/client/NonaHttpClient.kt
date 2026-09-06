@@ -17,7 +17,8 @@ data class NonaHttpResponse(
  *
  * The default implementation uses [HttpURLConnection], which is backed by
  * OkHttp on Android and needs no extra dependency. Supply your own to reuse an
- * app's existing OkHttp stack, or to fake the network in tests.
+ * app's existing OkHttp stack, or to fake the network in tests. Custom transports
+ * must enforce redirect, timeout and streaming size policies themselves.
  */
 interface NonaHttpClient {
     /** Performs a GET. Should throw [java.io.IOException] only for transport failures. */

@@ -6,7 +6,8 @@ import com.nonaconfig.client.*
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.concurrent.TimeUnit
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.collect
 import kotlin.time.Duration
 import org.junit.Assert.*
 import org.junit.Test
@@ -16,6 +17,10 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
+
+@Retention(AnnotationRetention.RUNTIME)
+@Target(AnnotationTarget.FUNCTION)
+annotation class ManualProbe
 
 /** Uses only disposable fixtures created by client/qa/seed-server.py. */
 @RunWith(AndroidJUnit4::class)
@@ -38,6 +43,126 @@ class NonaDeviceTest {
             connection.outputStream.use { it.write("{\"version\":\"$version\"}".toByteArray()) }
             check(connection.responseCode in 200..299) { "Could not select fixture release" }
         } finally { connection.disconnect() }
+    }
+
+    @Test fun slowSubscriberRetainsChangedAndDeletedKeys() = runBlocking {
+        var body = """{"removed":{"value":"yes","contentType":"text"}}"""
+        val config = NonaConfig.create(options(), InMemorySnapshotStore(), object : NonaHttpClient {
+            override fun get(url: String, headers: Map<String, String>) = NonaHttpResponse(200, body, null)
+        })
+        config.fetchAndActivate()
+        val first = CompletableDeferred<Unit>()
+        val release = CompletableDeferred<Unit>()
+        val delivered = CompletableDeferred<Set<String>>()
+        var seenFirst = false
+        val collector = launch(start = CoroutineStart.UNDISPATCHED) {
+            config.configUpdates.collect {
+                if (!seenFirst) {
+                    seenFirst = true
+                    first.complete(Unit)
+                    release.await()
+                } else delivered.complete(it)
+            }
+        }
+        try {
+            body = """{"removed":{"value":"yes"},"first":{"value":"yes"}}"""
+            config.fetchAndActivate()
+            withTimeout(2000) { first.await() }
+            body = """{"removed":{"value":"yes"},"first":{"value":"yes"},"added":{"value":"yes"}}"""
+            config.fetchAndActivate()
+            body = """{"first":{"value":"yes"},"added":{"value":"yes"}}"""
+            config.fetchAndActivate()
+            release.complete(Unit)
+            assertEquals(setOf("added", "removed"), withTimeout(2000) { delivered.await() })
+        } finally { collector.cancelAndJoin() }
+    }
+
+    @Test fun interruptedBodiesCannotReplaceActiveCache() = runBlocking {
+        val base = args.getString("faultBaseUrl", "http://10.0.2.2:18687")
+        for (route in listOf("short-body", "partial-json", "disconnect", "trickle")) {
+            val opts = NonaOptions.builder("$base/$route", "Production").minimumFetchIntervalMillis(0)
+                .connectTimeoutMillis(5000).readTimeoutMillis(3000).maxResponseBytes(64).build()
+            val store = InMemorySnapshotStore()
+            val seed = NonaConfig.create(opts, store, object : NonaHttpClient {
+                override fun get(url: String, headers: Map<String, String>) =
+                    NonaHttpResponse(200, """{"flag":{"value":"old"}}""", null)
+            })
+            seed.fetch()
+            val original = store.read()
+            val config = NonaConfig.create(opts, store)
+            assertTrue(config.initialize())
+            try { config.fetch(); fail("Expected $route failure") } catch (_: NonaException) { }
+            assertEquals(route, "old", config.getString("flag"))
+            assertFalse(route, config.activate())
+            assertEquals(route, original, store.read())
+        }
+    }
+
+    @Test fun sharedContractMatchesAndroidPlatformJSON() = runBlocking {
+        val corpus = org.json.JSONObject(InstrumentationRegistry.getInstrumentation().context.assets
+            .open("snapshots.json").bufferedReader().use { it.readText() })
+        val cases = corpus.getJSONArray("snapshots")
+        for (i in 0 until cases.length()) {
+            val item = cases.getJSONObject(i)
+            val name = item.getString("name")
+            val config = NonaConfig.create(options(), InMemorySnapshotStore(), object : NonaHttpClient {
+                override fun get(url: String, headers: Map<String, String>) = NonaHttpResponse(200, item.getString("body"), null)
+            })
+            val accepted = try { config.fetchAndActivate(); true } catch (_: NonaException) { false }
+            assertEquals(name, item.getBoolean("valid"), accepted)
+            if (accepted) {
+                val expected = item.getJSONObject("expected")
+                assertEquals(name, expected.keys().asSequence().toSet(), config.keys)
+                for (key in config.keys) {
+                    val entry = expected.getJSONObject(key)
+                    val resolved = config.resolveString(key) as NonaResolution.Success
+                    assertEquals(name, entry.getString("value"), resolved.value)
+                    assertEquals(name, entry.getString("contentType"), resolved.contentType)
+                }
+            }
+        }
+        val values = corpus.getJSONArray("values")
+        for (i in 0 until values.length()) {
+            val item = values.getJSONObject(i)
+            val raw = item.getString("value")
+            val config = NonaConfig.create(options(), InMemorySnapshotStore(), object : NonaHttpClient {
+                override fun get(url: String, headers: Map<String, String>) = NonaHttpResponse(200,
+                    org.json.JSONObject().put("flag", org.json.JSONObject().put("value", raw)).toString(), null)
+            })
+            config.fetchAndActivate()
+            assertEquals(raw, if (item.isNull("long")) 0L else item.getString("long").toLong(), config.getLong("flag"))
+            assertEquals(raw, if (item.isNull("double")) 0.0 else item.getDouble("double"), config.getDouble("flag"), 0.0)
+            assertEquals(raw, item.getBoolean("boolean"), config.getBoolean("flag"))
+        }
+    }
+
+    @Test fun corruptedCacheCannotCoerceNumberIntoString() = runBlocking {
+        val store = InMemorySnapshotStore()
+        val opts = options()
+        NonaConfig.create(opts, store, object : NonaHttpClient {
+            override fun get(url: String, headers: Map<String, String>) = NonaHttpResponse(200, """{"flag":{"value":"old"}}""", null)
+        }).fetch()
+        val json = org.json.JSONObject(store.read()!!)
+        json.getJSONObject("values").getJSONObject("flag").put("value", 123)
+        store.write(json.toString())
+        val config = NonaConfig.create(opts, store)
+        config.setDefaults(mapOf("flag" to "default"))
+        assertFalse(config.initialize())
+        assertEquals("default", config.getString("flag"))
+    }
+
+    @Test @ManualProbe fun processKillProbe() = runBlocking<Unit> {
+        org.junit.Assume.assumeTrue(args.getString("crashProbe") == "true")
+        val directory = java.io.File(context.filesDir, "process-kill-probe")
+        directory.deleteRecursively()
+        check(directory.mkdirs())
+        val scoped = object : android.content.ContextWrapper(context) {
+            override fun getFilesDir() = directory
+        }
+        val config = NonaConfig.create(scoped, options())
+        config.fetch()
+        java.io.File(directory, "ready").writeText("ready")
+        while (true) config.fetch(Duration.ZERO)
     }
 
     @Test fun javaApiFetchActivateAnd304() {
@@ -109,7 +234,7 @@ class NonaDeviceTest {
         val faultBase = args.getString("faultBaseUrl", "http://10.0.2.2:18687")
         for (route in listOf("slow", "malformed", "http503")) {
             val opts = NonaOptions.builder("$faultBase/$route", "Production")
-                .connectTimeoutMillis(250).readTimeoutMillis(100).build()
+                .connectTimeoutMillis(5000).readTimeoutMillis(if (route == "slow") 100 else 5000).build()
             val config = NonaConfig.create(opts, InMemorySnapshotStore())
             config.setDefaults(mapOf("flag" to "fallback"))
             try {
@@ -117,8 +242,8 @@ class NonaDeviceTest {
                 fail("Expected $route failure")
             } catch (error: NonaException) {
                 when (route) {
-                    "slow" -> assertTrue(error.cause is java.net.SocketTimeoutException)
-                    "malformed" -> assertTrue(error.message.orEmpty().contains("non-string"))
+                    "slow" -> assertTrue("Expected timeout, got ${error.cause?.javaClass?.simpleName}", error.cause is java.net.SocketTimeoutException)
+                    "malformed" -> assertTrue("Expected invalid value, got ${error.message}", error.message.orEmpty().contains("non-string"))
                     "http503" -> assertEquals(503, (error as NonaHttpException).statusCode)
                 }
                 assertEquals("fallback", config.getString("flag"))

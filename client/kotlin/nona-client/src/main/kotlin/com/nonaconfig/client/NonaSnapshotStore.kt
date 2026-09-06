@@ -5,7 +5,8 @@ import java.io.IOException
 
 /**
  * Where the last good snapshot is kept so a cold start has values before the
- * network answers.
+ * network answers. Implementations must be thread-safe and treat cache failures
+ * as best effort. Use an application-private location; the cache is not encrypted.
  */
 interface NonaSnapshotStore {
     fun read(): String?
@@ -16,12 +17,14 @@ interface NonaSnapshotStore {
 /** Persists to a single file. Failures are swallowed: the cache is an optimisation. */
 internal class FileSnapshotStore(private val file: File) : NonaSnapshotStore {
 
+    @Synchronized
     override fun read(): String? = try {
         if (file.isFile) file.readText() else null
     } catch (_: IOException) {
         null
     }
 
+    @Synchronized
     override fun write(json: String) {
         var temp: File? = null
         try {
@@ -42,6 +45,7 @@ internal class FileSnapshotStore(private val file: File) : NonaSnapshotStore {
         }
     }
 
+    @Synchronized
     override fun clear() {
         try {
             file.delete()

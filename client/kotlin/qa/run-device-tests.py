@@ -28,7 +28,8 @@ for apk in ['sample/build/outputs/apk/debug/sample-debug.apk',
     subprocess.run(adb + ['install', '-r', str(root / apk)], check=True)
 emulator_url = urlunsplit((server.scheme, '10.0.2.2' + (f':{server.port}' if server.port else ''),
                           server.path, '', ''))
-command = adb + ['shell', 'am', 'instrument', '-w', '-r', '-e', 'baseUrl', emulator_url]
+command = adb + ['shell', 'am', 'instrument', '-w', '-r', '-e', 'notAnnotation',
+                 'com.nonaconfig.sample.ManualProbe', '-e', 'baseUrl', emulator_url]
 for name, value in {'frontendA': fixtures['sdk-qa-a'], 'frontendB': fixtures['sdk-qa-b'],
                     'backendKey': fixtures['backendKey'], 'adminToken': fixtures['adminToken']}.items():
     command += ['-e', name, value]

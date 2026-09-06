@@ -44,3 +44,6 @@ Run shared fixture and runner-contract tests with:
 ```sh
 python3 -m unittest discover -s client/qa -p 'test_*.py'
 ```
+
+See [mobile failure and compatibility checks](RISK-VALIDATION.md) for shared
+contract fixtures, upgrade probes, process-kill tests and remaining risks.

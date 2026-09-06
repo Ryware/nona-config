@@ -9,10 +9,7 @@ import kotlin.time.Duration
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.channels.BufferOverflow
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -37,6 +34,8 @@ class NonaConfig internal constructor(
 
     private val fetchLock = Mutex()
     private val stateLock = Any()
+    // Cache operations serialize before state mutation; never perform I/O under stateLock.
+    private val cacheLock = Mutex()
     private var generation = 0L
     private val cacheIdentity = options.cacheIdentity()
 
@@ -52,13 +51,10 @@ class NonaConfig internal constructor(
     @Volatile
     private var lastFetchAtMillis: Long = 0
 
-    private val _configUpdates = MutableSharedFlow<Set<String>>(
-        extraBufferCapacity = 1,
-        onBufferOverflow = BufferOverflow.DROP_OLDEST,
-    )
+    private val updates = ConfigUpdates()
 
-    /** Emits the changed keys every time [activate] applies new values. */
-    val configUpdates: SharedFlow<Set<String>> = _configUpdates.asSharedFlow()
+    /** Per-collector activation invalidations. Slow collectors receive a union of changed keys. */
+    val configUpdates: Flow<Set<String>> = updates.flow
 
     /** Keys readable right now, from the active snapshot and the defaults. */
     val keys: Set<String>
@@ -77,12 +73,16 @@ class NonaConfig internal constructor(
      * once at startup, before the first read. Returns true if one was restored.
      */
     suspend fun initialize(): Boolean = withContext(ioDispatcher) {
-        synchronized(stateLock) {
-            if (active != null || pending != null) return@synchronized false
+        cacheLock.withLock {
+            if (synchronized(stateLock) { active != null || pending != null }) return@withLock false
             val restored = store.read()?.let { Snapshot.fromCacheJson(it, cacheIdentity) }
-                ?: return@synchronized false
-            active = restored
-            lastFetchAtMillis = restored.fetchedAtMillis
+                ?: return@withLock false
+            val context = currentCoroutineContext()
+            synchronized(stateLock) {
+                context.ensureActive()
+                active = restored
+                lastFetchAtMillis = restored.fetchedAtMillis
+            }
             true
         }
     }
@@ -110,18 +110,15 @@ class NonaConfig internal constructor(
         }
 
     /** Promotes fetched values into the active set. Returns true if they changed. */
-    fun activate(): Boolean = synchronized(stateLock) {
-        val next = pending ?: return@synchronized false
-        pending = null
-
-        val changed = changedKeys(active?.values.orEmpty(), next.values)
-        active = next
-        if (changed.isEmpty()) {
-            return@synchronized false
+    fun activate(): Boolean {
+        val changed = synchronized(stateLock) {
+            val next = pending ?: return false
+            pending = null
+            changedKeys(active?.values.orEmpty(), next.values).also { active = next }
         }
-
-        _configUpdates.tryEmit(changed)
-        true
+        // Collectors can run inline; never invoke them while holding stateLock.
+        if (changed.isNotEmpty()) updates.publish(changed)
+        return changed.isNotEmpty()
     }
 
     /** [fetch] followed by [activate]. Returns true if the active values changed. */
@@ -134,11 +131,15 @@ class NonaConfig internal constructor(
 
     /** Forgets the cached snapshot on disk and in memory. */
     suspend fun reset() = withContext(ioDispatcher) {
-        synchronized(stateLock) {
-            generation++
-            active = null
-            pending = null
-            lastFetchAtMillis = 0
+        cacheLock.withLock {
+            val context = currentCoroutineContext()
+            synchronized(stateLock) {
+                context.ensureActive()
+                generation++
+                active = null
+                pending = null
+                lastFetchAtMillis = 0
+            }
             store.clear()
         }
     }
@@ -245,14 +246,7 @@ class NonaConfig internal constructor(
 
             HTTP_NOT_MODIFIED -> {
                 if (previous == null) throw NonaException("Nona returned 304 without a cached snapshot.")
-                return synchronized(stateLock) {
-                    if (generation != requestGeneration) return@synchronized FetchStatus.DISCARDED
-                    val revalidated = previous.copy(fetchedAtMillis = now)
-                    if (pending != null) pending = revalidated else active = revalidated
-                    lastFetchAtMillis = now
-                    store.write(revalidated.toCacheJson(cacheIdentity))
-                    FetchStatus.NOT_MODIFIED
-                }
+                return persist(previous.copy(fetchedAtMillis = now), requestGeneration, revalidated = true)
             }
 
             else -> throw NonaHttpException(
@@ -261,15 +255,26 @@ class NonaConfig internal constructor(
             )
         }
 
-        val snapshot = Snapshot.fromResponseBody(response.body, response.etag, now)
-        return synchronized(stateLock) {
-            if (generation != requestGeneration) return@synchronized FetchStatus.DISCARDED
-            pending = snapshot
-            lastFetchAtMillis = now
-            store.write(snapshot.toCacheJson(cacheIdentity))
-            FetchStatus.SUCCESS
+        if (response.body.toByteArray(Charsets.UTF_8).size > options.maxResponseBytes) {
+            throw NonaException("Nona snapshot exceeds maxResponseBytes (${options.maxResponseBytes}).")
         }
+        val snapshot = Snapshot.fromResponseBody(response.body, response.etag, now)
+        return persist(snapshot, requestGeneration, revalidated = false)
     }
+
+    private suspend fun persist(snapshot: Snapshot, requestGeneration: Long, revalidated: Boolean): FetchStatus =
+        cacheLock.withLock {
+            val json = snapshot.toCacheJson(cacheIdentity)
+            val context = currentCoroutineContext()
+            synchronized(stateLock) {
+                context.ensureActive()
+                if (generation != requestGeneration) return@withLock FetchStatus.DISCARDED
+                if (revalidated && pending == null) active = snapshot else pending = snapshot
+                lastFetchAtMillis = snapshot.fetchedAtMillis
+            }
+            store.write(json)
+            if (revalidated) FetchStatus.NOT_MODIFIED else FetchStatus.SUCCESS
+        }
 
     private fun describeHttpFailure(statusCode: Int): String = when (statusCode) {
         401 -> "Nona rejected the API key."

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AC001234567890ABCDEF0001 /* SharedContracts.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC001234567890ABCDEF0002; };
 		12E2A90A772D0800039E4A7D /* NonaClient in Frameworks */ = {isa = PBXBuildFile; productRef = B492BF3497493647CE9688DB /* NonaClient */; };
 		697E485A1F38BB2768552A98 /* NonaConfigTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60F5251ECB5766E5EC33B637 /* NonaConfigTests.swift */; };
 		6A274BB8B5BB68D5BFD439B4 /* NonaSampleUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94F235159C769FF98C09AF42 /* NonaSampleUITests.swift */; };
@@ -35,6 +36,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		AC001234567890ABCDEF0002 /* SharedContracts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedContracts.swift; sourceTree = "<group>"; };
 		354F8495A9AF78EEAAD68AF9 /* Pods_NonaPodSample.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_NonaPodSample.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		3715B887C1916EFBD6B8D9FE /* NonaSampleUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = NonaSampleUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		409368EEBD41AC7A847CBB9F /* Pods-NonaPodSample.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-NonaPodSample.debug.xcconfig"; path = "Target Support Files/Pods-NonaPodSample/Pods-NonaPodSample.debug.xcconfig"; sourceTree = "<group>"; };
@@ -145,6 +147,7 @@
 			isa = PBXGroup;
 			children = (
 				60F5251ECB5766E5EC33B637 /* NonaConfigTests.swift */,
+				AC001234567890ABCDEF0002 /* SharedContracts.swift */,
 			);
 			name = NonaClientTests;
 			path = ../Tests/NonaClientTests;
@@ -340,6 +343,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				697E485A1F38BB2768552A98 /* NonaConfigTests.swift in Sources */,
+				AC001234567890ABCDEF0001 /* SharedContracts.swift in Sources */,
 				8C1D347A37E562AAA8A84C8F /* NonaIntegrationTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

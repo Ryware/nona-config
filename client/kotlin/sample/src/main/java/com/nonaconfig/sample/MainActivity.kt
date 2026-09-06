@@ -2,6 +2,8 @@ package com.nonaconfig.sample
 
 import android.app.Activity
 import android.os.Bundle
+import android.os.Build
+import android.view.WindowInsets
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -12,6 +14,8 @@ import java.util.concurrent.CompletableFuture
 class MainActivity : Activity() {
     private lateinit var config: NonaConfig
     private lateinit var status: TextView
+    private var operationId = 0L
+    private var closing = false
     private val requests = mutableListOf<CompletableFuture<*>>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -24,7 +28,8 @@ class MainActivity : Activity() {
             orientation = LinearLayout.VERTICAL
             setPadding(40, 64, 40, 40)
             setOnApplyWindowInsetsListener { view, insets ->
-                view.setPadding(40, insets.systemWindowInsetTop + 32, 40, insets.systemWindowInsetBottom + 32)
+                val (top, bottom) = verticalInsets(insets)
+                view.setPadding(40, top + 32, 40, bottom + 32)
                 insets
             }
         }
@@ -51,18 +56,19 @@ class MainActivity : Activity() {
             layout.addView(Button(this).apply { setText(label); setOnClickListener { action() } })
         }
         button(R.string.fetch) { run(R.string.fetch, config.fetchAsync()) }
-        button(R.string.activate) { render(getString(R.string.result, getString(R.string.activate), config.activate().toString())) }
+        button(R.string.activate) { operationId++; render(getString(R.string.result, getString(R.string.activate), config.activate().toString())) }
         button(R.string.refresh) { run(R.string.refresh, config.fetchAndActivateAsync()) }
         button(R.string.reset) { run(R.string.reset, config.resetAsync()) }
         run(R.string.restored, config.initializeAsync())
     }
 
     private fun run(label: Int, future: CompletableFuture<*>) {
+        val id = ++operationId
         requests += future
         future.whenComplete { result, error ->
             runOnUiThread {
                 requests.remove(future)
-                if (!isDestroyed) render(if (error == null) getString(R.string.result, getString(label), result?.toString() ?: getString(R.string.done)) else getString(R.string.failure, getString(label)))
+                if (!closing && !isDestroyed && operationId == id) render(if (error == null) getString(R.string.result, getString(label), result?.toString() ?: getString(R.string.done)) else getString(R.string.failure, getString(label)))
             }
         }
     }
@@ -71,7 +77,17 @@ class MainActivity : Activity() {
         status.text = getString(R.string.values, message, config.getString("flag"), config.getSource("flag").toString(), config.getLong("Limits:Retries"))
     }
 
+    @Suppress("DEPRECATION") // The legacy accessors are required on API 24–29.
+    private fun verticalInsets(insets: WindowInsets): Pair<Int, Int> =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            insets.getInsets(WindowInsets.Type.systemBars()).let { it.top to it.bottom }
+        } else {
+            insets.systemWindowInsetTop to insets.systemWindowInsetBottom
+        }
+
     override fun onDestroy() {
+        closing = true
+        operationId++
         requests.toList().forEach { it.cancel(true) }
         super.onDestroy()
     }

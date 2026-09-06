@@ -157,3 +157,8 @@ timeouts, redirects and streaming limits; the SDK also checks returned body size
 `NonaSnapshotStore` is synchronous and Sendable; its methods run off the main actor
 and do not hold the lock used by synchronous value reads.
 Do not call back into the same NonaConfig from a custom store.
+
+`getDouble` accepts finite decimal values with optional sign, fraction and
+exponent. Integer getters require a decimal integer within the signed 64-bit range.
+Language-specific suffixes and hexadecimal syntax are rejected. A missing
+or null `contentType` defaults to `text`; a non-string type rejects the snapshot.

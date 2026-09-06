@@ -69,4 +69,29 @@ final class NonaIntegrationTests: XCTestCase {
             XCTAssertFalse(config.activate())
         }
     }
+    func testInterruptedBodiesCannotReplaceActiveCache() async throws {
+        struct SeedHTTP: NonaHTTPClient {
+            func get(url: URL, headers: [String: String]) async throws -> NonaHTTPResponse {
+                NonaHTTPResponse(statusCode: 200, body: Data(#"{"flag":{"value":"old"}}"#.utf8))
+            }
+        }
+        let base = try environment("NONA_FAULT_URL")
+        for route in ["short-body", "partial-json", "disconnect", "trickle"] {
+            let opts = try NonaOptions(baseURL: URL(string: "\(base)/\(route)")!, environmentID: "Production",
+                                       minimumFetchInterval: 0, requestTimeout: 3, maxResponseBytes: 64)
+            let store = InMemorySnapshotStore()
+            let seed = NonaConfig(options: opts, store: store, http: SeedHTTP())
+            try await seed.fetch()
+            let original = store.read()
+            let config = NonaConfig(options: opts, store: store)
+            let restored = try await config.initialize()
+            XCTAssertTrue(restored)
+            do { try await config.fetch(); XCTFail("Expected failure: \(route)") }
+            catch is NonaError {} catch { XCTFail("Unexpected error: \(error)") }
+            XCTAssertEqual(config.getString("flag"), "old", route)
+            XCTAssertFalse(config.activate(), route)
+            XCTAssertEqual(store.read(), original, route)
+        }
+    }
+
 }

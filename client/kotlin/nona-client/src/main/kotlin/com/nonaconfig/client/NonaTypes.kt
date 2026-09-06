@@ -59,7 +59,12 @@ data class NonaOptions(
     init {
         normalizedBaseUrl()
         require(maxResponseBytes > 0) { "maxResponseBytes must be positive" }
-        require(environmentId.isNotBlank()) { "environmentId must not be blank" }
+        require(environmentId.isNotBlank() && environmentId != "." && environmentId != "..") {
+            "environmentId must be nonblank and cannot be a dot path segment"
+        }
+        require(apiKey == null || apiKey.none { it.isISOControl() }) {
+            "apiKey cannot contain control characters"
+        }
         require(minimumFetchInterval.isFinite() && minimumFetchInterval >= Duration.ZERO) {
             "minimumFetchInterval must be finite and nonnegative"
         }
@@ -69,6 +74,12 @@ data class NonaOptions(
             }
         }
     }
+
+    /** Safe diagnostic representation: never include the application's key. */
+    override fun toString(): String =
+        "NonaOptions(baseUrl=$baseUrl, environmentId=$environmentId, apiKey=<redacted>, " +
+            "releaseVersion=$releaseVersion, prefix=$prefix, minimumFetchInterval=$minimumFetchInterval, " +
+            "connectTimeout=$connectTimeout, readTimeout=$readTimeout, maxResponseBytes=$maxResponseBytes)"
 
     /** Java entry point without Kotlin inline-duration parameters. */
     class Builder internal constructor(private val baseUrl: String, private val environmentId: String) {
