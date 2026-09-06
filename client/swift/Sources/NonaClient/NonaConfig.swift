@@ -8,7 +8,7 @@ public final class NonaConfig: Sendable {
         var defaults: [String: NonaEntry] = [:]
         var generation: UInt64 = 0
         var lastFetch: TimeInterval?
-        var subscribers: [UUID: AsyncStream<Set<String>>.Continuation] = [:]
+        var subscribers: [UUID: UpdateSubscriber] = [:]
     }
 
     public let options: NonaOptions
@@ -17,7 +17,7 @@ public final class NonaConfig: Sendable {
     private let clock: @Sendable () -> TimeInterval
     private let state = Locked(State())
     // Lock ordering is cacheAccess -> state. Synchronous readers never acquire cacheAccess.
-    private let cacheAccess = Locked(())
+    private let cacheAccess = SerialAccess()
     private let fetchGate = FetchGate()
     private let identity: String
 
@@ -51,11 +51,11 @@ public final class NonaConfig: Sendable {
         state.withLock { $0.defaults = values.mapValues(\.entry) }
     }
 
-    /// A separate stream per subscriber. Slow consumers receive the most recent changed-key set.
+    /// A separate stream per subscriber. Slow consumers receive the union of buffered changed keys.
     public func updates() -> AsyncStream<Set<String>> {
         let id = UUID()
         return AsyncStream(bufferingPolicy: .bufferingNewest(1)) { continuation in
-            state.withLock { $0.subscribers[id] = continuation }
+            state.withLock { $0.subscribers[id] = UpdateSubscriber(continuation) }
             continuation.onTermination = { [weak self] _ in
                 self?.state.withLock { _ = $0.subscribers.removeValue(forKey: id) }
             }
@@ -66,7 +66,7 @@ public final class NonaConfig: Sendable {
     @discardableResult
     public func initialize() async throws -> Bool {
         try await background { [self] in
-            try cacheAccess.withLock { _ in
+            try cacheAccess.withLock {
                 try Task.checkCancellation()
                 guard state.withLock({ $0.active == nil && $0.pending == nil }),
                       let data = store.read(),
@@ -103,7 +103,7 @@ public final class NonaConfig: Sendable {
     /// Returns true when an activated value or its content type changed.
     @discardableResult
     public func activate() -> Bool {
-        let (changed, subscribers) = state.withLock { state -> (Set<String>, [AsyncStream<Set<String>>.Continuation]) in
+        let (changed, subscribers) = state.withLock { state -> (Set<String>, [UpdateSubscriber]) in
             guard let next = state.pending else { return ([], []) }
             let previous = state.active?.values ?? [:]
             let changed = Set(previous.keys).union(next.values.keys).filter { previous[$0] != next.values[$0] }
@@ -112,7 +112,7 @@ public final class NonaConfig: Sendable {
             return (changed, Array(state.subscribers.values))
         }
         // Never invoke stream termination handlers while holding the state lock.
-        if !changed.isEmpty { subscribers.forEach { $0.yield(changed) } }
+        if !changed.isEmpty { subscribers.forEach { $0.send(changed) } }
         return !changed.isEmpty
     }
 
@@ -126,7 +126,7 @@ public final class NonaConfig: Sendable {
     /// Clears memory and disk; results of requests already in flight are discarded.
     public func reset() async throws {
         try await background { [self] in
-            try cacheAccess.withLock { _ in
+            try cacheAccess.withLock {
                 try state.withLock { state in
                     try Task.checkCancellation()
                     state.generation &+= 1
@@ -216,7 +216,7 @@ public final class NonaConfig: Sendable {
         }
         let snapshot = Snapshot(identity: identity, values: values, etag: etag, fetchedAt: now)
         return try await background { [self] in
-            try cacheAccess.withLock { _ in
+            try cacheAccess.withLock {
                 let data = try? JSONEncoder().encode(snapshot)
                 let committed = try state.withLock { state -> Bool in
                     try Task.checkCancellation()

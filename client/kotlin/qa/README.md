@@ -1,32 +1,8 @@
 # Android SDK verification
 
-Use a disposable local Nona database. The seed script creates the first administrator,
-two independent projects, frontend/backend keys and two releases. It intentionally
-refuses non-loopback servers. Never point these tests at production.
-
-## Build and start the backend
-
-Requires .NET 10, JDK 17, Python 3, Android SDK 36 and Android emulators.
-From the repository root:
-
-```sh
-mkdir -p /tmp/nona-android-qa
-dotnet build core/src/WebApi/WebApi.csproj -c Debug
-Storage__Type=Sqlite \
-Storage__Sqlite__DataSource=/tmp/nona-android-qa/nona.db \
-ASPNETCORE_URLS=http://127.0.0.1:18686 \
-dotnet run --project core/src/WebApi/WebApi.csproj --no-build --no-launch-profile
-```
-
-In separate terminals:
-
-```sh
-python3 client/kotlin/qa/seed-server.py --output /tmp/nona-android-qa/fixtures.json
-python3 client/kotlin/qa/fault-server.py
-```
-
-Keep `fixtures.json` private and out of Git: it contains credentials for the
-disposable server. Reseeding requires a new database.
+Start and seed a disposable backend using the [shared SDK QA setup](../../qa/README.md).
+Then follow the Android-specific steps below. Requires JDK 17, Android SDK 36
+and an Android emulator in addition to the shared prerequisites.
 
 ## Unit tests, lint and device tests
 
@@ -36,7 +12,7 @@ cd client/kotlin
   :sample:lintDebug :sample:assembleDebug :sample:assembleDebugAndroidTest
 adb devices
 python3 qa/run-device-tests.py --serial emulator-5554 \
-  --fixtures /tmp/nona-android-qa/fixtures.json --output build/qa/device.txt
+  --fixtures /tmp/nona-sdk-qa/fixtures.json --output build/qa/device.txt
 ```
 
 Run once per emulator, sequentially: rollback tests change the same disposable
@@ -54,7 +30,7 @@ ephemeral backend per matrix job. No repository secrets are needed.
 ## Manual process restart and offline test
 
 Launch `com.nonaconfig.sample/.MainActivity` with intent extras `frontendKey` and
-`baseUrl` (`http://10.0.2.2:18686`). Use the generated `android-qa-a` frontend key;
+`baseUrl` (`http://10.0.2.2:18686`). Use the generated `sdk-qa-a` frontend key;
 do not use the administrator token. The sample remembers its connection in app
 preferences and does not fetch automatically.
 

@@ -19,6 +19,16 @@ final class Locked<Value>: @unchecked Sendable {
     }
 }
 
+/// Serialization without protected data. Avoid an inout access to a zero-sized Void value.
+final class SerialAccess: Sendable {
+    private let lock = NSLock()
+    func withLock<Result>(_ body: () throws -> Result) rethrows -> Result {
+        lock.lock()
+        defer { lock.unlock() }
+        return try body()
+    }
+}
+
 public final class InMemorySnapshotStore: NonaSnapshotStore {
     private let data = Locked<Data?>(nil)
     public init() {}
@@ -30,11 +40,11 @@ public final class InMemorySnapshotStore: NonaSnapshotStore {
 /// Use an application-private directory. Writes atomically replace the previous complete snapshot.
 public final class FileSnapshotStore: NonaSnapshotStore {
     public let fileURL: URL
-    private let access = Locked(())
+    private let access = SerialAccess()
     public init(fileURL: URL) { self.fileURL = fileURL }
-    public func read() -> Data? { access.withLock { _ in try? Data(contentsOf: fileURL) } }
+    public func read() -> Data? { access.withLock { try? Data(contentsOf: fileURL) } }
     public func write(_ data: Data) {
-        access.withLock { _ in
+        access.withLock {
             do {
                 try FileManager.default.createDirectory(at: fileURL.deletingLastPathComponent(), withIntermediateDirectories: true)
                 try data.write(to: fileURL, options: .atomic)
@@ -45,7 +55,7 @@ public final class FileSnapshotStore: NonaSnapshotStore {
             } catch { /* A failed cache write must not discard valid in-memory configuration. */ }
         }
     }
-    public func clear() { access.withLock { _ in _ = try? FileManager.default.removeItem(at: fileURL) } }
+    public func clear() { access.withLock { _ = try? FileManager.default.removeItem(at: fileURL) } }
 }
 
 struct Snapshot: Codable, Sendable {

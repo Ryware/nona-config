@@ -17,6 +17,9 @@ private final class SampleModel: ObservableObject {
     @Published var busy = false
     private var config: NonaConfig?
     private var work: Task<Void, Never>?
+    private var operationID: UUID?
+
+    deinit { work?.cancel() }
 
     func connect() {
         guard let url = URL(string: server.trimmingCharacters(in: .whitespacesAndNewlines)) else {
@@ -38,17 +41,30 @@ private final class SampleModel: ObservableObject {
     func activate() { guard let config else { return }; message = "Activated: \(config.activate())"; refresh() }
     func fetchAndActivate() { guard let config else { connect(); return }; perform { "Changed: \(try await config.fetchAndActivate())" } }
     func reset() { guard let config else { return }; perform { try await config.reset(); return "Cache cleared" } }
-    func cancel() { work?.cancel() }
+    func cancel() {
+        operationID = nil
+        work?.cancel()
+        work = nil
+        if busy { message = "Cancelled" }
+        busy = false
+    }
 
     private func perform(_ action: @escaping @Sendable () async throws -> String) {
         work?.cancel()
+        let id = UUID()
+        operationID = id
         busy = true
-        work = Task {
-            defer { busy = false }
-            do { message = try await action() }
-            catch is CancellationError { message = "Cancelled" }
-            catch { message = error.localizedDescription }
-            refresh()
+        work = Task { [weak self] in
+            let result: String
+            do { result = try await action() }
+            catch is CancellationError { result = "Cancelled" }
+            catch { result = error.localizedDescription }
+            guard let self, self.operationID == id else { return }
+            self.operationID = nil
+            self.work = nil
+            self.busy = false
+            self.message = result
+            self.refresh()
         }
     }
 

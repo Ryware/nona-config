@@ -336,6 +336,73 @@ final class NonaConfigTests: XCTestCase {
         XCTAssertEqual(b, ["flag"])
     }
 
+    func testSlowSubscriberKeepsAllChangedKeysIncludingDeletions() async throws {
+        let values = Locked(["a": NonaEntry(value: "0"), "b": NonaEntry(value: "0")])
+        let config = NonaConfig(options: try options(), store: InMemorySnapshotStore(), http: StubHTTP { _, _ in
+            NonaHTTPResponse(statusCode: 200, body: try JSONEncoder().encode(values.withLock { $0 }))
+        })
+        try await config.fetchAndActivate()
+        var slow = config.updates().makeAsyncIterator()
+        var fast = config.updates().makeAsyncIterator()
+        values.withLock { $0["a"] = NonaEntry(value: "1") }
+        try await config.fetchAndActivate()
+        let first = await fast.next()
+        XCTAssertEqual(first, ["a"])
+        values.withLock { _ = $0.removeValue(forKey: "b") }
+        try await config.fetchAndActivate()
+        let second = await fast.next()
+        let combined = await slow.next()
+        XCTAssertEqual(second, ["b"])
+        XCTAssertEqual(combined, ["a", "b"])
+    }
+
+    func testResetAfterPendingDiskWriteCannotResurrectCache() async throws {
+        let store = BlockingStore()
+        store.operation.withLock { $0 = "write" }
+        let config = try client(store: store)
+        let fetch = Task { try await config.fetch() }
+        await fulfillment(of: [store.entered], timeout: 5)
+        let started = expectation(description: "Reset requested")
+        let reset = Task { started.fulfill(); try await config.reset() }
+        await fulfillment(of: [started], timeout: 5)
+        store.resume.signal()
+        _ = try await fetch.value
+        try await reset.value
+        XCTAssertNil(store.read())
+        XCTAssertFalse(config.activate())
+        XCTAssertEqual(config.getSource("flag"), .static)
+    }
+
+    func testConcurrentNotificationProducersKeepEveryKey() async {
+        let holder = Locked<UpdateSubscriber?>(nil)
+        let stream = AsyncStream<Set<String>>(bufferingPolicy: .bufferingNewest(1)) { continuation in
+            holder.withLock { $0 = UpdateSubscriber(continuation) }
+        }
+        let subscriber = holder.withLock { $0! }
+        await withTaskGroup(of: Void.self) { group in
+            for index in 0..<100 {
+                group.addTask { subscriber.send([String(index)]) }
+            }
+        }
+        var iterator = stream.makeAsyncIterator()
+        let keys = await iterator.next()
+        XCTAssertEqual(keys, Set((0..<100).map(String.init)))
+        subscriber.finish()
+        let finished = await iterator.next()
+        XCTAssertNil(finished)
+    }
+
+    func testStreamDoesNotRetainClient() async throws {
+        var config: NonaConfig? = try client()
+        weak var reference = config
+        var iterator = config!.updates().makeAsyncIterator()
+        config = nil
+        XCTAssertNil(reference)
+        reference = nil
+        let finished = await iterator.next()
+        XCTAssertNil(finished)
+    }
+
     func testURLSelectorsAndCacheIdentity() throws {
         let opts = try NonaOptions(baseURL: URL(string: "https://NONA.test:443/proxy%2Ftenant/")!,
                                   environmentID: "pre production", apiKey: "public", releaseVersion: "1.4.x", prefix: "A&B")

@@ -1,9 +1,11 @@
 # Swift SDK QA
 
-Start and seed the disposable backend using [Android QA setup](../../kotlin/qa/README.md).
-The existing seed creates two projects, client/server keys and versioned releases.
-Start `python3 client/kotlin/qa/fault-server.py` as well. Keep its fixture JSON private.
-The iOS simulator reaches the host through `127.0.0.1` (not Android's `10.0.2.2`).
+See the [architecture audit](ARCHITECTURE.md) for invariants, corrections,
+current validation results and remaining release checks.
+
+Start and seed a disposable backend using the [shared SDK QA setup](../../qa/README.md).
+It provides two projects, frontend/backend keys, versioned releases and fault endpoints.
+The iOS simulator reaches the host through `127.0.0.1`.
 
 From the repository root:
 
@@ -13,7 +15,7 @@ pod install --project-directory=client/swift/Sample
 xcrun simctl list devices available
 python3 client/swift/qa/run-simulator-tests.py \
   --simulator YOUR_SIMULATOR_UDID \
-  --fixtures /tmp/nona-android-qa/fixtures.json \
+  --fixtures /tmp/nona-sdk-qa/fixtures.json \
   --result-bundle /tmp/nona-swift-tests.xcresult
 ```
 

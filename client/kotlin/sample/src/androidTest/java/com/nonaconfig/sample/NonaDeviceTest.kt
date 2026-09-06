@@ -17,7 +17,7 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
 
-/** Uses only disposable fixtures created by qa/seed-server.py. */
+/** Uses only disposable fixtures created by client/qa/seed-server.py. */
 @RunWith(AndroidJUnit4::class)
 class NonaDeviceTest {
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
@@ -27,7 +27,7 @@ class NonaDeviceTest {
     private fun options(apiKey: String = key()) = NonaOptions.builder(baseUrl, "Production")
         .apiKey(apiKey).minimumFetchIntervalMillis(0).build()
     private fun activeRelease(version: String) {
-        val connection = URL("$baseUrl/admin/projects/android-qa-a/environments/Production/active-release/").openConnection() as HttpURLConnection
+        val connection = URL("$baseUrl/admin/projects/sdk-qa-a/environments/Production/active-release/").openConnection() as HttpURLConnection
         try {
             connection.requestMethod = "PUT"
             connection.connectTimeout = 5000

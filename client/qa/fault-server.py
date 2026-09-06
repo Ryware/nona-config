@@ -4,11 +4,17 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import time
 import threading
 
+def redirect_target(host_header):
+    host = host_header.split(':', 1)[0].lower()
+    if host not in ('127.0.0.1', 'localhost', '10.0.2.2'):
+        host = '127.0.0.1'
+    return f'http://{host}:18688/capture'
+
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path.startswith('/redirect/'):
             self.send_response(302)
-            self.send_header('Location', 'http://10.0.2.2:18688/capture')
+            self.send_header('Location', redirect_target(self.headers.get('Host', '')))
             self.end_headers()
             return
         if self.path == '/capture':
@@ -38,6 +44,11 @@ class Handler(BaseHTTPRequestHandler):
         except (BrokenPipeError, ConnectionResetError):
             pass
 
-capture = ThreadingHTTPServer(('127.0.0.1', 18688), Handler)
-threading.Thread(target=capture.serve_forever, daemon=True).start()
-ThreadingHTTPServer(('127.0.0.1', 18687), Handler).serve_forever()
+if __name__ == '__main__':
+    with ThreadingHTTPServer(('127.0.0.1', 18688), Handler) as capture:
+        threading.Thread(target=capture.serve_forever, daemon=True).start()
+        try:
+            with ThreadingHTTPServer(('127.0.0.1', 18687), Handler) as server:
+                server.serve_forever()
+        finally:
+            capture.shutdown()

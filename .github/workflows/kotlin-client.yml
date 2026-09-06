@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'client/kotlin/**'
+      - 'client/qa/**'
       - 'core/**'
       - 'libsql/**'
       - '.github/workflows/kotlin-client.yml'
@@ -12,6 +13,7 @@ on:
     branches: [development]
     paths:
       - 'client/kotlin/**'
+      - 'client/qa/**'
       - '.github/workflows/kotlin-client.yml'
   workflow_dispatch:
 
@@ -23,6 +25,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Verify shared QA contracts
+        run: python3 -m unittest discover -s client/qa -p 'test_*.py'
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -42,6 +46,8 @@ jobs:
         api: [24, 36]
     steps:
       - uses: actions/checkout@v4
+      - name: Verify shared QA contracts
+        run: python3 -m unittest discover -s client/qa -p 'test_*.py'
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -65,12 +71,12 @@ jobs:
           export Storage__Sqlite__DataSource="$RUNNER_TEMP/nona-qa/nona.db"
           export ASPNETCORE_URLS=http://127.0.0.1:18686
           dotnet run --project core/src/WebApi/WebApi.csproj --no-build --no-launch-profile > "$RUNNER_TEMP/nona-qa/server.log" 2>&1 &
-          python3 client/kotlin/qa/fault-server.py > "$RUNNER_TEMP/nona-qa/fault.log" 2>&1 &
+          python3 client/qa/fault-server.py > "$RUNNER_TEMP/nona-qa/fault.log" 2>&1 &
           for attempt in {1..30}; do
             if curl -fsS http://127.0.0.1:18686/auth/first-time > /dev/null; then break; fi
             sleep 1
           done
-          python3 client/kotlin/qa/seed-server.py --output "$RUNNER_TEMP/nona-qa/fixtures.json"
+          python3 client/qa/seed-server.py --output "$RUNNER_TEMP/nona-qa/fixtures.json"
       - name: Build device tests
         working-directory: client/kotlin
         run: ./gradlew :sample:assembleDebug :sample:assembleDebugAndroidTest

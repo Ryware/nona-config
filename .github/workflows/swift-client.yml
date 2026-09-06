@@ -6,13 +6,13 @@ on:
       - 'Package.swift'
       - 'NonaClient.podspec'
       - 'client/swift/**'
-      - 'client/kotlin/qa/**'
+      - 'client/qa/**'
       - 'core/**'
       - 'libsql/**'
       - '.github/workflows/swift-client.yml'
   push:
     branches: [development]
-    paths: ['Package.swift', 'NonaClient.podspec', 'client/swift/**', '.github/workflows/swift-client.yml']
+    paths: ['client/qa/**', 'Package.swift', 'NonaClient.podspec', 'client/swift/**', '.github/workflows/swift-client.yml']
   workflow_dispatch:
 
 permissions:
@@ -24,6 +24,8 @@ jobs:
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
+      - name: Verify shared QA contracts
+        run: python3 -m unittest discover -s client/qa -p 'test_*.py'
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
@@ -45,12 +47,12 @@ jobs:
           export Storage__Sqlite__DataSource="$RUNNER_TEMP/nona-swift/nona.db"
           export ASPNETCORE_URLS=http://127.0.0.1:18686
           dotnet run --project core/src/WebApi/WebApi.csproj --no-build --no-launch-profile > "$RUNNER_TEMP/nona-swift/server.log" 2>&1 &
-          python3 client/kotlin/qa/fault-server.py > "$RUNNER_TEMP/nona-swift/fault.log" 2>&1 &
+          python3 client/qa/fault-server.py > "$RUNNER_TEMP/nona-swift/fault.log" 2>&1 &
           for attempt in {1..30}; do
             if curl -fsS http://127.0.0.1:18686/auth/first-time > /dev/null; then break; fi
             sleep 1
           done
-          python3 client/kotlin/qa/seed-server.py --output "$RUNNER_TEMP/nona-swift/fixtures.json"
+          python3 client/qa/seed-server.py --output "$RUNNER_TEMP/nona-swift/fixtures.json"
       - name: Select available iPhone simulator
         id: simulator
         shell: bash

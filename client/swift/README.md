@@ -89,9 +89,11 @@ for await changedKeys in config.updates() {
 }
 ```
 
-Each subscriber gets its own stream, with a newest-one buffer. This is a notification
-stream rather than a durable event log; read current values when notified. Avoid
-retaining the client indefinitely from a task that is waiting on its own stream.
+Each subscriber gets its own stream with a single buffered notification. If the
+consumer falls behind, changed-key sets are merged, including removed keys. Events
+may coalesce or repeat keys; read current values when notified. This is not a
+durable event log. Avoid retaining the client indefinitely from a task waiting
+on its own stream.
 
 ## Values and defaults
 

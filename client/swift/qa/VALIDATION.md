@@ -1,5 +1,18 @@
 # Swift SDK validation — 2026-09-06
 
+## Latest architecture follow-up
+
+The subsequent working-tree audit based on `6070d8e` is recorded in
+[ARCHITECTURE.md](ARCHITECTURE.md). It adds notification coalescing, serialization
+and sample lifecycle fixes, plus independent shared QA tooling. Current results:
+25 unit tests under Thread Sanitizer, 31 iOS simulator tests, Swift 6 compilation,
+CocoaPods lint for iOS/macOS with Swift 5.9, CocoaPods sample Release build,
+8 Python contract tests, Android instrumentation APK compilation and 60-page
+documentation build all pass. Android emulator runtime tests were not rerun.
+The automated security scan described below predates these changes.
+
+## Earlier final review
+
 Final review performed on `feature/swift-client`; Swift SDK based on commit `004cc7e`.
 The fixes below are a subsequently reviewed and tested working-tree patch.
 
