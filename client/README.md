@@ -16,11 +16,13 @@ Nona monorepo:
 
 - JavaScript SDK: [javascript/README.md](javascript/README.md)
 - .NET SDK: [dotnet/README.md](dotnet/README.md)
+- Kotlin / Android SDK: [kotlin/README.md](kotlin/README.md)
 
 ## Repository Layout
 
 - `javascript`: JavaScript SDK package
 - `dotnet`: .NET SDK solution and tests
+- `kotlin`: Kotlin/Android SDK Gradle project
 
 ---
 

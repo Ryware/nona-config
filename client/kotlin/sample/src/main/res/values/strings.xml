@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">Nona SDK sample</string>
+    <string name="title">Nona Android SDK</string>
+    <string name="setup">Configure a frontend key using the QA launch command in the README.</string>
+    <string name="fetch">Fetch</string>
+    <string name="activate">Activate</string>
+    <string name="refresh">Fetch and activate</string>
+    <string name="reset">Reset</string>
+    <string name="restored">Cache restored</string>
+    <string name="done">done</string>
+    <string name="result">%1$s: %2$s</string>
+    <string name="failure">%1$s: failed (offline or server error)</string>
+    <string name="values">%1$s\nflag: %2$s\nsource: %3$s\nretries: %4$d</string>
+    <string name="invalid_connection">Invalid server URL. Use an HTTP or HTTPS address without credentials, query or fragment.</string>
+</resources>

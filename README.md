@@ -109,7 +109,7 @@ This repository is the Nona monorepo:
 
 - `core`, `cli`, `libsql`, `migrator`: backend API, CLI, storage library, and migration tooling
 - `admin`: admin web UI
-- `client`: JavaScript SDK, .NET SDK, and JavaScript OpenFeature provider
+- `client`: JavaScript SDK, .NET SDK, Kotlin/Android SDK, and the OpenFeature providers
 - `docs`: documentation site
 
 ---
@@ -155,6 +155,26 @@ Console.WriteLine(value.Value);
 ```
 
 📦 [nuget.org/packages/Nona.Client](https://www.nuget.org/packages/Nona.Client)
+
+---
+
+### Kotlin / Android
+
+```kotlin
+val config = NonaConfig.create(context, NonaOptions(
+    baseUrl = "https://nona.example.com",
+    environmentId = "production",
+    apiKey = BuildConfig.NONA_FRONTEND_KEY
+))
+
+config.setDefaults(mapOf("Features:Checkout" to false))
+config.initialize()       // restore the cached snapshot
+config.fetchAndActivate() // refresh from the network
+
+val enabled = config.getBoolean("Features:Checkout")
+```
+
+In-app defaults, separate fetch and activate, synchronous reads, and an offline cache that survives restarts. Usable from Java too, and needs a frontend-scoped API key. See [client/kotlin/README.md](client/kotlin/README.md).
 
 ---
 

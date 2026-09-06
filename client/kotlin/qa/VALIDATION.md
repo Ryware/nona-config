@@ -1,0 +1,63 @@
+# Kotlin SDK final validation — 2026-09-06
+
+Reviewed the PR 86 changes against development (`be22343`), including runtime,
+Java/Kotlin API, cache lifecycle, sample, QA scripts, CI and documentation.
+This is a scoped code review and local validation, not a production deployment certification.
+
+## Additional fixes from the final pass
+
+- Reject HTTP redirects and disable shared HTTP caching in the default transport.
+- Bound decoded response reads to 8 MiB by default; expose `maxResponseBytes` in Kotlin and Java.
+- Report HTTP failures without reading unused response bodies.
+- Preserve percent-encoded base paths and allow refresh after wall-clock rollback.
+- Validate per-fetch interval overrides.
+- Validate sample connection inputs before persisting them and handle invalid URLs without crashing.
+- Create QA credential files with private permissions and propagate the fixture server port to devices.
+- Strengthen fault tests to distinguish timeout, malformed JSON and HTTP status failures.
+
+## Results
+
+| Check | Result |
+| --- | --- |
+| JVM suite, including Java API | 31 passed |
+| Android API 24, ARM64 emulator | 10 passed |
+| Android API 36, ARM64 emulator | 10 passed |
+| Release AAR build | Passed |
+| SDK lint | 0 errors; 7 dependency-update advisories |
+| Sample lint | No issues |
+| Local Maven publication and sample consuming its AAR | Passed |
+| Documentation build | 59 pages built |
+| GitHub workflow actionlint | Passed |
+| QA Python syntax and git diff checks | Passed |
+
+Device tests cover real local Nona requests, frontend/backend scope enforcement,
+separate-project caches, restore without a network request, ETag/304, release rollback,
+prefix/pinned release, defaults, Java futures, sample buttons, malformed setup,
+redirect rejection, response-size limits with and without Content-Length, and transport errors.
+
+The original sample launch crash was reproduced on API 24 before the fix. The
+original cross-origin redirect was reproduced on API 36. Redirect following was
+classified as hardening, not a confirmed credential-exfiltration vulnerability:
+attacker control of a trusted server redirect was not established and frontend keys
+are documented as public.
+
+An initial API 36 run encountered a transient SocketException in test-fixture admin
+setup, before entering the SDK. A complete repeat passed all 10 tests. No automatic
+retry was added to hide failures.
+
+Earlier in the same change review, manual force-stop/offline/reset checks passed on
+both emulators, and the unchanged JavaScript SDK/provider suites passed 50 tests.
+These checks were not represented as newly rerun after the final Kotlin-only edits.
+
+## Limits
+
+The seven lint advisories concern newer AGP, Android test, coroutine and test JSON
+versions; they are not runtime lint errors. A major build-tool migration was not
+mixed into this fix. The wrapper JAR was inspected as an archive and hashed, but its
+bytecode and upstream provenance were not independently audited. Actual Maven Central
+publication, GitHub-hosted x86_64 emulator jobs and production deployment were not run.
+No claim of an exhaustive dependency vulnerability audit is made.
+
+The immutable Codex Security scan covered `be22343..134dbb9`; subsequent fixes were
+reviewed and verified locally as described above. The scan's automatic inventory
+excluded sample/test files; they were reviewed additionally.
