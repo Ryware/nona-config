@@ -168,6 +168,16 @@ See [client/javascript-openfeature-provider/README.md](client/javascript-openfea
 
 ---
 
+### OpenFeature / JavaScript in the browser
+
+```bash
+npm install nona-client nona-openfeature-web-provider @openfeature/web-sdk
+```
+
+Loads the environment's frontend-scoped config as one snapshot and evaluates synchronously, which is what the OpenFeature web SDK expects. Requires a frontend-scoped API key. See [client/javascript-openfeature-web-provider/README.md](client/javascript-openfeature-web-provider/README.md) for setup and usage.
+
+---
+
 ### Any language (plain HTTP)
 
 No SDK needed. A single GET request returns one config value from the environment's active release, from its working parameters when no release is active, or from a pinned release version:
