@@ -377,3 +377,11 @@ core/src/WebApi/nona-config.db
 # API client source is checked in; regenerate it with ./generate-clients.sh.
 openapi.json
 .nona-generate-clients.lock/
+
+# Swift / Xcode
+.build/
+.swiftpm/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+Pods/

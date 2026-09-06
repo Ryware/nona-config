@@ -115,6 +115,8 @@ export default defineConfig({
 						{ label: 'HTTP', slug: 'clients/http' },
 						{ label: 'JavaScript', slug: 'clients/javascript' },
 						{ label: '.NET', slug: 'clients/dotnet' },
+						{ label: 'Android', slug: 'clients/android' },
+						{ label: 'Swift', slug: 'clients/swift' },
 						{ label: 'OpenFeature', slug: 'clients/openfeature' },
 					],
 				},

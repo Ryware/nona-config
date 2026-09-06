@@ -1,6 +1,6 @@
 ---
 title: Clients and API
-description: Choose between HTTP, JavaScript, .NET, Android, and OpenFeature when integrating Nona, and learn which client fits your application best.
+description: Choose between HTTP, JavaScript, .NET, Android, Swift, and OpenFeature when integrating Nona, and learn which client fits your application best.
 ---
 
 Nona can be read through several integration paths.
@@ -13,6 +13,7 @@ The right one depends on how much abstraction your application needs and what ru
 - [JavaScript](/docs/clients/javascript) for Node.js, TypeScript, and related environments
 - [.NET](/docs/clients/dotnet) for C# services and applications
 - [Android](/docs/clients/android) for Kotlin and Java mobile apps
+- [Swift](/docs/clients/swift) for iOS/macOS apps using CocoaPods or Swift Package Manager
 - [OpenFeature](/docs/clients/openfeature) for a vendor-neutral feature-flag interface
 
 ## What to set up first

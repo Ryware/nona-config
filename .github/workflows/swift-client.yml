@@ -1,0 +1,80 @@
+name: Swift client CI
+
+on:
+  pull_request:
+    paths:
+      - 'Package.swift'
+      - 'NonaClient.podspec'
+      - 'client/swift/**'
+      - 'client/kotlin/qa/**'
+      - 'core/**'
+      - 'libsql/**'
+      - '.github/workflows/swift-client.yml'
+  push:
+    branches: [development]
+    paths: ['Package.swift', 'NonaClient.podspec', 'client/swift/**', '.github/workflows/swift-client.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: macos-15
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Swift unit tests and strict concurrency
+        run: |
+          swift test -Xswiftc -strict-concurrency=complete -Xswiftc -warnings-as-errors
+          swift build -Xswiftc -swift-version -Xswiftc 6 -Xswiftc -warnings-as-errors
+      - name: Validate CocoaPods and install sample
+        run: |
+          if ! command -v pod > /dev/null; then brew install cocoapods; fi
+          pod lib lint NonaClient.podspec --platforms=ios,osx --swift-version=5.9
+          pod install --project-directory=client/swift/Sample
+      - name: Start disposable backend
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/nona-swift"
+          dotnet build core/src/WebApi/WebApi.csproj -c Debug
+          export Storage__Type=Sqlite
+          export Storage__Sqlite__DataSource="$RUNNER_TEMP/nona-swift/nona.db"
+          export ASPNETCORE_URLS=http://127.0.0.1:18686
+          dotnet run --project core/src/WebApi/WebApi.csproj --no-build --no-launch-profile > "$RUNNER_TEMP/nona-swift/server.log" 2>&1 &
+          python3 client/kotlin/qa/fault-server.py > "$RUNNER_TEMP/nona-swift/fault.log" 2>&1 &
+          for attempt in {1..30}; do
+            if curl -fsS http://127.0.0.1:18686/auth/first-time > /dev/null; then break; fi
+            sleep 1
+          done
+          python3 client/kotlin/qa/seed-server.py --output "$RUNNER_TEMP/nona-swift/fixtures.json"
+      - name: Select available iPhone simulator
+        id: simulator
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json, os, subprocess
+          devices = json.loads(subprocess.check_output(['xcrun', 'simctl', 'list', 'devices', 'available', '-j']))['devices']
+          phones = [device for runtime, group in devices.items() if '.iOS-' in runtime
+                    for device in group if device['name'].startswith('iPhone')]
+          if not phones:
+              raise SystemExit('No iPhone simulator runtime installed')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('id=' + phones[0]['udid'] + '\n')
+          PY
+      - name: Run unit and real-server integration tests on iOS
+        env:
+          SIMULATOR_ID: ${{ steps.simulator.outputs.id }}
+        run: |
+          python3 client/swift/qa/run-simulator-tests.py \
+            --simulator "$SIMULATOR_ID" --fixtures "$RUNNER_TEMP/nona-swift/fixtures.json" \
+            --result-bundle "$RUNNER_TEMP/nona-swift/result.xcresult"
+      - name: Build the CocoaPods consumer
+        env:
+          SIMULATOR_ID: ${{ steps.simulator.outputs.id }}
+        run: |
+          xcodebuild -workspace client/swift/Sample/NonaSample.xcworkspace -scheme NonaPodSample \
+            -destination "platform=iOS Simulator,id=$SIMULATOR_ID" CODE_SIGNING_ALLOWED=NO build
