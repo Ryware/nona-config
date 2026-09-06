@@ -5,7 +5,7 @@ description: Read Nona config values and feature flags from JavaScript or TypeSc
 
 Package: `nona-client`
 
-OpenFeature provider package: `nona-openfeature-provider`
+OpenFeature provider packages: `nona-openfeature-provider` (server), `nona-openfeature-web-provider` (browser)
 
 Requirements:
 
@@ -278,6 +278,12 @@ await OpenFeature.setProviderAndWait(domain, createNonaOpenFeatureProvider({
 
 const client = OpenFeature.getClient(domain);
 const enabled = await client.getBooleanValue("Features:Checkout", false);
+```
+
+In the browser, use `nona-openfeature-web-provider` with `@openfeature/web-sdk` instead — OpenFeature's browser paradigm evaluates synchronously from a preloaded snapshot, and needs a frontend-scoped API key:
+
+```bash
+npm install nona-client nona-openfeature-web-provider @openfeature/web-sdk
 ```
 
 If your team thinks in terms of feature flags more than direct config reads, see [OpenFeature](/docs/clients/openfeature).
