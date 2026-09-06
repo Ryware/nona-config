@@ -1,0 +1,133 @@
+# nona-client (Kotlin / Android)
+
+Read Nona config and feature flags on Android. Written in Kotlin; usable from Java too.
+
+Values live in memory and are read synchronously, downloading is separate from applying, and the last good snapshot survives a restart — so a cold start with no network still shows real config.
+
+- Website: https://nonaconfig.com
+- Source & docs: https://github.com/Ryware/nona-config
+
+## Requirements
+
+- Android 7.0 (API 24) or newer
+- A **frontend-scoped** Nona API key
+
+## Usage
+
+```kotlin
+val config = NonaConfig.create(
+    context,
+    NonaOptions(
+        baseUrl = "https://nona.example.com",
+        environmentId = "production",
+        apiKey = BuildConfig.NONA_FRONTEND_KEY,
+    ),
+)
+
+// Values to use before anything has been fetched.
+config.setDefaults(
+    mapOf(
+        "Features:Checkout" to false,
+        "Limits:Retries" to 3,
+        "Copy:Title" to "Checkout",
+    ),
+)
+
+lifecycleScope.launch {
+    config.initialize()       // restore the cached snapshot from disk
+    config.fetchAndActivate() // refresh from the network
+}
+
+// Synchronous, safe on the main thread.
+if (config.getBoolean("Features:Checkout")) {
+    showCheckout()
+}
+```
+
+## Fetch and activate
+
+Downloading and applying are deliberately separate:
+
+- `fetch()` downloads the snapshot into a pending slot. Reads are unchanged.
+- `activate()` promotes pending values into the active set. Reads change now.
+- `fetchAndActivate()` does both, for when you don't care.
+
+The split exists so config cannot change under a user mid-session. Fetch whenever you like; activate at a safe moment — next launch, or when the user returns to a neutral screen.
+
+`activate()` returns `true` when values actually changed, and `configUpdates` emits the changed keys:
+
+```kotlin
+lifecycleScope.launch {
+    config.configUpdates.collect { changed ->
+        if ("Features:Checkout" in changed) invalidateUi()
+    }
+}
+```
+
+## Where values come from
+
+Reads fall back in order: **activated remote value → your default → the type's zero value** (`false`, `0`, `""`). `getSource(key)` tells you which applied.
+
+`getBoolean` and friends never throw and never report why a fallback happened. When you need the reason — building an OpenFeature provider, say — use `resolveBoolean`, `resolveString`, `resolveLong`, `resolveDouble`, which return a `NonaResolution` carrying `NOT_READY`, `NOT_FOUND`, `TYPE_MISMATCH` or `PARSE_ERROR`. Those map one-to-one onto OpenFeature error codes.
+
+`resolveString` returns the raw stored string, so JSON values come back unparsed for the caller to decode.
+
+## Throttling and caching
+
+`fetch()` skips the network entirely if the previous fetch was more recent than `minimumFetchInterval`, returning `FetchStatus.THROTTLED`. The default is 12 hours. Pass an explicit interval to override:
+
+```kotlin
+config.fetch(Duration.ZERO) // during development
+```
+
+Fetches send the snapshot's `ETag`, so an unchanged environment answers `304` with no body — the steady-state cost does not grow with the number of keys.
+
+Each successful fetch is written to the app's private files, keyed by environment, prefix and pinned release so different configurations cannot collide. `initialize()` restores it. A corrupt cache is ignored rather than fatal.
+
+## Options
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `baseUrl` | — | Nona server URL |
+| `environmentId` | — | Environment to read |
+| `apiKey` | none | Frontend-scoped key |
+| `releaseVersion` | none | Pin to `1.4.0`, or a line like `1.4.x` |
+| `prefix` | none | Only load keys under this prefix |
+| `minimumFetchInterval` | 12 hours | Throttle window |
+| `connectTimeout` / `readTimeout` | 10 seconds | Network timeouts |
+
+## Use HTTPS
+
+The client does not follow redirects across protocols, which is standard `HttpURLConnection` behaviour. A server that answers `http://` with a redirect to `https://` produces an error carrying the redirect status, not a followed request. Configure `baseUrl` with `https://` directly.
+
+Plain `http://` also needs `usesCleartextTraffic` in the app's manifest on Android 9 and newer. The library does not declare it — that decision belongs to the app.
+
+Testing against a local Nona from an emulator, reach the host machine at `http://10.0.2.2:18080`. `localhost` is the emulated device itself.
+
+## The API key is public
+
+Anything shipped inside an APK can be extracted, so treat the key as public and make it **frontend-scoped**. Nona only returns frontend-scoped entries to that endpoint, and refuses backend-only keys outright — a `404`, deliberately indistinguishable from an unknown environment so a server key cannot be used to enumerate environments.
+
+Mark the parameters you want on devices as frontend-scoped in Nona. Nothing else can reach the app.
+
+## No targeting
+
+Every device on an environment gets the same values. Nona has no per-user rules, percentage rollouts, or A/B buckets, so there is no user identity to supply. What you get instead is pinning an app build to an immutable `releaseVersion`, so an old version stays on config it was tested against.
+
+## Swapping the network or storage layer
+
+`NonaHttpClient` and `NonaSnapshotStore` are interfaces. The defaults use `HttpURLConnection` (backed by OkHttp on Android, no extra dependency) and a file in the app's private storage. Supply your own to reuse an existing OkHttp stack, keep config out of storage, or fake either in tests:
+
+```kotlin
+NonaConfig.create(options, store = InMemorySnapshotStore(), http = myClient)
+```
+
+## Build and test
+
+```bash
+./gradlew :nona-client:testDebugUnitTest
+./gradlew :nona-client:assembleRelease
+```
+
+Requires JDK 17 and an Android SDK with platform 36. Unit tests are plain JVM tests — no emulator, no Robolectric.
+
