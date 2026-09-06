@@ -2,9 +2,12 @@ package com.nonaconfig.client
 
 import android.content.Context
 import java.io.File
+import java.io.IOException
 import java.net.URLEncoder
+import java.util.concurrent.CompletableFuture
 import kotlin.time.Duration
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -13,6 +16,9 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.future.future
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 
 /**
  * Reads Nona config on Android. Values are held in memory and read
@@ -30,6 +36,9 @@ class NonaConfig internal constructor(
 ) {
 
     private val fetchLock = Mutex()
+    private val stateLock = Any()
+    private var generation = 0L
+    private val cacheIdentity = options.cacheIdentity()
 
     @Volatile
     private var active: Snapshot? = null
@@ -68,10 +77,14 @@ class NonaConfig internal constructor(
      * once at startup, before the first read. Returns true if one was restored.
      */
     suspend fun initialize(): Boolean = withContext(ioDispatcher) {
-        val restored = store.read()?.let(Snapshot::fromCacheJson) ?: return@withContext false
-        active = restored
-        lastFetchAtMillis = restored.fetchedAtMillis
-        true
+        synchronized(stateLock) {
+            if (active != null || pending != null) return@synchronized false
+            val restored = store.read()?.let { Snapshot.fromCacheJson(it, cacheIdentity) }
+                ?: return@synchronized false
+            active = restored
+            lastFetchAtMillis = restored.fetchedAtMillis
+            true
+        }
     }
 
     /**
@@ -94,45 +107,68 @@ class NonaConfig internal constructor(
         }
 
     /** Promotes fetched values into the active set. Returns true if they changed. */
-    fun activate(): Boolean {
-        val next = pending ?: return false
+    fun activate(): Boolean = synchronized(stateLock) {
+        val next = pending ?: return@synchronized false
         pending = null
 
         val changed = changedKeys(active?.values.orEmpty(), next.values)
         active = next
         if (changed.isEmpty()) {
-            return false
+            return@synchronized false
         }
 
         _configUpdates.tryEmit(changed)
-        return true
+        true
     }
 
     /** [fetch] followed by [activate]. Returns true if the active values changed. */
     suspend fun fetchAndActivate(
         minimumFetchInterval: Duration = options.minimumFetchInterval,
     ): Boolean {
-        fetch(minimumFetchInterval)
+        if (fetch(minimumFetchInterval) == FetchStatus.DISCARDED) return false
         return activate()
     }
 
     /** Forgets the cached snapshot on disk and in memory. */
     suspend fun reset() = withContext(ioDispatcher) {
-        active = null
-        pending = null
-        lastFetchAtMillis = 0
-        store.clear()
+        synchronized(stateLock) {
+            generation++
+            active = null
+            pending = null
+            lastFetchAtMillis = 0
+            store.clear()
+        }
     }
 
-    fun getBoolean(key: String): Boolean = resolveBoolean(key).valueOr(false)
+    /** Java-friendly asynchronous counterparts; cancel the future to cancel the coroutine. */
+    fun initializeAsync(): CompletableFuture<Boolean> = async { initialize() }
+    fun fetchAsync(): CompletableFuture<FetchStatus> = async { fetch() }
+    fun fetchAndActivateAsync(): CompletableFuture<Boolean> = async { fetchAndActivate() }
+    fun resetAsync(): CompletableFuture<Void?> = async { reset(); null }
 
-    fun getString(key: String): String = resolveString(key).valueOr("")
+    fun getBoolean(key: String): Boolean = valueOrDefault(key, ValueParsing::parseBoolean, false)
 
-    fun getLong(key: String): Long = resolveLong(key).valueOr(0L)
+    fun getString(key: String): String = valueOrDefault(key, ValueParsing::parseString, "")
 
-    fun getDouble(key: String): Double = resolveDouble(key).valueOr(0.0)
+    fun getLong(key: String): Long = valueOrDefault(key, ValueParsing::parseLong, 0L)
 
-    /** Where [key] would resolve from right now. */
+    fun getDouble(key: String): Double = valueOrDefault(key, ValueParsing::parseDouble, 0.0)
+
+    private fun <T> async(block: suspend () -> T): CompletableFuture<T> =
+        CoroutineScope(ioDispatcher).future { block() }
+
+    private fun <T> valueOrDefault(
+        key: String,
+        parse: (String, String) -> ValueParsing.ParseResult<T>,
+        zero: T,
+    ): T {
+        val remote = active?.values?.get(key)?.let { parse(key, it.value) }
+        if (remote is ValueParsing.ParseResult.Ok) return remote.value
+        val fallback = defaults[key]?.let { parse(key, it.value) }
+        return if (fallback is ValueParsing.ParseResult.Ok) fallback.value else zero
+    }
+
+    /** Raw entry origin; a typed getter may fall back if that entry cannot be parsed. */
     fun getSource(key: String): NonaValueSource =
         entryFor(key)?.second ?: NonaValueSource.STATIC
 
@@ -188,19 +224,32 @@ class NonaConfig internal constructor(
         )
     }
 
-    private fun load(now: Long): FetchStatus {
+    private suspend fun load(now: Long): FetchStatus {
+        val (requestGeneration, previous) = synchronized(stateLock) { generation to (pending ?: active) }
         val headers = buildMap {
             options.apiKey?.let { put("X-Api-Key", it) }
-            active?.etag?.let { put("If-None-Match", it) }
+            previous?.etag?.let { put("If-None-Match", it) }
         }
 
-        val response = http.get(snapshotUrl(), headers)
+        val response = try {
+            http.get(snapshotUrl(), headers)
+        } catch (cause: IOException) {
+            throw NonaException("Nona request failed.", cause)
+        }
+        currentCoroutineContext().ensureActive()
         when (response.statusCode) {
             in 200..299 -> Unit
 
             HTTP_NOT_MODIFIED -> {
-                lastFetchAtMillis = now
-                return FetchStatus.NOT_MODIFIED
+                if (previous == null) throw NonaException("Nona returned 304 without a cached snapshot.")
+                return synchronized(stateLock) {
+                    if (generation != requestGeneration) return@synchronized FetchStatus.DISCARDED
+                    val revalidated = previous.copy(fetchedAtMillis = now)
+                    if (pending != null) pending = revalidated else active = revalidated
+                    lastFetchAtMillis = now
+                    store.write(revalidated.toCacheJson(cacheIdentity))
+                    FetchStatus.NOT_MODIFIED
+                }
             }
 
             else -> throw NonaHttpException(
@@ -210,10 +259,13 @@ class NonaConfig internal constructor(
         }
 
         val snapshot = Snapshot.fromResponseBody(response.body, response.etag, now)
-        pending = snapshot
-        lastFetchAtMillis = now
-        store.write(snapshot.toCacheJson())
-        return FetchStatus.SUCCESS
+        return synchronized(stateLock) {
+            if (generation != requestGeneration) return@synchronized FetchStatus.DISCARDED
+            pending = snapshot
+            lastFetchAtMillis = now
+            store.write(snapshot.toCacheJson(cacheIdentity))
+            FetchStatus.SUCCESS
+        }
     }
 
     private fun describeHttpFailure(statusCode: Int): String = when (statusCode) {
@@ -226,7 +278,7 @@ class NonaConfig internal constructor(
     }
 
     private fun snapshotUrl(): String {
-        val base = options.baseUrl.trimEnd('/')
+        val base = options.normalizedBaseUrl()
         val query = buildList {
             options.releaseVersion?.let { add("version=" + encode(it)) }
             options.prefix?.let { add("prefix=" + encode(it)) }
@@ -240,6 +292,7 @@ class NonaConfig internal constructor(
         private const val HTTP_NOT_MODIFIED = 304
 
         /** Creates an instance that caches its snapshot in the app's private files. */
+        @JvmStatic
         fun create(context: Context, options: NonaOptions): NonaConfig =
             create(
                 options = options,
@@ -249,6 +302,8 @@ class NonaConfig internal constructor(
             )
 
         /** Creates an instance with a supplied store and, optionally, HTTP client. */
+        @JvmStatic
+        @JvmOverloads
         fun create(
             options: NonaOptions,
             store: NonaSnapshotStore,
@@ -260,14 +315,9 @@ class NonaConfig internal constructor(
             ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
         ): NonaConfig = NonaConfig(options, http, store, clock, ioDispatcher)
 
-        /** Distinct per environment, prefix and pinned release, so caches cannot collide. */
+        /** Bound to origin, key/project and snapshot selectors, without exposing the key. */
         private fun cacheFileName(options: NonaOptions): String {
-            val parts = listOf(
-                options.environmentId,
-                options.prefix.orEmpty(),
-                options.releaseVersion.orEmpty(),
-            )
-            return "snapshot-${parts.joinToString("|").hashCode().toUInt().toString(16)}.json"
+            return "snapshot-${options.cacheIdentity()}.json"
         }
     }
 }
@@ -280,9 +330,4 @@ private fun Any.toEntry(): NonaEntry = when (this) {
     is Number -> NonaEntry(toString(), "number")
     is String -> NonaEntry(this, "text")
     else -> NonaEntry(toString(), "text")
-}
-
-private fun <T> NonaResolution<T>.valueOr(fallback: T): T = when (this) {
-    is NonaResolution.Success -> value
-    is NonaResolution.Failure -> fallback
 }

@@ -5,7 +5,11 @@ plugins {
 }
 
 // The release workflow passes -PnonaVersion=<tag>, matching the JS and .NET packages.
-version = providers.gradleProperty("nonaVersion").getOrElse("0.1.0-SNAPSHOT")
+version = providers.gradleProperty("nonaVersion").getOrElse("0.1.0")
+
+tasks.register("printVersion") {
+    doLast { println(project.version) }
+}
 
 android {
     namespace = "com.nonaconfig.client"
@@ -73,7 +77,8 @@ mavenPublishing {
 }
 
 dependencies {
-    implementation(libs.kotlinx.coroutines.android)
+    // SharedFlow and CoroutineDispatcher appear in the public API.
+    api(libs.kotlinx.coroutines.android)
 
     testImplementation(kotlin("test"))
     testImplementation(libs.json)

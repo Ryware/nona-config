@@ -32,29 +32,32 @@ internal data class Snapshot(
             return Snapshot(values, etag, fetchedAtMillis)
         }
 
-        fun fromCacheJson(json: String): Snapshot? = try {
-            val root = JSONObject(json)
-            val valuesJson = root.getJSONObject(FIELD_VALUES)
-            val values = LinkedHashMap<String, NonaEntry>(valuesJson.length())
-            for (key in valuesJson.keys()) {
-                val entry = valuesJson.getJSONObject(key)
-                values[key] = NonaEntry(
-                    value = entry.getString(FIELD_VALUE),
-                    contentType = entry.optString(FIELD_CONTENT_TYPE, "text"),
+        fun fromCacheJson(json: String, identity: String): Snapshot? {
+            return try {
+                val root = JSONObject(json)
+                if (root.optString("identity") != identity) return null
+                val valuesJson = root.getJSONObject(FIELD_VALUES)
+                val values = LinkedHashMap<String, NonaEntry>(valuesJson.length())
+                for (key in valuesJson.keys()) {
+                    val entry = valuesJson.getJSONObject(key)
+                    values[key] = NonaEntry(
+                        value = entry.getString(FIELD_VALUE),
+                        contentType = entry.optString(FIELD_CONTENT_TYPE, "text"),
+                    )
+                }
+                Snapshot(
+                    values = values,
+                    etag = root.optString(FIELD_ETAG).ifEmpty { null },
+                    fetchedAtMillis = root.optLong(FIELD_FETCHED_AT),
                 )
+            } catch (_: JSONException) {
+                // A corrupt cache is not worth failing over; refetch instead.
+                null
             }
-            Snapshot(
-                values = values,
-                etag = root.optString(FIELD_ETAG).ifEmpty { null },
-                fetchedAtMillis = root.optLong(FIELD_FETCHED_AT),
-            )
-        } catch (_: JSONException) {
-            // A corrupt cache is not worth failing over; refetch instead.
-            null
         }
     }
 
-    fun toCacheJson(): String {
+    fun toCacheJson(identity: String): String {
         val valuesJson = JSONObject()
         for ((key, entry) in values) {
             valuesJson.put(
@@ -66,6 +69,7 @@ internal data class Snapshot(
         }
 
         return JSONObject()
+            .put("identity", identity)
             .put(FIELD_VALUES, valuesJson)
             .put(FIELD_ETAG, etag)
             .put(FIELD_FETCHED_AT, fetchedAtMillis)

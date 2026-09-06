@@ -35,7 +35,11 @@ config.setDefaults(
 
 lifecycleScope.launch {
     config.initialize()       // restore the cached snapshot from disk
-    config.fetchAndActivate() // refresh from the network
+    try {
+        config.fetchAndActivate() // refresh from the network
+    } catch (error: NonaException) {
+        // Keep the cached values/defaults while offline; retry at a suitable boundary.
+    }
 }
 
 // Synchronous, safe on the main thread.
@@ -54,6 +58,8 @@ Downloading and applying are deliberately separate:
 
 The split exists so config cannot change under a user mid-session. Fetch whenever you like; activate at a safe moment — next launch, or when the user returns to a neutral screen.
 
+`reset()` discards in-flight fetch results as well as clearing memory and disk; those fetches return `FetchStatus.DISCARDED`.
+
 `activate()` returns `true` when values actually changed, and `configUpdates` emits the changed keys:
 
 ```kotlin
@@ -66,7 +72,7 @@ lifecycleScope.launch {
 
 ## Where values come from
 
-Reads fall back in order: **activated remote value → your default → the type's zero value** (`false`, `0`, `""`). `getSource(key)` tells you which applied.
+Reads fall back in order: **activated remote value → your default → the type's zero value** (`false`, `0`, `""`). `getSource(key)` reports the raw entry origin. A typed getter may use a default instead if the remote value cannot be parsed.
 
 `getBoolean` and friends never throw and never report why a fallback happened. When you need the reason — building an OpenFeature provider, say — use `resolveBoolean`, `resolveString`, `resolveLong`, `resolveDouble`, which return a `NonaResolution` carrying `NOT_READY`, `NOT_FOUND`, `TYPE_MISMATCH` or `PARSE_ERROR`. Those map one-to-one onto OpenFeature error codes.
 
@@ -82,7 +88,7 @@ config.fetch(Duration.ZERO) // during development
 
 Fetches send the snapshot's `ETag`, so an unchanged environment answers `304` with no body — the steady-state cost does not grow with the number of keys.
 
-Each successful fetch is written to the app's private files, keyed by environment, prefix and pinned release so different configurations cannot collide. `initialize()` restores it. A corrupt cache is ignored rather than fatal.
+Each successful fetch is written to the app's private files, bound to the server URL, API-key fingerprint, environment, prefix and pinned release using SHA-256. The stored identity is checked on restore; caches from another configuration or the old format are ignored. Raw API keys are not written into cache filenames or snapshots. `initialize()` restores it. A corrupt cache is ignored rather than fatal.
 
 ## Options
 
@@ -131,3 +137,20 @@ NonaConfig.create(options, store = InMemorySnapshotStore(), http = myClient)
 
 Requires JDK 17 and an Android SDK with platform 36. Unit tests are plain JVM tests — no emulator, no Robolectric.
 
+
+## Java API
+
+```java
+NonaOptions options = NonaOptions.builder("https://nona.example.com", "Production")
+    .apiKey(frontendKey)
+    .minimumFetchIntervalMillis(3_600_000)
+    .build();
+NonaConfig config = NonaConfig.create(context, options);
+config.initializeAsync()
+    .thenCompose(restored -> config.fetchAndActivateAsync())
+    .whenComplete((changed, error) -> {
+        // Values/defaults remain readable on failure. Dispatch UI updates to the main thread.
+    });
+```
+
+`initializeAsync`, `fetchAsync`, `fetchAndActivateAsync`, and `resetAsync` return `CompletableFuture` (Android API 24+). Cancelling the future cancels its coroutine; blocking transport may take until its timeout to finish. Kotlin callers can continue using the suspending methods and `Duration` options.

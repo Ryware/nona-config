@@ -261,7 +261,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Test
-        run: ./gradlew :nona-client:testDebugUnitTest
+        run: ./gradlew :nona-client:testDebugUnitTest :nona-client:lintRelease :nona-client:assembleRelease
 
   publish-kotlin-maven-central:
     name: Publish Kotlin SDK to Maven Central
@@ -289,20 +289,29 @@ jobs:
       - name: Resolve package version
         id: version
         shell: bash
+        env:
+          PACKAGE_VERSION: ${{ inputs.package_version }}
         run: |
-          version="${{ inputs.package_version }}"
+          version="$PACKAGE_VERSION"
           if [ -z "$version" ] && [ "${GITHUB_REF_TYPE}" = "tag" ]; then
             version="${GITHUB_REF_NAME#client-v}"
           fi
+          if [ -z "$version" ]; then
+            version="$(./gradlew -q :nona-client:printVersion)"
+          fi
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.-]+)?$ ]]; then
+            echo "Invalid Maven release version" >&2
+            exit 1
+          fi
           echo "value=$version" >> "$GITHUB_OUTPUT"
       - name: Publish
-        if: steps.version.outputs.value != ''
         env:
+          NONA_VERSION: ${{ steps.version.outputs.value }}
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_IN_MEMORY_KEY }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_IN_MEMORY_KEY_PASSWORD }}
-        run: ./gradlew :nona-client:publishToMavenCentral -PnonaVersion=${{ steps.version.outputs.value }}
+        run: ./gradlew :nona-client:publishToMavenCentral -PnonaVersion="$NONA_VERSION"
 
   publish-nuget:
     name: Test and publish .NET packages to NuGet

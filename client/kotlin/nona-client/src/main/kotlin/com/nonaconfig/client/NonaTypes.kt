@@ -3,6 +3,7 @@ package com.nonaconfig.client
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Duration.Companion.milliseconds
 
 /** Where a resolved value came from. */
 enum class NonaValueSource { REMOTE, DEFAULT, STATIC }
@@ -11,7 +12,7 @@ enum class NonaValueSource { REMOTE, DEFAULT, STATIC }
 enum class NonaFailureReason { NOT_READY, NOT_FOUND, TYPE_MISMATCH, PARSE_ERROR }
 
 /** What a call to [NonaConfig.fetch] did. `SUCCESS` still needs [NonaConfig.activate]. */
-enum class FetchStatus { SUCCESS, NOT_MODIFIED, THROTTLED }
+enum class FetchStatus { SUCCESS, NOT_MODIFIED, THROTTLED, DISCARDED }
 
 /**
  * The outcome of a typed read. The plain getters collapse this into a value;
@@ -52,7 +53,45 @@ data class NonaOptions(
     val minimumFetchInterval: Duration = 12.hours,
     val connectTimeout: Duration = 10.seconds,
     val readTimeout: Duration = 10.seconds,
-)
+) {
+    init {
+        normalizedBaseUrl()
+        require(environmentId.isNotBlank()) { "environmentId must not be blank" }
+        require(minimumFetchInterval.isFinite() && minimumFetchInterval >= Duration.ZERO) {
+            "minimumFetchInterval must be finite and nonnegative"
+        }
+        for (timeout in listOf(connectTimeout, readTimeout)) {
+            require(timeout.isFinite() && timeout.inWholeMilliseconds in 1..Int.MAX_VALUE.toLong()) {
+                "Timeouts must be between 1 ms and Int.MAX_VALUE ms"
+            }
+        }
+    }
+
+    /** Java entry point without Kotlin inline-duration parameters. */
+    class Builder internal constructor(private val baseUrl: String, private val environmentId: String) {
+        private var apiKey: String? = null
+        private var releaseVersion: String? = null
+        private var prefix: String? = null
+        private var minimumFetchInterval: Duration = 12.hours
+        private var connectTimeout: Duration = 10.seconds
+        private var readTimeout: Duration = 10.seconds
+
+        fun apiKey(value: String?) = apply { apiKey = value }
+        fun releaseVersion(value: String?) = apply { releaseVersion = value }
+        fun prefix(value: String?) = apply { prefix = value }
+        fun minimumFetchIntervalMillis(value: Long) = apply { minimumFetchInterval = value.milliseconds }
+        fun connectTimeoutMillis(value: Long) = apply { connectTimeout = value.milliseconds }
+        fun readTimeoutMillis(value: Long) = apply { readTimeout = value.milliseconds }
+        fun build() = NonaOptions(baseUrl, environmentId, apiKey, releaseVersion, prefix,
+            minimumFetchInterval, connectTimeout, readTimeout)
+    }
+
+    companion object {
+        @JvmStatic
+        fun builder(baseUrl: String, environmentId: String) = Builder(baseUrl, environmentId)
+    }
+}
+
 
 open class NonaException(
     message: String,

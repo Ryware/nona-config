@@ -2,3 +2,5 @@
 build/
 local.properties
 .kotlin/
+!sample/src/debug/
+!sample/src/debug/**

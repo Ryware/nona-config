@@ -23,18 +23,22 @@ internal class FileSnapshotStore(private val file: File) : NonaSnapshotStore {
     }
 
     override fun write(json: String) {
+        var temp: File? = null
         try {
             file.parentFile?.mkdirs()
             // Write beside the target and swap, so a kill mid-write cannot
             // leave a half-written cache behind.
-            val temp = File(file.parentFile, "${file.name}.tmp")
-            temp.writeText(json)
-            if (!temp.renameTo(file)) {
-                file.writeText(json)
-                temp.delete()
+            temp = File.createTempFile(file.name, ".tmp", file.parentFile)
+            temp.outputStream().use { output ->
+                output.write(json.toByteArray(Charsets.UTF_8))
+                output.fd.sync()
             }
+            // On failure retain the previous complete snapshot.
+            temp.renameTo(file)
         } catch (_: IOException) {
             // Losing the cache costs one refetch.
+        } finally {
+            temp?.delete()
         }
     }
 
@@ -49,6 +53,7 @@ internal class FileSnapshotStore(private val file: File) : NonaSnapshotStore {
 
 /** In-memory store, for tests and for apps that do not want config on disk. */
 class InMemorySnapshotStore : NonaSnapshotStore {
+    @Volatile
     private var json: String? = null
 
     override fun read(): String? = json

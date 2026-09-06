@@ -17,3 +17,4 @@ dependencyResolutionManagement {
 rootProject.name = "nona-kotlin"
 
 include(":nona-client")
+include(":sample")
