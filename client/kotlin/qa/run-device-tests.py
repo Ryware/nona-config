@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+from urllib.parse import urlsplit, urlunsplit
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--serial', required=True)
@@ -18,7 +19,12 @@ for apk in ['sample/build/outputs/apk/debug/sample-debug.apk',
             'sample/build/outputs/apk/androidTest/debug/sample-debug-androidTest.apk']:
     subprocess.run(adb + ['install', '-r', str(root / apk)], check=True)
 fixtures = json.loads(Path(args.fixtures).read_text())
-command = adb + ['shell', 'am', 'instrument', '-w', '-r']
+server = urlsplit(fixtures['baseUrl'])
+if server.scheme not in ('http', 'https') or server.hostname not in ('127.0.0.1', 'localhost'):
+    parser.error('Fixtures must belong to a disposable loopback server')
+emulator_url = urlunsplit((server.scheme, '10.0.2.2' + (f':{server.port}' if server.port else ''),
+                          server.path, '', ''))
+command = adb + ['shell', 'am', 'instrument', '-w', '-r', '-e', 'baseUrl', emulator_url]
 for name, value in {'frontendA': fixtures['android-qa-a'], 'frontendB': fixtures['android-qa-b'],
                     'backendKey': fixtures['backendKey'], 'adminToken': fixtures['adminToken']}.items():
     command += ['-e', name, value]

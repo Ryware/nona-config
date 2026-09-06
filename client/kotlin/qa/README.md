@@ -43,7 +43,10 @@ Run once per emulator, sequentially: rollback tests change the same disposable
 release. The tests use `10.0.2.2` to reach the host, exercise the actual Android
 HTTP/JSON/file implementations, and cover Java API, fetch/activate/304, prefix and
 pinned releases, throttling, defaults on invalid values, cache identity, backend
-scope rejection, invalid API keys, malformed responses and network timeouts.
+scope rejection, invalid API keys, malformed responses, network timeouts, rejected
+redirects, bounded response sizes and invalid sample setup. Fault endpoints use
+loopback ports 18687 and 18688. The runner maps the fixture server to the emulator
+host alias while preserving its port and path.
 
 `kotlin-client.yml` runs the suite on API 24 and 36 for pull requests, using its own
 ephemeral backend per matrix job. No repository secrets are needed.

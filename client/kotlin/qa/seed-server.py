@@ -3,6 +3,8 @@
 import argparse
 import json
 import secrets
+import os
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -42,6 +44,7 @@ for project, value in [('android-qa-a', 'A'), ('android-qa-b', 'B')]:
     fixtures[project] = api('POST', f'/admin/projects/{project}/api-keys', {'name': 'Android QA', 'scope': 'client'})['key']
 fixtures['backendKey'] = api('POST', '/admin/projects/android-qa-a/api-keys', {'name': 'Backend QA', 'scope': 'server'})['key']
 path = Path(args.output)
-path.write_text(json.dumps(fixtures))
-path.chmod(0o600)
+with os.fdopen(os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), 'w') as output:
+    os.fchmod(output.fileno(), 0o600)
+    json.dump(fixtures, output)
 print('Seeded two projects, frontend/backend keys and releases. Fixtures: ' + str(path))

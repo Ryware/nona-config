@@ -11,4 +11,5 @@
     <string name="result">%1$s: %2$s</string>
     <string name="failure">%1$s: failed (offline or server error)</string>
     <string name="values">%1$s\nflag: %2$s\nsource: %3$s\nretries: %4$d</string>
+    <string name="invalid_connection">Invalid server URL. Use an HTTP or HTTPS address without credentials, query or fragment.</string>
 </resources>

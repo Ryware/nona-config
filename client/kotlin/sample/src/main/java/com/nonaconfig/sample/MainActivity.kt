@@ -17,10 +17,9 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val preferences = getSharedPreferences("connection", MODE_PRIVATE)
-        intent.getStringExtra("frontendKey")?.let { preferences.edit().putString("key", it).apply() }
-        intent.getStringExtra("baseUrl")?.let { preferences.edit().putString("url", it).apply() }
-        val key = preferences.getString("key", "").orEmpty()
-        val url = preferences.getString("url", "http://10.0.2.2:18686").orEmpty()
+        val key = intent.getStringExtra("frontendKey") ?: preferences.getString("key", "").orEmpty()
+        val url = intent.getStringExtra("baseUrl")
+            ?: preferences.getString("url", "http://10.0.2.2:18686").orEmpty()
         val layout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(40, 64, 40, 40)
@@ -37,7 +36,16 @@ class MainActivity : Activity() {
             status.setText(R.string.setup)
             return
         }
-        config = JavaClient.create(this, url, key)
+        config = try {
+            JavaClient.create(this, url, key)
+        } catch (_: IllegalArgumentException) {
+            status.setText(R.string.invalid_connection)
+            return
+        } catch (_: java.net.URISyntaxException) {
+            status.setText(R.string.invalid_connection)
+            return
+        }
+        preferences.edit().putString("key", key).putString("url", url).apply()
         config.setDefaults(mapOf("flag" to "default", "Limits:Retries" to 3))
         fun button(label: Int, action: () -> Unit) {
             layout.addView(Button(this).apply { setText(label); setOnClickListener { action() } })

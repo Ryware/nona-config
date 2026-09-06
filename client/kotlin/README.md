@@ -101,10 +101,11 @@ Each successful fetch is written to the app's private files, bound to the server
 | `prefix` | none | Only load keys under this prefix |
 | `minimumFetchInterval` | 12 hours | Throttle window |
 | `connectTimeout` / `readTimeout` | 10 seconds | Network timeouts |
+| `maxResponseBytes` | 8 MiB | Decoded response limit for the default HTTP transport |
 
 ## Use HTTPS
 
-The client does not follow redirects across protocols, which is standard `HttpURLConnection` behaviour. A server that answers `http://` with a redirect to `https://` produces an error carrying the redirect status, not a followed request. Configure `baseUrl` with `https://` directly.
+The default HTTP client rejects all redirects so credentials and configuration stay on the configured server. Set `baseUrl` to the final HTTPS address directly. Responses are limited to 8 MiB by default; increase `maxResponseBytes` only if your snapshots require it. Custom HTTP clients must enforce their own redirect and response-size policies.
 
 Plain `http://` also needs `usesCleartextTraffic` in the app's manifest on Android 9 and newer. The library does not declare it — that decision belongs to the app.
 

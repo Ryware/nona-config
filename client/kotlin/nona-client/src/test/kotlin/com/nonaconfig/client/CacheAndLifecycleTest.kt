@@ -91,6 +91,29 @@ class CacheAndLifecycleTest {
         assertTrue(config.activate())
     }
 
+    @Test fun `clock rollback does not indefinitely throttle refresh`() = runBlocking<Unit> {
+        var now = 1000L
+        val config = NonaConfig.create(options, InMemorySnapshotStore(),
+            NonaHttpClientFake { NonaHttpResponse(200, body, "a") }, { now })
+        config.fetch()
+        now = 500L
+        assertEquals(FetchStatus.SUCCESS, config.fetch())
+    }
+
+    @Test fun `per fetch intervals must be finite and nonnegative`() = runBlocking<Unit> {
+        val config = NonaConfig.create(options, InMemorySnapshotStore(),
+            NonaHttpClientFake { error("Invalid intervals must not start a request") })
+        assertFailsWith<IllegalArgumentException> { config.fetch(-1.hours) }
+        assertFailsWith<IllegalArgumentException> { config.fetch(Duration.INFINITE) }
+        assertFailsWith<IllegalArgumentException> { options.copy(maxResponseBytes = 0) }
+    }
+
+    @Test fun `normalization preserves escaped path separators`() {
+        assertEquals("https://nona.test/proxy%2Ftenant", options.copy(baseUrl = "https://NONA.test:443/proxy%2Ftenant/").normalizedBaseUrl())
+        assertNotEquals(options.copy(baseUrl = "https://nona.test/proxy%2Ftenant").cacheIdentity(),
+            options.copy(baseUrl = "https://nona.test/proxy/tenant").cacheIdentity())
+    }
+
     @Test fun `invalid timeouts are rejected before opening a connection`() {
         assertFailsWith<IllegalArgumentException> { options.copy(readTimeout = Duration.ZERO) }
         assertFailsWith<IllegalArgumentException> { options.copy(connectTimeout = Duration.INFINITE) }

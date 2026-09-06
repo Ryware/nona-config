@@ -115,8 +115,67 @@ class NonaDeviceTest {
             try {
                 config.fetch(Duration.ZERO)
                 fail("Expected $route failure")
-            } catch (_: NonaException) { assertEquals("fallback", config.getString("flag")) }
+            } catch (error: NonaException) {
+                when (route) {
+                    "slow" -> assertTrue(error.cause is java.net.SocketTimeoutException)
+                    "malformed" -> assertTrue(error.message.orEmpty().contains("non-string"))
+                    "http503" -> assertEquals(503, (error as NonaHttpException).statusCode)
+                }
+                assertEquals("fallback", config.getString("flag"))
+            }
         }
+    }
+
+    @Test fun oversizedResponsesAreRejectedEvenWithoutContentLength() = runBlocking {
+        val faultBase = args.getString("faultBaseUrl", "http://10.0.2.2:18687")
+        for (route in listOf("large", "large-no-length")) {
+            val config = NonaConfig.create(
+                NonaOptions.builder("$faultBase/$route", "Production").maxResponseBytes(64).build(),
+                InMemorySnapshotStore(),
+            )
+            config.setDefaults(mapOf("flag" to "fallback"))
+            try {
+                config.fetch()
+                fail("Expected response size limit")
+            } catch (error: NonaException) {
+                assertTrue(error.message.orEmpty().contains("maxResponseBytes"))
+                assertFalse(config.activate())
+                assertEquals("fallback", config.getString("flag"))
+            }
+        }
+    }
+
+    @Test fun redirectsCannotChangeTheTrustedServer() = runBlocking {
+        val faultBase = args.getString("faultBaseUrl", "http://10.0.2.2:18687")
+        val config = NonaConfig.create(
+            NonaOptions.builder("$faultBase/redirect", "Production").apiKey("test-only-key").build(),
+            InMemorySnapshotStore(),
+        )
+        try {
+            config.fetch()
+            fail("The HTTP client must reject redirects")
+        } catch (error: NonaHttpException) {
+            assertEquals(302, error.statusCode)
+            assertFalse(config.activate())
+        }
+    }
+
+    @Test fun malformedLaunchUrlDoesNotPoisonSavedConnection() {
+        val preferences = context.getSharedPreferences("connection", android.content.Context.MODE_PRIVATE)
+        preferences.edit().putString("url", baseUrl).putString("key", key()).commit()
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val activity = instrumentation.startActivitySync(Intent(context, MainActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            .putExtra("frontendKey", "test-only-key").putExtra("baseUrl", "not a URL")) as MainActivity
+        try {
+            assertEquals(baseUrl, preferences.getString("url", null))
+            assertEquals(key(), preferences.getString("key", null))
+            instrumentation.runOnMainSync {
+                val content = activity.findViewById<ViewGroup>(android.R.id.content).getChildAt(0) as ViewGroup
+                assertTrue((0 until content.childCount).map { content.getChildAt(it) }
+                    .filterIsInstance<TextView>().any { it.text == activity.getString(R.string.invalid_connection) })
+            }
+        } finally { instrumentation.runOnMainSync { activity.finish() } }
     }
 
     @Test fun sampleButtonsHandleResetFetchAndActivate() {

@@ -53,9 +53,12 @@ data class NonaOptions(
     val minimumFetchInterval: Duration = 12.hours,
     val connectTimeout: Duration = 10.seconds,
     val readTimeout: Duration = 10.seconds,
+    /** Maximum decoded response bytes read by the default HTTP transport. */
+    val maxResponseBytes: Int = 8 * 1024 * 1024,
 ) {
     init {
         normalizedBaseUrl()
+        require(maxResponseBytes > 0) { "maxResponseBytes must be positive" }
         require(environmentId.isNotBlank()) { "environmentId must not be blank" }
         require(minimumFetchInterval.isFinite() && minimumFetchInterval >= Duration.ZERO) {
             "minimumFetchInterval must be finite and nonnegative"
@@ -75,6 +78,7 @@ data class NonaOptions(
         private var minimumFetchInterval: Duration = 12.hours
         private var connectTimeout: Duration = 10.seconds
         private var readTimeout: Duration = 10.seconds
+        private var maxResponseBytes: Int = 8 * 1024 * 1024
 
         fun apiKey(value: String?) = apply { apiKey = value }
         fun releaseVersion(value: String?) = apply { releaseVersion = value }
@@ -82,8 +86,11 @@ data class NonaOptions(
         fun minimumFetchIntervalMillis(value: Long) = apply { minimumFetchInterval = value.milliseconds }
         fun connectTimeoutMillis(value: Long) = apply { connectTimeout = value.milliseconds }
         fun readTimeoutMillis(value: Long) = apply { readTimeout = value.milliseconds }
-        fun build() = NonaOptions(baseUrl, environmentId, apiKey, releaseVersion, prefix,
-            minimumFetchInterval, connectTimeout, readTimeout)
+        fun maxResponseBytes(value: Int) = apply { maxResponseBytes = value }
+        fun build() = NonaOptions(
+            baseUrl, environmentId, apiKey, releaseVersion, prefix,
+            minimumFetchInterval, connectTimeout, readTimeout, maxResponseBytes,
+        )
     }
 
     companion object {

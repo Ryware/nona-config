@@ -96,8 +96,11 @@ class NonaConfig internal constructor(
      */
     suspend fun fetch(minimumFetchInterval: Duration = options.minimumFetchInterval): FetchStatus =
         fetchLock.withLock {
+            require(minimumFetchInterval.isFinite() && minimumFetchInterval >= Duration.ZERO) {
+                "minimumFetchInterval must be finite and nonnegative"
+            }
             val now = clock()
-            if (lastFetchAtMillis > 0 &&
+            if (lastFetchAtMillis > 0 && now >= lastFetchAtMillis &&
                 now - lastFetchAtMillis < minimumFetchInterval.inWholeMilliseconds
             ) {
                 return@withLock FetchStatus.THROTTLED
@@ -310,6 +313,7 @@ class NonaConfig internal constructor(
             http: NonaHttpClient = UrlConnectionHttpClient(
                 connectTimeoutMillis = options.connectTimeout.inWholeMilliseconds.toInt(),
                 readTimeoutMillis = options.readTimeout.inWholeMilliseconds.toInt(),
+                maxResponseBytes = options.maxResponseBytes,
             ),
             clock: () -> Long = System::currentTimeMillis,
             ioDispatcher: CoroutineDispatcher = Dispatchers.IO,

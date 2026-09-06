@@ -11,7 +11,8 @@ internal fun NonaOptions.normalizedBaseUrl(): String {
         "baseUrl must have a host and no credentials, query or fragment"
     }
     val port = if ((scheme == "https" && uri.port == 443) || (scheme == "http" && uri.port == 80)) -1 else uri.port
-    return URI(scheme, null, uri.host.lowercase(), port, uri.path.trimEnd('/'), null, null).toASCIIString()
+    val origin = URI(scheme, null, uri.host.lowercase(), port, null, null, null).toASCIIString()
+    return origin + uri.rawPath.orEmpty().trimEnd('/')
 }
 
 internal fun NonaOptions.cacheIdentity(): String {

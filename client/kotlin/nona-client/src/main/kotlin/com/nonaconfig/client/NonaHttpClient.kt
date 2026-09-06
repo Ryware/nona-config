@@ -1,5 +1,6 @@
 package com.nonaconfig.client
 
+import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
@@ -26,25 +27,39 @@ interface NonaHttpClient {
 internal class UrlConnectionHttpClient(
     private val connectTimeoutMillis: Int,
     private val readTimeoutMillis: Int,
+    private val maxResponseBytes: Int,
 ) : NonaHttpClient {
 
     override fun get(url: String, headers: Map<String, String>): NonaHttpResponse {
         val connection = URL(url).openConnection() as HttpURLConnection
         return try {
             connection.requestMethod = "GET"
+            // Credentials and configuration must stay on the configured origin.
+            connection.instanceFollowRedirects = false
+            // Nona owns revalidation; do not reuse a process-wide HTTP cache.
+            connection.useCaches = false
             connection.connectTimeout = connectTimeoutMillis
             connection.readTimeout = readTimeoutMillis
             connection.setRequestProperty("Accept", "application/json")
             headers.forEach(connection::setRequestProperty)
 
             val status = connection.responseCode
-            // A 304 has no body, and errorStream carries the body for 4xx/5xx.
-            val stream = when {
-                status == HTTP_NOT_MODIFIED -> null
-                status in 200..299 -> connection.inputStream
-                else -> connection.errorStream
-            }
-            val body = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
+            // Error bodies are unused. Do not download them before reporting the status.
+            val body = if (status in 200..299) {
+                connection.inputStream.use { stream ->
+                    val output = ByteArrayOutputStream()
+                    val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                    while (true) {
+                        val count = stream.read(buffer)
+                        if (count == -1) break
+                        if (count > maxResponseBytes - output.size()) {
+                            throw NonaException("Nona snapshot exceeds maxResponseBytes ($maxResponseBytes).")
+                        }
+                        output.write(buffer, 0, count)
+                    }
+                    output.toString("UTF-8")
+                }
+            } else ""
 
             NonaHttpResponse(
                 statusCode = status,
@@ -52,13 +67,9 @@ internal class UrlConnectionHttpClient(
                 etag = connection.getHeaderField("ETag"),
             )
         } catch (cause: IOException) {
-            throw NonaException("Nona request failed: ${cause.message}", cause)
+            throw NonaException("Nona request failed.", cause)
         } finally {
             connection.disconnect()
         }
-    }
-
-    private companion object {
-        const val HTTP_NOT_MODIFIED = 304
     }
 }
