@@ -1,21 +1,23 @@
 # Swift SDK validation — 2026-09-06
 
-Implemented in `feature/kotlin-client` alongside the Android SDK.
+Final review performed on `feature/swift-client`; Swift SDK based on commit `004cc7e`.
+The fixes below are a subsequently reviewed and tested working-tree patch.
 
 | Check | Result |
 | --- | --- |
-| SwiftPM unit tests on macOS | 17 passed |
+| SwiftPM unit tests on macOS | 21 passed |
 | Swift 5 language mode with complete concurrency checks and warnings as errors | Passed |
 | Swift 6 language mode with warnings as errors | Passed |
-| iPhone 17 Pro, iOS 26.5 Simulator | 23 passed, 0 failed, 0 skipped |
+| Thread Sanitizer on macOS | 21 passed; no sanitizer diagnostics |
+| iPhone 17 Pro, iOS 26.5 Simulator | 27 passed, 0 failed, 0 skipped |
 | iOS test build with Swift warnings as errors | Passed, no warnings reported |
 | CocoaPods `pod lib lint`, iOS + macOS, Swift 5.9 | Passed |
 | SwiftPM sample build and launch | Passed |
-| CocoaPods sample build and launch | Passed |
+| CocoaPods sample Release build and launch | Passed; Swift warnings as errors |
 | Documentation build | 60 pages built |
 | Workflow actionlint, Python syntax and git diff checks | Passed |
 
-The 23 simulator tests comprise 17 unit tests, 4 integration tests and 2 UI tests.
+The 27 simulator tests comprise 21 unit tests, 4 integration tests and 2 UI tests.
 Integration tests use a real disposable Nona backend with two projects, frontend
 and backend keys, and pinned releases. Transport tests use deterministic local
 fault endpoints. UI tests enter a connection, fetch without activating, activate,
@@ -37,4 +39,33 @@ installed macOS/Xcode 26.6 environment; minimum-version physical devices were no
 available. CocoaPods lint reported environment notes about the local Metal toolchain
 search path and skipped App Intents extraction; validation itself passed. There was
 no CocoaPods registry publication, release tag, App Store upload or GitHub-hosted CI
-run. The checked-in workflow is prepared for subsequent runs after pushing.
+run performed by this review. The checked-in workflow is prepared for subsequent runs.
+
+## Final review corrections
+
+- Separated cache serialization from the state lock so slow read/write/clear operations
+  cannot block synchronous value reads. Lock ordering remains cache then state;
+  reset and persistence still share serialization to prevent stale disk writes.
+- Added a cancellation check before committing restored cache state. Previously,
+  cancellation during a cache read still restored values.
+- Reject all control characters in API keys, including tab and DEL.
+- Corrected CocoaPods/SPM installation instructions to `feature/swift-client` and
+  documented cancellation's commit boundary accurately.
+- Simulator QA runner now treats Swift warnings as errors.
+
+Two new regression tests failed on the original implementation: blocked-cache
+read/write/clear prevented getters from completing, and cancelled initialization
+restored values. Both passed after correction. Further tests cover failed refreshes
+preserving active values and response limits on injected transports.
+
+The security diff scan reviewed all 32 changed files in `f0c0ffa..004cc7e`, including
+12 source inventory items and packaging, CI, generated projects, plists and docs.
+It included an independent architecture review. No confirmed security findings.
+Subsequent fixes were manually reviewed and tested separately; the immutable scan
+must not be represented as an automatic scan of the later working tree.
+
+Scan ID: `4c5a28fd-4b68-4e58-a7c2-ddf883d11e70`.
+Runtime evidence: `/tmp/nona-swift-review-ios.xcresult`,
+`/tmp/nona-swift-review-tests.log`, `/tmp/nona-swift-review-tsan.log`,
+`/tmp/nona-swift-review-swift6.log`, `/tmp/nona-swift-review-pod-lint.log`.
+These are local evidence paths, not portable repository artifacts.

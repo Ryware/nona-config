@@ -18,6 +18,27 @@ private actor Latch {
     func release() { open = true; waiters.forEach { $0.resume() }; waiters.removeAll() }
 }
 
+private final class BlockingStore: NonaSnapshotStore {
+    let entered = XCTestExpectation(description: "Cache operation entered")
+    let resume = DispatchSemaphore(value: 0)
+    let operation = Locked<String?>(nil)
+    private let data = InMemorySnapshotStore()
+    func read() -> Data? { pause("read"); return data.read() }
+    func write(_ value: Data) { pause("write"); data.write(value) }
+    func clear() { pause("clear"); data.clear() }
+    private func pause(_ name: String) {
+        let shouldPause = operation.withLock { value -> Bool in
+            guard value == name else { return false }
+            value = nil
+            return true
+        }
+        if shouldPause {
+            entered.fulfill()
+            _ = resume.wait(timeout: .now() + 10)
+        }
+    }
+}
+
 final class NonaConfigTests: XCTestCase {
     private func options(key: String = "frontend", interval: TimeInterval = 0) throws -> NonaOptions {
         try NonaOptions(baseURL: URL(string: "https://nona.test")!, environmentID: "Production", apiKey: key,
@@ -39,6 +60,49 @@ final class NonaConfigTests: XCTestCase {
         XCTAssertEqual(config.getString("flag"), "A")
         XCTAssertEqual(config.getSource("flag"), .remote)
         XCTAssertFalse(config.activate())
+    }
+
+    func testSynchronousReadsDoNotWaitForCacheIO() async throws {
+        for operation in ["read", "write", "clear"] {
+            let store = BlockingStore()
+            let seed = try client(store: store)
+            try await seed.fetch()
+            let config = try client(store: store)
+            config.setDefaults(["local": "ready"])
+            store.operation.withLock { $0 = operation }
+            let work = Task {
+                switch operation {
+                case "read": _ = try await config.initialize()
+                case "write": _ = try await config.fetch()
+                default: try await config.reset()
+                }
+            }
+            await fulfillment(of: [store.entered], timeout: 5)
+            let read = expectation(description: "Read while \(operation) is blocked")
+            let reader = Task.detached {
+                XCTAssertEqual(config.getString("local"), "ready")
+                read.fulfill()
+            }
+            await fulfillment(of: [read], timeout: 1)
+            store.resume.signal()
+            await reader.value
+            try await work.value
+        }
+    }
+
+    func testCancelledInitializationDoesNotRestoreCache() async throws {
+        let store = BlockingStore()
+        let seed = try client(store: store)
+        try await seed.fetch()
+        let config = try client(store: store)
+        store.operation.withLock { $0 = "read" }
+        let work = Task { try await config.initialize() }
+        await fulfillment(of: [store.entered], timeout: 5)
+        work.cancel()
+        store.resume.signal()
+        do { _ = try await work.value; XCTFail("Expected cancellation") }
+        catch is CancellationError {} catch { XCTFail("\(error)") }
+        XCTAssertEqual(config.getSource("flag"), .static)
     }
 
     func testTypedDefaultsAndResolution() async throws {
@@ -173,6 +237,34 @@ final class NonaConfigTests: XCTestCase {
         }
     }
 
+    func testFailedRefreshPreservesActiveSnapshotAndAllowsRetry() async throws {
+        let response = Locked(NonaHTTPResponse(statusCode: 200, body: body("good"), etag: "good"))
+        let config = NonaConfig(options: try options(interval: 60), store: InMemorySnapshotStore(),
+                                http: StubHTTP { _, _ in response.withLock { $0 } })
+        try await config.fetchAndActivate()
+        for bad in [NonaHTTPResponse(statusCode: 503),
+                    NonaHTTPResponse(statusCode: 200, body: Data("[]".utf8))] {
+            response.withLock { $0 = bad }
+            do { try await config.fetch(minimumFetchInterval: 0); XCTFail("Expected failure") }
+            catch is NonaError {} catch { XCTFail("\(error)") }
+            XCTAssertEqual(config.getString("flag"), "good")
+            XCTAssertFalse(config.activate())
+        }
+        response.withLock { $0 = NonaHTTPResponse(statusCode: 200, body: body("recovered")) }
+        try await config.fetchAndActivate(minimumFetchInterval: 0)
+        XCTAssertEqual(config.getString("flag"), "recovered")
+    }
+
+    func testCustomTransportStillRespectsResponseLimit() async throws {
+        let opts = try NonaOptions(baseURL: URL(string: "https://nona.test")!, environmentID: "Production",
+                                   maxResponseBytes: 16)
+        let config = NonaConfig(options: opts, store: InMemorySnapshotStore(),
+                                http: StubHTTP { _, _ in NonaHTTPResponse(statusCode: 200, body: body()) })
+        do { try await config.fetch(); XCTFail("Expected size limit") }
+        catch let error as NonaError { XCTAssertEqual(error, .responseTooLarge(maxBytes: 16)) }
+        XCTAssertFalse(config.activate())
+    }
+
     func testResetDiscardsInFlightFetch() async throws {
         let entered = Latch(), release = Latch()
         let store = InMemorySnapshotStore()
@@ -262,6 +354,10 @@ final class NonaConfigTests: XCTestCase {
         }
         for environment in ["", " ", ".", ".."] {
             XCTAssertThrowsError(try NonaOptions(baseURL: URL(string: "https://nona.test")!, environmentID: environment))
+        }
+        for key in ["key\r\nInjected: value", "key\0", "key\t", "key\u{7F}"] {
+            XCTAssertThrowsError(try NonaOptions(baseURL: URL(string: "https://nona.test")!,
+                                                environmentID: "Production", apiKey: key))
         }
         let config = try client()
         for interval in [-1.0, .infinity, .nan] {

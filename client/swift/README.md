@@ -5,17 +5,17 @@ concurrency. No third-party runtime dependencies; uses Foundation, CryptoKit and
 
 ## Install
 
-The Swift SDK is currently developed on `feature/kotlin-client`; it has not been
+The Swift SDK is currently developed on `feature/swift-client`; it has not been
 published to the CocoaPods registry or released under a version tag.
 
 ### CocoaPods
 
-Once the branch is pushed, add to your application's Podfile:
+Add to your application's Podfile:
 
 ```ruby
 platform :ios, '15.0'
 use_frameworks!
-pod 'NonaClient', :git => 'https://github.com/Ryware/nona-config.git', :branch => 'feature/kotlin-client'
+pod 'NonaClient', :git => 'https://github.com/Ryware/nona-config.git', :branch => 'feature/swift-client'
 ```
 
 Run `pod install` and open the generated `.xcworkspace`. For a local checkout,
@@ -24,7 +24,7 @@ use `pod 'NonaClient', :path => '/path/to/nona-config'` instead.
 ### Swift Package Manager
 
 In Xcode, choose **File → Add Package Dependencies**, enter
-`https://github.com/Ryware/nona-config.git`, select branch `feature/kotlin-client`,
+`https://github.com/Ryware/nona-config.git`, select branch `feature/swift-client`,
 and add the **NonaClient** product. The package manifest is at the repository root.
 For local development, add this repository as a local package.
 
@@ -78,8 +78,9 @@ and cancel the owning task when its result is no longer needed.
 - `reset()` clears memory and cache and invalidates in-flight responses. It preserves
   defaults. Requests invalidated by reset return `.discarded`.
 
-Concurrent fetches are serialized. Cancelled fetches do not commit values; queued
-cancelled fetches do not start network requests. Activation emits changes via
+Concurrent fetches are serialized. Cancellation is checked before committing state;
+cancellation after that point does not undo a completed commit. Queued cancelled
+fetches do not start network requests. Activation emits changes via
 `updates()`; defaults/reset do not emit activation events.
 
 ```swift
@@ -148,7 +149,8 @@ let config = NonaConfig(options: options, store: InMemorySnapshotStore(), http: 
 
 `NonaHTTPClient` is async and Sendable. Custom transports must handle cancellation,
 timeouts, redirects and streaming limits; the SDK also checks returned body size.
-`NonaSnapshotStore` is synchronous and Sendable; its methods run off the main actor.
+`NonaSnapshotStore` is synchronous and Sendable; its methods run off the main actor
+and do not hold the lock used by synchronous value reads.
 Do not call back into the same NonaConfig from a custom store.
 
 ## Build and verify

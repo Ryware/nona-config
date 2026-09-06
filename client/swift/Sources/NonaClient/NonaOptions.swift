@@ -30,7 +30,7 @@ public struct NonaOptions: Sendable {
               requestTimeout.isFinite, requestTimeout > 0, maxResponseBytes > 0 else {
             throw NonaError.invalidOptions("Intervals must be finite; fetch interval must be nonnegative, timeout and response limit positive.")
         }
-        if let apiKey, apiKey.contains(where: { $0.isNewline || $0 == "\0" }) {
+        if let apiKey, apiKey.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) }) {
             throw NonaError.invalidOptions("apiKey cannot contain control characters.")
         }
         url.scheme = scheme

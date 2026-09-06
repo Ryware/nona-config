@@ -29,4 +29,4 @@ project = Path(__file__).resolve().parents[1] / 'Sample/NonaSample.xcodeproj'
 subprocess.run(['xcodebuild', '-project', str(project), '-scheme', 'NonaSample',
                 '-destination', 'platform=iOS Simulator,id=' + args.simulator,
                 '-resultBundlePath', args.result_bundle, '-parallel-testing-enabled', 'NO',
-                'CODE_SIGNING_ALLOWED=NO', 'test'], env=environment, check=True)
+                'CODE_SIGNING_ALLOWED=NO', 'SWIFT_TREAT_WARNINGS_AS_ERRORS=YES', 'test'], env=environment, check=True)

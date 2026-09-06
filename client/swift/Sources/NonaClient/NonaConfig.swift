@@ -16,6 +16,8 @@ public final class NonaConfig: Sendable {
     private let store: any NonaSnapshotStore
     private let clock: @Sendable () -> TimeInterval
     private let state = Locked(State())
+    // Lock ordering is cacheAccess -> state. Synchronous readers never acquire cacheAccess.
+    private let cacheAccess = Locked(())
     private let fetchGate = FetchGate()
     private let identity: String
 
@@ -64,15 +66,18 @@ public final class NonaConfig: Sendable {
     @discardableResult
     public func initialize() async throws -> Bool {
         try await background { [self] in
-            try state.withLock { state in
+            try cacheAccess.withLock { _ in
                 try Task.checkCancellation()
-                guard state.active == nil, state.pending == nil,
+                guard state.withLock({ $0.active == nil && $0.pending == nil }),
                       let data = store.read(),
                       let snapshot = try? JSONDecoder().decode(Snapshot.self, from: data),
                       snapshot.identity == identity, snapshot.fetchedAt.isFinite else { return false }
-                state.active = snapshot
-                state.lastFetch = snapshot.fetchedAt
-                return true
+                return try state.withLock { state in
+                    try Task.checkCancellation()
+                    state.active = snapshot
+                    state.lastFetch = snapshot.fetchedAt
+                    return true
+                }
             }
         }
     }
@@ -121,12 +126,14 @@ public final class NonaConfig: Sendable {
     /// Clears memory and disk; results of requests already in flight are discarded.
     public func reset() async throws {
         try await background { [self] in
-            try state.withLock { state in
-                try Task.checkCancellation()
-                state.generation &+= 1
-                state.active = nil
-                state.pending = nil
-                state.lastFetch = nil
+            try cacheAccess.withLock { _ in
+                try state.withLock { state in
+                    try Task.checkCancellation()
+                    state.generation &+= 1
+                    state.active = nil
+                    state.pending = nil
+                    state.lastFetch = nil
+                }
                 store.clear()
             }
         }
@@ -209,13 +216,19 @@ public final class NonaConfig: Sendable {
         }
         let snapshot = Snapshot(identity: identity, values: values, etag: etag, fetchedAt: now)
         return try await background { [self] in
-            try state.withLock { state in
-                try Task.checkCancellation()
-                guard state.generation == generation else { return .discarded }
-                if response.statusCode == 304, state.pending == nil { state.active = snapshot }
-                else { state.pending = snapshot }
-                state.lastFetch = now
-                if let data = try? JSONEncoder().encode(snapshot) { store.write(data) }
+            try cacheAccess.withLock { _ in
+                let data = try? JSONEncoder().encode(snapshot)
+                let committed = try state.withLock { state -> Bool in
+                    try Task.checkCancellation()
+                    guard state.generation == generation else { return false }
+                    if response.statusCode == 304, state.pending == nil { state.active = snapshot }
+                    else { state.pending = snapshot }
+                    state.lastFetch = now
+                    return true
+                }
+                guard committed else { return .discarded }
+                // Keep writes ordered with reset/initialize without blocking value reads.
+                if let data { store.write(data) }
                 return response.statusCode == 304 ? .notModified : .success
             }
         }
