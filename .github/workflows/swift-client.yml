@@ -10,10 +10,17 @@ on:
       - 'core/**'
       - 'libsql/**'
       - '.github/workflows/swift-client.yml'
+      - '.github/workflows/swift-release.yml'
   push:
     branches: [development]
     paths: ['client/qa/**', 'Package.swift', 'NonaClient.podspec', 'client/swift/**', '.github/workflows/swift-client.yml']
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      checkout_ref:
+        description: Immutable commit to validate for a release.
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -24,6 +31,9 @@ jobs:
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.checkout_ref || github.sha }}
+          persist-credentials: false
       - name: Verify shared QA contracts
         run: |
           python3 client/qa/generate-contracts.py --check

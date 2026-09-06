@@ -157,6 +157,9 @@ Do not call back into the same NonaConfig from a custom store.
 
 ## Build and verify
 
+Maintainers: see [RELEASING.md](RELEASING.md) for publication through GitHub Actions
+without a personal Mac, including dry runs and the Trunk secret setup.
+
 From the repository root:
 
 ```sh
