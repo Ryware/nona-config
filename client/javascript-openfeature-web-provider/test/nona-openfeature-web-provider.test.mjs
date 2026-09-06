@@ -13,7 +13,7 @@ const snapshot = {
 };
 
 function snapshotResponse(values, { etag, status = 200 } = {}) {
-  return new Response(status === 304 ? "" : JSON.stringify(values), {
+  return new Response(status === 304 ? null : JSON.stringify(values), {
     status,
     headers: {
       "Content-Type": "application/json",
@@ -248,7 +248,7 @@ test("a rejected API key fails initialization fatally", async () => {
   });
 });
 
-test("a transient failure stays retryable rather than fatal", async () => {
+test("a transient failure stays retryable rather than fatal", async (t) => {
   const provider = createNonaOpenFeatureWebProvider({
     baseUrl: "https://nona.test",
     apiKey: "frontend-key",
@@ -256,6 +256,7 @@ test("a transient failure stays retryable rather than fatal", async () => {
     pollIntervalMs: 0,
     fetch: async () => jsonResponse({ error: "Server error" }, 503),
   });
+  t.after(() => provider.onClose());
 
   await assert.rejects(() => provider.initialize(), (thrown) => {
     assert.equal(thrown.code, undefined);
@@ -367,6 +368,85 @@ test("a context change refetches the snapshot", async () => {
   assert.equal(ofClient.getBooleanValue("enabled", true), false);
 
   await provider.onClose();
+});
+
+test("polling recovers from failed initialization and continues refreshing", async (t) => {
+  const { client, calls } = stubClient((call) => {
+    if (call <= 2) return jsonResponse({ error: "Unavailable" }, 503);
+    return snapshotResponse({
+      enabled: { value: call === 3 ? "true" : "false", contentType: "boolean" },
+    });
+  });
+  const provider = createNonaOpenFeatureWebProvider(client, { pollIntervalMs: 10 });
+  t.after(() => provider.onClose());
+  const domain = domainFor("init-recovery");
+  const ofClient = OpenFeature.getClient(domain);
+  const readyValues = [];
+  provider.events.addHandler(ProviderEvents.Ready, () => {
+    readyValues.push(ofClient.getBooleanValue("enabled", false));
+  });
+
+  await assert.rejects(OpenFeature.setProviderAndWait(domain, provider));
+  assert.equal(ofClient.providerStatus, "ERROR");
+  await waitFor(() => readyValues.length > 0);
+  assert.equal(ofClient.providerStatus, "READY");
+  assert.deepEqual(readyValues, [true], "snapshot must be available at recovery");
+  await waitFor(() => calls.length >= 4);
+  assert.equal(ofClient.getBooleanValue("enabled", true), false);
+  assert.equal(readyValues.length, 1, "normal refreshes must not emit Ready");
+});
+
+test("disabled polling allows manual recovery without starting a timer", async (t) => {
+  const { client, calls } = stubClient((call) => {
+    if (call === 1) throw new TypeError("Failed to fetch");
+    return snapshotResponse(snapshot);
+  });
+  const provider = createNonaOpenFeatureWebProvider(client, { pollIntervalMs: 0 });
+  t.after(() => provider.onClose());
+  const domain = domainFor("manual-recovery");
+  await assert.rejects(OpenFeature.setProviderAndWait(domain, provider));
+  await wait(40);
+  assert.equal(calls.length, 1);
+
+  await provider.refresh();
+  const ofClient = OpenFeature.getClient(domain);
+  assert.equal(ofClient.providerStatus, "READY");
+  assert.equal(ofClient.getBooleanValue("enabled", false), true);
+  await wait(40);
+  assert.equal(calls.length, 2);
+});
+
+test("fatal initialization failures do not start polling", async (t) => {
+  for (const status of [401, 404]) {
+    const { client, calls } = stubClient(() => jsonResponse({ error: "Rejected" }, status));
+    const provider = createNonaOpenFeatureWebProvider(client, { pollIntervalMs: 10 });
+    t.after(() => provider.onClose());
+    await assert.rejects(provider.initialize(), { code: ErrorCode.PROVIDER_FATAL });
+    await wait(40);
+    assert.equal(calls.length, 1);
+  }
+});
+
+test("closing during a recovery request discards its result and stops retries", async (t) => {
+  let complete;
+  const { client, calls } = stubClient((call) => {
+    if (call === 1) return jsonResponse({ error: "Unavailable" }, 503);
+    return new Promise((resolve) => { complete = resolve; });
+  });
+  const provider = createNonaOpenFeatureWebProvider(client, { pollIntervalMs: 10 });
+  t.after(() => provider.onClose());
+  const events = [];
+  provider.events.addHandler(ProviderEvents.Ready, () => events.push("ready"));
+  provider.events.addHandler(ProviderEvents.ConfigurationChanged, () => events.push("changed"));
+  await assert.rejects(provider.initialize());
+  await waitFor(() => complete !== undefined);
+  await provider.onClose();
+  complete(snapshotResponse(snapshot));
+  await wait(40);
+
+  assert.equal(calls.length, 2);
+  assert.deepEqual(events, []);
+  assert.equal(provider.resolveBooleanEvaluation("enabled", false).errorCode, ErrorCode.PROVIDER_NOT_READY);
 });
 
 function wait(ms) {

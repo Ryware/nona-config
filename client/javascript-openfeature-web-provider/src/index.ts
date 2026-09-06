@@ -79,6 +79,8 @@ export class NonaOpenFeatureWebProvider implements Provider {
 
   private values: NonaConfigValues | undefined;
   private timer: ReturnType<typeof setInterval> | undefined;
+  private recovering = false;
+  private closed = false;
 
   constructor(
     private readonly client: NonaClient,
@@ -88,20 +90,44 @@ export class NonaOpenFeatureWebProvider implements Provider {
   }
 
   async initialize(): Promise<void> {
-    this.values = await this.fetchValues();
-    this.startPolling();
+    this.closed = false;
+    try {
+      const values = await this.fetchValues();
+      if (!this.closed) {
+        this.values = values;
+        this.recovering = false;
+        this.startPolling();
+      }
+    } catch (cause) {
+      if (!this.closed && !(cause instanceof ProviderFatalError)) {
+        this.recovering = true;
+        this.startPolling();
+      }
+      throw cause;
+    }
   }
 
   /** Snapshots are the same for every caller today, so this is just a refetch. */
   async onContextChange(): Promise<void> {
-    this.values = await this.fetchValues();
+    const values = await this.fetchValues();
+    if (!this.closed) {
+      this.values = values;
+      this.finishRecovery();
+    }
   }
 
   /** Refetch, emit `PROVIDER_CONFIGURATION_CHANGED`, return the changed keys. */
   async refresh(): Promise<string[]> {
+    if (this.closed) {
+      return [];
+    }
     const next = await this.fetchValues();
+    if (this.closed) {
+      return [];
+    }
     const previous = this.values;
     this.values = next;
+    this.finishRecovery();
 
     const flagsChanged = previous
       ? changedFlagKeys(previous, next)
@@ -114,6 +140,8 @@ export class NonaOpenFeatureWebProvider implements Provider {
   }
 
   async onClose(): Promise<void> {
+    this.closed = true;
+    this.recovering = false;
     if (this.timer !== undefined) {
       clearInterval(this.timer);
       this.timer = undefined;
@@ -199,7 +227,17 @@ export class NonaOpenFeatureWebProvider implements Provider {
     }
   }
 
+  private finishRecovery(): void {
+    if (this.recovering) {
+      this.recovering = false;
+      this.events.emit(ProviderEvents.Ready);
+    }
+  }
+
   private startPolling(): void {
+    if (this.timer !== undefined || this.closed) {
+      return;
+    }
     const interval = this.settings.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS;
     if (!Number.isFinite(interval) || interval <= 0) {
       return;

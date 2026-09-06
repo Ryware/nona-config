@@ -66,6 +66,8 @@ Everything `createNonaClient` accepts (`baseUrl`, `apiKey`, `environmentId`, `re
 
 Polling sends the snapshot's `ETag`, so an unchanged environment costs a `304` and no re-render. When values do change, the provider emits `PROVIDER_CONFIGURATION_CHANGED` with the changed keys, which is what drives re-evaluation in the web SDK and re-renders in the React SDK.
 
+If initialization fails with a temporary network or server error, polling retries at the configured interval. The provider emits `PROVIDER_READY` after a successful retry. With `pollIntervalMs: 0`, call `refresh()` to retry manually. Fatal initialization errors (401 or 404) do not start polling.
+
 To refresh at a moment of your choosing — after a login, or on `visibilitychange` — call `refresh()`. It returns the keys that changed:
 
 ```js
