@@ -160,7 +160,8 @@ public sealed partial class NonaClient
         HttpRequestMessage request,
         string? responseBody)
     {
-        var message = TryReadErrorMessage(responseBody);
+        var error = TryReadError(responseBody);
+        var message = error.Message;
         if (string.IsNullOrWhiteSpace(message))
         {
             message = $"Nona request failed with HTTP {(int)response.StatusCode} ({response.ReasonPhrase}).";
@@ -171,14 +172,16 @@ public sealed partial class NonaClient
             response.StatusCode,
             request.Method.Method,
             request.RequestUri,
-            responseBody);
+            responseBody,
+            errorCode: error.ErrorCode,
+            detail: error.Detail);
     }
 
-    private static string? TryReadErrorMessage(string? responseBody)
+    private static ResponseError TryReadError(string? responseBody)
     {
         if (string.IsNullOrWhiteSpace(responseBody))
         {
-            return null;
+            return ResponseError.Empty;
         }
 
         try
@@ -188,32 +191,59 @@ public sealed partial class NonaClient
 
             if (root.ValueKind == JsonValueKind.Object)
             {
-                if (root.TryGetProperty("detail", out var detail) && detail.ValueKind == JsonValueKind.String)
+                var detail = root.TryGetProperty("detail", out var detailProperty)
+                    && detailProperty.ValueKind == JsonValueKind.String
+                        ? detailProperty.GetString()
+                        : null;
+                var errorCode = root.TryGetProperty("errorCode", out var errorCodeProperty)
+                    && errorCodeProperty.ValueKind == JsonValueKind.String
+                        ? errorCodeProperty.GetString()
+                        : null;
+
+                if (!string.IsNullOrWhiteSpace(detail))
                 {
-                    return detail.GetString();
+                    return new ResponseError(detail, errorCode, detail);
                 }
 
                 if (root.TryGetProperty("error", out var error) && error.ValueKind == JsonValueKind.String)
                 {
-                    return error.GetString();
+                    return new ResponseError(error.GetString(), errorCode, null);
                 }
 
                 if (root.TryGetProperty("message", out var message) && message.ValueKind == JsonValueKind.String)
                 {
-                    return message.GetString();
+                    return new ResponseError(message.GetString(), errorCode, null);
                 }
 
                 if (root.TryGetProperty("title", out var title) && title.ValueKind == JsonValueKind.String)
                 {
-                    return title.GetString();
+                    return new ResponseError(title.GetString(), errorCode, null);
                 }
             }
         }
         catch (JsonException)
         {
-            return null;
+            return ResponseError.Empty;
         }
 
-        return null;
+        return ResponseError.Empty;
+    }
+
+    private sealed class ResponseError
+    {
+        public static readonly ResponseError Empty = new ResponseError(null, null, null);
+
+        public ResponseError(string? message, string? errorCode, string? detail)
+        {
+            Message = message;
+            ErrorCode = errorCode;
+            Detail = detail;
+        }
+
+        public string? Message { get; }
+
+        public string? ErrorCode { get; }
+
+        public string? Detail { get; }
     }
 }

@@ -34,13 +34,13 @@ public sealed class NonaClientTests
         Assert.Equal("1", second["GroupA:One"].Value);
         Assert.Equal(2, handler.Requests.Count);
         var requests = handler.Requests.ToArray();
-        Assert.Equal("https://nona.test/api/production?prefix=GroupA%3A", requests[0].Uri.AbsoluteUri);
-        Assert.Equal("https://nona.test/api/production?prefix=groupa%3A", requests[1].Uri.AbsoluteUri);
+        Assert.Equal("https://nona.test/api/production/parameters?prefix=GroupA%3A", requests[0].Uri.AbsoluteUri);
+        Assert.Equal("https://nona.test/api/production/parameters?prefix=groupa%3A", requests[1].Uri.AbsoluteUri);
         Assert.Equal("\"group-a\"", requests[1].GetHeader("If-None-Match"));
     }
 
     [Fact]
-    public async Task GetAllValuesForReleaseAsync_CombinesReleaseAndPrefixSelectors()
+    public async Task GetAllValuesAsync_UsesConfiguredReleaseAndPrefixSelectors()
     {
         var handler = new StubHttpMessageHandler(_ => BulkValuesResponse("{}", "\"empty\""));
         using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://nona.test/") };
@@ -48,14 +48,15 @@ public sealed class NonaClientTests
         {
             EnvironmentId = "production",
             ApiKey = "api-key",
-            ReleaseVersion = "1.0.0"
+            UseReleases = true,
+            ReleaseVersion = "2.3.4"
         });
 
-        await client.GetAllValuesForReleaseAsync("2.3.4", "GroupA:");
+        await client.GetAllValuesAsync("GroupA:");
 
         var request = Assert.Single(handler.Requests);
         Assert.Equal(
-            "https://nona.test/api/production?version=2.3.4&prefix=GroupA%3A",
+            "https://nona.test/api/production/releases/parameters?version=2.3.4&prefix=GroupA%3A",
             request.Uri.AbsoluteUri);
     }
 
@@ -117,8 +118,8 @@ public sealed class NonaClientTests
         Assert.Equal("true", (await valid)["S:Flag"].Value);
         Assert.Equal(2, handler.Requests.Count);
         var requests = handler.Requests.ToArray();
-        Assert.Equal("https://nona.test/api/production?prefix=%C5%BF", requests[0].Uri.AbsoluteUri);
-        Assert.Equal("https://nona.test/api/production?prefix=S", requests[1].Uri.AbsoluteUri);
+        Assert.Equal("https://nona.test/api/production/parameters?prefix=%C5%BF", requests[0].Uri.AbsoluteUri);
+        Assert.Equal("https://nona.test/api/production/parameters?prefix=S", requests[1].Uri.AbsoluteUri);
 
         var retryException = await Assert.ThrowsAsync<NonaClientException>(() =>
             client.GetAllValuesAsync("ſ"));
@@ -242,7 +243,7 @@ public sealed class NonaClientTests
 
         var request = Assert.Single(handler.Requests);
         Assert.Equal(HttpMethod.Get, request.Method);
-        Assert.Equal("https://nona.test/api/production/Features%3ACheckout", request.Uri.AbsoluteUri);
+        Assert.Equal("https://nona.test/api/production/parameters/Features%3ACheckout", request.Uri.AbsoluteUri);
         Assert.Equal("api-key", request.GetHeader("X-Api-Key"));
     }
 
@@ -260,18 +261,20 @@ public sealed class NonaClientTests
         {
             EnvironmentId = "production",
             ApiKey = "api-key",
+            UseReleases = true,
             ReleaseVersion = "1.1.x"
         });
 
         await client.GetConfigValueAsync("Features:Checkout");
 
         var request = Assert.Single(handler.Requests);
+        Assert.True(client.UseReleases);
         Assert.Equal("1.1.x", client.ReleaseVersion);
-        Assert.Equal("https://nona.test/api/production/Features%3ACheckout?version=1.1.x", request.Uri.AbsoluteUri);
+        Assert.Equal("https://nona.test/api/production/releases/parameters/Features%3ACheckout?version=1.1.x", request.Uri.AbsoluteUri);
     }
 
     [Fact]
-    public async Task GetConfigValueForReleaseAsync_RequestReleaseVersionOverridesConfiguredReleaseVersion()
+    public async Task GetConfigValueAsync_UsesActiveReleaseWhenSelectorIsAbsent()
     {
         var handler = new StubHttpMessageHandler(_ => RawEntryValueResponse("enabled", "text"));
 
@@ -284,43 +287,35 @@ public sealed class NonaClientTests
         {
             EnvironmentId = "production",
             ApiKey = "api-key",
-            ReleaseVersion = "1.1.x"
+            UseReleases = true
         });
 
-        await client.GetConfigValueForReleaseAsync("Features:Checkout", "1.1.0");
+        await client.GetConfigValueAsync("Features:Checkout");
 
         var request = Assert.Single(handler.Requests);
-        Assert.Equal("https://nona.test/api/production/Features%3ACheckout?version=1.1.0", request.Uri.AbsoluteUri);
+        Assert.Equal("https://nona.test/api/production/releases/parameters/Features%3ACheckout", request.Uri.AbsoluteUri);
     }
 
     [Fact]
-    public async Task TryGetConfigValueForReleaseAsync_ReturnsNullAndUsesRequestedReleaseVersion()
+    public void Constructor_RejectsReleaseVersionWhenReleaseModeIsDisabled()
     {
-        var handler = new StubHttpMessageHandler(_ => JsonResponse(
-            """{"error":"Config entry not found"}""",
-            HttpStatusCode.NotFound));
-
-        using var httpClient = new HttpClient(handler)
+        using var httpClient = new HttpClient
         {
             BaseAddress = new Uri("https://nona.test/")
         };
 
-        using var client = new NonaClient(httpClient, new NonaClientOptions
+        var exception = Assert.Throws<ArgumentException>(() => new NonaClient(httpClient, new NonaClientOptions
         {
             EnvironmentId = "production",
             ApiKey = "api-key",
             ReleaseVersion = "1.1.x"
-        });
+        }));
 
-        var value = await client.TryGetConfigValueForReleaseAsync("missing", "1.1.0");
-
-        Assert.Null(value);
-        var request = Assert.Single(handler.Requests);
-        Assert.Equal("https://nona.test/api/production/missing?version=1.1.0", request.Uri.AbsoluteUri);
+        Assert.Equal(nameof(NonaClientOptions.ReleaseVersion), exception.ParamName);
     }
 
     [Fact]
-    public async Task GetStringValueForReleaseAsync_ReturnsRawValueAndUsesRequestedReleaseVersion()
+    public async Task GetStringValueAsync_UsesConfiguredReleaseSource()
     {
         var handler = new StubHttpMessageHandler(_ => RawEntryValueResponse("enabled", "text"));
 
@@ -333,18 +328,19 @@ public sealed class NonaClientTests
         {
             EnvironmentId = "production",
             ApiKey = "api-key",
+            UseReleases = true,
             ReleaseVersion = "1.1.x"
         });
 
-        var value = await client.GetStringValueForReleaseAsync("Features:Checkout", "1.1.0");
+        var value = await client.GetStringValueAsync("Features:Checkout");
 
         Assert.Equal("enabled", value);
         var request = Assert.Single(handler.Requests);
-        Assert.Equal("https://nona.test/api/production/Features%3ACheckout?version=1.1.0", request.Uri.AbsoluteUri);
+        Assert.Equal("https://nona.test/api/production/releases/parameters/Features%3ACheckout?version=1.1.x", request.Uri.AbsoluteUri);
     }
 
     [Fact]
-    public async Task GetJsonValueForReleaseAsync_DeserializesValueAndUsesRequestedReleaseVersion()
+    public async Task GetJsonValueAsync_UsesConfiguredReleaseSource()
     {
         var handler = new StubHttpMessageHandler(_ => RawEntryValueResponse("""{"enabled":true}""", "json"));
 
@@ -357,18 +353,18 @@ public sealed class NonaClientTests
         {
             EnvironmentId = "production",
             ApiKey = "api-key",
+            UseReleases = true,
             ReleaseVersion = "1.1.x"
         });
 
-        var value = await client.GetJsonValueForReleaseAsync(
+        var value = await client.GetJsonValueAsync(
             "Features:Checkout",
-            NonaClientTestsJsonContext.Default.JsonFlag,
-            "1.1.0");
+            NonaClientTestsJsonContext.Default.JsonFlag);
 
         Assert.NotNull(value);
         Assert.True(value.Enabled);
         var request = Assert.Single(handler.Requests);
-        Assert.Equal("https://nona.test/api/production/Features%3ACheckout?version=1.1.0", request.Uri.AbsoluteUri);
+        Assert.Equal("https://nona.test/api/production/releases/parameters/Features%3ACheckout?version=1.1.x", request.Uri.AbsoluteUri);
     }
 
     [Fact]
@@ -417,7 +413,7 @@ public sealed class NonaClientTests
     public async Task TryGetConfigValueAsync_ReturnsNullForNotFound()
     {
         var handler = new StubHttpMessageHandler(_ => JsonResponse(
-            """{"error":"Config entry not found"}""",
+            """{"title":"Not Found","status":404,"detail":"Missing flag","errorCode":"config_entry_not_found"}""",
             HttpStatusCode.NotFound));
 
         using var httpClient = new HttpClient(handler)
@@ -434,6 +430,26 @@ public sealed class NonaClientTests
         var value = await client.TryGetConfigValueAsync("missing");
 
         Assert.Null(value);
+    }
+
+    [Fact]
+    public async Task TryGetConfigValueAsync_ThrowsForOtherNotFoundErrors()
+    {
+        var handler = new StubHttpMessageHandler(_ => JsonResponse(
+            """{"title":"Not Found","status":404,"detail":"Missing environment","errorCode":"environment_not_found"}""",
+            HttpStatusCode.NotFound));
+        using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://nona.test/") };
+        using var client = new NonaClient(httpClient, new NonaClientOptions
+        {
+            EnvironmentId = "production",
+            ApiKey = "api-key"
+        });
+
+        var exception = await Assert.ThrowsAsync<NonaClientException>(() =>
+            client.TryGetConfigValueAsync("missing"));
+
+        Assert.Equal("environment_not_found", exception.ErrorCode);
+        Assert.Equal("Missing environment", exception.Detail);
     }
 
     [Fact]
@@ -582,7 +598,7 @@ public sealed class NonaClientTests
     }
 
     [Fact]
-    public async Task GetConfigValueForReleaseAsync_DoesNotDeduplicateDifferentReleaseVersions()
+    public async Task DifferentReleaseSelectors_UseIndependentClientRequests()
     {
         var releaseResponses = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var handler = new StubHttpMessageHandler(async request =>
@@ -596,17 +612,27 @@ public sealed class NonaClientTests
             BaseAddress = new Uri("https://nona.test/")
         };
 
-        using var client = new NonaClient(httpClient, new NonaClientOptions
+        using var firstClient = new NonaClient(httpClient, new NonaClientOptions
         {
             EnvironmentId = "production",
             ApiKey = "api-key",
+            UseReleases = true,
+            ReleaseVersion = "1.1.0",
+            CacheTtl = TimeSpan.FromMinutes(1)
+        });
+        using var secondClient = new NonaClient(httpClient, new NonaClientOptions
+        {
+            EnvironmentId = "production",
+            ApiKey = "api-key",
+            UseReleases = true,
+            ReleaseVersion = "1.1.1",
             CacheTtl = TimeSpan.FromMinutes(1)
         });
 
         var requests = new[]
         {
-            client.GetConfigValueForReleaseAsync("flag", "1.1.0"),
-            client.GetConfigValueForReleaseAsync("flag", "1.1.1")
+            firstClient.GetConfigValueAsync("flag"),
+            secondClient.GetConfigValueAsync("flag")
         };
 
         await WaitForAsync(() => handler.Requests.Count == 2);
@@ -784,7 +810,7 @@ public sealed class NonaClientTests
     public async Task FailedRequest_ThrowsNonaClientExceptionWithServerError()
     {
         var handler = new StubHttpMessageHandler(_ => JsonResponse(
-            """{"error":"Config entry not found"}""",
+            """{"title":"Not Found","status":404,"detail":"Config entry not found","errorCode":"config_entry_not_found"}""",
             HttpStatusCode.NotFound));
 
         using var httpClient = new HttpClient(handler)
@@ -809,7 +835,7 @@ public sealed class NonaClientTests
     public async Task FailedRequest_ReadsProblemDetailsMessage()
     {
         var handler = new StubHttpMessageHandler(_ => JsonResponse(
-            """{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.5","title":"Not Found","status":404,"detail":"Config entry not found","instance":"/api/production/missing"}""",
+            """{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.5","title":"Not Found","status":404,"detail":"Config entry not found","errorCode":"config_entry_not_found","instance":"/api/production/parameters/missing"}""",
             HttpStatusCode.NotFound));
 
         using var httpClient = new HttpClient(handler)
@@ -828,6 +854,8 @@ public sealed class NonaClientTests
 
         Assert.Equal(HttpStatusCode.NotFound, ex.StatusCode);
         Assert.Equal("Config entry not found", ex.Message);
+        Assert.Equal("config_entry_not_found", ex.ErrorCode);
+        Assert.Equal("Config entry not found", ex.Detail);
     }
 
     private static HttpResponseMessage JsonResponse(string json, HttpStatusCode statusCode = HttpStatusCode.OK)

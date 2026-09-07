@@ -10,14 +10,12 @@ namespace Nona.Client;
 public sealed partial class NonaClient
 {
     private async Task<IReadOnlyDictionary<string, NonaConfigValue>> GetAllValuesCoreAsync(
-        string? releaseVersion,
         string? prefix,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var normalizedReleaseVersion = NormalizeReleaseVersion(releaseVersion);
-        var path = BuildAllConfigValuesPath(normalizedReleaseVersion, prefix);
-        var cacheKey = CreateBulkCacheKey(normalizedReleaseVersion, prefix);
+        var path = BuildAllConfigValuesPath(prefix);
+        var cacheKey = CreateBulkCacheKey(prefix);
 
         Task<IReadOnlyDictionary<string, NonaConfigValue>>? fetchTask;
         lock (_cacheLock)
@@ -29,7 +27,6 @@ public sealed partial class NonaClient
                 fetchTask = FetchAndCacheAllValuesAsync(
                     cacheKey,
                     path,
-                    normalizedReleaseVersion,
                     previous);
                 _inFlightBulkFetches[cacheKey] = fetchTask;
                 TrackInFlightBulkFetch(cacheKey, fetchTask);
@@ -43,7 +40,6 @@ public sealed partial class NonaClient
     private async Task<IReadOnlyDictionary<string, NonaConfigValue>> FetchAndCacheAllValuesAsync(
         string cacheKey,
         string path,
-        string? releaseVersion,
         BulkCacheEntry? previous)
     {
         using var request = CreateRequest(HttpMethod.Get, path);
@@ -59,7 +55,7 @@ public sealed partial class NonaClient
 
         if (response.StatusCode == HttpStatusCode.NotModified && previous is not null)
         {
-            SetBulkCacheEntry(cacheKey, previous.Etag, previous.Values, releaseVersion);
+            SetBulkCacheEntry(cacheKey, previous.Etag, previous.Values);
             return Clone(previous.Values);
         }
 
@@ -73,7 +69,7 @@ public sealed partial class NonaClient
 
         var values = DeserializeConfigValues(responseBody);
         var etag = response.Headers.ETag?.ToString();
-        SetBulkCacheEntry(cacheKey, etag, values, releaseVersion);
+        SetBulkCacheEntry(cacheKey, etag, values);
         return Clone(values);
     }
 

@@ -11,13 +11,17 @@ public sealed class NonaClientException : Exception
         string method,
         Uri? requestUri,
         string? responseBody,
-        Exception? innerException = null)
+        Exception? innerException = null,
+        string? errorCode = null,
+        string? detail = null)
         : base(message, innerException)
     {
         StatusCode = statusCode;
         Method = method;
         RequestUri = requestUri;
         ResponseBody = responseBody;
+        ErrorCode = errorCode;
+        Detail = detail;
     }
 
     public HttpStatusCode StatusCode { get; }
@@ -27,4 +31,8 @@ public sealed class NonaClientException : Exception
     public Uri? RequestUri { get; }
 
     public string? ResponseBody { get; }
+
+    public string? ErrorCode { get; }
+
+    public string? Detail { get; }
 }

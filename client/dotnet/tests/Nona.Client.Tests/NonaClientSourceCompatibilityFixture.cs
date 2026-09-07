@@ -11,7 +11,6 @@ internal static class NonaClientSourceCompatibilityFixture
     {
         _ = client.GetConfigValueAsync("flag", default);
         _ = client.GetAllValuesAsync(cancellationToken: default);
-        _ = client.GetAllValuesForReleaseAsync("1.0.0", cancellationToken: default);
         _ = client.TryGetConfigValueAsync("flag", default);
         _ = client.GetStringValueAsync("flag", default);
         _ = client.GetJsonValueAsync("flag", jsonTypeInfo, default);

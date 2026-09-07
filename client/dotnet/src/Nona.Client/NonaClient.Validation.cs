@@ -23,21 +23,25 @@ public sealed partial class NonaClient
             : new Uri(value + "/", UriKind.Absolute);
     }
 
-    private string BuildConfigValuePath(string key, string? releaseVersion)
+    private string BuildConfigValuePath(string key)
     {
-        var path = $"api/{_environmentSegment}/{Segment(key, nameof(key))}";
-        return releaseVersion is null
+        var path = _useReleases
+            ? $"api/{_environmentSegment}/releases/parameters/{Segment(key, nameof(key))}"
+            : $"api/{_environmentSegment}/parameters/{Segment(key, nameof(key))}";
+        return _releaseVersion is null
             ? path
-            : $"{path}?version={Uri.EscapeDataString(releaseVersion)}";
+            : $"{path}?version={Uri.EscapeDataString(_releaseVersion)}";
     }
 
-    private string BuildAllConfigValuesPath(string? releaseVersion, string? prefix)
+    private string BuildAllConfigValuesPath(string? prefix)
     {
-        var path = $"api/{_environmentSegment}";
+        var path = _useReleases
+            ? $"api/{_environmentSegment}/releases/parameters"
+            : $"api/{_environmentSegment}/parameters";
         var query = new List<string>(2);
-        if (releaseVersion is not null)
+        if (_releaseVersion is not null)
         {
-            query.Add($"version={Uri.EscapeDataString(releaseVersion)}");
+            query.Add($"version={Uri.EscapeDataString(_releaseVersion)}");
         }
 
         if (!string.IsNullOrEmpty(prefix))
@@ -48,15 +52,15 @@ public sealed partial class NonaClient
         return query.Count == 0 ? path : $"{path}?{string.Join("&", query)}";
     }
 
-    private static string CreateCacheKey(string key, string? releaseVersion)
+    private string CreateCacheKey(string key)
     {
-        return releaseVersion is null ? key : $"{key}\n{releaseVersion}";
+        return $"{_sourceIdentity}\n{key}";
     }
 
-    private static string CreateBulkCacheKey(string? releaseVersion, string? prefix)
+    private string CreateBulkCacheKey(string? prefix)
     {
         var normalizedPrefix = NormalizePrefix(prefix);
-        return $"{releaseVersion ?? string.Empty}\n{normalizedPrefix ?? string.Empty}";
+        return $"{_sourceIdentity}\n{normalizedPrefix ?? string.Empty}";
     }
 
     private static string? NormalizeReleaseVersion(string? releaseVersion)
