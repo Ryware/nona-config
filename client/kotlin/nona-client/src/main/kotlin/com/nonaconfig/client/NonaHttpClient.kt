@@ -45,13 +45,13 @@ internal class UrlConnectionHttpClient(
             headers.forEach(connection::setRequestProperty)
 
             val status = connection.responseCode
-            // Error bodies are unused. Do not download them before reporting the status.
-            val body = if (status in 200..299) {
-                connection.inputStream.use { stream ->
+            val stream = if (status in 200..299) connection.inputStream else connection.errorStream
+            val body = if (stream != null) {
+                stream.use {
                     val output = ByteArrayOutputStream()
                     val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
                     while (true) {
-                        val count = stream.read(buffer)
+                        val count = it.read(buffer)
                         if (count == -1) break
                         if (count > maxResponseBytes - output.size()) {
                             throw NonaException("Nona snapshot exceeds maxResponseBytes ($maxResponseBytes).")

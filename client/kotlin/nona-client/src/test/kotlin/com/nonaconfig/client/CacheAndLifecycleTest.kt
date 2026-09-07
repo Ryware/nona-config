@@ -16,6 +16,11 @@ class CacheAndLifecycleTest {
         assertNotEquals(options.cacheIdentity(), options.copy(apiKey = "other").cacheIdentity())
         assertNotEquals(options.cacheIdentity(), options.copy(baseUrl = "https://other.test").cacheIdentity())
         assertNotEquals(options.copy(prefix = "Aa").cacheIdentity(), options.copy(prefix = "BB").cacheIdentity())
+        assertNotEquals(options.cacheIdentity(), options.copy(useReleases = true).cacheIdentity())
+        assertNotEquals(
+            options.copy(useReleases = true).cacheIdentity(),
+            options.copy(useReleases = true, releaseVersion = "1.0.0").cacheIdentity(),
+        )
         assertEquals(options.cacheIdentity(), options.copy(baseUrl = "https://NONA.test:443/").cacheIdentity())
         assertFalse(options.cacheIdentity().contains("frontend"))
     }

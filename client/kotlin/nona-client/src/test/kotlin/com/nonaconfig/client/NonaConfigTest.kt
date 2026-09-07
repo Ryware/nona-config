@@ -80,7 +80,7 @@ class NonaConfigTest {
         assertEquals("""{"color":"green"}""", config.getString("Theme"))
 
         assertEquals(1, http.requests.size, "reads must not touch the network")
-        assertEquals("https://nona.test/api/production", http.requests[0].first)
+        assertEquals("https://nona.test/api/production/parameters", http.requests[0].first)
         assertEquals("frontend-key", http.requests[0].second["X-Api-Key"])
     }
 
@@ -173,6 +173,40 @@ class NonaConfigTest {
     }
 
     @Test
+    fun `a failed release refresh preserves the last known good snapshot and etag`() = runTest {
+        val http = FakeHttpClient { ok() }
+        val config = config(
+            http,
+            options = NonaOptions(
+                baseUrl = "https://nona.test",
+                environmentId = "production",
+                apiKey = "frontend-key",
+                useReleases = true,
+                minimumFetchInterval = Duration.ZERO,
+            ),
+        )
+        config.fetchAndActivate()
+
+        http.respondWith {
+            NonaHttpResponse(
+                409,
+                """{"title":"Conflict","status":409,"detail":"No active release","errorCode":"active_release_not_configured"}""",
+                null,
+            )
+        }
+        val failure = assertFailsWith<NonaHttpException> { config.fetch() }
+        assertEquals("active_release_not_configured", failure.errorCode)
+        assertTrue(config.getBoolean("Features:Checkout"))
+
+        http.respondWith { headers ->
+            assertEquals("W/\"1\"", headers["If-None-Match"])
+            NonaHttpResponse(304, "", "W/\"1\"")
+        }
+        assertEquals(FetchStatus.NOT_MODIFIED, config.fetch())
+        assertTrue(config.getBoolean("Features:Checkout"))
+    }
+
+    @Test
     fun `fetches inside the minimum interval are throttled`() = runTest {
         val clock = TestClock()
         val http = FakeHttpClient { ok() }
@@ -252,11 +286,18 @@ class NonaConfigTest {
 
     @Test
     fun `http failures carry their status code`() = runTest {
-        val config = config(FakeHttpClient { NonaHttpResponse(404, """{"error":"nope"}""", null) })
+        val config = config(FakeHttpClient {
+            NonaHttpResponse(
+                404,
+                """{"title":"Not Found","status":404,"detail":"Environment missing","errorCode":"environment_not_found"}""",
+                null,
+            )
+        })
 
         val thrown = assertFailsWith<NonaHttpException> { config.fetch() }
         assertEquals(404, thrown.statusCode)
-        assertTrue(thrown.message!!.contains("frontend-scoped"))
+        assertEquals("environment_not_found", thrown.errorCode)
+        assertEquals("Environment missing", thrown.detail)
     }
 
     @Test
@@ -268,13 +309,14 @@ class NonaConfigTest {
     }
 
     @Test
-    fun `prefix and release version become query parameters`() = runTest {
+    fun `release source prefix and selector become part of the route`() = runTest {
         val http = FakeHttpClient { ok() }
         val config = config(
             http,
             options = NonaOptions(
                 baseUrl = "https://nona.test/",
                 environmentId = "pre production",
+                useReleases = true,
                 releaseVersion = "1.4.x",
                 prefix = "Features:",
             ),
@@ -283,10 +325,38 @@ class NonaConfigTest {
         config.fetch()
 
         assertEquals(
-            "https://nona.test/api/pre%20production?version=1.4.x&prefix=Features%3A",
+            "https://nona.test/api/pre%20production/releases/parameters?version=1.4.x&prefix=Features%3A",
             http.requests.single().first,
         )
         assertNull(http.requests.single().second["X-Api-Key"], "no key configured, no header")
+    }
+
+    @Test
+    fun `release source without selector uses the active release route`() = runTest {
+        val http = FakeHttpClient { ok() }
+        val config = config(
+            http,
+            options = NonaOptions(
+                baseUrl = "https://nona.test",
+                environmentId = "production",
+                useReleases = true,
+            ),
+        )
+
+        config.fetch()
+
+        assertEquals("https://nona.test/api/production/releases/parameters", http.requests.single().first)
+    }
+
+    @Test
+    fun `release selector is rejected when release mode is disabled`() {
+        assertFailsWith<IllegalArgumentException> {
+            NonaOptions(
+                baseUrl = "https://nona.test",
+                environmentId = "production",
+                releaseVersion = "1.4.x",
+            )
+        }
     }
 
     @Test

@@ -47,14 +47,13 @@ class SharedContractTest {
             assertEquals(item.getBoolean("boolean"), config.getBoolean("flag"), value)
         }
     }
-    @Test fun `cache written by baseline SDK still restores`() = runBlocking {
+    @Test fun `cache written by the old cache identity is ignored`() = runBlocking {
         val fixture = JSONObject(SharedContracts.json).getJSONObject("cacheFixtures").getJSONObject("kotlin")
         val store = InMemorySnapshotStore().apply { write(fixture.getString("json")) }
         val config = NonaConfig.create(NonaOptions("https://nona.test", "Production"), store, object : NonaHttpClient {
             override fun get(url: String, headers: Map<String, String>): NonaHttpResponse = error("Restore must not use HTTP")
         })
-        assertTrue(config.initialize(), fixture.getString("baselineRef"))
-        assertEquals("compatible", config.getString("flag"))
+        assertFalse(config.initialize(), fixture.getString("baselineRef"))
     }
 
 }

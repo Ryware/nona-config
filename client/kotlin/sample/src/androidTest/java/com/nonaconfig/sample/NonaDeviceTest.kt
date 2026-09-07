@@ -222,7 +222,7 @@ class NonaDeviceTest {
     }
 
     @Test fun prefixPinnedReleaseAndThrottleUseRealServer() = runBlocking {
-        val pinned = options().copy(prefix = "Features:", releaseVersion = "1.0.0")
+        val pinned = options().copy(prefix = "Features:", useReleases = true, releaseVersion = "1.0.0")
         val config = NonaConfig.create(pinned, InMemorySnapshotStore())
         config.fetchAndActivate()
         assertEquals(setOf("Features:Checkout"), config.keys)
