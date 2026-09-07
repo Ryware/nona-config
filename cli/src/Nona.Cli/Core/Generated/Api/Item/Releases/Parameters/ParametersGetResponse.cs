@@ -5,31 +5,31 @@ using Microsoft.Kiota.Abstractions.Serialization;
 using System.Collections.Generic;
 using System.IO;
 using System;
-namespace Nona.Migrator.Core.Generated.Api.Item
+namespace Nona.Cli.Generated.Api.Item.Releases.Parameters
 {
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
     #pragma warning disable CS1591
-    public partial class WithEnvironmentGetResponse : IAdditionalDataHolder, IParsable
+    public partial class ParametersGetResponse : IAdditionalDataHolder, IParsable
     #pragma warning restore CS1591
     {
         /// <summary>Stores additional data not described in the OpenAPI description found when deserializing. Can be used for serialization as well.</summary>
         public IDictionary<string, object> AdditionalData { get; set; }
         /// <summary>
-        /// Instantiates a new <see cref="global::Nona.Migrator.Core.Generated.Api.Item.WithEnvironmentGetResponse"/> and sets the default values.
+        /// Instantiates a new <see cref="global::Nona.Cli.Generated.Api.Item.Releases.Parameters.ParametersGetResponse"/> and sets the default values.
         /// </summary>
-        public WithEnvironmentGetResponse()
+        public ParametersGetResponse()
         {
             AdditionalData = new Dictionary<string, object>();
         }
         /// <summary>
         /// Creates a new instance of the appropriate class based on discriminator value
         /// </summary>
-        /// <returns>A <see cref="global::Nona.Migrator.Core.Generated.Api.Item.WithEnvironmentGetResponse"/></returns>
+        /// <returns>A <see cref="global::Nona.Cli.Generated.Api.Item.Releases.Parameters.ParametersGetResponse"/></returns>
         /// <param name="parseNode">The parse node to use to read the discriminator value and create the object</param>
-        public static global::Nona.Migrator.Core.Generated.Api.Item.WithEnvironmentGetResponse CreateFromDiscriminatorValue(IParseNode parseNode)
+        public static global::Nona.Cli.Generated.Api.Item.Releases.Parameters.ParametersGetResponse CreateFromDiscriminatorValue(IParseNode parseNode)
         {
             if(ReferenceEquals(parseNode, null)) throw new ArgumentNullException(nameof(parseNode));
-            return new global::Nona.Migrator.Core.Generated.Api.Item.WithEnvironmentGetResponse();
+            return new global::Nona.Cli.Generated.Api.Item.Releases.Parameters.ParametersGetResponse();
         }
         /// <summary>
         /// The deserialization information for the current model
