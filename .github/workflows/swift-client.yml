@@ -50,6 +50,25 @@ jobs:
           if ! command -v pod > /dev/null; then brew install cocoapods; fi
           pod lib lint NonaClient.podspec --platforms=ios,osx --swift-version=5.9
           pod install --project-directory=client/swift/Sample
+      - name: Select available iPhone simulator
+        id: simulator
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json, os, subprocess
+          devices = json.loads(subprocess.check_output(['xcrun', 'simctl', 'list', 'devices', 'available', '-j']))['devices']
+          phones = [device for runtime, group in devices.items() if '.iOS-' in runtime
+                    for device in group if device['name'].startswith('iPhone')]
+          if not phones:
+              raise SystemExit('No iPhone simulator runtime installed')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('id=' + phones[0]['udid'] + '\n')
+          PY
+      - name: Boot simulator before starting the test services
+        env:
+          SIMULATOR_ID: ${{ steps.simulator.outputs.id }}
+        run: |
+          xcrun simctl bootstatus "$SIMULATOR_ID" -b
       - name: Start disposable backend
         shell: bash
         run: |
@@ -65,20 +84,6 @@ jobs:
             sleep 1
           done
           python3 client/qa/seed-server.py --output "$RUNNER_TEMP/nona-swift/fixtures.json"
-      - name: Select available iPhone simulator
-        id: simulator
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          import json, os, subprocess
-          devices = json.loads(subprocess.check_output(['xcrun', 'simctl', 'list', 'devices', 'available', '-j']))['devices']
-          phones = [device for runtime, group in devices.items() if '.iOS-' in runtime
-                    for device in group if device['name'].startswith('iPhone')]
-          if not phones:
-              raise SystemExit('No iPhone simulator runtime installed')
-          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
-              output.write('id=' + phones[0]['udid'] + '\n')
-          PY
       - name: Run unit and real-server integration tests on iOS
         env:
           SIMULATOR_ID: ${{ steps.simulator.outputs.id }}

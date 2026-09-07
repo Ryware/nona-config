@@ -9,7 +9,7 @@ final class NonaIntegrationTests: XCTestCase {
     private func options(key: String? = nil, prefix: String? = nil, version: String? = nil) throws -> NonaOptions {
         // These tests check backend behavior, not latency. Allow for the first
         // request and scheduling delays on shared CI runners. Fault-server tests
-        // below keep their explicit short timeouts to verify timeout handling.
+        // below keep short timeouts only where timeout handling is under test.
         try NonaOptions(baseURL: URL(string: environment("NONA_BASE_URL"))!, environmentID: "Production",
                         apiKey: key ?? environment("NONA_FRONTEND_A"), releaseVersion: version, prefix: prefix,
                         minimumFetchInterval: 0, requestTimeout: 15)
@@ -62,7 +62,7 @@ final class NonaIntegrationTests: XCTestCase {
                                   ("malformed", .invalidSnapshot), ("http503", .http(statusCode: 503)),
                                   ("slow", .transport)] {
             let options = try NonaOptions(baseURL: URL(string: "\(base)/\(route)")!, environmentID: "Production",
-                                          apiKey: "test-only-key", requestTimeout: route == "slow" ? 0.1 : 3,
+                                          apiKey: "test-only-key", requestTimeout: route == "slow" ? 0.1 : 15,
                                           maxResponseBytes: 64)
             let config = NonaConfig(options: options, store: InMemorySnapshotStore())
             config.setDefaults(["flag": "fallback"])
