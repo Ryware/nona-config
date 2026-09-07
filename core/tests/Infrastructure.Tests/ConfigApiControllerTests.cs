@@ -29,7 +29,6 @@ public class ConfigApiEndpointTests
         var result = await NonaEndpointRouteBuilderExtensions.GetConfigValueAsync(
             "production",
             "features",
-            null,
             httpContext,
             mediator,
             CancellationToken.None);
@@ -61,7 +60,6 @@ public class ConfigApiEndpointTests
 
         var result = await NonaEndpointRouteBuilderExtensions.GetAllConfigValuesAsync(
             "production",
-            null,
             null,
             httpContext,
             mediator,
@@ -95,7 +93,6 @@ public class ConfigApiEndpointTests
         var result = await NonaEndpointRouteBuilderExtensions.GetAllConfigValuesAsync(
             "production",
             null,
-            null,
             httpContext,
             mediator,
             CancellationToken.None);
@@ -112,12 +109,12 @@ public class ConfigApiEndpointTests
         var mediator = new StubMediator(new GetAllConfigValuesResult(
             false,
             null,
-            "Environment not found"));
+            "Environment not found",
+            ErrorCode: RuntimeConfigErrorCodes.EnvironmentNotFound));
         var httpContext = CreateHttpContext();
 
         var result = await NonaEndpointRouteBuilderExtensions.GetAllConfigValuesAsync(
             "production",
-            null,
             null,
             httpContext,
             mediator,
@@ -139,12 +136,12 @@ public class ConfigApiEndpointTests
         var mediator = new StubMediator(new GetAllConfigValuesResult(
             false,
             null,
-            ConfigEntryPrefix.ValidationError));
+            ConfigEntryPrefix.ValidationError,
+            ErrorCode: RuntimeConfigErrorCodes.InvalidPrefix));
         var httpContext = CreateHttpContext();
 
         var result = await NonaEndpointRouteBuilderExtensions.GetAllConfigValuesAsync(
             "production",
-            null,
             "%",
             httpContext,
             mediator,
@@ -163,13 +160,17 @@ public class ConfigApiEndpointTests
     [Test]
     public async Task GetConfigValue_MasksInvalidApiKeyFailure()
     {
-        var mediator = new StubMediator(new GetConfigEntryValueResult(false, null, null, "Invalid API key"));
+        var mediator = new StubMediator(new GetConfigEntryValueResult(
+            false,
+            null,
+            null,
+            "Invalid API key",
+            RuntimeConfigErrorCodes.InvalidApiKey));
         var httpContext = CreateHttpContext();
 
         var result = await NonaEndpointRouteBuilderExtensions.GetConfigValueAsync(
             "production",
             "features",
-            null,
             httpContext,
             mediator,
             CancellationToken.None);
@@ -181,12 +182,15 @@ public class ConfigApiEndpointTests
     [Test]
     public async Task GetAllConfigValues_MasksInvalidApiKeyFailure()
     {
-        var mediator = new StubMediator(new GetAllConfigValuesResult(false, null, "Invalid API key"));
+        var mediator = new StubMediator(new GetAllConfigValuesResult(
+            false,
+            null,
+            "Invalid API key",
+            ErrorCode: RuntimeConfigErrorCodes.InvalidApiKey));
         var httpContext = CreateHttpContext();
 
         var result = await NonaEndpointRouteBuilderExtensions.GetAllConfigValuesAsync(
             "production",
-            null,
             null,
             httpContext,
             mediator,
@@ -206,6 +210,40 @@ public class ConfigApiEndpointTests
         await Assert.That(body.RootElement.GetProperty("status").GetInt32()).IsEqualTo(401);
         await Assert.That(body.RootElement.GetProperty("detail").GetString())
             .IsEqualTo("An API key is required or invalid.");
+        await Assert.That(body.RootElement.GetProperty("errorCode").GetString())
+            .IsEqualTo(RuntimeConfigErrorCodes.InvalidApiKey);
+    }
+
+    [Test]
+    [Arguments(RuntimeConfigErrorCodes.ActiveReleaseNotConfigured, StatusCodes.Status409Conflict)]
+    [Arguments(RuntimeConfigErrorCodes.ReleaseNotFound, StatusCodes.Status404NotFound)]
+    [Arguments(RuntimeConfigErrorCodes.ConfigEntryNotFound, StatusCodes.Status404NotFound)]
+    [Arguments(RuntimeConfigErrorCodes.EnvironmentNotFound, StatusCodes.Status404NotFound)]
+    [Arguments(RuntimeConfigErrorCodes.InvalidReleaseVersion, StatusCodes.Status400BadRequest)]
+    [Arguments(RuntimeConfigErrorCodes.InvalidPrefix, StatusCodes.Status400BadRequest)]
+    [Arguments(RuntimeConfigErrorCodes.InvalidApiKey, StatusCodes.Status401Unauthorized)]
+    public async Task RuntimeFailure_MapsStatusByStableErrorCode(string errorCode, int expectedStatus)
+    {
+        var mediator = new StubMediator(new GetConfigEntryValueResult(
+            false,
+            null,
+            null,
+            "Human-readable text may change",
+            errorCode));
+        var httpContext = CreateHttpContext();
+
+        var result = await NonaEndpointRouteBuilderExtensions.GetConfigValueAsync(
+            "production",
+            "features",
+            httpContext,
+            mediator,
+            CancellationToken.None);
+        await result.ExecuteAsync(httpContext);
+
+        await Assert.That(httpContext.Response.StatusCode).IsEqualTo(expectedStatus);
+        httpContext.Response.Body.Seek(0, SeekOrigin.Begin);
+        using var body = await JsonDocument.ParseAsync(httpContext.Response.Body);
+        await Assert.That(body.RootElement.GetProperty("errorCode").GetString()).IsEqualTo(errorCode);
     }
 
     private static DefaultHttpContext CreateHttpContext()

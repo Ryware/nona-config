@@ -232,7 +232,7 @@ public static class NonaEndpointRouteBuilderExtensions
 
     private static void MapConfigApiEndpoints(RouteGroupBuilder api)
     {
-        api.MapGet("/{environmentId}", GetAllConfigValuesAsync)
+        api.MapGet("/{environmentId}/parameters", GetAllConfigValuesAsync)
             .Produces<Dictionary<string, ClientConfigValueDto>>()
             .Produces(StatusCodes.Status304NotModified)
             .Produces<ApiProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")
@@ -240,7 +240,19 @@ public static class NonaEndpointRouteBuilderExtensions
             .Produces<ApiProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")
             .RequireAuthorization(ApiKeyAuthenticationHandler.SchemeName);
 
-        api.MapGet("/{environmentId}/{key}", GetConfigValueAsync)
+        api.MapGet("/{environmentId}/parameters/{key}", GetConfigValueAsync)
+            .RequireAuthorization(ApiKeyAuthenticationHandler.SchemeName);
+
+        api.MapGet("/{environmentId}/releases/parameters", GetAllReleaseConfigValuesAsync)
+            .Produces<Dictionary<string, ClientConfigValueDto>>()
+            .Produces(StatusCodes.Status304NotModified)
+            .Produces<ApiProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")
+            .Produces<ApiProblemDetails>(StatusCodes.Status401Unauthorized, "application/problem+json")
+            .Produces<ApiProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")
+            .Produces<ApiProblemDetails>(StatusCodes.Status409Conflict, "application/problem+json")
+            .RequireAuthorization(ApiKeyAuthenticationHandler.SchemeName);
+
+        api.MapGet("/{environmentId}/releases/parameters/{key}", GetReleaseConfigValueAsync)
             .RequireAuthorization(ApiKeyAuthenticationHandler.SchemeName);
     }
 
@@ -1423,22 +1435,13 @@ public static class NonaEndpointRouteBuilderExtensions
     public static async Task<IResult> GetConfigValueAsync(
         string environmentId,
         string key,
-        string? version,
         HttpContext httpContext,
         IMediator mediator,
         CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(new GetConfigEntryValueQuery(environmentId, key, version), cancellationToken);
+        var result = await mediator.Send(new GetConfigEntryValueQuery(environmentId, key), cancellationToken);
         if (!result.Success)
-        {
-            return result.Error switch
-            {
-                "API key is required" or "Invalid API key" =>
-                    Unauthorized(ApiKeyAuthenticationHandler.InvalidCredentialDetail),
-                "Version must use major.minor.patch or major.minor.x format." => BadRequest(result.Error),
-                _ => NotFound(result.Error ?? "Config value not found")
-            };
-        }
+            return RuntimeConfigFailure(result.Error, result.ErrorCode);
 
         httpContext.Response.Headers[NonaResponseHeaders.LogicalContentType] =
             result.LogicalContentType ?? ConfigEntryContentTypes.Text;
@@ -1448,7 +1451,6 @@ public static class NonaEndpointRouteBuilderExtensions
 
     public static async Task<IResult> GetAllConfigValuesAsync(
         string environmentId,
-        string? version,
         string? prefix,
         HttpContext httpContext,
         IMediator mediator,
@@ -1457,21 +1459,58 @@ public static class NonaEndpointRouteBuilderExtensions
         var result = await mediator.Send(
             new GetAllConfigValuesQuery(
                 environmentId,
+                prefix,
+                httpContext.Request.Headers.IfNoneMatch.ToString()),
+            cancellationToken);
+        if (!result.Success)
+            return RuntimeConfigFailure(result.Error, result.ErrorCode);
+
+        return ConfigValuesResponse(result, httpContext);
+    }
+
+    public static async Task<IResult> GetReleaseConfigValueAsync(
+        string environmentId,
+        string key,
+        string? version,
+        HttpContext httpContext,
+        IMediator mediator,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(
+            new GetReleaseConfigEntryValueQuery(environmentId, key, version),
+            cancellationToken);
+        if (!result.Success)
+            return RuntimeConfigFailure(result.Error, result.ErrorCode);
+
+        httpContext.Response.Headers[NonaResponseHeaders.LogicalContentType] =
+            result.LogicalContentType ?? ConfigEntryContentTypes.Text;
+
+        return Results.Content(result.Value!, "application/json");
+    }
+
+    public static async Task<IResult> GetAllReleaseConfigValuesAsync(
+        string environmentId,
+        string? version,
+        string? prefix,
+        HttpContext httpContext,
+        IMediator mediator,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(
+            new GetAllReleaseConfigValuesQuery(
+                environmentId,
                 version,
                 prefix,
                 httpContext.Request.Headers.IfNoneMatch.ToString()),
             cancellationToken);
         if (!result.Success)
-        {
-            return result.Error switch
-            {
-                "API key is required" or "Invalid API key" =>
-                    Unauthorized(ApiKeyAuthenticationHandler.InvalidCredentialDetail),
-                "Version must use major.minor.patch or major.minor.x format." => BadRequest(result.Error),
-                ConfigEntryPrefix.ValidationError => BadRequest(result.Error),
-                _ => NotFound(result.Error ?? "Config values not found")
-            };
-        }
+            return RuntimeConfigFailure(result.Error, result.ErrorCode);
+
+        return ConfigValuesResponse(result, httpContext);
+    }
+
+    private static IResult ConfigValuesResponse(GetAllConfigValuesResult result, HttpContext httpContext)
+    {
 
         httpContext.Response.Headers.ETag = result.Etag;
         httpContext.Response.Headers.CacheControl = "private, no-cache";
@@ -1480,6 +1519,25 @@ public static class NonaEndpointRouteBuilderExtensions
             return Results.StatusCode(StatusCodes.Status304NotModified);
 
         return Results.Ok(result.Values);
+    }
+
+    private static IResult RuntimeConfigFailure(string? error, string? errorCode)
+    {
+        return errorCode switch
+        {
+            RuntimeConfigErrorCodes.ActiveReleaseNotConfigured =>
+                Conflict(error ?? "The environment does not have an active release.", errorCode),
+            RuntimeConfigErrorCodes.ReleaseNotFound or
+            RuntimeConfigErrorCodes.ConfigEntryNotFound or
+            RuntimeConfigErrorCodes.EnvironmentNotFound =>
+                NotFound(error ?? "Runtime configuration was not found.", errorCode),
+            RuntimeConfigErrorCodes.InvalidReleaseVersion or
+            RuntimeConfigErrorCodes.InvalidPrefix =>
+                BadRequest(error ?? "Runtime configuration request is invalid.", errorCode),
+            RuntimeConfigErrorCodes.InvalidApiKey =>
+                Unauthorized(ApiKeyAuthenticationHandler.InvalidCredentialDetail, errorCode),
+            _ => ApiProblemResults.InternalServerError()
+        };
     }
 
     private static async Task<IResult?> ValidateRequestAsync<TRequest>(

@@ -17,9 +17,11 @@ public class SpaFallbackEndpointTests
 
     [Test]
     [Arguments("/api", 404, "Not Found")]
+    [Arguments("/api/production", 404, "Not Found")]
+    [Arguments("/api/production/key", 404, "Not Found")]
     [Arguments("/api/production/key/extra", 404, "Not Found")]
-    [Arguments("/api/static-test.html", 401, "Unauthorized")]
-    [Arguments("/api/doesnotexist/whatever", 401, "Unauthorized")]
+    [Arguments("/api/static-test.html", 404, "Not Found")]
+    [Arguments("/api/doesnotexist/whatever", 404, "Not Found")]
     [Arguments("/admin/not-a-route", 401, "Unauthorized")]
     [Arguments("/auth/not-a-route", 404, "Not Found")]
     [Arguments("/public/not-a-route", 404, "Not Found")]

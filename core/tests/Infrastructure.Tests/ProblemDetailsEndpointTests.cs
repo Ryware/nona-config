@@ -21,7 +21,8 @@ public class ProblemDetailsEndpointTests
     private const string ExceptionLogMessage = "Unhandled exception while processing an HTTP request.";
 
     [Test]
-    [Arguments("/api/production", 401, "Unauthorized")]
+    [Arguments("/api/production/parameters", 401, "Unauthorized")]
+    [Arguments("/api/production/releases/parameters", 401, "Unauthorized")]
     [Arguments("/admin/projects", 401, "Unauthorized")]
     public async Task AuthenticationFailures_ReturnProblemDetails(
         string path,

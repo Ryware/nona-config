@@ -101,7 +101,7 @@ public class GetAllConfigValuesQueryTests
     }
 
     [Test]
-    public async Task WorkingFallback_MatchingEtagReturnsNotModified()
+    public async Task WorkingRead_MatchingEtagReturnsNotModified()
     {
         SetupApiKey(KeyScope.Frontend);
         _environmentRepository.GetAsync(ProjectName, EnvironmentName, Arg.Any<CancellationToken>())
@@ -151,7 +151,7 @@ public class GetAllConfigValuesQueryTests
     }
 
     [Test]
-    public async Task WorkingFallback_PrefixesFilterAndHaveIndependentCaseInsensitiveEtags()
+    public async Task WorkingRead_PrefixesFilterAndHaveIndependentCaseInsensitiveEtags()
     {
         SetupApiKey(KeyScope.Frontend);
         _environmentRepository.GetAsync(ProjectName, EnvironmentName, Arg.Any<CancellationToken>())
@@ -249,8 +249,8 @@ public class GetAllConfigValuesQueryTests
         SetupApiKey(KeyScope.Frontend);
         SetupRelease();
 
-        var result = await CreateHandler().Handle(
-            new GetAllConfigValuesQuery(EnvironmentName),
+        var result = await CreateReleaseHandler().Handle(
+            new GetAllReleaseConfigValuesQuery(EnvironmentName),
             CancellationToken.None);
 
         await Assert.That(result.Success).IsTrue();
@@ -279,8 +279,8 @@ public class GetAllConfigValuesQueryTests
         SetupApiKey(KeyScope.All);
         SetupRelease();
 
-        var result = await CreateHandler().Handle(
-            new GetAllConfigValuesQuery(EnvironmentName),
+        var result = await CreateReleaseHandler().Handle(
+            new GetAllReleaseConfigValuesQuery(EnvironmentName),
             CancellationToken.None);
 
         await Assert.That(result.Success).IsTrue();
@@ -339,13 +339,13 @@ public class GetAllConfigValuesQueryTests
         SetupApiKey(KeyScope.Frontend);
         SetupRelease();
 
-        var first = await CreateHandler().Handle(
-            new GetAllConfigValuesQuery(EnvironmentName),
+        var first = await CreateReleaseHandler().Handle(
+            new GetAllReleaseConfigValuesQuery(EnvironmentName),
             CancellationToken.None);
         _configReleaseRepository.ClearReceivedCalls();
 
-        var result = await CreateHandler().Handle(
-            new GetAllConfigValuesQuery(EnvironmentName, IfNoneMatch: first.Etag),
+        var result = await CreateReleaseHandler().Handle(
+            new GetAllReleaseConfigValuesQuery(EnvironmentName, IfNoneMatch: first.Etag),
             CancellationToken.None);
 
         await Assert.That(result.Success).IsTrue();
@@ -387,13 +387,13 @@ public class GetAllConfigValuesQueryTests
                 Arg.Any<CancellationToken>())
             .Returns(entries);
 
-        var first = await CreateHandler().Handle(
-            new GetAllConfigValuesQuery(EnvironmentName, Prefix: "GroupA:"),
+        var first = await CreateReleaseHandler().Handle(
+            new GetAllReleaseConfigValuesQuery(EnvironmentName, Prefix: "GroupA:"),
             CancellationToken.None);
         _configReleaseRepository.ClearReceivedCalls();
 
-        var second = await CreateHandler().Handle(
-            new GetAllConfigValuesQuery(
+        var second = await CreateReleaseHandler().Handle(
+            new GetAllReleaseConfigValuesQuery(
                 EnvironmentName,
                 Prefix: "groupa:",
                 IfNoneMatch: first.Etag),
@@ -449,8 +449,8 @@ public class GetAllConfigValuesQueryTests
             .Returns([Entry("GroupA:One", "true", "boolean", KeyScope.Frontend)]);
         var legacyEtag = CreateLegacyReleaseEtag("GroupA:", release);
 
-        var result = await CreateHandler().Handle(
-            new GetAllConfigValuesQuery(
+        var result = await CreateReleaseHandler().Handle(
+            new GetAllReleaseConfigValuesQuery(
                 EnvironmentName,
                 Prefix: "GroupA:",
                 IfNoneMatch: legacyEtag),
@@ -481,8 +481,8 @@ public class GetAllConfigValuesQueryTests
                 Arg.Any<CancellationToken>())
             .Returns([]);
 
-        var result = await CreateHandler().Handle(
-            new GetAllConfigValuesQuery(EnvironmentName, Version: "2.3.4"),
+        var result = await CreateReleaseHandler().Handle(
+            new GetAllReleaseConfigValuesQuery(EnvironmentName, Version: "2.3.4"),
             CancellationToken.None);
 
         await Assert.That(result.Success).IsTrue();
@@ -517,8 +517,8 @@ public class GetAllConfigValuesQueryTests
                 Arg.Any<CancellationToken>())
             .Returns([]);
 
-        var result = await CreateHandler().Handle(
-            new GetAllConfigValuesQuery(EnvironmentName, Version: "2.3.x"),
+        var result = await CreateReleaseHandler().Handle(
+            new GetAllReleaseConfigValuesQuery(EnvironmentName, Version: "2.3.x"),
             CancellationToken.None);
 
         await Assert.That(result.Success).IsTrue();
@@ -544,6 +544,11 @@ public class GetAllConfigValuesQueryTests
         _apiKeyRepository,
         _environmentRepository,
         _configEntryRepository,
+        _apiKeyService);
+
+    private GetAllReleaseConfigValuesQueryHandler CreateReleaseHandler() => new(
+        _apiKeyRepository,
+        _environmentRepository,
         _configReleaseRepository,
         _apiKeyService);
 

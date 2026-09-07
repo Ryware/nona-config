@@ -41,7 +41,7 @@ public class ApiKeyLegacyUpgradeSqldTests
             await using var app = await StartAppAsync(sqld.Url);
             using var request = new HttpRequestMessage(
                 HttpMethod.Get,
-                "/api/production/feature.flag");
+                "/api/production/parameters/feature.flag");
             request.Headers.Add(ApiKeyAuthenticationHandler.ApiKeyHeaderName, LegacySecret);
 
             using var response = await app.GetTestClient().SendAsync(request);
@@ -200,7 +200,7 @@ public class ApiKeyLegacyUpgradeSqldTests
         HttpStatusCode expectedStatus,
         string? expectedBody = null)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/production/feature.flag");
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/production/parameters/feature.flag");
         request.Headers.Add(ApiKeyAuthenticationHandler.ApiKeyHeaderName, secret);
         using var response = await client.SendAsync(request);
 

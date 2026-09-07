@@ -1,39 +1,33 @@
 using Mediator;
+using Nona.Application.Admin.ConfigReleases;
 using Nona.Application.Common;
 using Nona.Application.Common.Interfaces;
 using Nona.Domain;
+using Nona.Domain.Entities;
 using Nona.Domain.Enums;
 using Nona.Domain.Interfaces;
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 
 namespace Nona.Application.Api.ConfigEntries.Queries;
 
-public record GetAllConfigValuesQuery(
+public record GetAllReleaseConfigValuesQuery(
     string EnvironmentId,
+    string? Version = null,
     string? Prefix = null,
     string? IfNoneMatch = null)
     : IRequest<GetAllConfigValuesResult>;
 
-public record ClientConfigValueDto(string Value, string ContentType);
-
-public record GetAllConfigValuesResult(
-    bool Success,
-    Dictionary<string, ClientConfigValueDto>? Values,
-    string? Error,
-    string? Etag = null,
-    bool NotModified = false,
-    string? ErrorCode = null);
-
-public class GetAllConfigValuesQueryHandler(
+public class GetAllReleaseConfigValuesQueryHandler(
     IApiKeyRepository apiKeyRepository,
     IEnvironmentRepository environmentRepository,
-    IConfigEntryRepository configEntryRepository,
+    IConfigReleaseRepository configReleaseRepository,
     IApiKeyService apiKeyService)
-    : IRequestHandler<GetAllConfigValuesQuery, GetAllConfigValuesResult>
+    : IRequestHandler<GetAllReleaseConfigValuesQuery, GetAllConfigValuesResult>
 {
     public async ValueTask<GetAllConfigValuesResult> Handle(
-        GetAllConfigValuesQuery request,
+        GetAllReleaseConfigValuesQuery request,
         CancellationToken cancellationToken)
     {
         if (!ConfigEntryPrefix.IsValid(request.Prefix))
@@ -48,12 +42,8 @@ public class GetAllConfigValuesQueryHandler(
             return Failure("Invalid API key", RuntimeConfigErrorCodes.InvalidApiKey);
 
         var (project, apiKeyScope, apiKeyEnvironment) = lookupResult;
-
-        // This endpoint is intentionally a client-facing snapshot. A backend-only
-        // key must not be able to use it to enumerate an environment.
         if ((apiKeyScope & KeyScope.Frontend) == 0)
             return Failure("Environment not found", RuntimeConfigErrorCodes.EnvironmentNotFound);
-
         if (apiKeyEnvironment is not null &&
             !string.Equals(apiKeyEnvironment, request.EnvironmentId, StringComparison.OrdinalIgnoreCase))
         {
@@ -67,19 +57,71 @@ public class GetAllConfigValuesQueryHandler(
         if (environment is null)
             return Failure("Environment not found", RuntimeConfigErrorCodes.EnvironmentNotFound);
 
-        var normalizedPrefix = ConfigEntryPrefix.Normalize(request.Prefix);
+        ConfigRelease? release;
+        if (string.IsNullOrWhiteSpace(request.Version))
+        {
+            if (string.IsNullOrWhiteSpace(environment.ActiveReleaseVersion))
+            {
+                return Failure(
+                    "The environment does not have an active release.",
+                    RuntimeConfigErrorCodes.ActiveReleaseNotConfigured);
+            }
 
-        var workingEntries = string.IsNullOrEmpty(request.Prefix)
-            ? await configEntryRepository.ListAsync(
+            release = await configReleaseRepository.GetMetadataAsync(
                 project.Name,
                 environment.Name,
+                environment.ActiveReleaseVersion,
+                cancellationToken);
+        }
+        else
+        {
+            if (!ConfigReleaseVersions.TryParseSelector(request.Version, out var selector))
+            {
+                return Failure(
+                    "Version must use major.minor.patch or major.minor.x format.",
+                    RuntimeConfigErrorCodes.InvalidReleaseVersion);
+            }
+
+            release = selector.Kind == ConfigReleaseVersionKind.Line
+                ? await configReleaseRepository.GetLatestPatchMetadataAsync(
+                    project.Name,
+                    environment.Name,
+                    selector.Major,
+                    selector.Minor,
+                    cancellationToken)
+                : await configReleaseRepository.GetMetadataAsync(
+                    project.Name,
+                    environment.Name,
+                    selector.Normalized,
+                    cancellationToken);
+        }
+
+        if (release is null)
+            return Failure("Release not found", RuntimeConfigErrorCodes.ReleaseNotFound);
+
+        var etag = CreateReleaseEtag(
+            project.Name,
+            environment.Name,
+            ConfigEntryPrefix.Normalize(request.Prefix),
+            release);
+        if (GetAllConfigValuesQueryHandler.MatchesIfNoneMatch(request.IfNoneMatch, etag))
+            return new GetAllConfigValuesResult(true, null, null, etag, true);
+
+        var entries = string.IsNullOrEmpty(request.Prefix)
+            ? await configReleaseRepository.ListEntriesAsync(
+                project.Name,
+                environment.Name,
+                release.Version,
+                KeyScope.Frontend,
                 cancellationToken)
-            : await configEntryRepository.ListAsync(
+            : await configReleaseRepository.ListEntriesAsync(
                 project.Name,
                 environment.Name,
+                release.Version,
+                KeyScope.Frontend,
                 request.Prefix,
                 cancellationToken);
-        var workingValues = workingEntries
+        var values = entries
             .Where(entry => (entry.Scope & KeyScope.Frontend) != 0)
             .OrderBy(entry => entry.Key, StringComparer.Ordinal)
             .ToDictionary(
@@ -90,34 +132,29 @@ public class GetAllConfigValuesQueryHandler(
                         ?? ConfigEntryContentTypes.Infer(entry.Value)),
                 StringComparer.Ordinal);
 
-        var workingEtag = CreateWorkingConfigEtag(
-            project.Name,
-            environment.Name,
-            normalizedPrefix,
-            workingValues);
-
-        return MatchesIfNoneMatch(request.IfNoneMatch, workingEtag)
-            ? new GetAllConfigValuesResult(true, null, null, workingEtag, true)
-            : new GetAllConfigValuesResult(true, workingValues, null, workingEtag);
+        return new GetAllConfigValuesResult(true, values, null, etag);
     }
 
-    private static string CreateWorkingConfigEtag(
+    private static string CreateReleaseEtag(
         string projectName,
         string environmentName,
         string? normalizedPrefix,
-        IReadOnlyDictionary<string, ClientConfigValueDto> values)
+        ConfigRelease release)
     {
-        var canonical = new StringBuilder("client-config-working-v1");
+        var canonical = new StringBuilder("client-config-release-v1");
         AppendEtagPart(canonical, projectName);
         AppendEtagPart(canonical, environmentName);
-        AppendPrefixEtagPart(canonical, normalizedPrefix);
-        foreach (var pair in values.OrderBy(pair => pair.Key, StringComparer.Ordinal))
+        if (normalizedPrefix is not null)
         {
-            AppendEtagPart(canonical, pair.Key);
-            AppendEtagPart(canonical, pair.Value.Value);
-            AppendEtagPart(canonical, pair.Value.ContentType);
+            AppendEtagPart(canonical, "prefix-v2");
+            AppendEtagPart(canonical, normalizedPrefix);
         }
 
+        AppendEtagPart(canonical, release.Version);
+        AppendEtagPart(
+            canonical,
+            release.CreatedAt.ToUniversalTime().Ticks.ToString(CultureInfo.InvariantCulture));
+        AppendEtagPart(canonical, release.EntryCount.ToString(CultureInfo.InvariantCulture));
         var hash = SHA256.HashData(Encoding.UTF8.GetBytes(canonical.ToString()));
         return $"\"{Convert.ToHexString(hash).ToLowerInvariant()}\"";
     }
@@ -125,38 +162,6 @@ public class GetAllConfigValuesQueryHandler(
     private static void AppendEtagPart(StringBuilder builder, string value)
     {
         builder.Append(value.Length).Append(':').Append(value);
-    }
-
-    private static void AppendPrefixEtagPart(StringBuilder builder, string? normalizedPrefix)
-    {
-        if (normalizedPrefix is null)
-            return;
-
-        AppendEtagPart(builder, "prefix-v2");
-        AppendEtagPart(builder, normalizedPrefix);
-    }
-
-    internal static bool MatchesIfNoneMatch(string? headerValue, string etag)
-    {
-        if (string.IsNullOrWhiteSpace(headerValue))
-            return false;
-
-        foreach (var rawCandidate in headerValue.Split(
-                     ',',
-                     StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-        {
-            if (rawCandidate == "*")
-                return true;
-
-            var candidate = rawCandidate.StartsWith("W/", StringComparison.OrdinalIgnoreCase)
-                ? rawCandidate[2..].TrimStart()
-                : rawCandidate;
-
-            if (string.Equals(candidate, etag, StringComparison.Ordinal))
-                return true;
-        }
-
-        return false;
     }
 
     private static GetAllConfigValuesResult Failure(string error, string errorCode) =>
