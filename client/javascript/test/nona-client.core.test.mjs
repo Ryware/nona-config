@@ -28,7 +28,7 @@ test("getConfigValue sends API key and parses the value", async () => {
 
   assert.equal(value.value, "enabled");
   assert.equal(value.contentType, "text");
-  assert.equal(calls[0].url, "https://nona.test/api/production/Features%3ACheckout");
+  assert.equal(calls[0].url, "https://nona.test/api/production/parameters/Features%3ACheckout");
   assert.equal(calls[0].headers.get("X-Api-Key"), "api-key");
 });
 
@@ -37,6 +37,7 @@ test("getConfigValue sends configured release version", async () => {
   const client = createNonaClient("https://nona.test", {
     environmentId: "production",
     apiKey: "api-key",
+    useReleases: true,
     releaseVersion: "1.1.x",
     fetch: async (url, init) => {
       calls.push(capture(url, init));
@@ -48,28 +49,17 @@ test("getConfigValue sends configured release version", async () => {
 
   assert.equal(
     calls[0].url,
-    "https://nona.test/api/production/Features%3ACheckout?version=1.1.x"
+    "https://nona.test/api/production/releases/parameters/Features%3ACheckout?version=1.1.x"
   );
 });
 
-test("getConfigValue request release version overrides client default", async () => {
-  const calls = [];
-  const client = createNonaClient("https://nona.test", {
+test("releaseVersion requires release mode", () => {
+  assert.throws(() => createNonaClient("https://nona.test", {
     environmentId: "production",
     apiKey: "api-key",
     releaseVersion: "1.1.x",
-    fetch: async (url, init) => {
-      calls.push(capture(url, init));
-      return configValueResponse("enabled", "text");
-    }
-  });
-
-  await client.getConfigValue("Features:Checkout", { releaseVersion: "1.1.0" });
-
-  assert.equal(
-    calls[0].url,
-    "https://nona.test/api/production/Features%3ACheckout?version=1.1.0"
-  );
+    fetch: async () => configValueResponse("enabled", "text")
+  }), /releaseVersion requires useReleases/);
 });
 
 test("getConfigValue accepts legacy JSON responses", async () => {
@@ -125,7 +115,8 @@ test("failed requests read Problem Details messages", async () => {
       title: "Not Found",
       status: 404,
       detail: "Config entry not found",
-      instance: "/api/production/missing"
+      errorCode: "config_entry_not_found",
+      instance: "/api/production/parameters/missing"
     }, 404)
   });
 
@@ -135,6 +126,8 @@ test("failed requests read Problem Details messages", async () => {
       assert.ok(error instanceof NonaClientError);
       assert.equal(error.status, 404);
       assert.equal(error.message, "Config entry not found");
+      assert.equal(error.errorCode, "config_entry_not_found");
+      assert.equal(error.detail, "Config entry not found");
       return true;
     }
   );
@@ -201,7 +194,7 @@ test("getAllValues fetches all values once and primes six local reads", async ()
   assert.deepEqual(values, flags);
   assert.deepEqual(reads, Object.values(flags));
   assert.equal(calls.length, 1);
-  assert.equal(calls[0].url, "https://nona.test/api/production");
+  assert.equal(calls[0].url, "https://nona.test/api/production/parameters");
 });
 
 test("getAllValues uses ETag validation and reuses the snapshot on 304", async () => {
@@ -232,6 +225,43 @@ test("getAllValues uses ETag validation and reuses the snapshot on 304", async (
   assert.deepEqual(second, first);
   assert.equal(calls.length, 2);
   assert.equal(calls[1].headers.get("If-None-Match"), '"snapshot"');
+});
+
+test("getAllValues preserves the last-known-good snapshot after any refresh failure", async () => {
+  const flags = { banner: { value: "hello", contentType: "text" } };
+  let requestCount = 0;
+  const client = createNonaClient("https://nona.test", {
+    environmentId: "production",
+    apiKey: "api-key",
+    useReleases: true,
+    fetch: async (_url, init) => {
+      requestCount += 1;
+      if (requestCount === 1) {
+        return new Response(JSON.stringify(flags), {
+          status: 200,
+          headers: { "Content-Type": "application/json", ETag: '"release"' }
+        });
+      }
+
+      if (requestCount === 2) {
+        return jsonResponse({
+          title: "Conflict",
+          status: 409,
+          detail: "No active release",
+          errorCode: "active_release_not_configured"
+        }, 409);
+      }
+
+      assert.equal(new Headers(init.headers).get("If-None-Match"), '"release"');
+      return new Response(null, { status: 304, headers: { ETag: '"release"' } });
+    }
+  });
+
+  assert.deepEqual(await client.getAllValues(), flags);
+  await assert.rejects(() => client.getAllValues(), {
+    errorCode: "active_release_not_configured"
+  });
+  assert.deepEqual(await client.getAllValues(), flags);
 });
 
 test("getAllValues isolates prefix snapshots and shares case-insensitive ETags", async () => {
@@ -275,11 +305,11 @@ test("getAllValues isolates prefix snapshots and shares case-insensitive ETags",
   assert.deepEqual(samePrefixDifferentCase, groupA);
   assert.deepEqual(otherPrefix, groupB);
   assert.deepEqual(unfiltered, { ...groupA, ...groupB });
-  assert.equal(calls[0].url, "https://nona.test/api/production?prefix=GroupA%3A");
-  assert.equal(calls[1].url, "https://nona.test/api/production?prefix=groupa%3A");
+  assert.equal(calls[0].url, "https://nona.test/api/production/parameters?prefix=GroupA%3A");
+  assert.equal(calls[1].url, "https://nona.test/api/production/parameters?prefix=groupa%3A");
   assert.equal(calls[1].headers.get("If-None-Match"), '"group-a"');
   assert.equal(calls[2].headers.get("If-None-Match"), null);
-  assert.equal(calls[3].url, "https://nona.test/api/production");
+  assert.equal(calls[3].url, "https://nona.test/api/production/parameters");
 });
 
 test("prefixed bulk reads prime only returned single-key values", async () => {
@@ -378,7 +408,7 @@ test("getAllValues re-primes an invalidated value after 304 validation", async (
   assert.equal(calls.length, 2);
 });
 
-test("bulk snapshots share the configured memory limit and evict least-recently-used data", async () => {
+test("bulk prefix snapshots share the configured memory limit and evict least-recently-used data", async () => {
   const calls = [];
   const flags = {
     banner: { value: "x".repeat(200), contentType: "text" }
@@ -389,28 +419,28 @@ test("bulk snapshots share the configured memory limit and evict least-recently-
     cacheMemoryLimitMegabytes: 0.0008,
     fetch: async (url, init) => {
       calls.push(capture(url, init));
-      const version = new URL(url).searchParams.get("version");
+      const prefix = new URL(url).searchParams.get("prefix");
       if (calls.at(-1).headers.get("If-None-Match")) {
         return new Response(null, {
           status: 304,
-          headers: { ETag: `"${version}"` }
+          headers: { ETag: `"${prefix}"` }
         });
       }
 
       return new Response(JSON.stringify(flags), {
         status: 200,
-        headers: { "Content-Type": "application/json", ETag: `"${version}"` }
+        headers: { "Content-Type": "application/json", ETag: `"${prefix}"` }
       });
     }
   });
 
-  await client.getAllValues({ releaseVersion: "1.0.0" });
-  await client.getAllValues({ releaseVersion: "2.0.0" });
-  await client.getAllValues({ releaseVersion: "2.0.0" });
-  await client.getAllValues({ releaseVersion: "1.0.0" });
+  await client.getAllValues({ prefix: "GroupA:" });
+  await client.getAllValues({ prefix: "GroupB:" });
+  await client.getAllValues({ prefix: "GroupB:" });
+  await client.getAllValues({ prefix: "GroupA:" });
 
   assert.equal(calls.length, 4);
-  assert.equal(calls[2].headers.get("If-None-Match"), '"2.0.0"');
+  assert.equal(calls[2].headers.get("If-None-Match"), '"GroupB:"');
   assert.equal(calls[3].headers.get("If-None-Match"), null);
 });
 
@@ -419,6 +449,7 @@ test("getAllValues supports a release selector", async () => {
   const client = createNonaClient("https://nona.test", {
     environmentId: "production",
     apiKey: "api-key",
+    useReleases: true,
     releaseVersion: "1.1.x",
     fetch: async (url, init) => {
       calls.push(capture(url, init));
@@ -428,7 +459,7 @@ test("getAllValues supports a release selector", async () => {
 
   await client.getAllValues();
 
-  assert.equal(calls[0].url, "https://nona.test/api/production?version=1.1.x");
+  assert.equal(calls[0].url, "https://nona.test/api/production/releases/parameters?version=1.1.x");
 });
 
 test("getAllValues combines release and prefix selectors", async () => {
@@ -436,16 +467,40 @@ test("getAllValues combines release and prefix selectors", async () => {
   const client = createNonaClient("https://nona.test", {
     environmentId: "production",
     apiKey: "api-key",
+    useReleases: true,
+    releaseVersion: "1.2.3",
     fetch: async (url, init) => {
       calls.push(capture(url, init));
       return jsonResponse({});
     }
   });
 
-  await client.getAllValues({ releaseVersion: "1.2.3", prefix: "GroupA:" });
+  await client.getAllValues({ prefix: "GroupA:" });
 
   assert.equal(
     calls[0].url,
-    "https://nona.test/api/production?version=1.2.3&prefix=GroupA%3A"
+    "https://nona.test/api/production/releases/parameters?version=1.2.3&prefix=GroupA%3A"
   );
+});
+
+test("tryGetConfigValue returns null only for config_entry_not_found", async () => {
+  const errorCodes = ["config_entry_not_found", "environment_not_found"];
+  const client = createNonaClient("https://nona.test", {
+    environmentId: "production",
+    apiKey: "api-key",
+    fetch: async () => {
+      const errorCode = errorCodes.shift();
+      return jsonResponse({
+        title: "Not Found",
+        status: 404,
+        detail: "Human-readable text",
+        errorCode
+      }, 404);
+    }
+  });
+
+  assert.equal(await client.tryGetConfigValue("missing"), null);
+  await assert.rejects(() => client.tryGetConfigValue("missing"), {
+    errorCode: "environment_not_found"
+  });
 });

@@ -27,6 +27,8 @@ interface SendOptions extends NonaRequestOptions {
 
 export interface NonaClient {
   readonly environmentId: string;
+  readonly useReleases: boolean;
+  readonly releaseVersion?: string;
   getConfigValue(
     key: string,
     options?: NonaRequestOptions,
@@ -59,7 +61,11 @@ export function createNonaClient(
   const baseUrl = ensureTrailingSlash(new URL(resolvedOptions.baseUrl));
   const environmentId = resolvedOptions.environmentId;
   const environmentSegment = segment(environmentId, "environmentId");
-  const defaultReleaseVersion = resolvedOptions.releaseVersion;
+  const useReleases = resolvedOptions.useReleases ?? false;
+  const releaseVersion = resolvedOptions.releaseVersion?.trim() || undefined;
+  if (!useReleases && releaseVersion) {
+    throw new Error("releaseVersion requires useReleases to be true.");
+  }
   const defaultHeaders = resolvedOptions.defaultHeaders;
   const fetchImpl = resolvedOptions.fetch ?? globalThis.fetch?.bind(globalThis);
 
@@ -80,8 +86,10 @@ export function createNonaClient(
     return readRawEntryValueResponse(response, request.method, response.url);
   }
 
-  function configValuePath(key: string, releaseVersion: string | undefined): string {
-    const path = `api/${environmentSegment}/${segment(key, "key")}`;
+  function configValuePath(key: string): string {
+    const path = useReleases
+      ? `api/${environmentSegment}/releases/parameters/${segment(key, "key")}`
+      : `api/${environmentSegment}/parameters/${segment(key, "key")}`;
     if (!releaseVersion) {
       return path;
     }
@@ -92,10 +100,11 @@ export function createNonaClient(
   }
 
   function allConfigValuesPath(
-    releaseVersion: string | undefined,
     prefix: string | undefined,
   ): string {
-    const path = `api/${environmentSegment}`;
+    const path = useReleases
+      ? `api/${environmentSegment}/releases/parameters`
+      : `api/${environmentSegment}/parameters`;
     const search = new URLSearchParams();
     if (releaseVersion) {
       search.set("version", releaseVersion);
@@ -109,14 +118,11 @@ export function createNonaClient(
     return query ? `${path}?${query}` : path;
   }
 
-  function configValueRequestId(
-    key: string,
-    releaseVersion: string | undefined,
-  ): string {
+  function configValueRequestId(key: string): string {
     return buildRequestKey(
       baseUrl,
       "GET",
-      configValuePath(key, releaseVersion),
+      configValuePath(key),
       apiKey,
     );
   }
@@ -146,16 +152,15 @@ export function createNonaClient(
 
   return {
     environmentId,
+    useReleases,
+    releaseVersion,
     async getConfigValue(
       key: string,
       requestOptions: NonaRequestOptions = {},
     ): Promise<NonaConfigValue> {
       const request: SendOptions = {
         method: "GET",
-        path: configValuePath(
-          key,
-          requestOptions.releaseVersion ?? defaultReleaseVersion,
-        ),
+        path: configValuePath(key),
         ...requestOptions,
       };
       const id = buildRequestKey(baseUrl, request.method, request.path, apiKey);
@@ -190,11 +195,8 @@ export function createNonaClient(
     async getAllValues(
       requestOptions: NonaGetAllValuesOptions = {},
     ): Promise<NonaConfigValues> {
-      const releaseVersion =
-        requestOptions.releaseVersion ?? defaultReleaseVersion;
-      const path = allConfigValuesPath(releaseVersion, requestOptions.prefix);
+      const path = allConfigValuesPath(requestOptions.prefix);
       const identityPath = allConfigValuesPath(
-        releaseVersion,
         normalizePrefix(requestOptions.prefix),
       );
       const id = buildRequestKey(baseUrl, "GET", identityPath, apiKey);
@@ -230,7 +232,7 @@ export function createNonaClient(
             id,
             response.headers.get("ETag") ?? undefined,
             values,
-            configValueRequestIds(values, releaseVersion),
+            configValueRequestIds(values),
           );
           return values;
         })
@@ -247,10 +249,7 @@ export function createNonaClient(
     ): boolean {
       const request: SendOptions = {
         method: "GET",
-        path: configValuePath(
-          key,
-          requestOptions.releaseVersion ?? defaultReleaseVersion,
-        ),
+        path: configValuePath(key),
       };
       const id = buildRequestKey(baseUrl, request.method, request.path, apiKey);
       return cache.invalidate(id);
@@ -265,7 +264,10 @@ export function createNonaClient(
       try {
         return await this.getConfigValue(key, requestOptions);
       } catch (error) {
-        if (error instanceof NonaClientError && error.status === 404) {
+        if (
+          error instanceof NonaClientError &&
+          error.errorCode === "config_entry_not_found"
+        ) {
           return null;
         }
 
@@ -296,11 +298,10 @@ export function createNonaClient(
 
   function configValueRequestIds(
     values: NonaConfigValues,
-    releaseVersion: string | undefined,
   ): Map<string, string> {
     const valueRequestIds = new Map<string, string>();
     for (const key of Object.keys(values)) {
-      const valueRequestId = configValueRequestId(key, releaseVersion);
+      const valueRequestId = configValueRequestId(key);
       valueRequestIds.set(valueRequestId, key);
     }
 
