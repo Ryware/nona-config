@@ -8,7 +8,7 @@ Once you have:
 - a project
 - an environment
 - a config entry
-- either an active release or a working parameter to use as the fallback
+- a working parameter or a published release, depending on the source you plan to read
 - an API key
 
 you can read a value over HTTP.
@@ -57,7 +57,7 @@ Then publish and activate a release for the environment in admin.
 ## Request shape
 
 ```http
-GET /api/{environmentId}/{key}
+GET /api/{environmentId}/parameters/{key}
 X-Api-Key: <api-key>
 ```
 
@@ -65,22 +65,23 @@ The request includes:
 
 - the environment id
 - the config key
-- an optional `version` query parameter
+- an explicit working or release source in the path
+- an optional `version` query parameter on release routes
 - an API key in the header
 
-The project is implied by the API key, which is why it is not part of this request path. If `version` is omitted, Nona resolves the environment's active release. If none is active, it falls back to the working parameters.
+The project is implied by the API key, which is why it is not part of this request path. The working route always reads editable working parameters. The release route uses the selected version, or the active release when `version` is omitted. A release request never falls back to working parameters.
 
 ## Example
 
 ```bash
-curl "https://nona.example.com/api/production/Features%3ACheckout" \
+curl "https://nona.example.com/api/production/parameters/Features%3ACheckout" \
   -H "X-Api-Key: $NONA_API_KEY"
 ```
 
 If you want to inspect the response headers too:
 
 ```bash
-curl -i "https://nona.example.com/api/production/Features%3ACheckout" \
+curl -i "https://nona.example.com/api/production/parameters/Features%3ACheckout" \
   -H "X-Api-Key: $NONA_API_KEY"
 ```
 
@@ -91,7 +92,7 @@ The key path segment must be URL-encoded. For example:
 To pin a release instead of using the active release:
 
 ```bash
-curl "https://nona.example.com/api/production/Features%3ACheckout?version=1.1.x" \
+curl "https://nona.example.com/api/production/releases/parameters/Features%3ACheckout?version=1.1.x" \
   -H "X-Api-Key: $NONA_API_KEY"
 ```
 
@@ -106,9 +107,10 @@ If the request fails:
 1. confirm the environment name is correct
 2. confirm the key exists in that environment
 3. confirm the key path is URL-encoded
-4. confirm the expected release is active, pass `version`, or verify the working parameter when none is active
-5. confirm the API key belongs to the same project
-6. confirm the API key scope can read the entry scope
+4. confirm that you chose the intended working or release route
+5. for a release route, confirm the expected release is active or pass `version`
+6. confirm the API key belongs to the same project
+7. confirm the API key scope can read the entry scope
 
 ## Step-by-step API read summary
 

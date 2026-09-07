@@ -71,7 +71,7 @@ The default `init` output is directly appendable to an app `.env` file:
 VITE_NONA_BASE_URL=https://nona.example.com
 VITE_NONA_ENV_ID=production
 VITE_NONA_API_KEY=<one-time-generated-secret>
-# Verify: curl -H "X-Api-Key: $VITE_NONA_API_KEY" https://nona.example.com/api/production/Features%3AExample
+# Verify: curl -H "X-Api-Key: $VITE_NONA_API_KEY" https://nona.example.com/api/production/parameters/Features%3AExample
 ```
 
 Useful options:

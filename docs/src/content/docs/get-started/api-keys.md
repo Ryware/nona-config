@@ -117,7 +117,7 @@ Create prints the secret once with a warning. List output contains only metadata
 After creating a key, test one real read:
 
 ```bash
-curl "https://nona.example.com/api/production/Features%3ACheckout" \
+curl "https://nona.example.com/api/production/parameters/Features%3ACheckout" \
   -H "X-Api-Key: <your-api-key>"
 ```
 

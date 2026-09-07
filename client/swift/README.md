@@ -114,11 +114,14 @@ there is no per-user targeting in this SDK.
 | --- | --- | --- |
 | `baseURL`, `environmentID` | required | Server and environment |
 | `apiKey` | nil | Frontend-scoped key |
+| `useReleases` | `false` | Read immutable releases instead of working parameters |
 | `prefix` | nil | Restrict returned keys |
 | `releaseVersion` | nil | Pin an exact release or release line |
 | `minimumFetchInterval` | 12 hours | Seconds between successful fetches |
 | `requestTimeout` | 10 seconds | Request/resource timeout of the default transport |
 | `maxResponseBytes` | 8 MiB | Maximum decoded response bytes |
+
+Set `useReleases: true` without a version to follow the active release. A non-empty `releaseVersion` is valid only in release mode. Source selection is fixed at construction, so use another `NonaConfig` instance for a different source or selector. Failed refreshes preserve the last-known-good snapshot and never switch sources.
 
 Use `try await config.fetch(minimumFetchInterval: 0)` to bypass throttling. Failed
 requests do not advance the throttle timestamp. ETag revalidation uses the latest
@@ -137,7 +140,7 @@ by the snapshot endpoint with HTTP 404.
 
 The default cache is under Application Support/NonaClient, uses atomic writes, and
 is excluded from backup after a successful write. Its SHA-256 identity includes the
-normalized server URL, key, environment, prefix and release. Raw keys are not stored
+normalized server URL, key, environment, source mode, prefix and release selector. Raw keys are not stored
 in cache names/metadata. Corrupt or mismatched caches are ignored. Cache I/O is best
 effort: device/storage failures can prevent persistence or deletion, so cached flags
 must never be an authorization boundary. For macOS apps, use a sandbox or supply a

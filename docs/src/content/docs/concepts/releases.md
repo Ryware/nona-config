@@ -20,17 +20,19 @@ Think of the environment in two layers:
 - the **Parameters** page is the editable working configuration
 - the **Releases** page is the history of immutable snapshots
 
-Applications normally read from releases. When no release is active, an unversioned read falls back to the editable working configuration.
+Applications choose their source explicitly. Working routes read the editable configuration; release routes read immutable snapshots. A release request never falls back to the editable working configuration.
 
 That means you can change parameters, review them, and only publish a release when you are ready.
 
 ## How clients resolve versions
 
-Public reads work like this:
+Release reads work like this:
 
-- no `version` parameter reads the environment's active release, or the working configuration if none is active
+- no `version` parameter reads the environment's active release and returns `409 active_release_not_configured` when none is active
 - `version=1.2.0` reads that exact release
 - `version=1.2.x` reads the highest patch in the `1.2` line
+
+Working reads use the separate `/api/{environmentId}/parameters` routes and do not accept a release selector.
 
 This gives you a stable exact-version path and a practical major-minor line path.
 
@@ -40,13 +42,13 @@ When a release is active, editing a parameter does **not** automatically change 
 
 The editable working configuration is where operators prepare the next release.
 
-Clients only see:
+Clients see the source selected at construction:
 
-- the working configuration when no release is active
-- the active release when they omit `version`
-- the exact or line-matched release when they request one explicitly
+- working configuration through working routes
+- the active release through release routes that omit `version`
+- the exact or line-matched release through release routes with `version`
 
-Clearing the active release deliberately switches unversioned clients back to the current working configuration. Exact and line-version requests continue to resolve immutable releases.
+Clearing the active release makes unversioned release reads fail with `409`; clients remain on their last-known-good release snapshot after a failed refresh. Exact and line-version requests continue to resolve immutable releases, and working clients remain on working routes.
 
 That separation is one of the main safety properties of the release system.
 

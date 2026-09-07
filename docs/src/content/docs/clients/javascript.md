@@ -154,7 +154,7 @@ Call `getAllValues()` again to poll for changes. The client automatically sends 
 
 ## Pin a release version
 
-By default, reads use the active release selected for the environment. If none is active, unversioned reads use its working parameters even when historical releases exist.
+By default, reads use working parameters. Set `useReleases` when constructing the client to read immutable release snapshots instead.
 
 Pin a client to an exact release or release line with `releaseVersion`:
 
@@ -163,19 +163,14 @@ const nona = createNonaClient({
   baseUrl: "https://nona.example.com",
   environmentId: "production",
   apiKey: process.env.NONA_API_KEY,
+  useReleases: true,
   releaseVersion: "1.1.x"
 });
 ```
 
 Use an exact version such as `1.1.0` for a fixed snapshot. Use a line such as `1.1.x` to read the highest patch in that line.
 
-You can override the configured version for one request:
-
-```js
-const value = await nona.getConfigValue("Features:Checkout", {
-  releaseVersion: "1.1.0"
-});
-```
+Omit `releaseVersion` while keeping `useReleases: true` to follow the environment's active release. If no active release exists, reads fail with `409` and `errorCode === "active_release_not_configured"`; they never fall back to working parameters. Source and selector are fixed for the client's lifetime, so create another client for a different source or selector. A non-empty `releaseVersion` with `useReleases: false` is rejected.
 
 ## Handle HTTP errors
 
@@ -193,6 +188,8 @@ try {
 } catch (error) {
   if (error instanceof NonaClientError) {
     console.error(error.status);
+    console.error(error.errorCode);
+    console.error(error.detail);
     console.error(error.message);
     throw error;
   }
@@ -242,10 +239,11 @@ Keep the TTL short for operational flags and kill switches unless you are sure l
 If a JavaScript read fails:
 
 1. confirm `environmentId` matches the environment name in Nona
-2. confirm the expected release is active, configure `releaseVersion`, or verify the working parameter when none is active
-3. confirm the API key belongs to the same project as the parameter
-4. confirm the parameter scope is readable by that key
-5. try the same key once with [HTTP](/docs/clients/http) to isolate client-code issues
+2. confirm that `useReleases` selects the intended source
+3. in release mode, confirm the expected release is active or configure `releaseVersion`
+4. confirm the API key belongs to the same project as the parameter
+5. confirm the parameter scope is readable by that key
+6. try the same key once with [HTTP](/docs/clients/http) to isolate client-code issues
 
 ## Good first app flow
 

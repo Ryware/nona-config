@@ -114,7 +114,7 @@ This is helpful for optional settings or for gradual rollout of new keys across 
 
 ## Pin a release version
 
-By default, reads use the active release selected for the environment. If none is active, unversioned reads use its working parameters even when historical releases exist.
+By default, reads use working parameters. Set `UseReleases` when constructing the client to read immutable release snapshots instead.
 
 Set `ReleaseVersion` to pin the client to an exact release or release line:
 
@@ -124,19 +124,14 @@ var client = new NonaClient(new NonaClientOptions
     BaseAddress = new Uri("https://nona.example.com"),
     EnvironmentId = "production",
     ApiKey = Environment.GetEnvironmentVariable("NONA_API_KEY"),
+    UseReleases = true,
     ReleaseVersion = "1.1.x"
 });
 ```
 
 Use an exact version such as `1.1.0` for a fixed snapshot. Use a line such as `1.1.x` to read the highest patch in that line.
 
-You can override the configured version for one request:
-
-```csharp
-var value = await client.GetConfigValueForReleaseAsync("Features:Checkout", "1.1.0");
-```
-
-The named per-request selector takes precedence over `NonaClientOptions.ReleaseVersion`.
+Omit `ReleaseVersion` while keeping `UseReleases = true` to follow the environment's active release. If no active release exists, reads fail with `409` and `ErrorCode == "active_release_not_configured"`; they never fall back to working parameters. Source and selector are fixed for the client's lifetime, so construct another client to use a different source or selector. A non-empty `ReleaseVersion` with `UseReleases = false` is rejected.
 
 ## Fetch all values or a prefix group
 
@@ -146,8 +141,6 @@ Fetch every readable value at startup, or restrict the snapshot to keys that beg
 IReadOnlyDictionary<string, NonaConfigValue> all = await client.GetAllValuesAsync();
 IReadOnlyDictionary<string, NonaConfigValue> features =
     await client.GetAllValuesAsync("Features:");
-IReadOnlyDictionary<string, NonaConfigValue> releaseFeatures =
-    await client.GetAllValuesForReleaseAsync("1.1.0", "Features:");
 ```
 
 Prefixes may contain ASCII letters, digits, colons, dots, underscores, and dashes, and matching is case-insensitive. Pass `null` or an empty string for an unfiltered snapshot. Any other character produces `NonaClientException` with `StatusCode == HttpStatusCode.BadRequest`; failed responses are not cached. Bulk reads cache an ETag independently for each release and normalized prefix, reuse the snapshot after `304 Not Modified`, and prime single-key reads only for returned keys. The snapshots share the configured memory/LRU budget and returned dictionaries are defensive copies.
@@ -155,15 +148,10 @@ Prefixes may contain ASCII letters, digits, colons, dots, underscores, and dashe
 ## Available methods
 
 - `GetAllValuesAsync(string? prefix = null, CancellationToken cancellationToken = default)`
-- `GetAllValuesForReleaseAsync(string releaseVersion, string? prefix = null, CancellationToken cancellationToken = default)`
 - `GetConfigValueAsync(string key, CancellationToken cancellationToken = default)`
-- `GetConfigValueForReleaseAsync(string key, string releaseVersion, CancellationToken cancellationToken = default)`
 - `TryGetConfigValueAsync(string key, CancellationToken cancellationToken = default)`
-- `TryGetConfigValueForReleaseAsync(string key, string releaseVersion, CancellationToken cancellationToken = default)`
 - `GetStringValueAsync(string key, CancellationToken cancellationToken = default)`
-- `GetStringValueForReleaseAsync(string key, string releaseVersion, CancellationToken cancellationToken = default)`
 - `GetJsonValueAsync<T>(string key, JsonTypeInfo<T> jsonTypeInfo, CancellationToken cancellationToken = default)`
-- `GetJsonValueForReleaseAsync<T>(string key, JsonTypeInfo<T> jsonTypeInfo, string releaseVersion, CancellationToken cancellationToken = default)`
 
 ## Read JSON
 
@@ -218,10 +206,11 @@ Use `AllowStaleCache` carefully. It can improve resilience and smooth over trans
 If a .NET read fails:
 
 1. confirm the `EnvironmentId` matches the Nona environment name
-2. confirm the expected release is active, configure `ReleaseVersion`, or verify the working parameter when none is active
-3. confirm the API key belongs to the same project as the entry
-4. confirm the key scope can read the entry scope
-5. try the same entry once with [HTTP](/docs/clients/http) to separate transport issues from application code
+2. confirm that `UseReleases` selects the intended source
+3. in release mode, confirm the expected release is active or configure `ReleaseVersion`
+4. confirm the API key belongs to the same project as the entry
+5. confirm the key scope can read the entry scope
+6. try the same entry once with [HTTP](/docs/clients/http) to separate transport issues from application code
 
 ## Good first backend flow
 
