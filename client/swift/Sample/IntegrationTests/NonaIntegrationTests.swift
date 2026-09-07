@@ -11,7 +11,8 @@ final class NonaIntegrationTests: XCTestCase {
         // request and scheduling delays on shared CI runners. Fault-server tests
         // below keep short timeouts only where timeout handling is under test.
         try NonaOptions(baseURL: URL(string: environment("NONA_BASE_URL"))!, environmentID: "Production",
-                        apiKey: key ?? environment("NONA_FRONTEND_A"), releaseVersion: version, prefix: prefix,
+                        apiKey: key ?? environment("NONA_FRONTEND_A"), useReleases: version != nil,
+                        releaseVersion: version, prefix: prefix,
                         minimumFetchInterval: 0, requestTimeout: 15)
     }
 

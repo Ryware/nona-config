@@ -210,7 +210,12 @@ public final class NonaConfig: Sendable {
             values = previous.values
             etag = previous.etag
         } else {
-            guard (200...299).contains(response.statusCode) else { throw NonaError.http(statusCode: response.statusCode) }
+            guard (200...299).contains(response.statusCode) else {
+                let problem = try? JSONDecoder().decode(ProblemDetails.self, from: response.body)
+                throw NonaError.http(statusCode: response.statusCode,
+                                     errorCode: problem?.errorCode,
+                                     detail: problem?.detail)
+            }
             guard response.body.count <= options.maxResponseBytes else {
                 throw NonaError.responseTooLarge(maxBytes: options.maxResponseBytes)
             }
@@ -237,6 +242,11 @@ public final class NonaConfig: Sendable {
             }
         }
     }
+}
+
+private struct ProblemDetails: Decodable {
+    let errorCode: String?
+    let detail: String?
 }
 
 /// Disk operations must not inherit the UI actor. Cancellation propagates to the worker.

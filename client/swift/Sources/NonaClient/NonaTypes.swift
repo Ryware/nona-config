@@ -47,7 +47,7 @@ public enum NonaResolution<Value: Sendable>: Sendable {
 public enum NonaError: Error, Sendable, Equatable, LocalizedError {
     case invalidOptions(String)
     case transport
-    case http(statusCode: Int)
+    case http(statusCode: Int, errorCode: String? = nil, detail: String? = nil)
     case invalidSnapshot
     case responseTooLarge(maxBytes: Int)
     case unexpectedNotModified
@@ -56,10 +56,25 @@ public enum NonaError: Error, Sendable, Equatable, LocalizedError {
         switch self {
         case .invalidOptions(let message): return message
         case .transport: return "The Nona request failed. Cached values and defaults remain available."
-        case .http(let code): return "Nona returned HTTP \(code)."
+        case .http(let code, _, let detail): return detail ?? "Nona returned HTTP \(code)."
         case .invalidSnapshot: return "Nona returned an invalid configuration snapshot."
         case .responseTooLarge(let limit): return "Nona response exceeds the \(limit)-byte limit."
         case .unexpectedNotModified: return "Nona returned 304 without a cached snapshot."
         }
+    }
+
+    public var statusCode: Int? {
+        guard case .http(let statusCode, _, _) = self else { return nil }
+        return statusCode
+    }
+
+    public var errorCode: String? {
+        guard case .http(_, let errorCode, _) = self else { return nil }
+        return errorCode
+    }
+
+    public var detail: String? {
+        guard case .http(_, _, let detail) = self else { return nil }
+        return detail
     }
 }
