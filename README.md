@@ -34,6 +34,12 @@ so change whatever you like.
 - [Quick Start](#quick-start)
 - [Repository Layout](#repository-layout)
 - [Client Libraries](#client-libraries)
+  - [JavaScript / Node.js / React Native](#javascript--nodejs--react-native)
+  - [.NET / C#](#net--c)
+  - [Kotlin Multiplatform (Android & iOS)](#kotlin-multiplatform-android--ios)
+  - [OpenFeature / JavaScript](#openfeature--javascript)
+  - [Any language (plain HTTP)](#any-language-plain-http)
+  - [CLI (Windows / macOS / Linux)](#cli-windows--macos--linux)
 - [API](#api)
 - [Docker Compose](#docker-compose)
 - [Migrate from Firebase Remote Config](#migrate-from-firebase-remote-config)
@@ -155,6 +161,52 @@ Console.WriteLine(value.Value);
 ```
 
 📦 [nuget.org/packages/Nona.Client](https://www.nuget.org/packages/Nona.Client)
+
+---
+
+### Kotlin Multiplatform (Android & iOS)
+
+A community-maintained Kotlin Multiplatform SDK for Android and iOS replicating Firebase Remote Config capabilities (in-app defaults, ETags fetching, local caching, and fetch/activation lifecycle).
+
+#### Gradle (Android / KMP)
+
+```kotlin
+dependencies {
+    implementation("io.github.rfaturriza:nona-config:1.0.1")
+}
+```
+
+```kotlin
+val nonaConfig = NonaConfig.instance
+nonaConfig.initialize(
+    apiKey = "your-api-key",
+    environmentId = "production",
+    baseUrl = "https://nona.example.com"
+)
+
+coroutineScope.launch {
+    nonaConfig.fetchAndActivate()
+    val value = nonaConfig.getString("Features:Checkout")
+}
+```
+
+📦 [central.sonatype.com/artifact/io.github.rfaturriza/nona-config](https://central.sonatype.com/artifact/io.github.rfaturriza/nona-config) · 🐙 [NonaConfigKMP on GitHub](https://github.com/rfaturriza/NonaConfigKMP)
+
+#### Swift Package Manager (iOS)
+
+Add `https://github.com/rfaturriza/NonaConfigKMP` via Xcode or `Package.swift`:
+
+```swift
+import NonaConfig
+
+let client = NonaConfigClient.companion.instance
+client.initialize(apiKey: "your-api-key", environmentId: "production", baseUrl: "https://nona.example.com")
+
+Task {
+    let success = try await client.fetchAndActivate()
+    let value = client.getString(key: "Features:Checkout")
+}
+```
 
 ---
 
