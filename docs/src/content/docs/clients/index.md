@@ -12,6 +12,7 @@ The right one depends on how much abstraction your application needs and what ru
 - [HTTP](/docs/clients/http) for the smallest raw request path
 - [JavaScript](/docs/clients/javascript) for Node.js, TypeScript, and related environments
 - [.NET](/docs/clients/dotnet) for C# services and applications
+- [Kotlin Multiplatform](/docs/clients/kotlin-kmp) for Android and iOS mobile applications
 - [OpenFeature](/docs/clients/openfeature) for a vendor-neutral feature-flag interface
 
 ## What to set up first
@@ -61,6 +62,12 @@ Choose [.NET](/docs/clients/dotnet) when:
 - your application is in C#
 - you want typed JSON reads
 - you want built-in cache behavior
+
+Choose [Kotlin Multiplatform](/docs/clients/kotlin-kmp) when:
+
+- your application is native Android (Kotlin) or iOS (Swift)
+- you want in-app defaults and Firebase Remote Config-style fetch and activate flow
+- you want automatic ETag-based caching and local persistence
 
 Choose [OpenFeature](/docs/clients/openfeature) when:
 

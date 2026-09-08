@@ -43,7 +43,7 @@ If you want the shortest route to a working setup:
 3. [Add your first parameter](/docs/get-started/first-parameter)
 4. [Create an API key](/docs/get-started/api-keys)
 5. [Fetch your first config value](/docs/get-started/first-api-call)
-6. Continue with [HTTP client](/docs/clients/http), [JavaScript client](/docs/clients/javascript), or [.NET client](/docs/clients/dotnet)
+6. Continue with [HTTP client](/docs/clients/http), [JavaScript client](/docs/clients/javascript), [.NET client](/docs/clients/dotnet), or [Kotlin Multiplatform client](/docs/clients/kotlin-kmp)
 
 ## What you can do with Nona
 
@@ -104,6 +104,7 @@ Use the smallest integration path that fits your app:
 - [HTTP](/docs/clients/http) for direct reads without an SDK
 - [JavaScript](/docs/clients/javascript) for Node.js and TypeScript apps
 - [.NET](/docs/clients/dotnet) for C# services and applications
+- [Kotlin Multiplatform](/docs/clients/kotlin-kmp) for Android and iOS mobile applications
 - [OpenFeature](/docs/clients/openfeature) if you want a vendor-neutral application interface
 - [CLI](/docs/cli) for admin workflows and migration work
 
