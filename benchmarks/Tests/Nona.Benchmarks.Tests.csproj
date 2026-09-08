@@ -16,6 +16,7 @@
   <ItemGroup>
 	<ProjectReference Include="..\Performance\Nona.Benchmarks.Performance.csproj" />
     <ProjectReference Include="..\Replication\Nona.Benchmarks.Replication.csproj" />
+    <ProjectReference Include="..\Resources\Nona.Benchmarks.Resources.csproj" />
   </ItemGroup>
 
 </Project>

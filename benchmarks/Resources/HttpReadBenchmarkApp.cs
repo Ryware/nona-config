@@ -406,12 +406,12 @@ public static class HttpReadBenchmarkApp
 
     private static string BuildFullEnvironmentRequestPath(int datasetKeyCount)
     {
-        return $"/api/{GetEnvironmentName(datasetKeyCount)}";
+        return $"/api/{GetEnvironmentName(datasetKeyCount)}/parameters";
     }
 
     private static string BuildSingleKeyRequestPath(int datasetKeyCount)
     {
-        return $"/api/{GetEnvironmentName(datasetKeyCount)}/" +
+        return $"/api/{GetEnvironmentName(datasetKeyCount)}/parameters/" +
                Uri.EscapeDataString(DatabaseSeeder.BuildKey(SingleKeyIndex));
     }
 
@@ -504,11 +504,11 @@ public static class HttpReadBenchmarkApp
         }
         if (summary.Results.Any(result => result.Operation == HttpReadOperation.FullEnvironment))
         {
-            builder.AppendLine("- Full-environment reads use `GET /api/{environment}`.");
+            builder.AppendLine("- Full-environment reads use `GET /api/{environment}/parameters`.");
         }
         if (summary.Results.Any(result => result.Operation == HttpReadOperation.SingleKey))
         {
-            builder.AppendLine("- Single-key reads use `GET /api/{environment}/{key}` for one fixed key in the 10,000-key dataset at concurrency 1, 50, and 100.");
+            builder.AppendLine("- Single-key reads use `GET /api/{environment}/parameters/{key}` for one fixed key in the 10,000-key dataset at concurrency 1, 50, and 100.");
         }
         var providers = summary.Results
             .Select(result => result.Provider)
