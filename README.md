@@ -83,7 +83,7 @@ docker run -d \
 - **API base:** `http://localhost:18080`
 - **Guided setup:** `https://nonaconfig.com/docs/get-started/`
 
-Create a project, add an environment, set your first key-value pair, publish a release, and set it active. Then fetch the value:
+Create a project, add an environment, set your first key-value pair, and create an API key. Then fetch the working value:
 
 ```bash
 curl "http://localhost:18080/api/production/parameters/Features%3ACheckout" \

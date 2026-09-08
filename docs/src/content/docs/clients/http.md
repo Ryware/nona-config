@@ -28,9 +28,8 @@ This makes HTTP the smallest possible integration path for:
 3. create the target environment such as `production`
 4. click `Add Parameter`
 5. create a key such as `Features:Checkout`
-6. publish a release and set it active
-7. create an API key in the `API Keys` section
-8. keep the key scope aligned with the entry scope
+6. create an API key in the `API Keys` section
+7. keep the key scope aligned with the entry scope
 
 ## Prepare the value with the CLI
 
@@ -50,7 +49,7 @@ nona keys create \
   --environment production
 ```
 
-Then publish and activate a release for the environment in admin.
+The first request below uses working parameters, so no release is required. Publish a release only for a release-route request; set it active only when the request omits `version`.
 
 ## Request
 
@@ -72,6 +71,8 @@ curl "https://nona.example.com/api/production/releases/parameters/Features%3AChe
 ```
 
 `1.1.0` resolves exactly. `1.1.x` resolves to the highest patch in the `1.1` release line.
+
+These versioned requests require the requested release or matching release line to exist, but they do not require an active release. Omit `version` to read the active release; if none is active, the server returns `409 active_release_not_configured`. Release reads never fall back to working parameters.
 
 ## Fetch all client-visible values
 
@@ -192,7 +193,7 @@ Before calling the endpoint:
 1. Create a project in the Nona admin UI.
 2. Create an environment, for example `production`.
 3. Create a config entry, for example `Features:Checkout`.
-4. Publish a release and set it active.
+4. If using a release route, publish the requested release. Set it active only when the request omits `version`.
 5. Create an API key with a scope that can read the entry.
 6. Store the API key in your app's secrets, not in source code.
 

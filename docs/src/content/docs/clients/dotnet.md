@@ -33,9 +33,8 @@ Before wiring the backend:
 2. open the backend service project
 3. select the target environment such as `production`
 4. create the parameter or flag you want to read
-5. publish a release and set it active
-6. create an API key in the `API Keys` section
-7. use `server` scope for backend-only reads whenever possible
+5. create an API key in the `API Keys` section
+6. use `server` scope for backend-only reads whenever possible
 
 For a first backend test, create `Features:UseLegacySearch` as a boolean entry or `App:Settings` as a JSON entry.
 
@@ -57,7 +56,7 @@ nona keys create \
   --environment production
 ```
 
-Then publish and activate a release for the environment in admin.
+The default client reads working parameters, so no release is required for this example. Publish a release only when you enable release reads; set it active if you omit `ReleaseVersion`.
 
 ## Read a string
 

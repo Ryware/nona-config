@@ -38,7 +38,7 @@ This gives you a stable exact-version path and a practical major-minor line path
 
 ## Working configuration vs active release
 
-When a release is active, editing a parameter does **not** automatically change what clients receive.
+Editing a parameter changes what working-source clients receive on their next fetch, whether or not a release is active. Release-source clients continue to read the selected immutable release.
 
 The editable working configuration is where operators prepare the next release.
 
@@ -176,7 +176,7 @@ That keeps release lines explicit and understandable.
 
 ### Does editing parameters immediately affect clients?
 
-Not while a release is active. If no release is active, unversioned clients use the working configuration and see edits on their next fetch.
+Working-source clients see edits on their next fetch. Release-source clients do not: versioned requests keep reading the selected immutable release, while unversioned release requests use the active release and fail with `409 active_release_not_configured` if none is active. Release reads never fall back to the working configuration.
 
 ### Why does Create a version ask for `1.2` instead of `1.2.0`?
 

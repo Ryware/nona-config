@@ -29,8 +29,7 @@ In admin:
 2. open the project
 3. select the target environment
 4. make sure the parameter exists
-5. publish a release and set it active
-6. create an API key in the `API Keys` section
+5. create an API key in the `API Keys` section
 
 For the simplest first test, use a boolean key such as `Features:Checkout`.
 
@@ -52,7 +51,7 @@ nona keys create \
   --environment production
 ```
 
-Then publish and activate a release for the environment in admin.
+The first request below uses working parameters, so no release is required. Publish a release only for a release-route request; set it active only when the request omits `version`.
 
 ## Request shape
 
@@ -89,7 +88,7 @@ The key path segment must be URL-encoded. For example:
 
 - `Features:Checkout` -> `Features%3ACheckout`
 
-To pin a release instead of using the active release:
+To pin a published release instead of using the active release:
 
 ```bash
 curl "https://nona.example.com/api/production/releases/parameters/Features%3ACheckout?version=1.1.x" \
@@ -117,12 +116,13 @@ If the request fails:
 Use this sequence for the shortest first-read test:
 
 1. create or confirm one parameter exists
-2. publish and activate one release
-3. create or confirm one API key exists
-4. copy the environment id
-5. URL-encode the key name
-6. send the HTTP request with `X-Api-Key`
-7. verify the value comes back correctly
+2. create or confirm one API key exists
+3. copy the environment id
+4. URL-encode the key name
+5. send the working-route HTTP request with `X-Api-Key`
+6. verify the value comes back correctly
+
+For a release-route test, also publish the requested release and set it active when omitting `version`.
 
 ## First API call FAQ
 
