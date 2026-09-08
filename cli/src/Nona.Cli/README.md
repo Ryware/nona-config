@@ -103,6 +103,22 @@ nona entries history --project mobile-app --environment production --key welcome
 nona entries rollback --project mobile-app --environment production --key welcome_text --version 2 --base-url https://nona.example.com --token <token>
 ```
 
+Read runtime parameters with a 64-character hexadecimal API key:
+
+```bash
+# Current working value
+nona entries get --project mobile-app --environment production --key welcome_text --token "$NONA_API_KEY"
+
+# Value from the active release
+nona entries get --project mobile-app --environment production --key welcome_text --token "$NONA_API_KEY" --use-releases
+
+# Value from an exact release or the highest patch in a release line
+nona entries get --project mobile-app --environment production --key welcome_text --token "$NONA_API_KEY" --use-releases --release-version 1.2.3
+nona entries get --project mobile-app --environment production --key welcome_text --token "$NONA_API_KEY" --use-releases --release-version 1.2.x
+```
+
+Without `--use-releases`, `entries get` reads the working value. Release mode uses the active release unless `--release-version` supplies an exact or wildcard selector. A release selector without `--use-releases` is rejected. Release options also require an API key; an admin bearer token continues to read the working entry through the admin API and cannot be combined with release options. The existing `--project` requirement applies to both credential types.
+
 Prefixes may contain ASCII letters, digits, colons, dots, underscores, and dashes. An invalid prefix prints the API validation error and exits with code `2`.
 
 Manage immutable releases:

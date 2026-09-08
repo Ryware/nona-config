@@ -158,6 +158,22 @@ nona entries rollback --project mobile-app --environment production --key Featur
 nona entries delete --project mobile-app --environment production --key Features:Checkout
 ```
 
+Use a 64-character hexadecimal API key when `entries get` should exercise the runtime parameter API:
+
+```bash
+# Current working value
+nona entries get --project mobile-app --environment production --key Features:Checkout --token "$NONA_API_KEY"
+
+# Value from the active release
+nona entries get --project mobile-app --environment production --key Features:Checkout --token "$NONA_API_KEY" --use-releases
+
+# Value from an exact release or the highest patch in a release line
+nona entries get --project mobile-app --environment production --key Features:Checkout --token "$NONA_API_KEY" --use-releases --release-version 1.2.3
+nona entries get --project mobile-app --environment production --key Features:Checkout --token "$NONA_API_KEY" --use-releases --release-version 1.2.x
+```
+
+Working parameters are the default source. In release mode, omitting `--release-version` selects the environment's active release; supplying it selects an exact version or a wildcard release line. `--release-version` without `--use-releases` is rejected before any request. Release options also require an API key. An admin bearer token keeps the existing behavior of reading the working entry through the admin API, and combining it with release options is rejected. `--project` remains required unless a default project is saved.
+
 Filter the list by a case-insensitive, literal key prefix without changing the output format:
 
 ```bash
