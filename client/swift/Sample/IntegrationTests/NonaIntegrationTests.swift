@@ -6,12 +6,13 @@ final class NonaIntegrationTests: XCTestCase {
     private func environment(_ name: String) throws -> String {
         try XCTUnwrap(ProcessInfo.processInfo.environment[name], "Run the integration suite using qa/run-simulator-tests.py; missing \(name)")
     }
-    private func options(key: String? = nil, prefix: String? = nil, version: String? = nil) throws -> NonaOptions {
+    private func options(key: String? = nil, prefix: String? = nil,
+                         useReleases: Bool = false, version: String? = nil) throws -> NonaOptions {
         // These tests check backend behavior, not latency. Allow for the first
         // request and scheduling delays on shared CI runners. Fault-server tests
         // below keep short timeouts only where timeout handling is under test.
         try NonaOptions(baseURL: URL(string: environment("NONA_BASE_URL"))!, environmentID: "Production",
-                        apiKey: key ?? environment("NONA_FRONTEND_A"), useReleases: version != nil,
+                        apiKey: key ?? environment("NONA_FRONTEND_A"), useReleases: useReleases,
                         releaseVersion: version, prefix: prefix,
                         minimumFetchInterval: 0, requestTimeout: 15)
     }
@@ -24,7 +25,7 @@ final class NonaIntegrationTests: XCTestCase {
         XCTAssertEqual(status, .success)
         XCTAssertEqual(config.getString("flag"), "default")
         XCTAssertTrue(config.activate())
-        XCTAssertEqual(config.getString("flag"), "A")
+        XCTAssertEqual(config.getString("flag"), "A-new")
         XCTAssertEqual(config.getLong("Limits:Retries"), 3)
         XCTAssertFalse(config.keys.contains("Hidden"))
         let unchanged = try await config.fetch()
@@ -32,26 +33,37 @@ final class NonaIntegrationTests: XCTestCase {
         let restored = NonaConfig(options: try options(), store: store)
         let loaded = try await restored.initialize()
         XCTAssertTrue(loaded)
-        XCTAssertEqual(restored.getString("flag"), "A")
+        XCTAssertEqual(restored.getString("flag"), "A-new")
     }
 
     func testRealServerProjectIsolationAndSelectors() async throws {
         let a = NonaConfig(options: try options(), store: InMemorySnapshotStore())
         let b = NonaConfig(options: try options(key: environment("NONA_FRONTEND_B")), store: InMemorySnapshotStore())
         try await a.fetchAndActivate(); try await b.fetchAndActivate()
-        XCTAssertEqual(a.getString("flag"), "A")
+        XCTAssertEqual(a.getString("flag"), "A-new")
         XCTAssertEqual(b.getString("flag"), "B")
-        let pinned = NonaConfig(options: try options(prefix: "Features:", version: "1.0.0"), store: InMemorySnapshotStore())
+        let activeRelease = NonaConfig(options: try options(useReleases: true), store: InMemorySnapshotStore())
+        try await activeRelease.fetchAndActivate()
+        XCTAssertEqual(activeRelease.getString("flag"), "A")
+        let pinned = NonaConfig(options: try options(prefix: "Features:", useReleases: true, version: "1.0.0"),
+                                store: InMemorySnapshotStore())
         try await pinned.fetchAndActivate()
         XCTAssertEqual(pinned.keys, ["Features:Checkout"])
         XCTAssertTrue(pinned.getBoolean("Features:Checkout"))
     }
 
     func testRealServerRejectsWrongKeyScopes() async throws {
-        for (key, code) in [(try environment("NONA_BACKEND_KEY"), 404), (String(repeating: "A", count: 64), 401)] {
-            let config = NonaConfig(options: try options(key: key), store: InMemorySnapshotStore())
+        let cases: [(key: String, statusCode: Int, errorCode: String)] = [
+            (try environment("NONA_BACKEND_KEY"), 404, "environment_not_found"),
+            (String(repeating: "A", count: 64), 401, "invalid_api_key"),
+        ]
+        for item in cases {
+            let config = NonaConfig(options: try options(key: item.key), store: InMemorySnapshotStore())
             do { try await config.fetch(); XCTFail("Expected HTTP failure") }
-            catch let error as NonaError { XCTAssertEqual(error, .http(statusCode: code)) }
+            catch let error as NonaError {
+                XCTAssertEqual(error.statusCode, item.statusCode)
+                XCTAssertEqual(error.errorCode, item.errorCode)
+            }
         }
     }
 
