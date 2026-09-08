@@ -110,6 +110,174 @@ public sealed class EntriesHandlerTests
     }
 
     [Test]
+    public async Task GetEntryQueryHandler_ApiKeyDefaultsToWorkingParameterRoute()
+    {
+        HttpRequestMessage? capturedRequest = null;
+        var handler = new GetEntryQueryHandler(() => new HttpClient(
+            new RecordingHandler(request =>
+            {
+                capturedRequest = request;
+                return JsonResponse(HttpStatusCode.OK, "enabled");
+            })));
+
+        var result = await handler.HandleAsync(
+            new GetEntryQuery(
+                new NonaCliConnectionOptions("https://nona.test/proxy/tenant", ApiKeyConnection.BearerToken),
+                "my-project",
+                "pre production",
+                "Features:Checkout"),
+            CancellationToken.None);
+
+        await Assert.That(result).IsEqualTo(CliExitCodes.Success);
+        await Assert.That(capturedRequest).IsNotNull();
+        await Assert.That(capturedRequest!.RequestUri!.AbsoluteUri).IsEqualTo(
+            "https://nona.test/proxy/tenant/api/pre%20production/parameters/Features%3ACheckout");
+        await Assert.That(capturedRequest.Headers.GetValues("X-Api-Key").Single())
+            .IsEqualTo(ApiKeyConnection.BearerToken);
+    }
+
+    [Test]
+    public async Task GetEntryQueryHandler_ApiKeyUsesActiveReleaseRoute()
+    {
+        Uri? requestedUri = null;
+        var handler = RawHandler(request => requestedUri = request.RequestUri);
+
+        var result = await handler.HandleAsync(
+            new GetEntryQuery(
+                ApiKeyConnection,
+                "my-project",
+                "production",
+                "my.key",
+                UseReleases: true),
+            CancellationToken.None);
+
+        await Assert.That(result).IsEqualTo(CliExitCodes.Success);
+        await Assert.That(requestedUri!.AbsoluteUri).IsEqualTo(
+            "http://nona.test/api/production/releases/parameters/my.key");
+    }
+
+    [Test]
+    [Arguments("1.2.3")]
+    [Arguments("1.2.x")]
+    public async Task GetEntryQueryHandler_ApiKeyUsesSelectedReleaseRoute(string selector)
+    {
+        Uri? requestedUri = null;
+        var handler = RawHandler(request => requestedUri = request.RequestUri);
+
+        var result = await handler.HandleAsync(
+            new GetEntryQuery(
+                ApiKeyConnection,
+                "my-project",
+                "production",
+                "my.key",
+                UseReleases: true,
+                ReleaseVersion: $"  {selector}  "),
+            CancellationToken.None);
+
+        await Assert.That(result).IsEqualTo(CliExitCodes.Success);
+        await Assert.That(requestedUri!.AbsoluteUri).IsEqualTo(
+            $"http://nona.test/api/production/releases/parameters/my.key?version={selector}");
+    }
+
+    [Test]
+    public async Task GetEntryQueryHandler_RejectsReleaseVersionOutsideReleaseModeWithoutRequest()
+    {
+        var requestCount = 0;
+        var handler = RawHandler(_ => requestCount++);
+
+        var result = await handler.HandleAsync(
+            new GetEntryQuery(
+                ApiKeyConnection,
+                "my-project",
+                "production",
+                "my.key",
+                ReleaseVersion: "1.2.x"),
+            CancellationToken.None);
+
+        await Assert.That(result).IsEqualTo(CliExitCodes.ValidationError);
+        await Assert.That(requestCount).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task GetEntryQueryHandler_RejectsReleaseModeForAdminTokenWithoutRequest()
+    {
+        var requestCount = 0;
+        var handler = RawHandler(_ => requestCount++);
+
+        var result = await handler.HandleAsync(
+            new GetEntryQuery(
+                TestConnection,
+                "my-project",
+                "production",
+                "my.key",
+                UseReleases: true),
+            CancellationToken.None);
+
+        await Assert.That(result).IsEqualTo(CliExitCodes.ValidationError);
+        await Assert.That(requestCount).IsEqualTo(0);
+    }
+
+    [Test]
+    [Arguments(HttpStatusCode.BadRequest, "invalid_release_version", CliExitCodes.ValidationError)]
+    [Arguments(HttpStatusCode.Unauthorized, "invalid_api_key", CliExitCodes.AuthenticationError)]
+    [Arguments(HttpStatusCode.NotFound, "config_entry_not_found", CliExitCodes.NotFound)]
+    [Arguments(HttpStatusCode.Conflict, "active_release_not_configured", CliExitCodes.Conflict)]
+    [Arguments(HttpStatusCode.InternalServerError, "server_error", CliExitCodes.ServerError)]
+    public async Task GetEntryQueryHandler_PreservesRuntimeProblemDetails(
+        HttpStatusCode statusCode,
+        string errorCode,
+        int expectedExitCode)
+    {
+        var handler = new GetEntryQueryHandler(() => new HttpClient(
+            new RecordingHandler(_ => JsonResponse(
+                statusCode,
+                $$"""{"title":"Request failed","status":{{(int)statusCode}},"detail":"runtime detail","errorCode":"{{errorCode}}"}"""))));
+
+        ApiProblemDetails? problem = null;
+        try
+        {
+            await handler.HandleAsync(
+                new GetEntryQuery(ApiKeyConnection, "my-project", "production", "my.key"),
+                CancellationToken.None);
+        }
+        catch (ApiProblemDetails ex)
+        {
+            problem = ex;
+        }
+
+        await Assert.That(problem).IsNotNull();
+        await Assert.That(problem!.ResponseStatusCode).IsEqualTo((int)statusCode);
+        await Assert.That(problem.ErrorCode).IsEqualTo(errorCode);
+        await Assert.That(problem.Detail).IsEqualTo("runtime detail");
+
+        var cliError = CliExceptionHandler.Describe(problem);
+        await Assert.That(cliError.ExitCode).IsEqualTo(expectedExitCode);
+        await Assert.That(cliError.Message).Contains($"({(int)statusCode}, {errorCode})");
+    }
+
+    [Test]
+    public async Task GetEntryQueryHandler_AdminTokenStillUsesWorkingAdminRoute()
+    {
+        HttpRequestMessage? capturedRequest = null;
+        var handler = new GetEntryQueryHandler(() => new HttpClient(
+            new RecordingHandler(request =>
+            {
+                capturedRequest = request;
+                return JsonResponse(HttpStatusCode.OK, ConfigEntryJson);
+            })));
+
+        var result = await handler.HandleAsync(
+            new GetEntryQuery(TestConnection, "my-project", "production", "my.key"),
+            CancellationToken.None);
+
+        await Assert.That(result).IsEqualTo(CliExitCodes.Success);
+        await Assert.That(capturedRequest!.RequestUri!.AbsolutePath).IsEqualTo(
+            "/admin/projects/my-project/environments/production/config-entries/my.key");
+        await Assert.That(capturedRequest.Headers.Authorization!.Scheme).IsEqualTo("Bearer");
+        await Assert.That(capturedRequest.Headers.Authorization.Parameter).IsEqualTo(TestConnection.BearerToken);
+    }
+
+    [Test]
     public async Task GetEntryQueryHandler_ReturnsOne_WhenNotFound()
     {
         var result = await new GetEntryQueryHandler(MockHttp(HttpStatusCode.NotFound, string.Empty))
@@ -224,4 +392,17 @@ public sealed class EntriesHandlerTests
             HttpRequestMessage request,
             CancellationToken cancellationToken) => Task.FromResult(handle(request));
     }
+
+    private static GetEntryQueryHandler RawHandler(Action<HttpRequestMessage> capture)
+        => new(() => new HttpClient(new RecordingHandler(request =>
+        {
+            capture(request);
+            return JsonResponse(HttpStatusCode.OK, "enabled");
+        })));
+
+    private static HttpResponseMessage JsonResponse(HttpStatusCode status, string body)
+        => new(status)
+        {
+            Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json")
+        };
 }

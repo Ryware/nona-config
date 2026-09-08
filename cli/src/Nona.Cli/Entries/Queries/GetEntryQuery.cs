@@ -2,10 +2,17 @@ using Microsoft.Kiota.Abstractions;
 using Nona.Cli.Entries;
 using Nona.Cli.Generated.Models;
 using System.Net;
+using System.Text.Json;
 
 namespace Nona.Cli.Entries.Queries;
 
-internal sealed record GetEntryQuery(NonaCliConnectionOptions Connection, string Project, string Environment, string Key);
+internal sealed record GetEntryQuery(
+    NonaCliConnectionOptions Connection,
+    string Project,
+    string Environment,
+    string Key,
+    bool UseReleases = false,
+    string? ReleaseVersion = null);
 
 internal sealed class GetEntryQueryHandler(Func<HttpClient>? httpClientFactory = null)
 {
@@ -13,36 +20,47 @@ internal sealed class GetEntryQueryHandler(Func<HttpClient>? httpClientFactory =
 
     public async Task<int> HandleAsync(GetEntryQuery query, CancellationToken ct)
     {
-        if (IsLikelyApiKey(query.Connection.BearerToken))
-            return await GetRawEntryAsync(query, ct);
+        var releaseVersion = NormalizeReleaseVersion(query.ReleaseVersion);
+        if (!query.UseReleases && releaseVersion is not null)
+        {
+            Console.Error.WriteLine("--release-version requires --use-releases.");
+            return CliExitCodes.ValidationError;
+        }
+
+        var usesApiKey = IsLikelyApiKey(query.Connection.BearerToken);
+        if (query.UseReleases && !usesApiKey)
+        {
+            Console.Error.WriteLine("--use-releases requires a Nona API key. Admin bearer tokens can only read working entries.");
+            return CliExitCodes.ValidationError;
+        }
+
+        if (usesApiKey)
+            return await GetRawEntryAsync(query, releaseVersion, ct);
 
         return await GetAdminEntryAsync(query, ct);
     }
 
-    private async Task<int> GetRawEntryAsync(GetEntryQuery query, CancellationToken ct)
+    private async Task<int> GetRawEntryAsync(
+        GetEntryQuery query,
+        string? releaseVersion,
+        CancellationToken ct)
     {
         using var http = httpClientFactory?.Invoke() ?? new HttpClient();
         using var request = new HttpRequestMessage(
             HttpMethod.Get,
-            BuildRawEntryUrl(query.Connection.BaseUrl, query.Environment, query.Key));
+            BuildRawEntryUrl(
+                query.Connection.BaseUrl,
+                query.Environment,
+                query.Key,
+                query.UseReleases,
+                releaseVersion));
 
         request.Headers.TryAddWithoutValidation("X-Api-Key", query.Connection.BearerToken);
         request.Headers.TryAddWithoutValidation("Accept", "application/json");
 
         using var response = await http.SendAsync(request, ct);
-        if (response.StatusCode == HttpStatusCode.NotFound)
-        {
-            Console.Error.WriteLine($"Entry '{query.Key}' not found in [{query.Environment}].");
-            return 1;
-        }
-
-        if (response.StatusCode == HttpStatusCode.Unauthorized)
-        {
-            Console.Error.WriteLine("API key is missing or invalid.");
-            return 1;
-        }
-
-        response.EnsureSuccessStatusCode();
+        if (!response.IsSuccessStatusCode)
+            throw await ReadProblemDetailsAsync(response, ct);
 
         var value = await response.Content.ReadAsStringAsync(ct);
         var contentType = ReadLogicalContentType(response);
@@ -74,8 +92,54 @@ internal sealed class GetEntryQueryHandler(Func<HttpClient>? httpClientFactory =
     private static bool IsLikelyApiKey(string? token)
         => token is { Length: 64 } && token.All(Uri.IsHexDigit);
 
-    private static string BuildRawEntryUrl(string baseUrl, string environment, string key)
-        => $"{baseUrl.TrimEnd('/')}/api/{Uri.EscapeDataString(environment)}/{Uri.EscapeDataString(key)}";
+    private static string BuildRawEntryUrl(
+        string baseUrl,
+        string environment,
+        string key,
+        bool useReleases,
+        string? releaseVersion)
+    {
+        var sourcePath = useReleases ? "releases/parameters" : "parameters";
+        var url = $"{baseUrl.TrimEnd('/')}/api/{Uri.EscapeDataString(environment)}/{sourcePath}/{Uri.EscapeDataString(key)}";
+        return releaseVersion is null
+            ? url
+            : $"{url}?version={Uri.EscapeDataString(releaseVersion)}";
+    }
+
+    private static string? NormalizeReleaseVersion(string? releaseVersion)
+        => string.IsNullOrWhiteSpace(releaseVersion) ? null : releaseVersion.Trim();
+
+    private static async Task<ApiProblemDetails> ReadProblemDetailsAsync(
+        HttpResponseMessage response,
+        CancellationToken ct)
+    {
+        var body = response.Content is null
+            ? string.Empty
+            : await response.Content.ReadAsStringAsync(ct);
+
+        ApiProblemDetails? problem = null;
+        if (!string.IsNullOrWhiteSpace(body))
+        {
+            try
+            {
+                problem = JsonSerializer.Deserialize<ApiProblemDetails>(
+                    body,
+                    new JsonSerializerOptions(JsonSerializerDefaults.Web));
+            }
+            catch (JsonException)
+            {
+                // Fall through to a status-based error when the server does not return ProblemDetails.
+            }
+        }
+
+        problem ??= new ApiProblemDetails
+        {
+            Detail = response.ReasonPhrase ?? "Request failed"
+        };
+        problem.Status ??= (int)response.StatusCode;
+        problem.ResponseStatusCode = (int)response.StatusCode;
+        return problem;
+    }
 
     private static string? ReadLogicalContentType(HttpResponseMessage response)
         => response.Headers.TryGetValues(ConfigEntryValueRenderer.LogicalContentTypeHeader, out var values)
