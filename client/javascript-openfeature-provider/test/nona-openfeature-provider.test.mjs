@@ -48,7 +48,7 @@ test("OpenFeature provider resolves typed values through the Nona client", async
     calls[0].init.headers.get("X-Api-Key"),
     "api-key",
   );
-  assert.equal(new URL(calls[0].url).pathname, "/api/production/parameters/enabled");
+  assert.equal(new URL(calls[0].url).pathname, "/api/environments/production/parameters/enabled");
 });
 
 test("OpenFeature provider returns defaults and flag-not-found details for missing Nona values", async () => {
@@ -118,6 +118,6 @@ test("OpenFeature provider passes release selection through nona-client", async 
   assert.equal(await OpenFeature.getClient(domain).getBooleanValue("enabled", false), true);
   assert.equal(
     calls[0].url,
-    "https://nona.test/api/production/releases/parameters/enabled?version=2.1.x",
+    "https://nona.test/api/environments/production/releases/2.1.x/parameters/enabled",
   );
 });

@@ -28,7 +28,7 @@ test("getConfigValue sends API key and parses the value", async () => {
 
   assert.equal(value.value, "enabled");
   assert.equal(value.contentType, "text");
-  assert.equal(calls[0].url, "https://nona.test/api/production/parameters/Features%3ACheckout");
+  assert.equal(calls[0].url, "https://nona.test/api/environments/production/parameters/Features%3ACheckout");
   assert.equal(calls[0].headers.get("X-Api-Key"), "api-key");
 });
 
@@ -49,17 +49,68 @@ test("getConfigValue sends configured release version", async () => {
 
   assert.equal(
     calls[0].url,
-    "https://nona.test/api/production/releases/parameters/Features%3ACheckout?version=1.1.x"
+    "https://nona.test/api/environments/production/releases/1.1.x/parameters/Features%3ACheckout"
   );
 });
 
-test("releaseVersion requires release mode", () => {
-  assert.throws(() => createNonaClient("https://nona.test", {
+test("releaseVersion is retained but ignored outside release mode", async () => {
+  const calls = [];
+  const client = createNonaClient("https://nona.test", {
     environmentId: "production",
     apiKey: "api-key",
-    releaseVersion: "1.1.x",
-    fetch: async () => configValueResponse("enabled", "text")
-  }), /releaseVersion requires useReleases/);
+    releaseVersion: " .. ",
+    fetch: async (url, init) => {
+      calls.push(capture(url, init));
+      return configValueResponse("enabled", "text");
+    }
+  });
+
+  await client.getConfigValue("Features:Checkout");
+
+  assert.equal(client.useReleases, false);
+  assert.equal(client.releaseVersion, "..");
+  assert.equal(calls[0].url, "https://nona.test/api/environments/production/parameters/Features%3ACheckout");
+});
+
+test("release mode rejects dot-segment selectors before sending a request", () => {
+  let requestCount = 0;
+
+  for (const releaseVersion of [" . ", " .. "]) {
+    assert.throws(
+      () => createNonaClient("https://nona.test", {
+        environmentId: "production",
+        apiKey: "api-key",
+        useReleases: true,
+        releaseVersion,
+        fetch: async () => {
+          requestCount += 1;
+          return configValueResponse("enabled", "text");
+        }
+      }),
+      /releaseVersion cannot be a dot path segment/
+    );
+  }
+
+  assert.equal(requestCount, 0);
+});
+
+test("release mode without a selector uses the active release", async () => {
+  const calls = [];
+  const client = createNonaClient("https://nona.test", {
+    environmentId: "production",
+    apiKey: "api-key",
+    useReleases: true,
+    releaseVersion: "  ",
+    fetch: async (url, init) => {
+      calls.push(capture(url, init));
+      return configValueResponse("enabled", "text");
+    }
+  });
+
+  await client.getConfigValue("Features:Checkout");
+
+  assert.equal(client.releaseVersion, undefined);
+  assert.equal(calls[0].url, "https://nona.test/api/environments/production/releases/active/parameters/Features%3ACheckout");
 });
 
 test("getConfigValue accepts legacy JSON responses", async () => {
@@ -116,7 +167,7 @@ test("failed requests read Problem Details messages", async () => {
       status: 404,
       detail: "Config entry not found",
       errorCode: "config_entry_not_found",
-      instance: "/api/production/parameters/missing"
+      instance: "/api/environments/production/parameters/missing"
     }, 404)
   });
 
@@ -194,7 +245,7 @@ test("getAllValues fetches all values once and primes six local reads", async ()
   assert.deepEqual(values, flags);
   assert.deepEqual(reads, Object.values(flags));
   assert.equal(calls.length, 1);
-  assert.equal(calls[0].url, "https://nona.test/api/production/parameters");
+  assert.equal(calls[0].url, "https://nona.test/api/environments/production/parameters");
 });
 
 test("getAllValues uses ETag validation and reuses the snapshot on 304", async () => {
@@ -305,11 +356,11 @@ test("getAllValues isolates prefix snapshots and shares case-insensitive ETags",
   assert.deepEqual(samePrefixDifferentCase, groupA);
   assert.deepEqual(otherPrefix, groupB);
   assert.deepEqual(unfiltered, { ...groupA, ...groupB });
-  assert.equal(calls[0].url, "https://nona.test/api/production/parameters?prefix=GroupA%3A");
-  assert.equal(calls[1].url, "https://nona.test/api/production/parameters?prefix=groupa%3A");
+  assert.equal(calls[0].url, "https://nona.test/api/environments/production/parameters?prefix=GroupA%3A");
+  assert.equal(calls[1].url, "https://nona.test/api/environments/production/parameters?prefix=groupa%3A");
   assert.equal(calls[1].headers.get("If-None-Match"), '"group-a"');
   assert.equal(calls[2].headers.get("If-None-Match"), null);
-  assert.equal(calls[3].url, "https://nona.test/api/production/parameters");
+  assert.equal(calls[3].url, "https://nona.test/api/environments/production/parameters");
 });
 
 test("prefixed bulk reads prime only returned single-key values", async () => {
@@ -459,7 +510,7 @@ test("getAllValues supports a release selector", async () => {
 
   await client.getAllValues();
 
-  assert.equal(calls[0].url, "https://nona.test/api/production/releases/parameters?version=1.1.x");
+  assert.equal(calls[0].url, "https://nona.test/api/environments/production/releases/1.1.x/parameters");
 });
 
 test("getAllValues combines release and prefix selectors", async () => {
@@ -479,7 +530,7 @@ test("getAllValues combines release and prefix selectors", async () => {
 
   assert.equal(
     calls[0].url,
-    "https://nona.test/api/production/releases/parameters?version=1.2.3&prefix=GroupA%3A"
+    "https://nona.test/api/environments/production/releases/1.2.3/parameters?prefix=GroupA%3A"
   );
 });
 

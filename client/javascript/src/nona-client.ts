@@ -63,8 +63,8 @@ export function createNonaClient(
   const environmentSegment = segment(environmentId, "environmentId");
   const useReleases = resolvedOptions.useReleases ?? false;
   const releaseVersion = resolvedOptions.releaseVersion?.trim() || undefined;
-  if (!useReleases && releaseVersion) {
-    throw new Error("releaseVersion requires useReleases to be true.");
+  if (useReleases && (releaseVersion === "." || releaseVersion === "..")) {
+    throw new Error("releaseVersion cannot be a dot path segment.");
   }
   const defaultHeaders = resolvedOptions.defaultHeaders;
   const fetchImpl = resolvedOptions.fetch ?? globalThis.fetch?.bind(globalThis);
@@ -87,35 +87,32 @@ export function createNonaClient(
   }
 
   function configValuePath(key: string): string {
-    const path = useReleases
-      ? `api/${environmentSegment}/releases/parameters/${segment(key, "key")}`
-      : `api/${environmentSegment}/parameters/${segment(key, "key")}`;
-    if (!releaseVersion) {
-      return path;
-    }
-
-    const search = new URLSearchParams();
-    search.set("version", releaseVersion);
-    return `${path}?${search.toString()}`;
+    return `${parametersPath()}/${segment(key, "key")}`;
   }
 
   function allConfigValuesPath(
     prefix: string | undefined,
   ): string {
-    const path = useReleases
-      ? `api/${environmentSegment}/releases/parameters`
-      : `api/${environmentSegment}/parameters`;
+    const path = parametersPath();
     const search = new URLSearchParams();
-    if (releaseVersion) {
-      search.set("version", releaseVersion);
-    }
-
     if (prefix) {
       search.set("prefix", prefix);
     }
 
     const query = search.toString();
     return query ? `${path}?${query}` : path;
+  }
+
+  function parametersPath(): string {
+    const environmentPath = `api/environments/${environmentSegment}`;
+    if (!useReleases) {
+      return `${environmentPath}/parameters`;
+    }
+
+    const release = releaseVersion
+      ? segment(releaseVersion, "releaseVersion")
+      : "active";
+    return `${environmentPath}/releases/${release}/parameters`;
   }
 
   function configValueRequestId(key: string): string {

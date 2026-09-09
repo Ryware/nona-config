@@ -41,7 +41,7 @@ const nona = createNonaClient({
 });
 ```
 
-Omit `releaseVersion` while keeping `useReleases: true` to follow the active release. Source and release selection are fixed for the client lifetime; create another client for a different source or selector. A non-empty `releaseVersion` with `useReleases: false` is rejected.
+Omit `releaseVersion` while keeping `useReleases: true` to follow the active release. Source and release selection are fixed for the client lifetime; create another client for a different source or selector. When `useReleases` is `false` (the default), `releaseVersion` is retained on the client but ignored for requests and cache identity.
 
 You can also pass the base URL as the first argument:
 

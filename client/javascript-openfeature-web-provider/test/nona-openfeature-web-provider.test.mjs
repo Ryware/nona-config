@@ -61,7 +61,7 @@ test("web provider resolves typed values synchronously from a single snapshot fe
   });
 
   assert.equal(calls.length, 1, "evaluation must not hit the network");
-  assert.equal(new URL(calls[0].url).pathname, "/api/production/parameters");
+  assert.equal(new URL(calls[0].url).pathname, "/api/environments/production/parameters");
   assert.equal(calls[0].init.headers.get("X-Api-Key"), "frontend-key");
 
   const details = ofClient.getBooleanDetails("enabled", false);
@@ -105,7 +105,7 @@ test("web provider passes release selection through nona-client", async () => {
 
   assert.equal(
     calls[0].url,
-    "https://nona.test/api/production/releases/parameters?version=2.1.x",
+    "https://nona.test/api/environments/production/releases/2.1.x/parameters",
   );
   await provider.onClose();
 });

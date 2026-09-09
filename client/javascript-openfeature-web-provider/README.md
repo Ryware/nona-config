@@ -42,7 +42,7 @@ const provider = createNonaOpenFeatureWebProvider(createNonaClient({ ... }), {
 
 ## Requires a frontend-scoped API key
 
-The provider loads the whole environment as one snapshot through `nona-client`, using either `GET /api/{environmentId}/parameters` or `GET /api/{environmentId}/releases/parameters` according to the client's construction-time source configuration. These endpoints:
+The provider loads the whole environment as one snapshot through `nona-client`, using the working, active-release, or selected-release collection under `GET /api/environments/{environmentId}/.../parameters` according to the client's construction-time source configuration. These endpoints:
 
 - requires an API key with the **frontend** scope, and
 - returns only **frontend-scoped** config entries.
@@ -60,7 +60,7 @@ Mark the entries you want browsers to see as frontend-scoped in Nona, and make s
 | `metadataName` | `nona` | Name reported as the OpenFeature provider metadata name. |
 | `logger` | none | Receives a message when a background refresh fails. |
 
-Everything `createNonaClient` accepts (`baseUrl`, `apiKey`, `environmentId`, `useReleases`, `releaseVersion`, `fetch`, …) is accepted here too when you pass options rather than a client. Source routing remains inside `nona-client`.
+Everything `createNonaClient` accepts (`baseUrl`, `apiKey`, `environmentId`, `useReleases`, `releaseVersion`, `fetch`, …) is accepted here too when you pass options rather than a client. Source routing remains inside `nona-client`; when `useReleases` is false or omitted, `releaseVersion` is retained but ignored.
 
 ## Staying up to date
 
