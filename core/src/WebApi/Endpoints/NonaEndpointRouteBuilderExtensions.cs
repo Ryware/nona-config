@@ -232,7 +232,9 @@ public static class NonaEndpointRouteBuilderExtensions
 
     private static void MapConfigApiEndpoints(RouteGroupBuilder api)
     {
-        api.MapGet("/{environmentId}/parameters", GetAllConfigValuesAsync)
+        var environments = api.MapGroup("/environments/{environmentId}");
+
+        environments.MapGet("/parameters", GetAllConfigValuesAsync)
             .Produces<Dictionary<string, ClientConfigValueDto>>()
             .Produces(StatusCodes.Status304NotModified)
             .Produces<ApiProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")
@@ -240,10 +242,10 @@ public static class NonaEndpointRouteBuilderExtensions
             .Produces<ApiProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")
             .RequireAuthorization(ApiKeyAuthenticationHandler.SchemeName);
 
-        api.MapGet("/{environmentId}/parameters/{key}", GetConfigValueAsync)
+        environments.MapGet("/parameters/{key}", GetConfigValueAsync)
             .RequireAuthorization(ApiKeyAuthenticationHandler.SchemeName);
 
-        api.MapGet("/{environmentId}/releases/parameters", GetAllReleaseConfigValuesAsync)
+        environments.MapGet("/releases/active/parameters", GetAllActiveReleaseConfigValuesAsync)
             .Produces<Dictionary<string, ClientConfigValueDto>>()
             .Produces(StatusCodes.Status304NotModified)
             .Produces<ApiProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")
@@ -252,7 +254,18 @@ public static class NonaEndpointRouteBuilderExtensions
             .Produces<ApiProblemDetails>(StatusCodes.Status409Conflict, "application/problem+json")
             .RequireAuthorization(ApiKeyAuthenticationHandler.SchemeName);
 
-        api.MapGet("/{environmentId}/releases/parameters/{key}", GetReleaseConfigValueAsync)
+        environments.MapGet("/releases/active/parameters/{key}", GetActiveReleaseConfigValueAsync)
+            .RequireAuthorization(ApiKeyAuthenticationHandler.SchemeName);
+
+        environments.MapGet("/releases/{version}/parameters", GetAllReleaseConfigValuesAsync)
+            .Produces<Dictionary<string, ClientConfigValueDto>>()
+            .Produces(StatusCodes.Status304NotModified)
+            .Produces<ApiProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")
+            .Produces<ApiProblemDetails>(StatusCodes.Status401Unauthorized, "application/problem+json")
+            .Produces<ApiProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")
+            .RequireAuthorization(ApiKeyAuthenticationHandler.SchemeName);
+
+        environments.MapGet("/releases/{version}/parameters/{key}", GetReleaseConfigValueAsync)
             .RequireAuthorization(ApiKeyAuthenticationHandler.SchemeName);
     }
 
@@ -1468,10 +1481,43 @@ public static class NonaEndpointRouteBuilderExtensions
         return ConfigValuesResponse(result, httpContext);
     }
 
-    public static async Task<IResult> GetReleaseConfigValueAsync(
+    public static Task<IResult> GetActiveReleaseConfigValueAsync(
         string environmentId,
         string key,
+        HttpContext httpContext,
+        IMediator mediator,
+        CancellationToken cancellationToken)
+    {
+        return GetReleaseConfigValueForVersionAsync(
+            environmentId,
+            version: null,
+            key,
+            httpContext,
+            mediator,
+            cancellationToken);
+    }
+
+    public static Task<IResult> GetReleaseConfigValueAsync(
+        string environmentId,
+        string version,
+        string key,
+        HttpContext httpContext,
+        IMediator mediator,
+        CancellationToken cancellationToken)
+    {
+        return GetReleaseConfigValueForVersionAsync(
+            environmentId,
+            version,
+            key,
+            httpContext,
+            mediator,
+            cancellationToken);
+    }
+
+    private static async Task<IResult> GetReleaseConfigValueForVersionAsync(
+        string environmentId,
         string? version,
+        string key,
         HttpContext httpContext,
         IMediator mediator,
         CancellationToken cancellationToken)
@@ -1486,6 +1532,22 @@ public static class NonaEndpointRouteBuilderExtensions
             result.LogicalContentType ?? ConfigEntryContentTypes.Text;
 
         return Results.Content(result.Value!, "application/json");
+    }
+
+    public static Task<IResult> GetAllActiveReleaseConfigValuesAsync(
+        string environmentId,
+        string? prefix,
+        HttpContext httpContext,
+        IMediator mediator,
+        CancellationToken cancellationToken)
+    {
+        return GetAllReleaseConfigValuesAsync(
+            environmentId,
+            version: null,
+            prefix,
+            httpContext,
+            mediator,
+            cancellationToken);
     }
 
     public static async Task<IResult> GetAllReleaseConfigValuesAsync(

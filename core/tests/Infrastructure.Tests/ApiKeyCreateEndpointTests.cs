@@ -51,6 +51,20 @@ public class ApiKeyCreateEndpointTests
         await Assert.That(exposesRegenerate).IsFalse();
     }
 
+    [Test]
+    public async Task OpenApi_RuntimeParameterRoutes_PreserveEnvironmentIdParameterName()
+    {
+        await using var app = await StartAppAsync();
+
+        using var response = await app.GetTestClient().GetAsync("/openapi/v1.json");
+        using var body = await ParseJsonAsync(response);
+        var hasEnvironmentIdRoute = body.RootElement
+            .GetProperty("paths")
+            .TryGetProperty("/api/environments/{environmentId}/parameters", out _);
+
+        await Assert.That(hasEnvironmentIdRoute).IsTrue();
+    }
+
     private static CreatedApiKeyDto CreateCreatedApiKeyDto()
     {
         var timestamp = new DateTime(2026, 1, 2, 3, 4, 5, DateTimeKind.Utc);
