@@ -92,7 +92,7 @@ internal sealed class EntriesCommands(CliContext ctx) : ICliCommandGroup
             "Read from release parameters. Without --release-version, use the active release.");
         var releaseVersionOpt = new Option<string?>(
             "--release-version",
-            "Exact or wildcard release selector, for example 1.2.3 or 1.2.x. Requires --use-releases.");
+            "Exact or wildcard release selector, for example 1.2.3 or 1.2.x. Used only with --use-releases.");
         cmd.AddOption(baseUrlOpt);
         cmd.AddOption(tokenOpt);
         cmd.AddOption(projectOpt);

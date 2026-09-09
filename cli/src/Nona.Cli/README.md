@@ -117,7 +117,7 @@ nona entries get --project mobile-app --environment production --key welcome_tex
 nona entries get --project mobile-app --environment production --key welcome_text --token "$NONA_API_KEY" --use-releases --release-version 1.2.x
 ```
 
-Without `--use-releases`, `entries get` reads the working value. Release mode uses the active release unless `--release-version` supplies an exact or wildcard selector. A release selector without `--use-releases` is rejected. Release options also require an API key; an admin bearer token continues to read the working entry through the admin API and cannot be combined with release options. The existing `--project` requirement applies to both credential types.
+Without `--use-releases`, `entries get` reads the working value and ignores `--release-version`. Release mode uses the active release unless `--release-version` supplies an exact or wildcard selector. Release reads require an API key; an admin bearer token continues to read the working entry through the admin API. The existing `--project` requirement applies to both credential types.
 
 Prefixes may contain ASCII letters, digits, colons, dots, underscores, and dashes. An invalid prefix prints the API validation error and exits with code `2`.
 

@@ -20,10 +20,13 @@ internal sealed class GetEntryQueryHandler(Func<HttpClient>? httpClientFactory =
 
     public async Task<int> HandleAsync(GetEntryQuery query, CancellationToken ct)
     {
-        var releaseVersion = NormalizeReleaseVersion(query.ReleaseVersion);
-        if (!query.UseReleases && releaseVersion is not null)
+        var releaseVersion = query.UseReleases
+            ? NormalizeReleaseVersion(query.ReleaseVersion)
+            : null;
+
+        if (releaseVersion is "." or "..")
         {
-            Console.Error.WriteLine("--release-version requires --use-releases.");
+            Console.Error.WriteLine("--release-version cannot be '.' or '..'.");
             return CliExitCodes.ValidationError;
         }
 
@@ -99,11 +102,12 @@ internal sealed class GetEntryQueryHandler(Func<HttpClient>? httpClientFactory =
         bool useReleases,
         string? releaseVersion)
     {
-        var sourcePath = useReleases ? "releases/parameters" : "parameters";
-        var url = $"{baseUrl.TrimEnd('/')}/api/{Uri.EscapeDataString(environment)}/{sourcePath}/{Uri.EscapeDataString(key)}";
-        return releaseVersion is null
-            ? url
-            : $"{url}?version={Uri.EscapeDataString(releaseVersion)}";
+        var sourcePath = !useReleases
+            ? "parameters"
+            : releaseVersion is null
+                ? "releases/active/parameters"
+                : $"releases/{Uri.EscapeDataString(releaseVersion)}/parameters";
+        return $"{baseUrl.TrimEnd('/')}/api/environments/{Uri.EscapeDataString(environment)}/{sourcePath}/{Uri.EscapeDataString(key)}";
     }
 
     private static string? NormalizeReleaseVersion(string? releaseVersion)

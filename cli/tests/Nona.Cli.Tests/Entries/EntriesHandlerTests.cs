@@ -131,7 +131,7 @@ public sealed class EntriesHandlerTests
         await Assert.That(result).IsEqualTo(CliExitCodes.Success);
         await Assert.That(capturedRequest).IsNotNull();
         await Assert.That(capturedRequest!.RequestUri!.AbsoluteUri).IsEqualTo(
-            "https://nona.test/proxy/tenant/api/pre%20production/parameters/Features%3ACheckout");
+            "https://nona.test/proxy/tenant/api/environments/pre%20production/parameters/Features%3ACheckout");
         await Assert.That(capturedRequest.Headers.GetValues("X-Api-Key").Single())
             .IsEqualTo(ApiKeyConnection.BearerToken);
     }
@@ -153,7 +153,7 @@ public sealed class EntriesHandlerTests
 
         await Assert.That(result).IsEqualTo(CliExitCodes.Success);
         await Assert.That(requestedUri!.AbsoluteUri).IsEqualTo(
-            "http://nona.test/api/production/releases/parameters/my.key");
+            "http://nona.test/api/environments/production/releases/active/parameters/my.key");
     }
 
     [Test]
@@ -176,11 +176,33 @@ public sealed class EntriesHandlerTests
 
         await Assert.That(result).IsEqualTo(CliExitCodes.Success);
         await Assert.That(requestedUri!.AbsoluteUri).IsEqualTo(
-            $"http://nona.test/api/production/releases/parameters/my.key?version={selector}");
+            $"http://nona.test/api/environments/production/releases/{selector}/parameters/my.key");
     }
 
     [Test]
-    public async Task GetEntryQueryHandler_RejectsReleaseVersionOutsideReleaseModeWithoutRequest()
+    public async Task GetEntryQueryHandler_IgnoresReleaseVersionOutsideReleaseMode()
+    {
+        Uri? requestedUri = null;
+        var handler = RawHandler(request => requestedUri = request.RequestUri);
+
+        var result = await handler.HandleAsync(
+            new GetEntryQuery(
+                ApiKeyConnection,
+                "my-project",
+                "production",
+                "my.key",
+                ReleaseVersion: ".."),
+            CancellationToken.None);
+
+        await Assert.That(result).IsEqualTo(CliExitCodes.Success);
+        await Assert.That(requestedUri!.AbsoluteUri).IsEqualTo(
+            "http://nona.test/api/environments/production/parameters/my.key");
+    }
+
+    [Test]
+    [Arguments(".")]
+    [Arguments(" .. ")]
+    public async Task GetEntryQueryHandler_RejectsDotSegmentReleaseSelectorWithoutRequest(string selector)
     {
         var requestCount = 0;
         var handler = RawHandler(_ => requestCount++);
@@ -191,7 +213,8 @@ public sealed class EntriesHandlerTests
                 "my-project",
                 "production",
                 "my.key",
-                ReleaseVersion: "1.2.x"),
+                UseReleases: true,
+                ReleaseVersion: selector),
             CancellationToken.None);
 
         await Assert.That(result).IsEqualTo(CliExitCodes.ValidationError);
@@ -267,7 +290,12 @@ public sealed class EntriesHandlerTests
             })));
 
         var result = await handler.HandleAsync(
-            new GetEntryQuery(TestConnection, "my-project", "production", "my.key"),
+            new GetEntryQuery(
+                TestConnection,
+                "my-project",
+                "production",
+                "my.key",
+                ReleaseVersion: "1.2.x"),
             CancellationToken.None);
 
         await Assert.That(result).IsEqualTo(CliExitCodes.Success);

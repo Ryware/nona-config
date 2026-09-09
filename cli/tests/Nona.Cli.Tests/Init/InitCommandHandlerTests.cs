@@ -27,7 +27,7 @@ public sealed class InitCommandHandlerTests
         await Assert.That(output).Contains($"VITE_NONA_API_KEY={FullKey}");
         await Assert.That(output).Contains(
             "# Verify: curl -H \"X-Api-Key: $VITE_NONA_API_KEY\" " +
-            "http://nona.test/api/production/parameters/Features%3AExample");
+            "http://nona.test/api/environments/production/parameters/Features%3AExample");
         await Assert.That(error).Contains("cannot be recovered");
 
         var seedRequest = server.Requests.Single(request => request.Method == "PUT");
@@ -61,7 +61,7 @@ public sealed class InitCommandHandlerTests
         await Assert.That(output).Contains($"export VITE_NONA_API_KEY='{FullKey}'");
         await Assert.That(output).Contains(
             "# Verify: curl -H \"X-Api-Key: $VITE_NONA_API_KEY\" " +
-            "http://nona.test/api/production/parameters/Features%3AExample");
+            "http://nona.test/api/environments/production/parameters/Features%3AExample");
     }
 
     [Test]
