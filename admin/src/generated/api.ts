@@ -2819,7 +2819,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/{environmentId}/parameters": {
+    "/api/environments/{environmentId}/parameters": {
         parameters: {
             query?: never;
             header?: never;
@@ -2912,7 +2912,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/{environmentId}/parameters/{key}": {
+    "/api/environments/{environmentId}/parameters/{key}": {
         parameters: {
             query?: never;
             header?: never;
@@ -2966,7 +2966,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/{environmentId}/releases/parameters": {
+    "/api/environments/{environmentId}/releases/active/parameters": {
         parameters: {
             query?: never;
             header?: never;
@@ -2976,7 +2976,6 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
-                    version?: string;
                     prefix?: string;
                 };
                 header?: never;
@@ -3069,7 +3068,61 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/{environmentId}/releases/parameters/{key}": {
+    "/api/environments/{environmentId}/releases/active/parameters/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    environmentId: string;
+                    key: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Client Error */
+                "4XX": {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Server Error */
+                "5XX": {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/environments/{environmentId}/releases/{version}/parameters": {
         parameters: {
             query?: never;
             header?: never;
@@ -3079,11 +3132,104 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
-                    version?: string;
+                    prefix?: string;
                 };
                 header?: never;
                 path: {
                     environmentId: string;
+                    version: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: components["schemas"]["ClientConfigValueDto"];
+                        };
+                    };
+                };
+                /** @description Not Modified */
+                304: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Client Error */
+                "4XX": {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+                /** @description Server Error */
+                "5XX": {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ApiProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/environments/{environmentId}/releases/{version}/parameters/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    environmentId: string;
+                    version: string;
                     key: string;
                 };
                 cookie?: never;
