@@ -40,8 +40,8 @@ public struct NonaOptions: Sendable {
         }
         let normalizedReleaseVersion = releaseVersion?.trimmingCharacters(in: .whitespacesAndNewlines)
         let selectedRelease = normalizedReleaseVersion.flatMap { $0.isEmpty ? nil : $0 }
-        guard useReleases || selectedRelease == nil else {
-            throw NonaError.invalidOptions("releaseVersion requires useReleases to be true.")
+        if useReleases, selectedRelease == "." || selectedRelease == ".." {
+            throw NonaError.invalidOptions("releaseVersion cannot be a dot path segment.")
         }
         url.scheme = scheme
         url.host = host.lowercased()
@@ -63,10 +63,14 @@ public struct NonaOptions: Sendable {
         // All components were validated in init; preserve the server's escaped base path.
         var url = URLComponents(url: baseURL, resolvingAgainstBaseURL: false)!
         let unreserved = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~")
-        url.percentEncodedPath += "/api/" + environmentID.addingPercentEncoding(withAllowedCharacters: unreserved)!
-        url.percentEncodedPath += useReleases ? "/releases/parameters" : "/parameters"
+        url.percentEncodedPath += "/api/environments/" + environmentID.addingPercentEncoding(withAllowedCharacters: unreserved)!
+        if useReleases {
+            let release = releaseVersion ?? "active"
+            url.percentEncodedPath += "/releases/" + release.addingPercentEncoding(withAllowedCharacters: unreserved)! + "/parameters"
+        } else {
+            url.percentEncodedPath += "/parameters"
+        }
         var query: [URLQueryItem] = []
-        if let releaseVersion { query.append(URLQueryItem(name: "version", value: releaseVersion)) }
         if let prefix { query.append(URLQueryItem(name: "prefix", value: prefix)) }
         if !query.isEmpty { url.queryItems = query }
         return url.url!
@@ -74,8 +78,9 @@ public struct NonaOptions: Sendable {
 
     var cacheIdentity: String {
         var data = Data()
+        let effectiveReleaseVersion = useReleases ? releaseVersion : nil
         for part in ["nona-swift-cache-v2", baseURL.absoluteString, apiKey, environmentID,
-                     String(useReleases), prefix, releaseVersion] {
+                     String(useReleases), prefix, effectiveReleaseVersion] {
             let bytes = part.map { Data($0.utf8) }
             data.append(Data("\(bytes?.count ?? -1):".utf8))
             if let bytes { data.append(bytes) }

@@ -291,7 +291,8 @@ final class NonaConfigTests: XCTestCase {
         }
         XCTAssertEqual(config.getString("flag"), "released")
         XCTAssertFalse(config.activate())
-        XCTAssertEqual(Set(urls.withLock { $0.map(\.path) }), ["/api/Production/releases/parameters"])
+        XCTAssertEqual(Set(urls.withLock { $0.map(\.path) }),
+                       ["/api/environments/Production/releases/2.x/parameters"])
         XCTAssertEqual(requestHeaders.withLock { $0.last?["If-None-Match"] }, "release-etag")
     }
 
@@ -449,21 +450,38 @@ final class NonaConfigTests: XCTestCase {
                                   releaseVersion: "1.4.x", prefix: "A&B")
         XCTAssertEqual(opts.baseURL.absoluteString, "https://nona.test/proxy%2Ftenant")
         let components = URLComponents(url: opts.snapshotURL, resolvingAgainstBaseURL: false)!
-        XCTAssertEqual(components.percentEncodedPath, "/proxy%2Ftenant/api/pre%20production/releases/parameters")
-        XCTAssertEqual(components.queryItems?.first?.value, "1.4.x")
-        XCTAssertEqual(components.queryItems?.last?.value, "A&B")
+        XCTAssertEqual(components.percentEncodedPath,
+                       "/proxy%2Ftenant/api/environments/pre%20production/releases/1.4.x/parameters")
+        XCTAssertEqual(components.queryItems?.first?.value, "A&B")
         XCTAssertFalse(opts.cacheIdentity.contains("public"))
         XCTAssertEqual(try options().cacheIdentity, try options().cacheIdentity)
         XCTAssertNotEqual(try options().cacheIdentity, try options(key: "other").cacheIdentity)
 
         let working = try options()
-        XCTAssertEqual(working.snapshotURL.path, "/api/Production/parameters")
+        XCTAssertEqual(working.snapshotURL.path, "/api/environments/Production/parameters")
         let activeRelease = try NonaOptions(baseURL: working.baseURL, environmentID: working.environmentID,
                                             apiKey: working.apiKey, useReleases: true)
-        XCTAssertEqual(activeRelease.snapshotURL.path, "/api/Production/releases/parameters")
+        XCTAssertEqual(activeRelease.snapshotURL.path,
+                       "/api/environments/Production/releases/active/parameters")
         XCTAssertNil(URLComponents(url: activeRelease.snapshotURL, resolvingAgainstBaseURL: false)?.query)
         XCTAssertNotEqual(working.cacheIdentity, activeRelease.cacheIdentity)
         XCTAssertNotEqual(activeRelease.cacheIdentity, opts.cacheIdentity)
+
+        let inactiveVersion = try NonaOptions(baseURL: working.baseURL, environmentID: working.environmentID,
+                                              apiKey: working.apiKey, releaseVersion: " .. ")
+        let otherInactiveVersion = try NonaOptions(baseURL: working.baseURL, environmentID: working.environmentID,
+                                                   apiKey: working.apiKey, releaseVersion: "2.0.0")
+        XCTAssertEqual(inactiveVersion.releaseVersion, "..")
+        XCTAssertEqual(inactiveVersion.snapshotURL.path, "/api/environments/Production/parameters")
+        XCTAssertEqual(inactiveVersion.cacheIdentity, otherInactiveVersion.cacheIdentity)
+    }
+
+    func testReleaseModeRejectsDotSegmentSelectors() throws {
+        for selector in [".", " .. "] {
+            XCTAssertThrowsError(try NonaOptions(baseURL: URL(string: "https://nona.test")!,
+                                                 environmentID: "Production", useReleases: true,
+                                                 releaseVersion: selector))
+        }
     }
 
     func testOptionsAndFetchOverridesValidate() async throws {
@@ -477,9 +495,6 @@ final class NonaConfigTests: XCTestCase {
             XCTAssertThrowsError(try NonaOptions(baseURL: URL(string: "https://nona.test")!,
                                                 environmentID: "Production", apiKey: key))
         }
-        XCTAssertThrowsError(try NonaOptions(baseURL: URL(string: "https://nona.test")!,
-                                            environmentID: "Production", useReleases: false,
-                                            releaseVersion: "1.0.0"))
         let config = try client()
         for interval in [-1.0, .infinity, .nan] {
             do { try await config.fetch(minimumFetchInterval: interval); XCTFail() } catch is NonaError {} catch { XCTFail() }

@@ -121,7 +121,7 @@ there is no per-user targeting in this SDK.
 | `requestTimeout` | 10 seconds | Request/resource timeout of the default transport |
 | `maxResponseBytes` | 8 MiB | Maximum decoded response bytes |
 
-Set `useReleases: true` without a version to follow the active release. A non-empty `releaseVersion` is valid only in release mode. Source selection is fixed at construction, so use another `NonaConfig` instance for a different source or selector. Failed refreshes preserve the last-known-good snapshot and never switch sources.
+Set `useReleases: true` without a version to follow the active release. When `useReleases` is `false` (the default), `releaseVersion` is normalized and retained in the options but ignored for requests and persistent cache identity. Source selection is fixed at construction, so use another `NonaConfig` instance for a different source or selector. Failed refreshes preserve the last-known-good snapshot and never switch sources.
 
 Use `try await config.fetch(minimumFetchInterval: 0)` to bypass throttling. Failed
 requests do not advance the throttle timestamp. ETag revalidation uses the latest
