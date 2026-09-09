@@ -246,6 +246,6 @@ cat <<EOF
   Sign in : $EMAIL / $PASSWORD
 
   Try a read:
-    curl "$BASE_URL/api/Production/parameters/Features%3ACheckout" -H "X-Api-Key: $STOREFRONT_KEY"
+    curl "$BASE_URL/api/environments/Production/parameters/Features%3ACheckout" -H "X-Api-Key: $STOREFRONT_KEY"
 
 EOF

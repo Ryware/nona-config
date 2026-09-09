@@ -12,7 +12,7 @@ public sealed class HttpReadBenchmarkRouteTests
             "BuildFullEnvironmentRequestPath",
             DatabaseSeeder.DatasetRows[DatasetSize.Small]);
 
-        await Assert.That(path).IsEqualTo("/api/keys-1/parameters");
+        await Assert.That(path).IsEqualTo("/api/environments/keys-1/parameters");
     }
 
     [Test]
@@ -22,7 +22,7 @@ public sealed class HttpReadBenchmarkRouteTests
             "BuildSingleKeyRequestPath",
             DatabaseSeeder.DatasetRows[DatasetSize.Large]);
 
-        await Assert.That(path).IsEqualTo("/api/keys-10000/parameters/KEY_0000001");
+        await Assert.That(path).IsEqualTo("/api/environments/keys-10000/parameters/KEY_0000001");
     }
 
     private static string InvokeRouteBuilder(string methodName, int datasetKeyCount)
