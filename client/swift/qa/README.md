@@ -27,7 +27,7 @@ add reset/cancellation races, file caching, type fallbacks and update subscriber
 
 For manual verification, run either sample scheme, paste the frontend key and
 server URL, then Connect & restore → Fetch → Activate. The active flag should stay
-`default` until activation, then become `A`; retries remain `3` because the fixture's
+`default` until activation, then become `A-new`; retries remain `3` because the fixture's
 remote value is malformed. Relaunch to restore the cache. Stop the disposable
 backend to verify a failed fetch preserves values. Reset should clear the cache.
 

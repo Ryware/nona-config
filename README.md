@@ -83,10 +83,10 @@ docker run -d \
 - **API base:** `http://localhost:18080`
 - **Guided setup:** `https://nonaconfig.com/docs/get-started/`
 
-Create a project, add an environment, set your first key-value pair, publish a release, and set it active. Then fetch the value:
+Create a project, add an environment, set your first key-value pair, and create an API key. Then fetch the working value:
 
 ```bash
-curl "http://localhost:18080/api/production/Features%3ACheckout" \
+curl "http://localhost:18080/api/environments/production/parameters/Features%3ACheckout" \
   -H "X-Api-Key: your-api-key"
 ```
 
@@ -129,6 +129,7 @@ const nona = createNonaClient({
   baseUrl: "https://nona.example.com",
   environmentId: "production",
   apiKey: process.env.NONA_API_KEY,
+  useReleases: true,
   releaseVersion: "1.1.x"
 });
 
@@ -206,22 +207,22 @@ Loads the environment's frontend-scoped config as one snapshot and evaluates syn
 
 ### Any language (plain HTTP)
 
-No SDK needed. A single GET request returns one config value from the environment's active release, from its working parameters when no release is active, or from a pinned release version:
+No SDK needed. Choose the working, active-release, or selected-release route explicitly. The version is a path segment and may be exact or a release line:
 
 ```bash
 # curl
-curl "https://your-nona-host/api/production/Features%3ACheckout?version=1.1.x" \
+curl "https://your-nona-host/api/environments/production/releases/1.1.x/parameters/Features%3ACheckout" \
   -H "X-Api-Key: your-api-key"
 
 # Python
 import httpx
 value = httpx.get(
-    "https://your-nona-host/api/production/Features%3ACheckout",
+    "https://your-nona-host/api/environments/production/parameters/Features%3ACheckout",
     headers={"X-Api-Key": api_key}
 ).text
 
 # Go
-req, _ := http.NewRequest("GET", "https://your-nona-host/api/production/Features%3ACheckout", nil)
+req, _ := http.NewRequest("GET", "https://your-nona-host/api/environments/production/parameters/Features%3ACheckout", nil)
 req.Header.Set("X-Api-Key", apiKey)
 ```
 
@@ -254,11 +255,12 @@ CLI packages:
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/api/{environmentId}/{key}` | Fetch one key from the active release, or working parameters when none is active |
-| `GET` | `/api/{environmentId}/{key}?version=1.1.0` | Fetch one key from an exact release |
-| `GET` | `/api/{environmentId}/{key}?version=1.1.x` | Fetch one key from the highest patch in a release line |
-| `GET` | `/api/{environmentId}` | Fetch all client-visible keys with ETag support |
-| `GET` | `/api/{environmentId}?prefix=GroupA%3A` | Fetch client-visible keys whose names start with `GroupA:` (case-insensitive) |
+| `GET` | `/api/environments/{environmentId}/parameters/{key}` | Fetch one working parameter |
+| `GET` | `/api/environments/{environmentId}/parameters` | Fetch all client-visible working parameters with ETag support |
+| `GET` | `/api/environments/{environmentId}/releases/active/parameters/{key}` | Fetch one parameter from the active release |
+| `GET` | `/api/environments/{environmentId}/releases/{version}/parameters/{key}` | Fetch one parameter from an exact or wildcard release selector |
+| `GET` | `/api/environments/{environmentId}/releases/active/parameters` | Fetch all client-visible parameters from the active release |
+| `GET` | `/api/environments/{environmentId}/releases/{version}/parameters?prefix=GroupA%3A` | Fetch a prefix from an exact or wildcard release selector |
 
 Authentication: `X-Api-Key` request header.
 
@@ -358,7 +360,7 @@ means concurrent, closed-loop HTTP clients.
 
 ### Full environment
 
-Each request used `GET /api/{environment}` and consumed the complete response
+Each request used `GET /api/environments/{environment}/parameters` and consumed the complete response
 body.
 
 | Keys returned | Users | Average (ms) | p50 (ms) | p95 (ms) | p99 (ms) | req/s |
@@ -370,7 +372,7 @@ body.
 
 ### Single key
 
-Each request used `GET /api/{environment}/{key}` to read one fixed key from an
+Each request used `GET /api/environments/{environment}/parameters/{key}` to read one fixed key from an
 environment containing 10,000 keys.
 
 | Keys returned | Users | Average (ms) | p50 (ms) | p95 (ms) | p99 (ms) | req/s |

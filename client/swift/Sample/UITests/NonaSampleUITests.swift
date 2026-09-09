@@ -25,7 +25,7 @@ final class NonaSampleUITests: XCTestCase {
         app.terminate()
         app.launch()
         XCTAssertTrue(app.staticTexts["remote"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["A"].exists)
+        XCTAssertTrue(app.staticTexts["A-new"].exists)
     }
 
     @MainActor

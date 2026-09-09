@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 public struct NonaHTTPResponse: Sendable {
     public let statusCode: Int
@@ -50,11 +53,19 @@ public final class URLSessionHTTPClient: NonaHTTPClient {
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         for (name, value) in headers { request.setValue(value, forHTTPHeaderField: name) }
         do {
+            #if canImport(FoundationNetworking)
+            let (body, response) = try await session.data(for: request)
+            guard let response = response as? HTTPURLResponse else { throw NonaError.transport }
+            guard body.count <= maxBytes else { throw NonaError.responseTooLarge(maxBytes: maxBytes) }
+            return NonaHTTPResponse(statusCode: response.statusCode,
+                                    body: response.statusCode == 304 ? Data() : body,
+                                    etag: response.value(forHTTPHeaderField: "ETag"))
+            #else
             let (bytes, response) = try await session.bytes(for: request)
             guard let response = response as? HTTPURLResponse else { throw NonaError.transport }
-            // Cancel unused bodies, including redirects, 304 and errors.
+            // Cancel unused bodies, including redirects and 304 responses.
             defer { bytes.task.cancel() }
-            guard (200...299).contains(response.statusCode) else {
+            if response.statusCode == 304 {
                 return NonaHTTPResponse(statusCode: response.statusCode)
             }
             var body = Data()
@@ -64,6 +75,7 @@ public final class URLSessionHTTPClient: NonaHTTPClient {
             }
             return NonaHTTPResponse(statusCode: response.statusCode, body: body,
                                     etag: response.value(forHTTPHeaderField: "ETag"))
+            #endif
         } catch is CancellationError {
             throw CancellationError()
         } catch let error as URLError where error.code == .cancelled {

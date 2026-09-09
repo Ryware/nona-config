@@ -113,6 +113,8 @@ The web provider loads the whole environment as one snapshot during startup and 
 - It needs an API key with the **frontend** scope, and it only ever sees **frontend-scoped** parameters. A backend-only key gets a `404`, on purpose, so that a server key cannot be used to enumerate environments. See [Client vs server scope](/docs/concepts/client-vs-server-scope).
 - Your Nona server has to allow the site's origin via CORS.
 
+Both JavaScript providers pass construction-time `useReleases` and `releaseVersion` options through to `nona-client`; source routing stays in the underlying client. When `useReleases` is false or omitted, `releaseVersion` is retained but ignored. The server provider maps only `config_entry_not_found` to `FLAG_NOT_FOUND`, while other HTTP failures remain provider errors. The web provider detects missing flags locally in a successfully loaded snapshot; snapshot fetch failures remain provider errors and preserve the last-known-good snapshot.
+
 By default the provider re-checks Nona every 30 seconds, sending the snapshot's `ETag` so an unchanged environment costs a `304`. When values do change it emits `PROVIDER_CONFIGURATION_CHANGED` with the changed keys, which is what triggers re-evaluation in the web SDK and re-renders in the React SDK. Set `pollIntervalMs: 0` to turn polling off and refresh at your own moments instead:
 
 ```js

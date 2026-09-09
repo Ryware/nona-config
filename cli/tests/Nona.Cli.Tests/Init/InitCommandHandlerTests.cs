@@ -16,18 +16,7 @@ public sealed class InitCommandHandlerTests
     [Test]
     public async Task ColdStart_BootstrapsResources_AndPrintsDotenv()
     {
-        var server = new SequenceServer(
-            Json(HttpStatusCode.OK, "true"),
-            Json(HttpStatusCode.OK, """
-                {"token":"jwt-token","username":"admin@example.com","role":"admin","expiresAt":"2026-06-04T12:00:00Z"}
-                """),
-            Json(HttpStatusCode.OK, "[]"),
-            Json(HttpStatusCode.Created, """{"name":"nona-todo"}"""),
-            Json(HttpStatusCode.OK, "[]"),
-            Json(HttpStatusCode.Created, """{"name":"production"}"""),
-            Json(HttpStatusCode.OK, """{"key":"Features:Example"}"""),
-            Json(HttpStatusCode.OK, "[]"),
-            Json(HttpStatusCode.Created, $$"""{"id":7,"name":"nona init client","key":"{{FullKey}}","environment":"production","scope":"client"}"""));
+        var server = CreateColdStartServer();
 
         var (exitCode, output, error) = await RunWithErrorAsync(
             server,
@@ -36,6 +25,9 @@ public sealed class InitCommandHandlerTests
         await Assert.That(exitCode).IsEqualTo(0);
         await Assert.That(output).Contains("VITE_NONA_BASE_URL=http://nona.test");
         await Assert.That(output).Contains($"VITE_NONA_API_KEY={FullKey}");
+        await Assert.That(output).Contains(
+            "# Verify: curl -H \"X-Api-Key: $VITE_NONA_API_KEY\" " +
+            "http://nona.test/api/environments/production/parameters/Features%3AExample");
         await Assert.That(error).Contains("cannot be recovered");
 
         var seedRequest = server.Requests.Single(request => request.Method == "PUT");
@@ -54,6 +46,22 @@ public sealed class InitCommandHandlerTests
             "GET /admin/projects/nona-todo/api-keys",
             "POST /admin/projects/nona-todo/api-keys"
         ]);
+    }
+
+    [Test]
+    public async Task ColdStart_EnvExportPrintsWorkingParameterVerificationUrl()
+    {
+        var server = CreateColdStartServer();
+
+        var (exitCode, output, _) = await RunWithErrorAsync(
+            server,
+            BuildCommand(Format: "env-export"));
+
+        await Assert.That(exitCode).IsEqualTo(CliExitCodes.Success);
+        await Assert.That(output).Contains($"export VITE_NONA_API_KEY='{FullKey}'");
+        await Assert.That(output).Contains(
+            "# Verify: curl -H \"X-Api-Key: $VITE_NONA_API_KEY\" " +
+            "http://nona.test/api/environments/production/parameters/Features%3AExample");
     }
 
     [Test]
@@ -185,6 +193,20 @@ public sealed class InitCommandHandlerTests
             Scope: "client",
             Format: Format);
     }
+
+    private static SequenceServer CreateColdStartServer()
+        => new(
+            Json(HttpStatusCode.OK, "true"),
+            Json(HttpStatusCode.OK, """
+                {"token":"jwt-token","username":"admin@example.com","role":"admin","expiresAt":"2026-06-04T12:00:00Z"}
+                """),
+            Json(HttpStatusCode.OK, "[]"),
+            Json(HttpStatusCode.Created, """{"name":"nona-todo"}"""),
+            Json(HttpStatusCode.OK, "[]"),
+            Json(HttpStatusCode.Created, """{"name":"production"}"""),
+            Json(HttpStatusCode.OK, """{"key":"Features:Example"}"""),
+            Json(HttpStatusCode.OK, "[]"),
+            Json(HttpStatusCode.Created, $$"""{"id":7,"name":"nona init client","key":"{{FullKey}}","environment":"production","scope":"client"}"""));
 
     private static HttpResponseMessage Json(HttpStatusCode status, string body)
     {

@@ -26,7 +26,7 @@ const client = OpenFeature.getClient();
 const enabled = await client.getBooleanValue("Features:Checkout", false);
 ```
 
-Nona API keys are bound to a project, so provider configuration only needs the Nona server URL, API key, and environment id.
+Nona API keys are bound to a project, so provider configuration only needs the Nona server URL, API key, and environment id. The provider passes `useReleases` and `releaseVersion` through to `nona-client`; it does not implement separate source routing. When `useReleases` is false or omitted, `releaseVersion` is retained but ignored. Only `config_entry_not_found` maps to OpenFeature `FLAG_NOT_FOUND`. Other HTTP failures remain provider errors.
 
 ## Integration test
 

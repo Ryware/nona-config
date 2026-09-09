@@ -99,7 +99,7 @@ config.fetch(Duration.ZERO) // during development
 
 Fetches send the snapshot's `ETag`, so an unchanged environment answers `304` with no body — the steady-state cost does not grow with the number of keys.
 
-Each successful fetch is written to the app's private files, bound to the server URL, API-key fingerprint, environment, prefix and pinned release using SHA-256. The stored identity is checked on restore; caches from another configuration or the old format are ignored. Raw API keys are not written into cache filenames or snapshots. `initialize()` restores it. A corrupt cache is ignored rather than fatal.
+Each successful fetch is written to the app's private files, bound to the server URL, API-key fingerprint, environment, source mode, prefix and release selector using SHA-256. The stored identity is checked on restore; caches from another configuration or the old format are ignored. Raw API keys are not written into cache filenames or snapshots. `initialize()` restores it. A corrupt cache is ignored rather than fatal.
 
 ## Options
 
@@ -108,11 +108,14 @@ Each successful fetch is written to the app's private files, bound to the server
 | `baseUrl` | — | Nona server URL |
 | `environmentId` | — | Environment to read |
 | `apiKey` | none | Frontend-scoped key |
+| `useReleases` | `false` | Read immutable releases instead of working parameters |
 | `releaseVersion` | none | Pin to `1.4.0`, or a line like `1.4.x` |
 | `prefix` | none | Only load keys under this prefix |
 | `minimumFetchInterval` | 12 hours | Throttle window |
 | `connectTimeout` / `readTimeout` | 10 seconds | Network timeouts |
 | `maxResponseBytes` | 8 MiB | Decoded response limit for the default HTTP transport |
+
+Set `useReleases = true` without a version to follow the active release. When `useReleases` is `false` (the default), `releaseVersion` is retained in the options but ignored for requests and persistent cache identity. Source selection is fixed at construction, so use another `NonaConfig` instance for a different source or selector. Failed refreshes preserve the last-known-good snapshot and never switch sources.
 
 ## Use HTTPS
 

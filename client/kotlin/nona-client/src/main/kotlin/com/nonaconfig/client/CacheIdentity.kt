@@ -18,7 +18,16 @@ internal fun NonaOptions.normalizedBaseUrl(): String {
 
 internal fun NonaOptions.cacheIdentity(): String {
     val digest = MessageDigest.getInstance("SHA-256")
-    for (part in listOf("nona-cache-v2", normalizedBaseUrl(), apiKey, environmentId, prefix, releaseVersion)) {
+    val normalizedReleaseVersion = releaseVersion?.trim()?.takeIf { useReleases && it.isNotEmpty() }
+    for (part in listOf(
+        "nona-cache-v3",
+        normalizedBaseUrl(),
+        apiKey,
+        environmentId,
+        prefix,
+        useReleases.toString(),
+        normalizedReleaseVersion,
+    )) {
         val bytes = part?.toByteArray(Charsets.UTF_8)
         digest.update("${bytes?.size ?: -1}:".toByteArray(Charsets.UTF_8))
         if (bytes != null) digest.update(bytes)

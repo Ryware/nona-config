@@ -8,7 +8,7 @@ Once you have:
 - a project
 - an environment
 - a config entry
-- either an active release or a working parameter to use as the fallback
+- a working parameter or a published release, depending on the source you plan to read
 - an API key
 
 you can read a value over HTTP.
@@ -29,8 +29,7 @@ In admin:
 2. open the project
 3. select the target environment
 4. make sure the parameter exists
-5. publish a release and set it active
-6. create an API key in the `API Keys` section
+5. create an API key in the `API Keys` section
 
 For the simplest first test, use a boolean key such as `Features:Checkout`.
 
@@ -52,12 +51,12 @@ nona keys create \
   --environment production
 ```
 
-Then publish and activate a release for the environment in admin.
+The first request below uses working parameters, so no release is required. Publish a release only for a release-route request; set it active only when using the `/releases/active/` route.
 
 ## Request shape
 
 ```http
-GET /api/{environmentId}/{key}
+GET /api/environments/{environmentId}/parameters/{key}
 X-Api-Key: <api-key>
 ```
 
@@ -65,22 +64,23 @@ The request includes:
 
 - the environment id
 - the config key
-- an optional `version` query parameter
+- an explicit working or release source in the path
+- either `active` or an exact/wildcard version segment on release routes
 - an API key in the header
 
-The project is implied by the API key, which is why it is not part of this request path. If `version` is omitted, Nona resolves the environment's active release. If none is active, it falls back to the working parameters.
+The project is implied by the API key, which is why it is not part of this request path. The working route always reads editable working parameters. Release routes explicitly select `active` or a version. A release request never falls back to working parameters.
 
 ## Example
 
 ```bash
-curl "https://nona.example.com/api/production/Features%3ACheckout" \
+curl "https://nona.example.com/api/environments/production/parameters/Features%3ACheckout" \
   -H "X-Api-Key: $NONA_API_KEY"
 ```
 
 If you want to inspect the response headers too:
 
 ```bash
-curl -i "https://nona.example.com/api/production/Features%3ACheckout" \
+curl -i "https://nona.example.com/api/environments/production/parameters/Features%3ACheckout" \
   -H "X-Api-Key: $NONA_API_KEY"
 ```
 
@@ -88,10 +88,10 @@ The key path segment must be URL-encoded. For example:
 
 - `Features:Checkout` -> `Features%3ACheckout`
 
-To pin a release instead of using the active release:
+To pin a published release instead of using the active release:
 
 ```bash
-curl "https://nona.example.com/api/production/Features%3ACheckout?version=1.1.x" \
+curl "https://nona.example.com/api/environments/production/releases/1.1.x/parameters/Features%3ACheckout" \
   -H "X-Api-Key: $NONA_API_KEY"
 ```
 
@@ -106,21 +106,23 @@ If the request fails:
 1. confirm the environment name is correct
 2. confirm the key exists in that environment
 3. confirm the key path is URL-encoded
-4. confirm the expected release is active, pass `version`, or verify the working parameter when none is active
-5. confirm the API key belongs to the same project
-6. confirm the API key scope can read the entry scope
+4. confirm that you chose the intended working or release route
+5. for a release route, confirm the expected release is active or put an exact or wildcard selector in the route
+6. confirm the API key belongs to the same project
+7. confirm the API key scope can read the entry scope
 
 ## Step-by-step API read summary
 
 Use this sequence for the shortest first-read test:
 
 1. create or confirm one parameter exists
-2. publish and activate one release
-3. create or confirm one API key exists
-4. copy the environment id
-5. URL-encode the key name
-6. send the HTTP request with `X-Api-Key`
-7. verify the value comes back correctly
+2. create or confirm one API key exists
+3. copy the environment id
+4. URL-encode the key name
+5. send the working-route HTTP request with `X-Api-Key`
+6. verify the value comes back correctly
+
+For a release-route test, also publish the requested release and set it active when using the active-release route.
 
 ## First API call FAQ
 

@@ -23,45 +23,55 @@ public sealed partial class NonaClient
             : new Uri(value + "/", UriKind.Absolute);
     }
 
-    private string BuildConfigValuePath(string key, string? releaseVersion)
+    private string BuildConfigValuePath(string key)
     {
-        var path = $"api/{_environmentSegment}/{Segment(key, nameof(key))}";
-        return releaseVersion is null
+        return $"{BuildParametersPath()}/{Segment(key, nameof(key))}";
+    }
+
+    private string BuildAllConfigValuesPath(string? prefix)
+    {
+        var path = BuildParametersPath();
+        return string.IsNullOrEmpty(prefix)
             ? path
-            : $"{path}?version={Uri.EscapeDataString(releaseVersion)}";
+            : $"{path}?prefix={Uri.EscapeDataString(prefix)}";
     }
 
-    private string BuildAllConfigValuesPath(string? releaseVersion, string? prefix)
+    private string BuildParametersPath()
     {
-        var path = $"api/{_environmentSegment}";
-        var query = new List<string>(2);
-        if (releaseVersion is not null)
+        var environmentPath = $"api/environments/{_environmentSegment}";
+        if (!_useReleases)
         {
-            query.Add($"version={Uri.EscapeDataString(releaseVersion)}");
+            return $"{environmentPath}/parameters";
         }
 
-        if (!string.IsNullOrEmpty(prefix))
-        {
-            query.Add($"prefix={Uri.EscapeDataString(prefix)}");
-        }
-
-        return query.Count == 0 ? path : $"{path}?{string.Join("&", query)}";
+        var release = _releaseVersion is null
+            ? "active"
+            : Uri.EscapeDataString(_releaseVersion);
+        return $"{environmentPath}/releases/{release}/parameters";
     }
 
-    private static string CreateCacheKey(string key, string? releaseVersion)
+    private string CreateCacheKey(string key)
     {
-        return releaseVersion is null ? key : $"{key}\n{releaseVersion}";
+        return $"{_sourceIdentity}\n{key}";
     }
 
-    private static string CreateBulkCacheKey(string? releaseVersion, string? prefix)
+    private string CreateBulkCacheKey(string? prefix)
     {
         var normalizedPrefix = NormalizePrefix(prefix);
-        return $"{releaseVersion ?? string.Empty}\n{normalizedPrefix ?? string.Empty}";
+        return $"{_sourceIdentity}\n{normalizedPrefix ?? string.Empty}";
     }
 
-    private static string? NormalizeReleaseVersion(string? releaseVersion)
+    private static string? NormalizeReleaseVersion(string? releaseVersion, bool useReleases)
     {
-        return string.IsNullOrWhiteSpace(releaseVersion) ? null : releaseVersion!.Trim();
+        var normalized = string.IsNullOrWhiteSpace(releaseVersion) ? null : releaseVersion!.Trim();
+        if (useReleases && normalized is "." or "..")
+        {
+            throw new ArgumentException(
+                "Value cannot be a dot path segment.",
+                nameof(NonaClientOptions.ReleaseVersion));
+        }
+
+        return normalized;
     }
 
     private static string? NormalizePrefix(string? prefix)

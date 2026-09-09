@@ -61,7 +61,7 @@ test("web provider resolves typed values synchronously from a single snapshot fe
   });
 
   assert.equal(calls.length, 1, "evaluation must not hit the network");
-  assert.equal(new URL(calls[0].url).pathname, "/api/production");
+  assert.equal(new URL(calls[0].url).pathname, "/api/environments/production/parameters");
   assert.equal(calls[0].init.headers.get("X-Api-Key"), "frontend-key");
 
   const details = ofClient.getBooleanDetails("enabled", false);
@@ -83,6 +83,30 @@ test("web provider sends the snapshot prefix", async () => {
 
   assert.equal(new URL(calls[0].url).searchParams.get("prefix"), "Features:");
 
+  await provider.onClose();
+});
+
+test("web provider passes release selection through nona-client", async () => {
+  const calls = [];
+  const provider = createNonaOpenFeatureWebProvider({
+    baseUrl: "https://nona.test",
+    environmentId: "production",
+    apiKey: "frontend-key",
+    useReleases: true,
+    releaseVersion: "2.1.x",
+    pollIntervalMs: 0,
+    fetch: async (url, init) => {
+      calls.push({ url, init });
+      return snapshotResponse(snapshot);
+    },
+  });
+
+  await provider.initialize();
+
+  assert.equal(
+    calls[0].url,
+    "https://nona.test/api/environments/production/releases/2.1.x/parameters",
+  );
   await provider.onClose();
 });
 
@@ -298,12 +322,18 @@ test("polling refreshes in the background and stops on close", async () => {
   assert.equal(calls.length, afterClose, "close must stop the poll timer");
 });
 
-test("a failed background refresh keeps the last good snapshot", async () => {
+test("a failed release refresh keeps the last good snapshot and remains a provider error", async () => {
   const logged = [];
   const { client } = stubClient((call) =>
     call === 1
       ? snapshotResponse(snapshot)
-      : jsonResponse({ error: "Server error" }, 503),
+      : jsonResponse({
+        title: "Conflict",
+        status: 409,
+        detail: "No active release",
+        errorCode: "active_release_not_configured",
+      }, 409),
+    { useReleases: true },
   );
   const provider = createNonaOpenFeatureWebProvider(client, {
     pollIntervalMs: 10,

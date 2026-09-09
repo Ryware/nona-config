@@ -27,8 +27,12 @@ mono_crash.*
 !cli/tests/Nona.Cli.Tests/Releases/**
 !cli/src/Nona.Cli/Core/Generated/Admin/Projects/Item/Environments/Item/Releases/
 !cli/src/Nona.Cli/Core/Generated/Admin/Projects/Item/Environments/Item/Releases/**
+!cli/src/Nona.Cli/Core/Generated/Api/Environments/Item/Releases/
+!cli/src/Nona.Cli/Core/Generated/Api/Environments/Item/Releases/**
 !migrator/src/ConfigMigrator.Core/Generated/Admin/Projects/Item/Environments/Item/Releases/
 !migrator/src/ConfigMigrator.Core/Generated/Admin/Projects/Item/Environments/Item/Releases/**
+!migrator/src/ConfigMigrator.Core/Generated/Api/Environments/Item/Releases/
+!migrator/src/ConfigMigrator.Core/Generated/Api/Environments/Item/Releases/**
 x64/
 x86/
 [Ww][Ii][Nn]32/

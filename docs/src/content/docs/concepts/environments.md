@@ -59,17 +59,18 @@ Use `init` for bootstrap automation and the admin project screen for day-to-day 
 
 Each environment has one editable working configuration and zero or more immutable releases.
 
-Public config reads use releases:
+Runtime config reads select a source explicitly:
 
-- no `version` query parameter reads the environment's active release, or the working configuration if none is active
-- `version=1.1.0` reads that exact release
-- `version=1.1.x` reads the highest patch in the `1.1` line
+- working routes always read editable working parameters
+- `/api/environments/{environmentId}/releases/active/parameters` reads the active release, or returns `409` when none is active
+- `/api/environments/{environmentId}/releases/1.1.0/parameters` reads that exact release
+- `/api/environments/{environmentId}/releases/1.1.x/parameters` reads the highest patch in the `1.1` line
 
 To publish a release, open the environment's `Releases` panel and choose **Create a version**. Enter a major-minor version such as `1.1`; Nona normalizes that to `1.1.0`, opens the parameters editor loaded with the current working configuration, and lets you adjust the parameters before choosing **Create release**.
 
-Publishing does not change what clients receive. It only creates the snapshot. Use **Activate** on a release when you are ready for it to serve clients that omit a `version`.
+Publishing does not change what clients receive. It only creates the snapshot. Use **Activate** on a release when you are ready for it to serve clients configured for the active-release route.
 
-When no release is active, unversioned client reads use the current working configuration even if historical releases exist.
+When no release is active, active-release reads fail with `active_release_not_configured`; they never switch to working parameters.
 
 To patch an older line, choose **Amend** on that release. Nona automatically targets the next patch version, for example `1.1.1`, and loads a **separate, editable copy** of that release's parameters. Adjust them and choose **Create release** to publish the new patch. Amend never touches the environment's working configuration — the copy is published directly from what you edit, so you can amend an old line without disturbing the config you are preparing for the next release.
 

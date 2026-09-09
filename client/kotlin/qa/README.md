@@ -41,10 +41,10 @@ do not use the administrator token. The sample remembers its connection in app
 preferences and does not fetch automatically.
 
 1. Tap **Fetch**: the value stays at `default` until **Activate**.
-2. Tap **Activate**: `flag` becomes `A`, source `REMOTE`, and invalid remote retries
+2. Tap **Activate**: `flag` becomes `A-new`, source `REMOTE`, and invalid remote retries
    resolve to the in-app default `3`.
 3. Force-stop the app and stop the disposable backend process.
-4. Reopen the app: **Cache restored: true**, `flag: A`, and retries `3` must remain.
+4. Reopen the app: **Cache restored: true**, `flag: A-new`, and retries `3` must remain.
 5. Tap **Fetch and activate**: failure is displayed without a crash or loss of the
    cached value. Check the app's crash log and save a screenshot.
 6. Tap **Reset**, force-stop and reopen: defaults must remain, with no old snapshot.

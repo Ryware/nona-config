@@ -166,14 +166,13 @@ class NonaDeviceTest {
     }
 
     @Test fun javaApiFetchActivateAnd304() {
-        activeRelease("1.0.0")
         val config = JavaClient.create(context, baseUrl, key())
         config.resetAsync().get(5, TimeUnit.SECONDS)
         config.setDefaults(mapOf("flag" to "default", "Limits:Retries" to 3))
         assertEquals(FetchStatus.SUCCESS, config.fetchAsync().get(5, TimeUnit.SECONDS))
         assertEquals("default", config.getString("flag"))
         assertTrue(config.activate())
-        assertEquals("A", config.getString("flag"))
+        assertEquals("A-new", config.getString("flag"))
         assertEquals(3L, config.getLong("Limits:Retries"))
         assertEquals(FetchStatus.NOT_MODIFIED, config.fetchAsync().get(5, TimeUnit.SECONDS))
         assertFalse(config.activate())
@@ -181,7 +180,6 @@ class NonaDeviceTest {
     }
 
     @Test fun defaultDiskCacheIsolatesProjectsAndRestoresWithoutNetwork() = runBlocking {
-        activeRelease("1.0.0")
         val a = NonaConfig.create(context, options())
         val b = NonaConfig.create(context, options(key("frontendB")))
         a.reset(); b.reset()
@@ -192,13 +190,13 @@ class NonaDeviceTest {
         assertEquals("B", b.getString("flag"))
         val restoredA = NonaConfig.create(context, options())
         assertTrue(restoredA.initialize())
-        assertEquals("A", restoredA.getString("flag"))
+        assertEquals("A-new", restoredA.getString("flag"))
         a.reset(); b.reset()
     }
 
     @Test fun rollbackCannotActivateAnObsoletePendingRelease() = runBlocking {
         activeRelease("1.0.0")
-        val config = NonaConfig.create(context, options())
+        val config = NonaConfig.create(context, options().copy(useReleases = true))
         config.reset()
         try {
             config.fetchAndActivate()
@@ -222,7 +220,7 @@ class NonaDeviceTest {
     }
 
     @Test fun prefixPinnedReleaseAndThrottleUseRealServer() = runBlocking {
-        val pinned = options().copy(prefix = "Features:", releaseVersion = "1.0.0")
+        val pinned = options().copy(prefix = "Features:", useReleases = true, releaseVersion = "1.0.0")
         val config = NonaConfig.create(pinned, InMemorySnapshotStore())
         config.fetchAndActivate()
         assertEquals(setOf("Features:Checkout"), config.keys)
@@ -304,20 +302,22 @@ class NonaDeviceTest {
     }
 
     @Test fun sampleButtonsHandleResetFetchAndActivate() {
-        activeRelease("1.0.0")
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val activity = instrumentation.startActivitySync(Intent(context, MainActivity::class.java)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             .putExtra("frontendKey", key()).putExtra("baseUrl", baseUrl)) as MainActivity
         fun views(view: View): List<View> = listOf(view) + if (view is ViewGroup)
             (0 until view.childCount).flatMap { views(view.getChildAt(it)) } else emptyList()
-        fun awaitText(expected: String) {
+        fun awaitText(expected: String, exactLine: Boolean = false) {
             val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5)
             while (System.nanoTime() < deadline) {
                 var found = false
                 instrumentation.runOnMainSync {
                     found = views(activity.window.decorView).filterIsInstance<TextView>()
-                        .any { it.text.contains(expected) }
+                        .any { view ->
+                            val text = view.text.toString()
+                            if (exactLine) text.lineSequence().any { it == expected } else text.contains(expected)
+                        }
                 }
                 if (found) return
                 Thread.sleep(20)
@@ -337,7 +337,7 @@ class NonaDeviceTest {
             awaitText("Fetch: SUCCESS")
             awaitText("flag: default")
             click(R.string.activate)
-            awaitText("flag: A")
+            awaitText("flag: A-new", exactLine = true)
             awaitText("source: REMOTE")
         } finally { instrumentation.runOnMainSync { activity.finish() } }
     }

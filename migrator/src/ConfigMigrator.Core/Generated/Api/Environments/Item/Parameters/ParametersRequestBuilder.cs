@@ -3,50 +3,50 @@
 using Microsoft.Kiota.Abstractions.Extensions;
 using Microsoft.Kiota.Abstractions.Serialization;
 using Microsoft.Kiota.Abstractions;
-using Nona.Migrator.Core.Generated.Api.Item.Item;
+using Nona.Migrator.Core.Generated.Api.Environments.Item.Parameters.Item;
 using Nona.Migrator.Core.Generated.Models;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using System.Threading;
 using System;
-namespace Nona.Migrator.Core.Generated.Api.Item
+namespace Nona.Migrator.Core.Generated.Api.Environments.Item.Parameters
 {
     /// <summary>
-    /// Builds and executes requests for operations under \api\{environmentId}
+    /// Builds and executes requests for operations under \api\environments\{environmentId}\parameters
     /// </summary>
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
-    public partial class WithEnvironmentItemRequestBuilder : BaseRequestBuilder
+    public partial class ParametersRequestBuilder : BaseRequestBuilder
     {
-        /// <summary>Gets an item from the Nona.Migrator.Core.Generated.api.item.item collection</summary>
+        /// <summary>Gets an item from the Nona.Migrator.Core.Generated.api.environments.item.parameters.item collection</summary>
         /// <param name="position">Unique identifier of the item</param>
-        /// <returns>A <see cref="global::Nona.Migrator.Core.Generated.Api.Item.Item.WithKeyItemRequestBuilder"/></returns>
-        public global::Nona.Migrator.Core.Generated.Api.Item.Item.WithKeyItemRequestBuilder this[string position]
+        /// <returns>A <see cref="global::Nona.Migrator.Core.Generated.Api.Environments.Item.Parameters.Item.WithKeyItemRequestBuilder"/></returns>
+        public global::Nona.Migrator.Core.Generated.Api.Environments.Item.Parameters.Item.WithKeyItemRequestBuilder this[string position]
         {
             get
             {
                 var urlTplParams = new Dictionary<string, object>(PathParameters);
                 urlTplParams.Add("key", position);
-                return new global::Nona.Migrator.Core.Generated.Api.Item.Item.WithKeyItemRequestBuilder(urlTplParams, RequestAdapter);
+                return new global::Nona.Migrator.Core.Generated.Api.Environments.Item.Parameters.Item.WithKeyItemRequestBuilder(urlTplParams, RequestAdapter);
             }
         }
         /// <summary>
-        /// Instantiates a new <see cref="global::Nona.Migrator.Core.Generated.Api.Item.WithEnvironmentItemRequestBuilder"/> and sets the default values.
+        /// Instantiates a new <see cref="global::Nona.Migrator.Core.Generated.Api.Environments.Item.Parameters.ParametersRequestBuilder"/> and sets the default values.
         /// </summary>
         /// <param name="pathParameters">Path parameters for the request</param>
         /// <param name="requestAdapter">The request adapter to use to execute the requests.</param>
-        public WithEnvironmentItemRequestBuilder(Dictionary<string, object> pathParameters, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/{environmentId}{?prefix*,version*}", pathParameters)
+        public ParametersRequestBuilder(Dictionary<string, object> pathParameters, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/environments/{environmentId}/parameters{?prefix*}", pathParameters)
         {
         }
         /// <summary>
-        /// Instantiates a new <see cref="global::Nona.Migrator.Core.Generated.Api.Item.WithEnvironmentItemRequestBuilder"/> and sets the default values.
+        /// Instantiates a new <see cref="global::Nona.Migrator.Core.Generated.Api.Environments.Item.Parameters.ParametersRequestBuilder"/> and sets the default values.
         /// </summary>
         /// <param name="rawUrl">The raw URL to use for the request builder.</param>
         /// <param name="requestAdapter">The request adapter to use to execute the requests.</param>
-        public WithEnvironmentItemRequestBuilder(string rawUrl, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/{environmentId}{?prefix*,version*}", rawUrl)
+        public ParametersRequestBuilder(string rawUrl, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/api/environments/{environmentId}/parameters{?prefix*}", rawUrl)
         {
         }
-        /// <returns>A <see cref="global::Nona.Migrator.Core.Generated.Api.Item.WithEnvironmentGetResponse"/></returns>
+        /// <returns>A <see cref="global::Nona.Migrator.Core.Generated.Api.Environments.Item.Parameters.ParametersGetResponse"/></returns>
         /// <param name="cancellationToken">Cancellation token to use when cancelling requests</param>
         /// <param name="requestConfiguration">Configuration for the request such as headers, query parameters, and middleware options.</param>
         /// <exception cref="global::Nona.Migrator.Core.Generated.Models.ApiProblemDetails">When receiving a 400 status code</exception>
@@ -55,11 +55,11 @@ namespace Nona.Migrator.Core.Generated.Api.Item
         /// <exception cref="global::Nona.Migrator.Core.Generated.Models.ApiProblemDetails">When receiving a 4XX or 5XX status code</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
-        public async Task<global::Nona.Migrator.Core.Generated.Api.Item.WithEnvironmentGetResponse?> GetAsWithEnvironmentGetResponseAsync(Action<RequestConfiguration<global::Nona.Migrator.Core.Generated.Api.Item.WithEnvironmentItemRequestBuilder.WithEnvironmentItemRequestBuilderGetQueryParameters>>? requestConfiguration = default, CancellationToken cancellationToken = default)
+        public async Task<global::Nona.Migrator.Core.Generated.Api.Environments.Item.Parameters.ParametersGetResponse?> GetAsParametersGetResponseAsync(Action<RequestConfiguration<global::Nona.Migrator.Core.Generated.Api.Environments.Item.Parameters.ParametersRequestBuilder.ParametersRequestBuilderGetQueryParameters>>? requestConfiguration = default, CancellationToken cancellationToken = default)
         {
 #nullable restore
 #else
-        public async Task<global::Nona.Migrator.Core.Generated.Api.Item.WithEnvironmentGetResponse> GetAsWithEnvironmentGetResponseAsync(Action<RequestConfiguration<global::Nona.Migrator.Core.Generated.Api.Item.WithEnvironmentItemRequestBuilder.WithEnvironmentItemRequestBuilderGetQueryParameters>> requestConfiguration = default, CancellationToken cancellationToken = default)
+        public async Task<global::Nona.Migrator.Core.Generated.Api.Environments.Item.Parameters.ParametersGetResponse> GetAsParametersGetResponseAsync(Action<RequestConfiguration<global::Nona.Migrator.Core.Generated.Api.Environments.Item.Parameters.ParametersRequestBuilder.ParametersRequestBuilderGetQueryParameters>> requestConfiguration = default, CancellationToken cancellationToken = default)
         {
 #endif
             var requestInfo = ToGetRequestInformation(requestConfiguration);
@@ -70,23 +70,23 @@ namespace Nona.Migrator.Core.Generated.Api.Item
                 { "404", global::Nona.Migrator.Core.Generated.Models.ApiProblemDetails.CreateFromDiscriminatorValue },
                 { "XXX", global::Nona.Migrator.Core.Generated.Models.ApiProblemDetails.CreateFromDiscriminatorValue },
             };
-            return await RequestAdapter.SendAsync<global::Nona.Migrator.Core.Generated.Api.Item.WithEnvironmentGetResponse>(requestInfo, global::Nona.Migrator.Core.Generated.Api.Item.WithEnvironmentGetResponse.CreateFromDiscriminatorValue, errorMapping, cancellationToken).ConfigureAwait(false);
+            return await RequestAdapter.SendAsync<global::Nona.Migrator.Core.Generated.Api.Environments.Item.Parameters.ParametersGetResponse>(requestInfo, global::Nona.Migrator.Core.Generated.Api.Environments.Item.Parameters.ParametersGetResponse.CreateFromDiscriminatorValue, errorMapping, cancellationToken).ConfigureAwait(false);
         }
-        /// <returns>A <see cref="global::Nona.Migrator.Core.Generated.Api.Item.WithEnvironmentResponse"/></returns>
+        /// <returns>A <see cref="global::Nona.Migrator.Core.Generated.Api.Environments.Item.Parameters.ParametersResponse"/></returns>
         /// <param name="cancellationToken">Cancellation token to use when cancelling requests</param>
         /// <param name="requestConfiguration">Configuration for the request such as headers, query parameters, and middleware options.</param>
         /// <exception cref="global::Nona.Migrator.Core.Generated.Models.ApiProblemDetails">When receiving a 400 status code</exception>
         /// <exception cref="global::Nona.Migrator.Core.Generated.Models.ApiProblemDetails">When receiving a 401 status code</exception>
         /// <exception cref="global::Nona.Migrator.Core.Generated.Models.ApiProblemDetails">When receiving a 404 status code</exception>
         /// <exception cref="global::Nona.Migrator.Core.Generated.Models.ApiProblemDetails">When receiving a 4XX or 5XX status code</exception>
-        [Obsolete("This method is obsolete. Use GetAsWithEnvironmentGetResponseAsync instead.")]
+        [Obsolete("This method is obsolete. Use GetAsParametersGetResponseAsync instead.")]
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
-        public async Task<global::Nona.Migrator.Core.Generated.Api.Item.WithEnvironmentResponse?> GetAsync(Action<RequestConfiguration<global::Nona.Migrator.Core.Generated.Api.Item.WithEnvironmentItemRequestBuilder.WithEnvironmentItemRequestBuilderGetQueryParameters>>? requestConfiguration = default, CancellationToken cancellationToken = default)
+        public async Task<global::Nona.Migrator.Core.Generated.Api.Environments.Item.Parameters.ParametersResponse?> GetAsync(Action<RequestConfiguration<global::Nona.Migrator.Core.Generated.Api.Environments.Item.Parameters.ParametersRequestBuilder.ParametersRequestBuilderGetQueryParameters>>? requestConfiguration = default, CancellationToken cancellationToken = default)
         {
 #nullable restore
 #else
-        public async Task<global::Nona.Migrator.Core.Generated.Api.Item.WithEnvironmentResponse> GetAsync(Action<RequestConfiguration<global::Nona.Migrator.Core.Generated.Api.Item.WithEnvironmentItemRequestBuilder.WithEnvironmentItemRequestBuilderGetQueryParameters>> requestConfiguration = default, CancellationToken cancellationToken = default)
+        public async Task<global::Nona.Migrator.Core.Generated.Api.Environments.Item.Parameters.ParametersResponse> GetAsync(Action<RequestConfiguration<global::Nona.Migrator.Core.Generated.Api.Environments.Item.Parameters.ParametersRequestBuilder.ParametersRequestBuilderGetQueryParameters>> requestConfiguration = default, CancellationToken cancellationToken = default)
         {
 #endif
             var requestInfo = ToGetRequestInformation(requestConfiguration);
@@ -97,17 +97,17 @@ namespace Nona.Migrator.Core.Generated.Api.Item
                 { "404", global::Nona.Migrator.Core.Generated.Models.ApiProblemDetails.CreateFromDiscriminatorValue },
                 { "XXX", global::Nona.Migrator.Core.Generated.Models.ApiProblemDetails.CreateFromDiscriminatorValue },
             };
-            return await RequestAdapter.SendAsync<global::Nona.Migrator.Core.Generated.Api.Item.WithEnvironmentResponse>(requestInfo, global::Nona.Migrator.Core.Generated.Api.Item.WithEnvironmentResponse.CreateFromDiscriminatorValue, errorMapping, cancellationToken).ConfigureAwait(false);
+            return await RequestAdapter.SendAsync<global::Nona.Migrator.Core.Generated.Api.Environments.Item.Parameters.ParametersResponse>(requestInfo, global::Nona.Migrator.Core.Generated.Api.Environments.Item.Parameters.ParametersResponse.CreateFromDiscriminatorValue, errorMapping, cancellationToken).ConfigureAwait(false);
         }
         /// <returns>A <see cref="RequestInformation"/></returns>
         /// <param name="requestConfiguration">Configuration for the request such as headers, query parameters, and middleware options.</param>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
-        public RequestInformation ToGetRequestInformation(Action<RequestConfiguration<global::Nona.Migrator.Core.Generated.Api.Item.WithEnvironmentItemRequestBuilder.WithEnvironmentItemRequestBuilderGetQueryParameters>>? requestConfiguration = default)
+        public RequestInformation ToGetRequestInformation(Action<RequestConfiguration<global::Nona.Migrator.Core.Generated.Api.Environments.Item.Parameters.ParametersRequestBuilder.ParametersRequestBuilderGetQueryParameters>>? requestConfiguration = default)
         {
 #nullable restore
 #else
-        public RequestInformation ToGetRequestInformation(Action<RequestConfiguration<global::Nona.Migrator.Core.Generated.Api.Item.WithEnvironmentItemRequestBuilder.WithEnvironmentItemRequestBuilderGetQueryParameters>> requestConfiguration = default)
+        public RequestInformation ToGetRequestInformation(Action<RequestConfiguration<global::Nona.Migrator.Core.Generated.Api.Environments.Item.Parameters.ParametersRequestBuilder.ParametersRequestBuilderGetQueryParameters>> requestConfiguration = default)
         {
 #endif
             var requestInfo = new RequestInformation(Method.GET, UrlTemplate, PathParameters);
@@ -118,15 +118,15 @@ namespace Nona.Migrator.Core.Generated.Api.Item
         /// <summary>
         /// Returns a request builder with the provided arbitrary URL. Using this method means any other path or query parameters are ignored.
         /// </summary>
-        /// <returns>A <see cref="global::Nona.Migrator.Core.Generated.Api.Item.WithEnvironmentItemRequestBuilder"/></returns>
+        /// <returns>A <see cref="global::Nona.Migrator.Core.Generated.Api.Environments.Item.Parameters.ParametersRequestBuilder"/></returns>
         /// <param name="rawUrl">The raw URL to use for the request builder.</param>
-        public global::Nona.Migrator.Core.Generated.Api.Item.WithEnvironmentItemRequestBuilder WithUrl(string rawUrl)
+        public global::Nona.Migrator.Core.Generated.Api.Environments.Item.Parameters.ParametersRequestBuilder WithUrl(string rawUrl)
         {
-            return new global::Nona.Migrator.Core.Generated.Api.Item.WithEnvironmentItemRequestBuilder(rawUrl, RequestAdapter);
+            return new global::Nona.Migrator.Core.Generated.Api.Environments.Item.Parameters.ParametersRequestBuilder(rawUrl, RequestAdapter);
         }
         [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
         #pragma warning disable CS1591
-        public partial class WithEnvironmentItemRequestBuilderGetQueryParameters 
+        public partial class ParametersRequestBuilderGetQueryParameters 
         #pragma warning restore CS1591
         {
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
@@ -138,22 +138,13 @@ namespace Nona.Migrator.Core.Generated.Api.Item
             [QueryParameter("prefix")]
             public string Prefix { get; set; }
 #endif
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
-#nullable enable
-            [QueryParameter("version")]
-            public string? Version { get; set; }
-#nullable restore
-#else
-            [QueryParameter("version")]
-            public string Version { get; set; }
-#endif
         }
         /// <summary>
         /// Configuration for the request such as headers, query parameters, and middleware options.
         /// </summary>
         [Obsolete("This class is deprecated. Please use the generic RequestConfiguration class generated by the generator.")]
         [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
-        public partial class WithEnvironmentItemRequestBuilderGetRequestConfiguration : RequestConfiguration<global::Nona.Migrator.Core.Generated.Api.Item.WithEnvironmentItemRequestBuilder.WithEnvironmentItemRequestBuilderGetQueryParameters>
+        public partial class ParametersRequestBuilderGetRequestConfiguration : RequestConfiguration<global::Nona.Migrator.Core.Generated.Api.Environments.Item.Parameters.ParametersRequestBuilder.ParametersRequestBuilderGetQueryParameters>
         {
         }
     }

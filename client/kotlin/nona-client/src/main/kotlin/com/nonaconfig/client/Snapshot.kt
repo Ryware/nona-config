@@ -12,7 +12,7 @@ internal data class Snapshot(
 ) {
     companion object {
 
-        /** Parses the `GET /api/{environmentId}` body: `{"key":{"value":..,"contentType":..}}`. */
+        /** Parses a bulk parameters response: `{"key":{"value":..,"contentType":..}}`. */
         fun fromResponseBody(body: String, etag: String?, fetchedAtMillis: Long): Snapshot {
             val root = try {
                 val input = JSONTokener(body)

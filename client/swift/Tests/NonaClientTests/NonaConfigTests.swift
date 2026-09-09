@@ -11,6 +11,15 @@ private func body(_ value: String = "A") -> Data {
     try! JSONEncoder().encode(["flag": NonaEntry(value: value)])
 }
 
+private func problem(status: Int, code: String, detail: String) -> Data {
+    try! JSONSerialization.data(withJSONObject: [
+        "title": "Request failed",
+        "status": status,
+        "detail": detail,
+        "errorCode": code
+    ])
+}
+
 private actor Latch {
     private var open = false
     private var waiters: [CheckedContinuation<Void, Never>] = []
@@ -255,6 +264,38 @@ final class NonaConfigTests: XCTestCase {
         XCTAssertEqual(config.getString("flag"), "recovered")
     }
 
+    func testReleaseRefreshFailurePreservesSnapshotSourceAndETag() async throws {
+        let calls = Locked(0)
+        let urls = Locked<[URL]>([])
+        let requestHeaders = Locked<[[String: String]]>([])
+        let opts = try NonaOptions(baseURL: URL(string: "https://nona.test")!, environmentID: "Production",
+                                   useReleases: true, releaseVersion: "2.x", minimumFetchInterval: 0)
+        let config = NonaConfig(options: opts, store: InMemorySnapshotStore(), http: StubHTTP { url, headers in
+            urls.withLock { $0.append(url) }
+            requestHeaders.withLock { $0.append(headers) }
+            return calls.withLock { count in
+                defer { count += 1 }
+                if count == 0 { return NonaHTTPResponse(statusCode: 200, body: body("released"), etag: "release-etag") }
+                return NonaHTTPResponse(statusCode: 409,
+                                        body: problem(status: 409, code: "active_release_not_configured",
+                                                      detail: "The wording may change"))
+            }
+        })
+
+        try await config.fetchAndActivate()
+        do { try await config.fetch(); XCTFail("Expected release refresh failure") }
+        catch let error as NonaError {
+            XCTAssertEqual(error.statusCode, 409)
+            XCTAssertEqual(error.errorCode, "active_release_not_configured")
+            XCTAssertEqual(error.detail, "The wording may change")
+        }
+        XCTAssertEqual(config.getString("flag"), "released")
+        XCTAssertFalse(config.activate())
+        XCTAssertEqual(Set(urls.withLock { $0.map(\.path) }),
+                       ["/api/environments/Production/releases/2.x/parameters"])
+        XCTAssertEqual(requestHeaders.withLock { $0.last?["If-None-Match"] }, "release-etag")
+    }
+
     func testCustomTransportStillRespectsResponseLimit() async throws {
         let opts = try NonaOptions(baseURL: URL(string: "https://nona.test")!, environmentID: "Production",
                                    maxResponseBytes: 16)
@@ -405,14 +446,42 @@ final class NonaConfigTests: XCTestCase {
 
     func testURLSelectorsAndCacheIdentity() throws {
         let opts = try NonaOptions(baseURL: URL(string: "https://NONA.test:443/proxy%2Ftenant/")!,
-                                  environmentID: "pre production", apiKey: "public", releaseVersion: "1.4.x", prefix: "A&B")
+                                  environmentID: "pre production", apiKey: "public", useReleases: true,
+                                  releaseVersion: "1.4.x", prefix: "A&B")
         XCTAssertEqual(opts.baseURL.absoluteString, "https://nona.test/proxy%2Ftenant")
         let components = URLComponents(url: opts.snapshotURL, resolvingAgainstBaseURL: false)!
-        XCTAssertEqual(components.percentEncodedPath, "/proxy%2Ftenant/api/pre%20production")
-        XCTAssertEqual(components.queryItems?.last?.value, "A&B")
+        XCTAssertEqual(components.percentEncodedPath,
+                       "/proxy%2Ftenant/api/environments/pre%20production/releases/1.4.x/parameters")
+        XCTAssertEqual(components.queryItems?.first?.value, "A&B")
         XCTAssertFalse(opts.cacheIdentity.contains("public"))
         XCTAssertEqual(try options().cacheIdentity, try options().cacheIdentity)
         XCTAssertNotEqual(try options().cacheIdentity, try options(key: "other").cacheIdentity)
+
+        let working = try options()
+        XCTAssertEqual(working.snapshotURL.path, "/api/environments/Production/parameters")
+        let activeRelease = try NonaOptions(baseURL: working.baseURL, environmentID: working.environmentID,
+                                            apiKey: working.apiKey, useReleases: true)
+        XCTAssertEqual(activeRelease.snapshotURL.path,
+                       "/api/environments/Production/releases/active/parameters")
+        XCTAssertNil(URLComponents(url: activeRelease.snapshotURL, resolvingAgainstBaseURL: false)?.query)
+        XCTAssertNotEqual(working.cacheIdentity, activeRelease.cacheIdentity)
+        XCTAssertNotEqual(activeRelease.cacheIdentity, opts.cacheIdentity)
+
+        let inactiveVersion = try NonaOptions(baseURL: working.baseURL, environmentID: working.environmentID,
+                                              apiKey: working.apiKey, releaseVersion: " .. ")
+        let otherInactiveVersion = try NonaOptions(baseURL: working.baseURL, environmentID: working.environmentID,
+                                                   apiKey: working.apiKey, releaseVersion: "2.0.0")
+        XCTAssertEqual(inactiveVersion.releaseVersion, "..")
+        XCTAssertEqual(inactiveVersion.snapshotURL.path, "/api/environments/Production/parameters")
+        XCTAssertEqual(inactiveVersion.cacheIdentity, otherInactiveVersion.cacheIdentity)
+    }
+
+    func testReleaseModeRejectsDotSegmentSelectors() throws {
+        for selector in [".", " .. "] {
+            XCTAssertThrowsError(try NonaOptions(baseURL: URL(string: "https://nona.test")!,
+                                                 environmentID: "Production", useReleases: true,
+                                                 releaseVersion: selector))
+        }
     }
 
     func testOptionsAndFetchOverridesValidate() async throws {
@@ -561,7 +630,7 @@ extension NonaConfigTests {
 }
 
 extension NonaConfigTests {
-    func testCacheWrittenByBaselineSDKStillRestores() async throws {
+    func testCacheWrittenByV1SDKIsIgnoredAfterIdentityMigration() async throws {
         struct Fixture: Decodable { let baselineRef: String; let json: String }
         struct Corpus: Decodable { let cacheFixtures: [String: Fixture] }
         let corpus = try JSONDecoder().decode(Corpus.self, from: Data(SharedContracts.json.utf8))
@@ -573,7 +642,7 @@ extension NonaConfigTests {
             XCTFail("Restore must not use HTTP"); throw NonaError.transport
         })
         let restored = try await config.initialize()
-        XCTAssertTrue(restored, fixture.baselineRef)
-        XCTAssertEqual(config.getString("flag"), "compatible")
+        XCTAssertFalse(restored, fixture.baselineRef)
+        XCTAssertEqual(config.getString("flag"), "")
     }
 }

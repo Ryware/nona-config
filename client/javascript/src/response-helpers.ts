@@ -136,8 +136,9 @@ function throwResponseError(
   url: string,
   responseBody: string,
 ): never {
+  const problem = readError(responseBody);
   const message =
-    readErrorMessage(responseBody) ??
+    problem.message ??
     `Nona request failed with HTTP ${response.status} (${response.statusText}).`;
   throw new NonaClientError(
     message,
@@ -145,12 +146,19 @@ function throwResponseError(
     method,
     url,
     responseBody,
+    undefined,
+    problem.errorCode,
+    problem.detail,
   );
 }
 
-function readErrorMessage(responseBody: string): string | undefined {
+function readError(responseBody: string): {
+  message?: string;
+  errorCode?: string;
+  detail?: string;
+} {
   if (!responseBody.trim()) {
-    return undefined;
+    return {};
   }
 
   try {
@@ -159,27 +167,31 @@ function readErrorMessage(responseBody: string): string | undefined {
       error?: unknown;
       message?: unknown;
       title?: unknown;
+      errorCode?: unknown;
     };
+    const errorCode = typeof parsed.errorCode === "string"
+      ? parsed.errorCode
+      : undefined;
     if (typeof parsed.detail === "string") {
-      return parsed.detail;
+      return { message: parsed.detail, errorCode, detail: parsed.detail };
     }
 
     if (typeof parsed.error === "string") {
-      return parsed.error;
+      return { message: parsed.error, errorCode };
     }
 
     if (typeof parsed.message === "string") {
-      return parsed.message;
+      return { message: parsed.message, errorCode };
     }
 
     if (typeof parsed.title === "string") {
-      return parsed.title;
+      return { message: parsed.title, errorCode };
     }
   } catch {
-    return undefined;
+    return {};
   }
 
-  return undefined;
+  return {};
 }
 
 function parseLegacyConfigValue(responseBody: string): NonaConfigValue {

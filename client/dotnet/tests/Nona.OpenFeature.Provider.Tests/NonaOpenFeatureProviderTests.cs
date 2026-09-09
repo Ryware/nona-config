@@ -54,14 +54,14 @@ public sealed class NonaOpenFeatureProviderTests
         Assert.Equal("green", structure.GetValue("color").AsString);
         Assert.True(structure.GetValue("enabled").AsBoolean);
         Assert.All(handler.Requests, request => Assert.Equal("api-key", request.GetHeader("X-Api-Key")));
-        Assert.All(handler.Requests, request => Assert.StartsWith("/api/production/", request.Uri.AbsolutePath, StringComparison.Ordinal));
+        Assert.All(handler.Requests, request => Assert.StartsWith("/api/environments/production/", request.Uri.AbsolutePath, StringComparison.Ordinal));
     }
 
     [Fact]
     public async Task OpenFeatureProvider_ReturnsDefaultAndFlagNotFoundForMissingNonaValue()
     {
         var handler = new StubHttpMessageHandler(_ => JsonResponse(
-            """{"error":"Config entry not found"}""",
+            """{"title":"Not Found","status":404,"detail":"Config entry not found","errorCode":"config_entry_not_found"}""",
             HttpStatusCode.NotFound));
 
         using var httpClient = new HttpClient(handler)
@@ -83,6 +83,27 @@ public sealed class NonaOpenFeatureProviderTests
 
         Assert.True(details.Value);
         Assert.Equal(ErrorType.FlagNotFound, details.ErrorType);
+    }
+
+    [Fact]
+    public async Task OpenFeatureProvider_KeepsOtherNotFoundResponsesAsProviderErrors()
+    {
+        var handler = new StubHttpMessageHandler(_ => JsonResponse(
+            """{"title":"Not Found","status":404,"detail":"Environment not found","errorCode":"environment_not_found"}""",
+            HttpStatusCode.NotFound));
+        using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://nona.test/") };
+        using var nona = new NonaClient(httpClient, new NonaClientOptions
+        {
+            EnvironmentId = "production",
+            ApiKey = "api-key"
+        });
+        var domain = $"nona-dotnet-provider-error-{Guid.NewGuid():N}";
+        await Api.Instance.SetProviderAsync(domain, new NonaOpenFeatureProvider(nona));
+
+        var details = await Api.Instance.GetClient(domain).GetBooleanDetailsAsync("missing", true);
+
+        Assert.True(details.Value);
+        Assert.Equal(ErrorType.General, details.ErrorType);
     }
 
     private static HttpResponseMessage JsonResponse(string json, HttpStatusCode statusCode = HttpStatusCode.OK)

@@ -16,6 +16,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.future.future
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
+import org.json.JSONObject
 
 /**
  * Reads Nona config on Android. Values are held in memory and read
@@ -249,10 +250,15 @@ class NonaConfig internal constructor(
                 return persist(previous.copy(fetchedAtMillis = now), requestGeneration, revalidated = true)
             }
 
-            else -> throw NonaHttpException(
-                statusCode = response.statusCode,
-                message = describeHttpFailure(response.statusCode),
-            )
+            else -> {
+                val problem = parseProblemDetails(response.body)
+                throw NonaHttpException(
+                    statusCode = response.statusCode,
+                    message = problem.detail ?: describeHttpFailure(response.statusCode),
+                    errorCode = problem.errorCode,
+                    detail = problem.detail,
+                )
+            }
         }
 
         if (response.body.toByteArray(Charsets.UTF_8).size > options.maxResponseBytes) {
@@ -287,13 +293,31 @@ class NonaConfig internal constructor(
 
     private fun snapshotUrl(): String {
         val base = options.normalizedBaseUrl()
+        val releaseVersion = options.releaseVersion?.trim()?.takeIf { options.useReleases && it.isNotEmpty() }
         val query = buildList {
-            options.releaseVersion?.let { add("version=" + encode(it)) }
             options.prefix?.let { add("prefix=" + encode(it)) }
         }.joinToString("&")
 
-        val path = "$base/api/${encode(options.environmentId)}"
+        val path = if (options.useReleases) {
+            val release = releaseVersion?.let(::encode) ?: "active"
+            "$base/api/environments/${encode(options.environmentId)}/releases/$release/parameters"
+        } else {
+            "$base/api/environments/${encode(options.environmentId)}/parameters"
+        }
         return if (query.isEmpty()) path else "$path?$query"
+    }
+
+    private fun parseProblemDetails(body: String): ProblemDetails {
+        if (body.isBlank()) return ProblemDetails()
+        return try {
+            val json = JSONObject(body)
+            ProblemDetails(
+                errorCode = json.opt("errorCode")?.takeIf { it is String } as? String,
+                detail = json.opt("detail")?.takeIf { it is String } as? String,
+            )
+        } catch (_: Exception) {
+            ProblemDetails()
+        }
     }
 
     companion object {
@@ -330,6 +354,11 @@ class NonaConfig internal constructor(
         }
     }
 }
+
+private data class ProblemDetails(
+    val errorCode: String? = null,
+    val detail: String? = null,
+)
 
 private fun encode(value: String): String =
     URLEncoder.encode(value, "UTF-8").replace("+", "%20")

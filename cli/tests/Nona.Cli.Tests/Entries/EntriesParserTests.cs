@@ -25,6 +25,30 @@ public class EntriesParserTests
         await Assert.That(result.Errors).IsEmpty();
     }
 
+    [Test]
+    public async Task Get_AcceptsReleaseSourceOptions()
+    {
+        var result = CreateRoot().Parse([
+            "entries",
+            "get",
+            "--base-url",
+            "https://nona.test",
+            "--token",
+            new string('A', 64),
+            "--project",
+            "my-project",
+            "--environment",
+            "production",
+            "--key",
+            "Features:Checkout",
+            "--use-releases",
+            "--release-version",
+            "1.2.x"
+        ]);
+
+        await Assert.That(result.Errors).IsEmpty();
+    }
+
     private static RootCommand CreateRoot()
     {
         var context = new CliContext(

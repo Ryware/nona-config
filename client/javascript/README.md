@@ -29,16 +29,19 @@ const nona = createNonaClient({
 });
 ```
 
-Reads use the environment's active release by default. To pin a client to an exact release or release line:
+Reads use working parameters by default. To use the active release, or pin a client to an exact release or release line, select release mode when constructing it:
 
 ```js
 const nona = createNonaClient({
   baseUrl: "https://nona.example.com",
   environmentId: "production",
   apiKey: "your-api-key",
+  useReleases: true,
   releaseVersion: "1.1.x"
 });
 ```
+
+Omit `releaseVersion` while keeping `useReleases: true` to follow the active release. Source and release selection are fixed for the client lifetime; create another client for a different source or selector. When `useReleases` is `false` (the default), `releaseVersion` is retained on the client but ignored for requests and cache identity.
 
 You can also pass the base URL as the first argument:
 
@@ -117,6 +120,8 @@ try {
 } catch (error) {
   if (error instanceof NonaClientError) {
     console.error(error.status);
+    console.error(error.errorCode);
+    console.error(error.detail);
     console.error(error.message);
     console.error(error.responseBody);
     return;
@@ -133,6 +138,7 @@ try {
 - `baseUrl`: the Nona server URL
 - `environmentId`: environment used for config reads
 - `apiKey`: API key for config reads
+- `useReleases`: read release snapshots instead of working parameters (default `false`)
 - `releaseVersion`: optional exact release such as `1.1.0` or line such as `1.1.x`
 - `fetch`: custom fetch implementation
 - `defaultHeaders`: headers added to every request

@@ -376,7 +376,7 @@ internal sealed class InitCommandHandler(Func<HttpClient>? httpClientFactory = n
     private static string BuildVerificationUrl(string baseUrl, string environment, string? key)
     {
         var pathKey = string.IsNullOrWhiteSpace(key) ? "<key>" : Segment(key);
-        return $"{baseUrl.TrimEnd('/')}/api/{Segment(environment)}/{pathKey}";
+        return $"{baseUrl.TrimEnd('/')}/api/environments/{Segment(environment)}/parameters/{pathKey}";
     }
 
     private static string BuildKeyName(string scope) => $"{InitKeyNamePrefix} {scope}";

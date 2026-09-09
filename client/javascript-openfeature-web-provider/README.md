@@ -42,7 +42,7 @@ const provider = createNonaOpenFeatureWebProvider(createNonaClient({ ... }), {
 
 ## Requires a frontend-scoped API key
 
-The provider loads the whole environment as one snapshot, so it uses Nona's client-facing snapshot endpoint (`GET /api/{environmentId}`). That endpoint:
+The provider loads the whole environment as one snapshot through `nona-client`, using the working, active-release, or selected-release collection under `GET /api/environments/{environmentId}/.../parameters` according to the client's construction-time source configuration. These endpoints:
 
 - requires an API key with the **frontend** scope, and
 - returns only **frontend-scoped** config entries.
@@ -60,11 +60,13 @@ Mark the entries you want browsers to see as frontend-scoped in Nona, and make s
 | `metadataName` | `nona` | Name reported as the OpenFeature provider metadata name. |
 | `logger` | none | Receives a message when a background refresh fails. |
 
-Everything `createNonaClient` accepts (`baseUrl`, `apiKey`, `environmentId`, `releaseVersion`, `fetch`, …) is accepted here too when you pass options rather than a client.
+Everything `createNonaClient` accepts (`baseUrl`, `apiKey`, `environmentId`, `useReleases`, `releaseVersion`, `fetch`, …) is accepted here too when you pass options rather than a client. Source routing remains inside `nona-client`; when `useReleases` is false or omitted, `releaseVersion` is retained but ignored.
 
 ## Staying up to date
 
 Polling sends the snapshot's `ETag`, so an unchanged environment costs a `304` and no re-render. When values do change, the provider emits `PROVIDER_CONFIGURATION_CHANGED` with the changed keys, which is what drives re-evaluation in the web SDK and re-renders in the React SDK.
+
+Missing flags are detected locally inside a successfully loaded snapshot. Snapshot fetch failures remain provider errors, and a failed refresh preserves the last-known-good snapshot without changing sources.
 
 If initialization fails with a temporary network or server error, polling retries at the configured interval. The provider emits `PROVIDER_READY` after a successful retry. With `pollIntervalMs: 0`, call `refresh()` to retry manually. Fatal initialization errors (401 or 404) do not start polling.
 

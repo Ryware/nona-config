@@ -45,7 +45,9 @@ data class NonaOptions(
      * endpoint, and any key shipped inside an APK should be assumed public.
      */
     val apiKey: String? = null,
-    /** Pin to an exact release (`1.4.0`) or a release line (`1.4.x`). */
+    /** Read immutable release snapshots instead of working parameters. */
+    val useReleases: Boolean = false,
+    /** Pin to an exact release (`1.4.0`) or a release line (`1.4.x`) when release mode is enabled. */
     val releaseVersion: String? = null,
     /** Only load keys under this prefix, for example `Features:`. */
     val prefix: String? = null,
@@ -61,6 +63,10 @@ data class NonaOptions(
         require(maxResponseBytes > 0) { "maxResponseBytes must be positive" }
         require(environmentId.isNotBlank() && environmentId != "." && environmentId != "..") {
             "environmentId must be nonblank and cannot be a dot path segment"
+        }
+        val normalizedReleaseVersion = releaseVersion?.trim()
+        require(!useReleases || normalizedReleaseVersion != "." && normalizedReleaseVersion != "..") {
+            "releaseVersion cannot be a dot path segment"
         }
         require(apiKey == null || apiKey.none { it.isISOControl() }) {
             "apiKey cannot contain control characters"
@@ -78,12 +84,13 @@ data class NonaOptions(
     /** Safe diagnostic representation: never include the application's key. */
     override fun toString(): String =
         "NonaOptions(baseUrl=$baseUrl, environmentId=$environmentId, apiKey=<redacted>, " +
-            "releaseVersion=$releaseVersion, prefix=$prefix, minimumFetchInterval=$minimumFetchInterval, " +
+            "useReleases=$useReleases, releaseVersion=$releaseVersion, prefix=$prefix, minimumFetchInterval=$minimumFetchInterval, " +
             "connectTimeout=$connectTimeout, readTimeout=$readTimeout, maxResponseBytes=$maxResponseBytes)"
 
     /** Java entry point without Kotlin inline-duration parameters. */
     class Builder internal constructor(private val baseUrl: String, private val environmentId: String) {
         private var apiKey: String? = null
+        private var useReleases: Boolean = false
         private var releaseVersion: String? = null
         private var prefix: String? = null
         private var minimumFetchInterval: Duration = 12.hours
@@ -92,6 +99,7 @@ data class NonaOptions(
         private var maxResponseBytes: Int = 8 * 1024 * 1024
 
         fun apiKey(value: String?) = apply { apiKey = value }
+        fun useReleases(value: Boolean) = apply { useReleases = value }
         fun releaseVersion(value: String?) = apply { releaseVersion = value }
         fun prefix(value: String?) = apply { prefix = value }
         fun minimumFetchIntervalMillis(value: Long) = apply { minimumFetchInterval = value.milliseconds }
@@ -99,7 +107,7 @@ data class NonaOptions(
         fun readTimeoutMillis(value: Long) = apply { readTimeout = value.milliseconds }
         fun maxResponseBytes(value: Int) = apply { maxResponseBytes = value }
         fun build() = NonaOptions(
-            baseUrl, environmentId, apiKey, releaseVersion, prefix,
+            baseUrl, environmentId, apiKey, useReleases, releaseVersion, prefix,
             minimumFetchInterval, connectTimeout, readTimeout, maxResponseBytes,
         )
     }
@@ -124,4 +132,6 @@ open class NonaException(
 class NonaHttpException(
     val statusCode: Int,
     message: String,
+    val errorCode: String? = null,
+    val detail: String? = null,
 ) : NonaException(message)

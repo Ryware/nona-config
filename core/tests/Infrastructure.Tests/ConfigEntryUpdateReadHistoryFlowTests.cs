@@ -72,14 +72,13 @@ public class ConfigEntryUpdateReadHistoryFlowTests
             new PublishConfigReleaseCommand(projectName, environmentName, "1.0.0", MakeActive: true),
             CancellationToken.None);
 
-        var publicReadHandler = new GetConfigEntryValueQueryHandler(
+        var publicReadHandler = new GetReleaseConfigEntryValueQueryHandler(
             apiKeyRepository,
             environmentRepository,
-            configEntryRepository,
             configReleaseRepository,
             new FixedApiKeyService(apiKeyValue));
         var publicRead = await publicReadHandler.Handle(
-            new GetConfigEntryValueQuery(environmentName, configKey),
+            new GetReleaseConfigEntryValueQuery(environmentName, configKey),
             CancellationToken.None);
 
         var historyHandler = new ListConfigEntryVersionsQueryHandler(
@@ -155,10 +154,14 @@ public class ConfigEntryUpdateReadHistoryFlowTests
             accessService,
             clock,
             currentUser);
-        var publicReadHandler = new GetConfigEntryValueQueryHandler(
+        var workingReadHandler = new GetConfigEntryValueQueryHandler(
             apiKeyRepository,
             environmentRepository,
             configEntryRepository,
+            new FixedApiKeyService(apiKeyValue));
+        var releaseReadHandler = new GetReleaseConfigEntryValueQueryHandler(
+            apiKeyRepository,
+            environmentRepository,
             configReleaseRepository,
             new FixedApiKeyService(apiKeyValue));
 
@@ -177,14 +180,14 @@ public class ConfigEntryUpdateReadHistoryFlowTests
             new PublishConfigReleaseCommand(projectName, environmentName, "1.0.1", MakeActive: true),
             CancellationToken.None);
 
-        var exactOld = await publicReadHandler.Handle(
-            new GetConfigEntryValueQuery(environmentName, configKey, "1.0.0"),
+        var exactOld = await releaseReadHandler.Handle(
+            new GetReleaseConfigEntryValueQuery(environmentName, configKey, "1.0.0"),
             CancellationToken.None);
-        var lineLatest = await publicReadHandler.Handle(
-            new GetConfigEntryValueQuery(environmentName, configKey, "1.0.x"),
+        var lineLatest = await releaseReadHandler.Handle(
+            new GetReleaseConfigEntryValueQuery(environmentName, configKey, "1.0.x"),
             CancellationToken.None);
-        var active = await publicReadHandler.Handle(
-            new GetConfigEntryValueQuery(environmentName, configKey),
+        var active = await releaseReadHandler.Handle(
+            new GetReleaseConfigEntryValueQuery(environmentName, configKey),
             CancellationToken.None);
 
         clock.NowUtcValue = new DateTime(2026, 7, 1, 12, 0, 0, DateTimeKind.Utc);
@@ -200,7 +203,7 @@ public class ConfigEntryUpdateReadHistoryFlowTests
         var clearActive = await clearActiveHandler.Handle(
             new SetActiveConfigReleaseCommand(projectName, environmentName, null),
             CancellationToken.None);
-        var workingFallback = await publicReadHandler.Handle(
+        var workingRead = await workingReadHandler.Handle(
             new GetConfigEntryValueQuery(environmentName, configKey),
             CancellationToken.None);
 
@@ -211,8 +214,8 @@ public class ConfigEntryUpdateReadHistoryFlowTests
         await Assert.That(active.Success).IsTrue();
         await Assert.That(active.Value).IsEqualTo("true");
         await Assert.That(clearActive.Success).IsTrue();
-        await Assert.That(workingFallback.Success).IsTrue();
-        await Assert.That(workingFallback.Value).IsEqualTo("working");
+        await Assert.That(workingRead.Success).IsTrue();
+        await Assert.That(workingRead.Value).IsEqualTo("working");
     }
 
     [Test]
@@ -294,10 +297,9 @@ public class ConfigEntryUpdateReadHistoryFlowTests
             shareLinkRepository,
             configEntryRepository,
             clock);
-        var publicReadHandler = new GetConfigEntryValueQueryHandler(
+        var publicReadHandler = new GetReleaseConfigEntryValueQueryHandler(
             apiKeyRepository,
             environmentRepository,
-            configEntryRepository,
             configReleaseRepository,
             new FixedApiKeyService(apiKeyValue));
 
@@ -308,7 +310,7 @@ public class ConfigEntryUpdateReadHistoryFlowTests
             new UpdateSharedParameterCommand(token, "shared-default-value"),
             CancellationToken.None);
         var publicRead = await publicReadHandler.Handle(
-            new GetConfigEntryValueQuery(environmentName, configKey),
+            new GetReleaseConfigEntryValueQuery(environmentName, configKey),
             CancellationToken.None);
         var savedDefault = await configEntryRepository.GetAsync(projectName, environmentName, configKey);
         var activeRelease = await configReleaseRepository.GetAsync(projectName, environmentName, "1.11.1");

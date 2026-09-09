@@ -226,14 +226,13 @@ public sealed partial class NonaClient
     private void SetBulkCacheEntry(
         string cacheKey,
         string? etag,
-        IReadOnlyDictionary<string, NonaConfigValue> values,
-        string? releaseVersion)
+        IReadOnlyDictionary<string, NonaConfigValue> values)
     {
         var cachedValues = Clone(values);
         var requestKeys = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var pair in cachedValues)
         {
-            requestKeys[CreateCacheKey(pair.Key, releaseVersion)] = pair.Key;
+            requestKeys[CreateCacheKey(pair.Key)] = pair.Key;
         }
 
         var sizeBytes = EstimateBulkCacheEntrySize(cacheKey, etag, cachedValues, requestKeys);
