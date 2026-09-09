@@ -54,7 +54,7 @@ public sealed class NonaOpenFeatureProviderTests
         Assert.Equal("green", structure.GetValue("color").AsString);
         Assert.True(structure.GetValue("enabled").AsBoolean);
         Assert.All(handler.Requests, request => Assert.Equal("api-key", request.GetHeader("X-Api-Key")));
-        Assert.All(handler.Requests, request => Assert.StartsWith("/api/production/", request.Uri.AbsolutePath, StringComparison.Ordinal));
+        Assert.All(handler.Requests, request => Assert.StartsWith("/api/environments/production/", request.Uri.AbsolutePath, StringComparison.Ordinal));
     }
 
     [Fact]

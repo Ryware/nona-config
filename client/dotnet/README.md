@@ -41,7 +41,7 @@ var client = new NonaClient(new NonaClientOptions
 });
 ```
 
-Omit `ReleaseVersion` while keeping `UseReleases = true` to follow the active release. Source and release selection are fixed for the client lifetime; construct another client to use a different source or selector. A non-empty `ReleaseVersion` with `UseReleases = false` is rejected.
+Omit `ReleaseVersion` while keeping `UseReleases = true` to follow the active release. Source and release selection are fixed for the client lifetime; construct another client to use a different source or selector. When `UseReleases` is `false` (the default), `ReleaseVersion` is retained in the client options but ignored for requests and cache identity.
 
 Fetch all client-visible values, or only keys in a case-insensitive prefix group:
 

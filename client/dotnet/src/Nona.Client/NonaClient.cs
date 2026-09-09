@@ -69,14 +69,7 @@ public sealed partial class NonaClient : IDisposable
         _environmentId = _options.EnvironmentId!;
         _apiKey = _options.ApiKey;
         _useReleases = _options.UseReleases;
-        _releaseVersion = NormalizeReleaseVersion(_options.ReleaseVersion);
-        if (!_useReleases && _releaseVersion is not null)
-        {
-            throw new ArgumentException(
-                "ReleaseVersion requires UseReleases to be true.",
-                nameof(NonaClientOptions.ReleaseVersion));
-        }
-
+        _releaseVersion = NormalizeReleaseVersion(_options.ReleaseVersion, _useReleases);
         _sourceIdentity = _useReleases
             ? $"release\n{_releaseVersion ?? "<active>"}"
             : "working";
