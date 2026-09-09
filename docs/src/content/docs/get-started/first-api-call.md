@@ -51,12 +51,12 @@ nona keys create \
   --environment production
 ```
 
-The first request below uses working parameters, so no release is required. Publish a release only for a release-route request; set it active only when the request omits `version`.
+The first request below uses working parameters, so no release is required. Publish a release only for a release-route request; set it active only when using the `/releases/active/` route.
 
 ## Request shape
 
 ```http
-GET /api/{environmentId}/parameters/{key}
+GET /api/environments/{environmentId}/parameters/{key}
 X-Api-Key: <api-key>
 ```
 
@@ -65,22 +65,22 @@ The request includes:
 - the environment id
 - the config key
 - an explicit working or release source in the path
-- an optional `version` query parameter on release routes
+- either `active` or an exact/wildcard version segment on release routes
 - an API key in the header
 
-The project is implied by the API key, which is why it is not part of this request path. The working route always reads editable working parameters. The release route uses the selected version, or the active release when `version` is omitted. A release request never falls back to working parameters.
+The project is implied by the API key, which is why it is not part of this request path. The working route always reads editable working parameters. Release routes explicitly select `active` or a version. A release request never falls back to working parameters.
 
 ## Example
 
 ```bash
-curl "https://nona.example.com/api/production/parameters/Features%3ACheckout" \
+curl "https://nona.example.com/api/environments/production/parameters/Features%3ACheckout" \
   -H "X-Api-Key: $NONA_API_KEY"
 ```
 
 If you want to inspect the response headers too:
 
 ```bash
-curl -i "https://nona.example.com/api/production/parameters/Features%3ACheckout" \
+curl -i "https://nona.example.com/api/environments/production/parameters/Features%3ACheckout" \
   -H "X-Api-Key: $NONA_API_KEY"
 ```
 
@@ -91,7 +91,7 @@ The key path segment must be URL-encoded. For example:
 To pin a published release instead of using the active release:
 
 ```bash
-curl "https://nona.example.com/api/production/releases/parameters/Features%3ACheckout?version=1.1.x" \
+curl "https://nona.example.com/api/environments/production/releases/1.1.x/parameters/Features%3ACheckout" \
   -H "X-Api-Key: $NONA_API_KEY"
 ```
 
@@ -107,7 +107,7 @@ If the request fails:
 2. confirm the key exists in that environment
 3. confirm the key path is URL-encoded
 4. confirm that you chose the intended working or release route
-5. for a release route, confirm the expected release is active or pass `version`
+5. for a release route, confirm the expected release is active or put an exact or wildcard selector in the route
 6. confirm the API key belongs to the same project
 7. confirm the API key scope can read the entry scope
 
@@ -122,7 +122,7 @@ Use this sequence for the shortest first-read test:
 5. send the working-route HTTP request with `X-Api-Key`
 6. verify the value comes back correctly
 
-For a release-route test, also publish the requested release and set it active when omitting `version`.
+For a release-route test, also publish the requested release and set it active when using the active-release route.
 
 ## First API call FAQ
 

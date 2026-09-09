@@ -71,7 +71,7 @@ The default `init` output is directly appendable to an app `.env` file:
 VITE_NONA_BASE_URL=https://nona.example.com
 VITE_NONA_ENV_ID=production
 VITE_NONA_API_KEY=<one-time-generated-secret>
-# Verify: curl -H "X-Api-Key: $VITE_NONA_API_KEY" https://nona.example.com/api/production/parameters/Features%3AExample
+# Verify: curl -H "X-Api-Key: $VITE_NONA_API_KEY" https://nona.example.com/api/environments/production/parameters/Features%3AExample
 ```
 
 Useful options:
@@ -172,7 +172,7 @@ nona entries get --project mobile-app --environment production --key Features:Ch
 nona entries get --project mobile-app --environment production --key Features:Checkout --token "$NONA_API_KEY" --use-releases --release-version 1.2.x
 ```
 
-Working parameters are the default source. In release mode, omitting `--release-version` selects the environment's active release; supplying it selects an exact version or a wildcard release line. `--release-version` without `--use-releases` is rejected before any request. Release options also require an API key. An admin bearer token keeps the existing behavior of reading the working entry through the admin API, and combining it with release options is rejected. `--project` remains required unless a default project is saved.
+Working parameters are the default source. In release mode, omitting `--release-version` selects the environment's active release; supplying it selects an exact version or a wildcard release line. Without `--use-releases`, `--release-version` is ignored and the command performs a normal working read. Release reads require an API key. An admin bearer token keeps the existing behavior of reading the working entry through the admin API. `--project` remains required unless a default project is saved.
 
 Filter the list by a case-insensitive, literal key prefix without changing the output format:
 

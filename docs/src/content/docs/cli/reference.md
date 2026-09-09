@@ -652,7 +652,7 @@ nona entries get [options]
 --environment <environment>               Nona environment name, for example production.
 --key <key>                               Config entry key, for example Features:Checkout.
 --use-releases                            Read from release parameters. Without --release-version, use the active release.
---release-version <release-version>       Exact or wildcard release selector, for example 1.2.3 or 1.2.x. Requires --use-releases.
+--release-version <release-version>       Exact or wildcard release selector, for example 1.2.3 or 1.2.x. Used only with --use-releases.
 ```
 
 ## `nona entries history`

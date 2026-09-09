@@ -86,7 +86,7 @@ docker run -d \
 Create a project, add an environment, set your first key-value pair, and create an API key. Then fetch the working value:
 
 ```bash
-curl "http://localhost:18080/api/production/parameters/Features%3ACheckout" \
+curl "http://localhost:18080/api/environments/production/parameters/Features%3ACheckout" \
   -H "X-Api-Key: your-api-key"
 ```
 
@@ -207,22 +207,22 @@ Loads the environment's frontend-scoped config as one snapshot and evaluates syn
 
 ### Any language (plain HTTP)
 
-No SDK needed. Choose the working or release route explicitly. Release reads without a version use the active release; release reads with a version select an exact release or release line:
+No SDK needed. Choose the working, active-release, or selected-release route explicitly. The version is a path segment and may be exact or a release line:
 
 ```bash
 # curl
-curl "https://your-nona-host/api/production/releases/parameters/Features%3ACheckout?version=1.1.x" \
+curl "https://your-nona-host/api/environments/production/releases/1.1.x/parameters/Features%3ACheckout" \
   -H "X-Api-Key: your-api-key"
 
 # Python
 import httpx
 value = httpx.get(
-    "https://your-nona-host/api/production/parameters/Features%3ACheckout",
+    "https://your-nona-host/api/environments/production/parameters/Features%3ACheckout",
     headers={"X-Api-Key": api_key}
 ).text
 
 # Go
-req, _ := http.NewRequest("GET", "https://your-nona-host/api/production/parameters/Features%3ACheckout", nil)
+req, _ := http.NewRequest("GET", "https://your-nona-host/api/environments/production/parameters/Features%3ACheckout", nil)
 req.Header.Set("X-Api-Key", apiKey)
 ```
 
@@ -255,12 +255,12 @@ CLI packages:
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/api/{environmentId}/parameters/{key}` | Fetch one working parameter |
-| `GET` | `/api/{environmentId}/parameters` | Fetch all client-visible working parameters with ETag support |
-| `GET` | `/api/{environmentId}/releases/parameters/{key}` | Fetch one parameter from the active release |
-| `GET` | `/api/{environmentId}/releases/parameters/{key}?version=1.1.x` | Fetch one parameter from the selected release line |
-| `GET` | `/api/{environmentId}/releases/parameters` | Fetch all client-visible parameters from the active release |
-| `GET` | `/api/{environmentId}/releases/parameters?version=1.1.0&prefix=GroupA%3A` | Fetch a prefix from an exact release |
+| `GET` | `/api/environments/{environmentId}/parameters/{key}` | Fetch one working parameter |
+| `GET` | `/api/environments/{environmentId}/parameters` | Fetch all client-visible working parameters with ETag support |
+| `GET` | `/api/environments/{environmentId}/releases/active/parameters/{key}` | Fetch one parameter from the active release |
+| `GET` | `/api/environments/{environmentId}/releases/{version}/parameters/{key}` | Fetch one parameter from an exact or wildcard release selector |
+| `GET` | `/api/environments/{environmentId}/releases/active/parameters` | Fetch all client-visible parameters from the active release |
+| `GET` | `/api/environments/{environmentId}/releases/{version}/parameters?prefix=GroupA%3A` | Fetch a prefix from an exact or wildcard release selector |
 
 Authentication: `X-Api-Key` request header.
 
@@ -360,7 +360,7 @@ means concurrent, closed-loop HTTP clients.
 
 ### Full environment
 
-Each request used `GET /api/{environment}/parameters` and consumed the complete response
+Each request used `GET /api/environments/{environment}/parameters` and consumed the complete response
 body.
 
 | Keys returned | Users | Average (ms) | p50 (ms) | p95 (ms) | p99 (ms) | req/s |
@@ -372,7 +372,7 @@ body.
 
 ### Single key
 
-Each request used `GET /api/{environment}/parameters/{key}` to read one fixed key from an
+Each request used `GET /api/environments/{environment}/parameters/{key}` to read one fixed key from an
 environment containing 10,000 keys.
 
 | Keys returned | Users | Average (ms) | p50 (ms) | p95 (ms) | p99 (ms) | req/s |

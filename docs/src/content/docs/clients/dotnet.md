@@ -130,7 +130,7 @@ var client = new NonaClient(new NonaClientOptions
 
 Use an exact version such as `1.1.0` for a fixed snapshot. Use a line such as `1.1.x` to read the highest patch in that line.
 
-Omit `ReleaseVersion` while keeping `UseReleases = true` to follow the environment's active release. If no active release exists, reads fail with `409` and `ErrorCode == "active_release_not_configured"`; they never fall back to working parameters. Source and selector are fixed for the client's lifetime, so construct another client to use a different source or selector. A non-empty `ReleaseVersion` with `UseReleases = false` is rejected.
+Omit `ReleaseVersion` while keeping `UseReleases = true` to follow the environment's active release. If no active release exists, reads fail with `409` and `ErrorCode == "active_release_not_configured"`; they never fall back to working parameters. Source and selector are fixed for the client's lifetime, so construct another client to use a different source or selector. When `UseReleases` is `false` (the default), `ReleaseVersion` is normalized and retained but ignored for requests and cache identity.
 
 ## Fetch all values or a prefix group
 

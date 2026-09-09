@@ -169,7 +169,7 @@ const nona = createNonaClient({
 
 Use an exact version such as `1.1.0` for a fixed snapshot. Use a line such as `1.1.x` to read the highest patch in that line.
 
-Omit `releaseVersion` while keeping `useReleases: true` to follow the environment's active release. If no active release exists, reads fail with `409` and `errorCode === "active_release_not_configured"`; they never fall back to working parameters. Source and selector are fixed for the client's lifetime, so create another client for a different source or selector. A non-empty `releaseVersion` with `useReleases: false` is rejected.
+Omit `releaseVersion` while keeping `useReleases: true` to follow the environment's active release. If no active release exists, reads fail with `409` and `errorCode === "active_release_not_configured"`; they never fall back to working parameters. Source and selector are fixed for the client's lifetime, so create another client for a different source or selector. When `useReleases` is `false` (the default), `releaseVersion` is normalized and retained but ignored for requests and cache identity.
 
 ## Handle HTTP errors
 

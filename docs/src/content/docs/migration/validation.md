@@ -98,7 +98,7 @@ Use a checklist like this:
 Do not end validation in the admin UI. Run one actual read from the same kind of app that will use the config:
 
 ```bash
-curl "https://nona.example.com/api/production/parameters/Features%3ACheckout" \
+curl "https://nona.example.com/api/environments/production/parameters/Features%3ACheckout" \
   -H "X-Api-Key: <production-client-or-server-key>"
 ```
 
