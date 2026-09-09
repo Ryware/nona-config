@@ -47,7 +47,7 @@ data class NonaOptions(
     val apiKey: String? = null,
     /** Read immutable release snapshots instead of working parameters. */
     val useReleases: Boolean = false,
-    /** Pin to an exact release (`1.4.0`) or a release line (`1.4.x`). */
+    /** Pin to an exact release (`1.4.0`) or a release line (`1.4.x`) when release mode is enabled. */
     val releaseVersion: String? = null,
     /** Only load keys under this prefix, for example `Features:`. */
     val prefix: String? = null,
@@ -64,11 +64,12 @@ data class NonaOptions(
         require(environmentId.isNotBlank() && environmentId != "." && environmentId != "..") {
             "environmentId must be nonblank and cannot be a dot path segment"
         }
+        val normalizedReleaseVersion = releaseVersion?.trim()
+        require(!useReleases || normalizedReleaseVersion != "." && normalizedReleaseVersion != "..") {
+            "releaseVersion cannot be a dot path segment"
+        }
         require(apiKey == null || apiKey.none { it.isISOControl() }) {
             "apiKey cannot contain control characters"
-        }
-        require(useReleases || releaseVersion.isNullOrBlank()) {
-            "releaseVersion requires useReleases to be true"
         }
         require(minimumFetchInterval.isFinite() && minimumFetchInterval >= Duration.ZERO) {
             "minimumFetchInterval must be finite and nonnegative"

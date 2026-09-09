@@ -293,16 +293,16 @@ class NonaConfig internal constructor(
 
     private fun snapshotUrl(): String {
         val base = options.normalizedBaseUrl()
-        val releaseVersion = options.releaseVersion?.trim()?.takeIf { it.isNotEmpty() }
+        val releaseVersion = options.releaseVersion?.trim()?.takeIf { options.useReleases && it.isNotEmpty() }
         val query = buildList {
-            releaseVersion?.let { add("version=" + encode(it)) }
             options.prefix?.let { add("prefix=" + encode(it)) }
         }.joinToString("&")
 
         val path = if (options.useReleases) {
-            "$base/api/${encode(options.environmentId)}/releases/parameters"
+            val release = releaseVersion?.let(::encode) ?: "active"
+            "$base/api/environments/${encode(options.environmentId)}/releases/$release/parameters"
         } else {
-            "$base/api/${encode(options.environmentId)}/parameters"
+            "$base/api/environments/${encode(options.environmentId)}/parameters"
         }
         return if (query.isEmpty()) path else "$path?$query"
     }

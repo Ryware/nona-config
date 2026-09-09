@@ -115,7 +115,7 @@ Each successful fetch is written to the app's private files, bound to the server
 | `connectTimeout` / `readTimeout` | 10 seconds | Network timeouts |
 | `maxResponseBytes` | 8 MiB | Decoded response limit for the default HTTP transport |
 
-Set `useReleases = true` without a version to follow the active release. A non-empty `releaseVersion` is valid only in release mode. Source selection is fixed at construction, so use another `NonaConfig` instance for a different source or selector. Failed refreshes preserve the last-known-good snapshot and never switch sources.
+Set `useReleases = true` without a version to follow the active release. When `useReleases` is `false` (the default), `releaseVersion` is retained in the options but ignored for requests and persistent cache identity. Source selection is fixed at construction, so use another `NonaConfig` instance for a different source or selector. Failed refreshes preserve the last-known-good snapshot and never switch sources.
 
 ## Use HTTPS
 

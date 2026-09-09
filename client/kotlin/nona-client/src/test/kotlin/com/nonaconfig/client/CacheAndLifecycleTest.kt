@@ -21,6 +21,10 @@ class CacheAndLifecycleTest {
             options.copy(useReleases = true).cacheIdentity(),
             options.copy(useReleases = true, releaseVersion = "1.0.0").cacheIdentity(),
         )
+        assertEquals(
+            options.copy(releaseVersion = "1.0.0").cacheIdentity(),
+            options.copy(releaseVersion = "2.0.0").cacheIdentity(),
+        )
         assertEquals(options.cacheIdentity(), options.copy(baseUrl = "https://NONA.test:443/").cacheIdentity())
         assertFalse(options.cacheIdentity().contains("frontend"))
     }

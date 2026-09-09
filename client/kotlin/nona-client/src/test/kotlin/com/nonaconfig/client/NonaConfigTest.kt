@@ -80,7 +80,7 @@ class NonaConfigTest {
         assertEquals("""{"color":"green"}""", config.getString("Theme"))
 
         assertEquals(1, http.requests.size, "reads must not touch the network")
-        assertEquals("https://nona.test/api/production/parameters", http.requests[0].first)
+        assertEquals("https://nona.test/api/environments/production/parameters", http.requests[0].first)
         assertEquals("frontend-key", http.requests[0].second["X-Api-Key"])
     }
 
@@ -325,7 +325,7 @@ class NonaConfigTest {
         config.fetch()
 
         assertEquals(
-            "https://nona.test/api/pre%20production/releases/parameters?version=1.4.x&prefix=Features%3A",
+            "https://nona.test/api/environments/pre%20production/releases/1.4.x/parameters?prefix=Features%3A",
             http.requests.single().first,
         )
         assertNull(http.requests.single().second["X-Api-Key"], "no key configured, no header")
@@ -340,22 +340,45 @@ class NonaConfigTest {
                 baseUrl = "https://nona.test",
                 environmentId = "production",
                 useReleases = true,
+                releaseVersion = "  ",
             ),
         )
 
         config.fetch()
 
-        assertEquals("https://nona.test/api/production/releases/parameters", http.requests.single().first)
+        assertEquals(
+            "https://nona.test/api/environments/production/releases/active/parameters",
+            http.requests.single().first,
+        )
     }
 
     @Test
-    fun `release selector is rejected when release mode is disabled`() {
-        assertFailsWith<IllegalArgumentException> {
-            NonaOptions(
+    fun `release selector is retained but ignored when release mode is disabled`() = runTest {
+        val http = FakeHttpClient { ok() }
+        val options = NonaOptions(
                 baseUrl = "https://nona.test",
                 environmentId = "production",
-                releaseVersion = "1.4.x",
+                releaseVersion = "..",
             )
+        val config = config(http, options = options)
+
+        config.fetch()
+
+        assertEquals("..", options.releaseVersion)
+        assertEquals("https://nona.test/api/environments/production/parameters", http.requests.single().first)
+    }
+
+    @Test
+    fun `release mode rejects dot segment selectors before fetching`() {
+        for (selector in listOf(".", " .. ")) {
+            assertFailsWith<IllegalArgumentException> {
+                NonaOptions(
+                    baseUrl = "https://nona.test",
+                    environmentId = "production",
+                    useReleases = true,
+                    releaseVersion = selector,
+                )
+            }
         }
     }
 
