@@ -93,6 +93,9 @@ public class GetReleaseConfigEntryValueQueryHandler(
         if (releaseEntry.Entry is null)
             return Failure("Config entry not found", RuntimeConfigErrorCodes.ConfigEntryNotFound);
 
+        if (!await RuntimeApiKeyValidation.IsCurrentAsync(apiKeyRepository, apiKeyHash, lookupResult, cancellationToken))
+            return Failure("Invalid API key", RuntimeConfigErrorCodes.InvalidApiKey);
+
         return new GetConfigEntryValueResult(
             true,
             releaseEntry.Entry.Value,

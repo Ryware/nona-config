@@ -52,10 +52,12 @@ public sealed class InMemoryApiKeyRepository : IApiKeyRepository
 
     public Task AddAsync(ApiKey apiKey, CancellationToken ct = default)
     {
-        if (apiKey.Id == 0)
-            apiKey.Id = Interlocked.Increment(ref _nextId);
-
-        _apiKeys[apiKey.Id] = apiKey;
+        lock (InMemoryRepositoryGate.SyncRoot)
+        {
+            if (apiKey.Id == 0)
+                apiKey.Id = Interlocked.Increment(ref _nextId);
+            _apiKeys[apiKey.Id] = apiKey;
+        }
         return Task.CompletedTask;
     }
 
@@ -63,6 +65,23 @@ public sealed class InMemoryApiKeyRepository : IApiKeyRepository
     {
         _apiKeys.TryRemove(id, out _);
         return Task.CompletedTask;
+    }
+
+    internal void DeleteProject(string projectName)
+    {
+        foreach (var item in _apiKeys.Values)
+        {
+            if (string.Equals(item.Project, projectName, StringComparison.OrdinalIgnoreCase))
+                _apiKeys.TryRemove(item.Id, out _);
+        }
+    }
+
+    internal void DeleteEnvironment(string projectName, string environmentName)
+    {
+        foreach (var item in _apiKeys.Values)
+            if (string.Equals(item.Project, projectName, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(item.Environment, environmentName, StringComparison.OrdinalIgnoreCase))
+                _apiKeys.TryRemove(item.Id, out _);
     }
 
     internal void RenameEnvironment(string projectName, string currentName, string newName)

@@ -81,7 +81,7 @@ public class UpdateSharedParameterCommandHandler(
             Environment = existingEntry.Environment,
             Key = existingEntry.Key,
             Value = request.Value,
-            ContentType = contentType,
+            ContentType = existingEntry.ContentType,
             Description = existingEntry.Description,
             Unit = existingEntry.Unit,
             Scope = existingEntry.Scope,
@@ -89,9 +89,10 @@ public class UpdateSharedParameterCommandHandler(
             UpdatedAt = now
         };
 
-        var savedEntry = await configEntryRepository.AddVersionAsync(
+        var savedEntry = await configEntryRepository.UpdateSharedValueAsync(
             updatedEntry,
-            SharedParameterMapping.ResolveActor(shareLink),
+            shareLink,
+            now,
             cancellationToken);
 
         if (savedEntry is null)

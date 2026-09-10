@@ -229,9 +229,9 @@ public class ConfigEntryUpdateReadHistoryFlowTests
 
         var projectRepository = new InMemoryProjectRepository();
         var environmentRepository = new InMemoryEnvironmentRepository();
-        var configEntryRepository = new InMemoryConfigEntryRepository();
-        var configReleaseRepository = new InMemoryConfigReleaseRepository();
         var shareLinkRepository = new InMemoryParameterShareLinkRepository();
+        var configEntryRepository = new InMemoryConfigEntryRepository(shareLinkRepository);
+        var configReleaseRepository = new InMemoryConfigReleaseRepository();
         var apiKeyRepository = new InMemoryApiKeyRepository(projectRepository);
         var accessService = new AllowAllProjectAccessService();
         var currentUser = new MutableCurrentUserService("alice");

@@ -52,6 +52,9 @@ public class GetConfigEntryValueQueryHandler(
         if (configEntry is null || (configEntry.Scope & apiKeyScope) == 0)
             return Failure("Config entry not found", RuntimeConfigErrorCodes.ConfigEntryNotFound);
 
+        if (!await RuntimeApiKeyValidation.IsCurrentAsync(apiKeyRepository, apiKeyHash, lookupResult, cancellationToken))
+            return Failure("Invalid API key", RuntimeConfigErrorCodes.InvalidApiKey);
+
         return Success(configEntry.Value, configEntry.ContentType);
     }
 

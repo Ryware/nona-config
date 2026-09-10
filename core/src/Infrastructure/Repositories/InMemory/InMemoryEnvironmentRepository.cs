@@ -11,7 +11,7 @@ public class InMemoryEnvironmentRepository : IEnvironmentRepository
     private readonly InMemoryConfigReleaseRepository? _configReleaseRepository;
     private readonly InMemoryApiKeyRepository? _apiKeyRepository;
     private readonly InMemoryParameterShareLinkRepository? _parameterShareLinkRepository;
-    private readonly object _renameGate = new();
+    private readonly object _renameGate = InMemoryRepositoryGate.SyncRoot;
 
     public InMemoryEnvironmentRepository()
     {
@@ -64,7 +64,12 @@ public class InMemoryEnvironmentRepository : IEnvironmentRepository
 
     public Task DeleteAsync(string projectName, string environmentName, CancellationToken ct = default)
     {
-        _environments.TryRemove(GetKey(projectName, environmentName), out _);
+        lock (_renameGate)
+        {
+            _apiKeyRepository?.DeleteEnvironment(projectName, environmentName);
+            _parameterShareLinkRepository?.DeleteEnvironment(projectName, environmentName);
+            _environments.TryRemove(GetKey(projectName, environmentName), out _);
+        }
         return Task.CompletedTask;
     }
 

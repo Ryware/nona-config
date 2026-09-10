@@ -17,6 +17,46 @@ public class ApiKeyCommandTests
     private const string EnvironmentName = "production";
 
     [Test]
+    public async Task RecreatedEnvironmentDuringIssuanceDoesNotReceiveCredential()
+    {
+        var fixture = new TestFixture();
+        fixture.SetupAsSystemAdmin();
+        SetupProject(fixture);
+        fixture.SetupEnvironmentExists(ProjectName, EnvironmentName);
+        fixture.ApiKeyRepository.When(repository => repository.AddAsync(Arg.Any<ApiKey>(), Arg.Any<CancellationToken>()))
+            .Do(call =>
+            {
+                call.ArgAt<ApiKey>(0).Id = 43;
+                fixture.EnvironmentRepository.GetAsync(ProjectName, EnvironmentName, Arg.Any<CancellationToken>())
+                    .Returns(new ProjectEnvironment { Project = ProjectName, Name = EnvironmentName, CreatedAt = DateTime.UtcNow.AddDays(1) });
+            });
+        var result = await CreateCreateHandler(fixture).Handle(new CreateApiKeyCommand(ProjectName, "key", EnvironmentName, null), default);
+        await Assert.That(result.Success).IsFalse();
+        await Assert.That(result.ApiKey).IsNull();
+        await fixture.ApiKeyRepository.Received(1).DeleteAsync(43, CancellationToken.None);
+    }
+
+    [Test]
+    public async Task RecreatedProjectDuringIssuanceDoesNotReceiveOldCredential()
+    {
+        var fixture = new TestFixture();
+        fixture.SetupAsSystemAdmin();
+        SetupProject(fixture);
+        fixture.ApiKeyRepository.When(repository => repository.AddAsync(Arg.Any<ApiKey>(), Arg.Any<CancellationToken>()))
+            .Do(call =>
+            {
+                call.ArgAt<ApiKey>(0).Id = 42;
+                fixture.ProjectRepository.GetByNameAsync(ProjectName, Arg.Any<CancellationToken>())
+                    .Returns(new Project { Name = ProjectName, CreatedAt = DateTime.UtcNow.AddDays(1) });
+            });
+        var result = await CreateCreateHandler(fixture).Handle(
+            new CreateApiKeyCommand(ProjectName, "key", null, null), default);
+        await Assert.That(result.Success).IsFalse();
+        await Assert.That(result.ApiKey).IsNull();
+        await fixture.ApiKeyRepository.Received(1).DeleteAsync(42, CancellationToken.None);
+    }
+
+    [Test]
     public async Task SystemAdmin_CanCreateProjectScopedApiKey()
     {
         var fixture = new TestFixture();

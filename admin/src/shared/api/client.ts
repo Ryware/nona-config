@@ -1,3 +1,5 @@
+import { captureSession, sessionToken } from "./session";
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || window.location.origin;
 
 const ALLOW_401_ENDPOINTS = [
@@ -5,7 +7,7 @@ const ALLOW_401_ENDPOINTS = [
   "/auth/first-time",
   "/auth/sso/google",
   "/auth/sso/microsoft",
-  "/auth/sso/config",
+  "/auth/sso/config"
 ];
 
 function isAllowlisted401Endpoint(endpoint: string) {
@@ -37,7 +39,9 @@ function getValidationErrorMessage(payload: unknown): string | undefined {
     .flatMap(([field, values]) =>
       Array.isArray(values)
         ? values
-            .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+            .filter(
+              (value): value is string => typeof value === "string" && value.trim().length > 0
+            )
             .map(value => `${field}: ${value}`)
         : []
     );
@@ -53,18 +57,24 @@ function getErrorMessage(payload: unknown): string {
 
   const error = payload as Record<string, unknown>;
   const fallbackFields = [error.detail, error.error, error.message, error.title];
-  return fallbackFields.find(
-    (value): value is string => typeof value === "string" && value.trim().length > 0
-  ) ?? "Request failed";
+  return (
+    fallbackFields.find(
+      (value): value is string => typeof value === "string" && value.trim().length > 0
+    ) ?? "Request failed"
+  );
 }
 
 export class ApiClient {
   private getAuthHeader(): HeadersInit {
-    const token = localStorage.getItem("auth_token") || sessionStorage.getItem("auth_token");
+    const token = sessionToken();
     return token ? { Authorization: `Bearer ${token}` } : {};
   }
 
-  private async send(endpoint: string, options: RequestInit = {}): Promise<Response> {
+  private async send(
+    endpoint: string,
+    options: RequestInit,
+    assertSession: () => void
+  ): Promise<Response> {
     const url = `${API_BASE_URL}${endpoint}`;
 
     const response = await fetch(url, {
@@ -72,10 +82,11 @@ export class ApiClient {
       headers: {
         "Content-Type": "application/json",
         ...this.getAuthHeader(),
-        ...options.headers,
-      },
+        ...options.headers
+      }
     });
 
+    assertSession();
     if (!response.ok) {
       if (response.status === 401 && !isAllowlisted401Endpoint(endpoint)) {
         // Signal the auth store to clear the session and redirect.
@@ -83,37 +94,39 @@ export class ApiClient {
         window.dispatchEvent(new CustomEvent("auth:unauthorized"));
       }
 
-      const error = await response
-        .json()
-        .catch(() => ({ detail: "An error occurred" }));
-      throw new ApiRequestError(
-        getErrorMessage(error),
-        error.errorCode,
-      );
+      const error = await response.json().catch(() => ({ detail: "An error occurred" }));
+      assertSession();
+      throw new ApiRequestError(getErrorMessage(error), error.errorCode);
     }
 
     return response;
   }
 
   async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const response = await this.send(endpoint, options);
+    const assertSession = captureSession();
+    const response = await this.send(endpoint, options, assertSession);
 
     // Handle 204 No Content
     if (response.status === 204) {
       return {} as T;
     }
 
-    return response.json();
+    const data = await response.json();
+    assertSession();
+    return data;
   }
 
   async getBlob(endpoint: string): Promise<{ blob: Blob; fileName?: string }> {
-    const response = await this.send(endpoint, { method: "GET" });
+    const assertSession = captureSession();
+    const response = await this.send(endpoint, { method: "GET" }, assertSession);
     const disposition = response.headers.get("Content-Disposition");
     const encodedFileName = disposition?.match(/filename\*?=(?:UTF-8''|")?([^";]+)/i)?.[1];
 
+    const blob = await response.blob();
+    assertSession();
     return {
-      blob: await response.blob(),
-      fileName: encodedFileName ? decodeURIComponent(encodedFileName) : undefined,
+      blob,
+      fileName: encodedFileName ? decodeURIComponent(encodedFileName) : undefined
     };
   }
 
@@ -124,14 +137,14 @@ export class ApiClient {
   async post<T>(endpoint: string, data?: unknown): Promise<T> {
     return this.request<T>(endpoint, {
       method: "POST",
-      body: data ? JSON.stringify(data) : undefined,
+      body: data ? JSON.stringify(data) : undefined
     });
   }
 
   async put<T>(endpoint: string, data?: unknown): Promise<T> {
     return this.request<T>(endpoint, {
       method: "PUT",
-      body: data ? JSON.stringify(data) : undefined,
+      body: data ? JSON.stringify(data) : undefined
     });
   }
 

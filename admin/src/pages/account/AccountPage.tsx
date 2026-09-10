@@ -1,3 +1,5 @@
+import { useNavigate } from "@solidjs/router";
+import { authStore } from "../../entities/auth/model/store";
 import { Title } from "@solidjs/meta";
 import { useMutation, useQuery } from "@tanstack/solid-query";
 import { createSignal, Show } from "solid-js";
@@ -14,6 +16,7 @@ import { PasswordStrengthMeter } from "../../widgets/auth-shell/PasswordStrength
 
 export default function AccountPage() {
   const { addToast } = useToast();
+  const navigate = useNavigate();
   const [currentPassword, setCurrentPassword] = createSignal("");
   const [newPassword, setNewPassword] = createSignal("");
   const [confirmPassword, setConfirmPassword] = createSignal("");
@@ -37,6 +40,8 @@ export default function AccountPage() {
       setConfirmPassword("");
       setError("");
       addToast(MSG.PASSWORD_CHANGED, "success");
+      authStore.clearSession();
+      navigate("/login", { replace: true });
     },
     onError: caught => setError(changePasswordError(caught))
   }));

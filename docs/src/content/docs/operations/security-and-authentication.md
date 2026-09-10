@@ -152,3 +152,17 @@ Share links are useful for narrow temporary collaboration, but they are not a re
 - [Users and project access](/docs/concepts/users-and-project-access)
 - [Parameter share links](/docs/parameter-share-links)
 - [Deployment](/docs/deployment)
+
+### Session and project credential revocation
+
+Changing or resetting a password invalidates all previously issued sessions, including the current session. Sign in again using the new password. JWTs issued before credential binding was introduced are also rejected after upgrading.
+
+Deleting a project removes its API keys and parameter share links. Recreating a project with the same name requires new credentials.
+
+### Resource deletion and CLI authorization
+
+Deleting an environment revokes its environment-scoped API keys and all parameter share links. Deleting an individual parameter revokes its share links, including during bulk deletion. Recreating the same names does not restore these capabilities; issue new credentials for the replacement resources. Project-wide API keys retain their project-wide scope.
+
+CLI browser login requires an explicit **Authorize CLI** confirmation showing the account and local callback destination, including after signing in. Approve it only when you initiated login from your terminal. The CLI callback protocol is unchanged.
+
+Session transitions clear cached administration data and reject responses started under the previous session. Initial administrator registration atomically allows only one successful bootstrap request.

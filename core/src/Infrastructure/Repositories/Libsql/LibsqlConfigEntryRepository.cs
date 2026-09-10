@@ -58,6 +58,53 @@ public sealed class LibsqlConfigEntryRepository : IConfigEntryRepository
         return await AddVersionSequentialAsync(entry, normalizedActor, ct);
     }
 
+    public async Task<ConfigEntry?> GetSharedAsync(ParameterShareLink link, DateTime now, CancellationToken ct = default)
+    {
+        var result = await _client.ExecuteAsync(
+            """
+            SELECT e.Project, e.Environment, e.Key, e.Value, e.ContentType, e.Description, e.Unit, e.Scope, e.ActiveVersion, e.CreatedAt, e.UpdatedAt
+            FROM ConfigEntries e JOIN ParameterShareLinks s
+              ON e.Project = s.Project COLLATE NOCASE AND e.Environment = s.Environment COLLATE NOCASE AND e.Key = s.Key COLLATE NOCASE
+            WHERE s.Id = @Id AND s.TokenHash = @TokenHash AND s.RevokedAt IS NULL AND julianday(s.ExpiresAt) > julianday(@Now)
+            """, LibsqlParameters.Create(("Id", link.Id), ("TokenHash", link.TokenHash), ("Now", now.ToString("O"))), ct);
+        return result.Rows.Count == 0 ? null : Map(result.Rows[0]);
+    }
+
+    public async Task<ConfigEntry?> UpdateSharedValueAsync(ConfigEntry entry, ParameterShareLink link, DateTime now, CancellationToken ct = default)
+    {
+        var parameters = LibsqlParameters.Create(
+            ("Project", entry.Project), ("Environment", entry.Environment), ("Key", entry.Key),
+            ("Value", entry.Value), ("ContentType", entry.ContentType), ("Now", now.ToString("O")),
+            ("LinkId", link.Id), ("TokenHash", link.TokenHash));
+        var results = await _client.ExecuteBatchAsync(
+        [
+            new LibsqlStatement(
+                """
+                UPDATE ConfigEntries
+                SET Value = @Value, UpdatedAt = @Now,
+                    ActiveVersion = (SELECT COALESCE(MAX(Version), 0) + 1 FROM ConfigEntryVersions
+                        WHERE Project = @Project COLLATE NOCASE AND Environment = @Environment COLLATE NOCASE AND Key = @Key COLLATE NOCASE)
+                WHERE Project = @Project COLLATE NOCASE AND Environment = @Environment COLLATE NOCASE AND Key = @Key COLLATE NOCASE
+                  AND ContentType = @ContentType
+                  AND EXISTS (SELECT 1 FROM ParameterShareLinks
+                    WHERE Id = @LinkId AND TokenHash = @TokenHash AND CanEdit = 1 AND RevokedAt IS NULL
+                      AND julianday(ExpiresAt) > julianday(@Now)
+                      AND Project = @Project COLLATE NOCASE AND Environment = @Environment COLLATE NOCASE AND Key = @Key COLLATE NOCASE)
+                RETURNING Project, Environment, Key, Value, ContentType, Description, Unit, Scope, ActiveVersion, CreatedAt, UpdatedAt
+                """, parameters),
+            new LibsqlStatement(
+                """
+                INSERT INTO ConfigEntryVersions (Project, Environment, Key, Version, Value, ContentType, Description, Unit, Scope, CreatedAt, Actor)
+                SELECT Project, Environment, Key, ActiveVersion, Value, ContentType, Description, Unit, Scope, UpdatedAt, @Actor
+                FROM ConfigEntries
+                WHERE Project = @Project COLLATE NOCASE AND Environment = @Environment COLLATE NOCASE AND Key = @Key COLLATE NOCASE
+                  AND changes() > 0
+                """, LibsqlParameters.Create(("Project", entry.Project), ("Environment", entry.Environment),
+                    ("Key", entry.Key), ("Actor", $"Shared link #{link.Id}")))
+        ], ct);
+        return results[0].Rows.Count == 0 ? null : Map(results[0].Rows[0]);
+    }
+
     public async Task<IReadOnlyList<ConfigEntryVersion>> ListVersionsAsync(string projectName, string environmentName, string key, CancellationToken ct = default)
     {
         var result = await _client.ExecuteAsync(
@@ -174,6 +221,9 @@ public sealed class LibsqlConfigEntryRepository : IConfigEntryRepository
     {
         await _client.ExecuteBatchAsync(
             [
+                new LibsqlStatement(
+                    "DELETE FROM ParameterShareLinks WHERE Project = @ProjectName COLLATE NOCASE AND Environment = @EnvironmentName COLLATE NOCASE AND Key = @Key COLLATE NOCASE",
+                    CreateKeyParameters(projectName, environmentName, key)),
                 new LibsqlStatement(
                     """
                     DELETE FROM ConfigEntryVersions
