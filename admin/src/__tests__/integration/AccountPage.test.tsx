@@ -105,7 +105,7 @@ describe('AccountPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(/at least 8 characters/i);
   });
 
-  it('changes the password, clears the form, and keeps the session', async () => {
+  it('changes the password, clears the form, and clears the session', async () => {
     renderPage();
 
     const current = await screen.findByLabelText(/current password/i) as HTMLInputElement;
@@ -120,6 +120,7 @@ describe('AccountPage', () => {
     expect(current.value).toBe('');
     expect(next.value).toBe('');
     expect(confirm.value).toBe('');
-    expect(localStorage.getItem('auth_token')).toBe(mockToken);
+    expect(localStorage.getItem('auth_token')).toBeNull();
+    expect(sessionStorage.getItem('auth_token')).toBeNull();
   });
 });

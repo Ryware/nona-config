@@ -36,10 +36,11 @@ public class CreateApiKeyCommandHandler(
             return new CreateApiKeyResult(false, null, "Invalid scope. Must be 'client', 'server', or 'all'.");
 
         string? environment = null;
+        ProjectEnvironment? resolvedEnvironment = null;
         if (!string.IsNullOrWhiteSpace(request.Environment))
         {
             var requestedEnvironment = request.Environment.Trim();
-            var resolvedEnvironment = await environmentRepository.GetAsync(
+            resolvedEnvironment = await environmentRepository.GetAsync(
                 project.Name,
                 requestedEnvironment,
                 cancellationToken);
@@ -65,6 +66,24 @@ public class CreateApiKeyCommandHandler(
         };
 
         await apiKeyRepository.AddAsync(apiKey, cancellationToken);
+
+        // Do not disclose a credential if its authorized project was replaced during issuance.
+        var currentProject = await projectRepository.GetByNameAsync(project.Name, cancellationToken);
+        if (currentProject is null || currentProject.Id != project.Id || currentProject.CreatedAt != project.CreatedAt)
+        {
+            await apiKeyRepository.DeleteAsync(apiKey.Id, CancellationToken.None);
+            return new CreateApiKeyResult(false, null, "Project changed during credential creation. Try again.");
+        }
+
+        if (resolvedEnvironment is not null)
+        {
+            var currentEnvironment = await environmentRepository.GetAsync(project.Name, request.Environment!.Trim(), cancellationToken);
+            if (currentEnvironment is null || currentEnvironment.CreatedAt != resolvedEnvironment.CreatedAt)
+            {
+                await apiKeyRepository.DeleteAsync(apiKey.Id, CancellationToken.None);
+                return new CreateApiKeyResult(false, null, "Environment changed during credential creation. Try again.");
+            }
+        }
 
         return new CreateApiKeyResult(true, apiKey.ToCreatedDto(secret), null);
     }

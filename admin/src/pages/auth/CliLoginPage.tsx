@@ -1,5 +1,6 @@
-import { onMount, Show } from "solid-js";
+import { createSignal, onMount, Show } from "solid-js";
 import { authStore } from "../../entities/auth/model/store";
+import { Button } from "../../shared/ui/button";
 import type { LoginResponse } from "../../types";
 import { AuthCard } from "../../widgets/auth-shell/AuthCard";
 import { AuthLayout } from "../../widgets/auth-shell/AuthLayout";
@@ -19,6 +20,7 @@ interface CliLoginCallback {
 
 export default function CliLoginPage() {
   const parsed = parseCliLoginRequest(window.location.search);
+  const [pending, setPending] = createSignal<CliLoginCallback>();
 
   onMount(() => {
     if (!parsed.request || !authStore.isAuthenticated()) return;
@@ -27,7 +29,7 @@ export default function CliLoginPage() {
     if (!token) return;
 
     const session = authStore.getSession();
-    redirectToCliCallback(parsed.request, {
+    setPending({
       token,
       username: session?.username ?? session?.email ?? "",
       role: session?.role ?? "",
@@ -53,11 +55,40 @@ export default function CliLoginPage() {
         </AuthLayout>
       }
     >
-      <Show when={!authStore.isAuthenticated()} fallback={null}>
+      <Show
+        when={!pending()}
+        fallback={
+          <AuthLayout>
+            <AuthCard title="Authorize CLI" headingTestId="cli-authorization-heading">
+              <p class="mb-4">
+                Allow the CLI on this computer to access your Nona account as {pending()?.username}?
+              </p>
+              <p class="mb-4">
+                Callback: {parsed.request?.redirectUrl.origin}. Only continue if you started CLI
+                login yourself.
+              </p>
+              <Button
+                type="button"
+                onClick={() => redirectToCliCallback(parsed.request!, pending()!)}
+              >
+                Authorize CLI
+              </Button>
+              <Button
+                type="button"
+                onClick={() => {
+                  window.location.href = "/projects";
+                }}
+              >
+                Cancel
+              </Button>
+            </AuthCard>
+          </AuthLayout>
+        }
+      >
         <AuthLayout>
           <LoginPage
             onLoginSuccess={(result: LoginResponse) =>
-              redirectToCliCallback(parsed.request!, {
+              setPending({
                 token: result.token,
                 username: result.username ?? "",
                 role: result.role,

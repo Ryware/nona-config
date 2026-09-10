@@ -20,6 +20,7 @@ export default function App(): JSX.Element {
       // Listen for unauthorized events dispatched by the API client.
       // Using a custom event keeps shared/api/client.ts free of entity-layer imports.
       createEventListener(window, "auth:unauthorized", () => authStore.handleUnauthorized());
+      createEventListener(window, "storage", event => authStore.handleStorageChange(event));
     }
   });
 
@@ -85,14 +86,8 @@ export default function App(): JSX.Element {
                     path="/projects"
                     component={lazy(() => import("../pages/projects/ProjectsPage"))}
                   />
-                  <Route
-                    path="/projects/:slug/environments"
-                    component={EnvironmentsSection}
-                  />
-                  <Route
-                    path="/projects/:slug/shared-links"
-                    component={SharedLinksSection}
-                  />
+                  <Route path="/projects/:slug/environments" component={EnvironmentsSection} />
+                  <Route path="/projects/:slug/shared-links" component={SharedLinksSection} />
                   <Route path="/projects/:slug/api-keys" component={ApiKeysSection} />
                   <Route path="/projects/:slug/releases" component={ReleasesSection} />
                   <Route path="/projects/:slug" component={ParametersSection} />
@@ -101,7 +96,10 @@ export default function App(): JSX.Element {
                     component={lazy(() => import("../pages/account/AccountPage"))}
                   />
                   <Route component={AdminRoute}>
-                    <Route path="/users" component={lazy(() => import("../pages/users/UsersPage"))} />
+                    <Route
+                      path="/users"
+                      component={lazy(() => import("../pages/users/UsersPage"))}
+                    />
                     <Route
                       path="/audit-logs"
                       component={lazy(() => import("../pages/audit-logs/AuditLogsPage"))}
@@ -144,7 +142,11 @@ function ProtectedRoute(props: { children?: JSX.Element }) {
 }
 
 function AdminRoute(props: { children?: JSX.Element }) {
-  return <Show when={canManageUsers()} fallback={<AccessDenied />}>{props.children}</Show>;
+  return (
+    <Show when={canManageUsers()} fallback={<AccessDenied />}>
+      {props.children}
+    </Show>
+  );
 }
 
 const AuthLayout = lazy(() =>
@@ -154,7 +156,10 @@ const AuthLayout = lazy(() =>
 // Public route layout (redirect to dashboard if already authenticated)
 function PublicRoute(props: { children?: JSX.Element }) {
   return (
-    <Show when={!authService.isAuthenticated()} fallback={<Navigate href={getActiveProjectHref()} />}>
+    <Show
+      when={!authService.isAuthenticated()}
+      fallback={<Navigate href={getActiveProjectHref()} />}
+    >
       <AuthLayout>{props.children}</AuthLayout>
     </Show>
   );

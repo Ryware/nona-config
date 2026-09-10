@@ -118,13 +118,13 @@ public sealed class LibsqlProjectRepository : IProjectRepository
 
     public async Task DeleteAsync(string name, CancellationToken ct = default)
     {
-        await _client.ExecuteAsync(
-            """
-            DELETE FROM Projects
-            WHERE Name = @Name COLLATE NOCASE
-            """,
-            LibsqlParameters.Create(("Name", name)),
-            ct);
+        var parameters = LibsqlParameters.Create(("Name", name));
+        await _client.ExecuteBatchAsync(
+        [
+            new LibsqlStatement("DELETE FROM ApiKeys WHERE Project = @Name COLLATE NOCASE", parameters),
+            new LibsqlStatement("DELETE FROM ParameterShareLinks WHERE Project = @Name COLLATE NOCASE", parameters),
+            new LibsqlStatement("DELETE FROM Projects WHERE Name = @Name COLLATE NOCASE", parameters)
+        ], ct);
     }
 
     public async Task<int> CountAsync(CancellationToken ct = default)

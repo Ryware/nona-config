@@ -8,6 +8,7 @@ public class InMemoryUserRepository : IUserRepository
 {
     private readonly ConcurrentDictionary<string, User> _users = new(StringComparer.OrdinalIgnoreCase);
     private long _nextId = 1;
+    private readonly object _userGate = new();
 
     public Task<User?> GetAsync(string email, CancellationToken ct = default)
     {
@@ -53,16 +54,28 @@ public class InMemoryUserRepository : IUserRepository
 
     public Task AddAsync(User user, CancellationToken ct = default)
     {
-        if (user.Id == 0)
-            user.Id = Interlocked.Increment(ref _nextId);
-        _users.TryAdd(user.Email, user);
+        lock (_userGate)
+        {
+            if (user.Id == 0)
+                user.Id = Interlocked.Increment(ref _nextId);
+            _users.TryAdd(user.Email, user);
+        }
         return Task.CompletedTask;
     }
 
+    public Task<bool> TryAddFirstUserAsync(User user, CancellationToken ct = default)
+    {
+        lock (_userGate)
+        {
+            if (!_users.IsEmpty) return Task.FromResult(false);
+            AddAsync(user, ct);
+            return Task.FromResult(true);
+        }
+    }
 
     public Task UpdateAsync(User user, CancellationToken ct = default)
     {
-        _users[user.Email] = user;
+        lock (_userGate) _users[user.Email] = user;
         return Task.CompletedTask;
     }
 
@@ -99,7 +112,7 @@ public class InMemoryUserRepository : IUserRepository
 
     public Task<bool> DeleteAsync(string email, CancellationToken ct = default)
     {
-        return Task.FromResult(_users.TryRemove(email, out _));
+        lock (_userGate) return Task.FromResult(_users.TryRemove(email, out _));
     }
 
     public Task<int> CountAsync(CancellationToken ct = default)

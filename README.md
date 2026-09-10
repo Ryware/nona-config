@@ -303,8 +303,10 @@ docker compose -f primary-replica-prod.yml up -d
 
 | Service | API port | libSQL port | gRPC port |
 |---------|----------|-------------|-----------|
-| `nona-primary` | `18081` | `19080` | `15001` |
-| `nona-replica` | `18082` | `19082` | — |
+| `nona-primary` | `18081` | internal only | internal only |
+| `nona-replica` | `18082` | internal only | — |
+
+The replication compose files publish only the Nona API. SQL HTTP and replication gRPC stay on the private container network; Nona authentication does not protect these database listeners.
 
 The replica connects to the primary over gRPC and syncs automatically.
 

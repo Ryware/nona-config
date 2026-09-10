@@ -105,7 +105,11 @@ public class GetAllReleaseConfigValuesQueryHandler(
             ConfigEntryPrefix.Normalize(request.Prefix),
             release);
         if (GetAllConfigValuesQueryHandler.MatchesIfNoneMatch(request.IfNoneMatch, etag))
+        {
+            if (!await RuntimeApiKeyValidation.IsCurrentAsync(apiKeyRepository, apiKeyHash, lookupResult, cancellationToken))
+                return Failure("Invalid API key", RuntimeConfigErrorCodes.InvalidApiKey);
             return new GetAllConfigValuesResult(true, null, null, etag, true);
+        }
 
         var entries = string.IsNullOrEmpty(request.Prefix)
             ? await configReleaseRepository.ListEntriesAsync(
@@ -131,6 +135,9 @@ public class GetAllReleaseConfigValuesQueryHandler(
                     ConfigEntryContentTypes.Normalize(entry.ContentType)
                         ?? ConfigEntryContentTypes.Infer(entry.Value)),
                 StringComparer.Ordinal);
+
+        if (!await RuntimeApiKeyValidation.IsCurrentAsync(apiKeyRepository, apiKeyHash, lookupResult, cancellationToken))
+            return Failure("Invalid API key", RuntimeConfigErrorCodes.InvalidApiKey);
 
         return new GetAllConfigValuesResult(true, values, null, etag);
     }

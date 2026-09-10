@@ -6,6 +6,10 @@ public interface IConfigEntryRepository
 {
     Task<ConfigEntry?> GetAsync(string projectName, string environmentName, string key, CancellationToken ct = default);
 
+    Task<ConfigEntry?> GetSharedAsync(ParameterShareLink link, DateTime now, CancellationToken ct = default);
+
+    Task<ConfigEntry?> UpdateSharedValueAsync(ConfigEntry entry, ParameterShareLink link, DateTime now, CancellationToken ct = default);
+
     Task<ConfigEntry?> AddVersionAsync(ConfigEntry entry, string actor, CancellationToken ct = default);
 
     Task<IReadOnlyList<ConfigEntryVersion>> ListVersionsAsync(string projectName, string environmentName, string key, CancellationToken ct = default);

@@ -109,6 +109,12 @@ public sealed class LibsqlUserRepository : IUserRepository
     }
 
     public async Task AddAsync(User user, CancellationToken ct = default)
+        => await InsertAsync(user, firstUserOnly: false, ct);
+
+    public Task<bool> TryAddFirstUserAsync(User user, CancellationToken ct = default)
+        => InsertAsync(user, firstUserOnly: true, ct);
+
+    private async Task<bool> InsertAsync(User user, bool firstUserOnly, CancellationToken ct)
     {
         var columns = new List<string>
         {
@@ -142,12 +148,16 @@ public sealed class LibsqlUserRepository : IUserRepository
         var values = columns.Select(column => $"@{column}");
         var sql = $"""
             INSERT INTO Users ({string.Join(", ", columns)})
-            VALUES ({string.Join(", ", values)})
+            SELECT {string.Join(", ", values)}
+            WHERE @FirstUserOnly = 0 OR NOT EXISTS (SELECT 1 FROM Users)
             """;
 
+        parameters["FirstUserOnly"] = firstUserOnly ? 1 : 0;
         var result = await _client.ExecuteAsync(sql, parameters, ct);
 
-        user.Id = result.LastInsertRowId ?? 0;
+        if (result.AffectedRowCount > 0)
+            user.Id = result.LastInsertRowId ?? 0;
+        return result.AffectedRowCount > 0;
     }
 
     public async Task UpdateAsync(User user, CancellationToken ct = default)

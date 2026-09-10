@@ -96,6 +96,9 @@ public class GetAllConfigValuesQueryHandler(
             normalizedPrefix,
             workingValues);
 
+        if (!await RuntimeApiKeyValidation.IsCurrentAsync(apiKeyRepository, apiKeyHash, lookupResult, cancellationToken))
+            return Failure("Invalid API key", RuntimeConfigErrorCodes.InvalidApiKey);
+
         return MatchesIfNoneMatch(request.IfNoneMatch, workingEtag)
             ? new GetAllConfigValuesResult(true, null, null, workingEtag, true)
             : new GetAllConfigValuesResult(true, workingValues, null, workingEtag);
