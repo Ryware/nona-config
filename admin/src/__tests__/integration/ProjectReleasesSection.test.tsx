@@ -785,6 +785,21 @@ describe('ProjectReleasesSection', () => {
     });
   });
 
+  it('renders clear active release as a compact secondary button', async () => {
+    renderProjectSections('/projects/my-app/releases');
+
+    const clearButton = await screen.findByRole('button', { name: 'Clear' });
+
+    expect(clearButton).toHaveClass(
+      'bg-surface-container-high',
+      'text-error',
+      'h-8',
+      'px-3',
+      'rounded-md',
+    );
+    expect(clearButton).not.toHaveClass('text-on-surface-variant');
+  });
+
   it('invalidates the confirmed environment when clearing active finishes after an environment switch', async () => {
     let resolveResponse: (() => void) | undefined;
     const clearRequests: string[] = [];

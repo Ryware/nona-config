@@ -1,5 +1,6 @@
 import { Show, createMemo } from "solid-js";
 
+import { Button } from "../../shared/ui/button";
 import { MIcon } from "../../shared/ui/icons";
 import type { ConfigRelease } from "../../types";
 import { ReleaseList } from "./ReleaseList";
@@ -57,14 +58,16 @@ export function ProjectReleases(props: ProjectReleasesProps) {
               )}
             </Show>
             <Show when={props.canManage && props.activeReleaseVersion}>
-              <button
+              <Button
                 type="button"
+                variant="secondary"
+                size="sm"
                 onClick={() => props.onClearActive()}
                 disabled={props.isActivating}
-                class="text-on-surface-variant hover:text-on-surface cursor-pointer border-0 bg-transparent p-0 text-[13px] font-semibold disabled:opacity-50"
+                class="text-error hover:text-error"
               >
                 Clear
-              </button>
+              </Button>
             </Show>
           </div>
         </div>
