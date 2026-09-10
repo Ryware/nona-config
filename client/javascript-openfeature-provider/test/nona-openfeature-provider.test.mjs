@@ -2,6 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { ErrorCode, OpenFeature } from "@openfeature/server-sdk";
 import { createNonaClient } from "nona-client";
+import {
+  configValueResponse,
+  jsonResponse,
+} from "../../javascript/test/helpers.mjs";
 import { createNonaOpenFeatureProvider } from "../dist/index.js";
 
 test("OpenFeature provider resolves typed values through the Nona client", async () => {
@@ -44,7 +48,7 @@ test("OpenFeature provider resolves typed values through the Nona client", async
     calls[0].init.headers.get("X-Api-Key"),
     "api-key",
   );
-  assert.equal(new URL(calls[0].url).pathname, "/api/production/enabled");
+  assert.equal(new URL(calls[0].url).pathname, "/api/environments/production/parameters/enabled");
 });
 
 test("OpenFeature provider returns defaults and flag-not-found details for missing Nona values", async () => {
@@ -53,7 +57,12 @@ test("OpenFeature provider returns defaults and flag-not-found details for missi
     apiKey: "api-key",
     environmentId: "production",
     fetch: async () =>
-      jsonResponse({ error: "Config entry not found" }, 404),
+      jsonResponse({
+        title: "Not Found",
+        status: 404,
+        detail: "Config entry not found",
+        errorCode: "config_entry_not_found",
+      }, 404),
   });
   const domain = `nona-js-missing-${Date.now()}`;
 
@@ -69,21 +78,46 @@ test("OpenFeature provider returns defaults and flag-not-found details for missi
   assert.equal(details.errorMessage, "Config entry not found");
 });
 
-function jsonResponse(body, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      "Content-Type": "application/json",
-    },
+test("OpenFeature provider keeps other HTTP failures as provider errors", async () => {
+  const provider = createNonaOpenFeatureProvider({
+    baseUrl: "https://nona.test",
+    apiKey: "api-key",
+    environmentId: "production",
+    fetch: async () => jsonResponse({
+      title: "Not Found",
+      status: 404,
+      detail: "Environment not found",
+      errorCode: "environment_not_found",
+    }, 404),
   });
-}
+  const domain = `nona-js-provider-error-${Date.now()}`;
+  await OpenFeature.setProviderAndWait(domain, provider);
 
-function configValueResponse(value, contentType = "text", status = 200) {
-  return new Response(value, {
-    status,
-    headers: {
-      "Content-Type": "application/json",
-      "X-Nona-Content-Type": contentType,
+  const details = await OpenFeature.getClient(domain).getBooleanDetails("missing", true);
+
+  assert.equal(details.value, true);
+  assert.equal(details.errorCode, ErrorCode.GENERAL);
+});
+
+test("OpenFeature provider passes release selection through nona-client", async () => {
+  const calls = [];
+  const provider = createNonaOpenFeatureProvider({
+    baseUrl: "https://nona.test",
+    apiKey: "api-key",
+    environmentId: "production",
+    useReleases: true,
+    releaseVersion: "2.1.x",
+    fetch: async (url, init) => {
+      calls.push({ url, init });
+      return configValueResponse("true", "boolean");
     },
   });
-}
+  const domain = `nona-js-release-${Date.now()}`;
+  await OpenFeature.setProviderAndWait(domain, provider);
+
+  assert.equal(await OpenFeature.getClient(domain).getBooleanValue("enabled", false), true);
+  assert.equal(
+    calls[0].url,
+    "https://nona.test/api/environments/production/releases/2.1.x/parameters/enabled",
+  );
+});

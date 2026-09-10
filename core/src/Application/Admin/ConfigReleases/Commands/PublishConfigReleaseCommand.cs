@@ -66,6 +66,28 @@ public class PublishConfigReleaseCommandHandler(
             if (validation.Failures.Count > 0)
                 return new PublishConfigReleaseResult(false, null, validation.Failures[0].ErrorMessage);
 
+            if (validation.Entries.Any(entry => !ConfigEntryKey.IsValidHierarchy(entry.Key)))
+            {
+                var legacyKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                var workingEntries = await configEntryRepository.ListAsync(projectName, request.EnvironmentName, cancellationToken);
+                legacyKeys.UnionWith(workingEntries.Select(entry => entry.Key));
+
+                var existingReleases = await configReleaseRepository.ListAsync(projectName, request.EnvironmentName, cancellationToken);
+                foreach (var existingRelease in existingReleases)
+                {
+                    var releaseWithEntries = await configReleaseRepository.GetAsync(
+                        projectName,
+                        request.EnvironmentName,
+                        existingRelease.Version,
+                        cancellationToken);
+                    if (releaseWithEntries is not null)
+                        legacyKeys.UnionWith(releaseWithEntries.Entries.Select(entry => entry.Key));
+                }
+
+                if (validation.Entries.Any(entry => !ConfigEntryKey.IsValidHierarchy(entry.Key) && !legacyKeys.Contains(entry.Key)))
+                    return new PublishConfigReleaseResult(false, null, ConfigEntryKey.HierarchyValidationError);
+            }
+
             snapshotEntries = validation.Entries
                 .Select(entry => new ConfigReleaseEntry
                 {
@@ -75,6 +97,8 @@ public class PublishConfigReleaseCommandHandler(
                     Key = entry.Key,
                     Value = entry.Value,
                     ContentType = entry.ContentType,
+                    Description = entry.Description,
+                    Unit = entry.Unit,
                     Scope = entry.Scope
                 })
                 .ToList();
@@ -94,6 +118,8 @@ public class PublishConfigReleaseCommandHandler(
                 Key = entry.Key,
                 Value = entry.Value,
                 ContentType = entry.ContentType,
+                Description = entry.Description,
+                Unit = entry.Unit,
                 Scope = entry.Scope
             }).ToList();
         }

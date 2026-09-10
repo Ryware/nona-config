@@ -15,9 +15,12 @@ import {
   syncActiveProject,
 } from "../../entities/project/model/active-project";
 import { projectKeys } from "../../entities/project/queries/keys";
+import { useUnsavedChanges } from "../../shared/hooks/useUnsavedChanges";
+import { getProjectPageSection } from "../../shared/lib/project-navigation";
 import { Select } from "../../shared/ui/select";
 import { ThemeToggle } from "../../shared/ui/ThemeToggle";
 import { Breadcrumbs } from "./Breadcrumbs";
+import { Tooltip, TooltipTrigger } from "../../shared/ui/tooltip";
 
 interface HeaderProps {
   onMenuToggle: () => void;
@@ -27,20 +30,22 @@ interface HeaderProps {
 const MANAGE_PROJECTS_OPTION = "__manage_projects__";
 const MANAGE_ENVIRONMENTS_OPTION = "__manage_environments__";
 
-export function getProjectNavigationPath(pathname: string, slug: string) {
-  if (pathname.endsWith("/environments")) {
+export function getProjectNavigationPath(pathname: string, search: string, slug: string) {
+  const projectSection = getProjectPageSection(pathname, search);
+
+  if (projectSection === "environments") {
     return `/projects/${slug}/environments`;
   }
 
-  if (pathname.endsWith("/shared-links")) {
+  if (projectSection === "sharedLinks") {
     return `/projects/${slug}/shared-links`;
   }
 
-  if (pathname.endsWith("/api-keys")) {
+  if (projectSection === "apiKeys") {
     return `/projects/${slug}/api-keys`;
   }
 
-  if (pathname.endsWith("/releases")) {
+  if (projectSection === "releases") {
     return `/projects/${slug}/releases`;
   }
 
@@ -48,6 +53,7 @@ export function getProjectNavigationPath(pathname: string, slug: string) {
 }
 
 export function Header(props: HeaderProps) {
+  const { requestAction } = useUnsavedChanges();
   const location = useLocation();
   const navigate = useNavigate();
   const canCreateProjects = canManageProjects();
@@ -111,13 +117,15 @@ export function Header(props: HeaderProps) {
   ]);
 
   const handleProjectChange = (slug: string) => {
-    if (slug === MANAGE_PROJECTS_OPTION) {
-      navigate("/projects");
-      return;
-    }
+    requestAction(() => {
+      if (slug === MANAGE_PROJECTS_OPTION) {
+        navigate("/projects");
+        return;
+      }
 
-    setActiveProjectSlug(slug);
-    navigate(getProjectNavigationPath(location.pathname, slug));
+      setActiveProjectSlug(slug);
+      navigate(getProjectNavigationPath(location.pathname, location.search, slug));
+    });
   };
 
   const handleEnvironmentChange = (environmentName: string) => {
@@ -126,32 +134,34 @@ export function Header(props: HeaderProps) {
       return;
     }
 
-    if (environmentName === MANAGE_ENVIRONMENTS_OPTION) {
-      navigate(`/projects/${project.urlSlug}/environments`);
-      return;
-    }
+    requestAction(() => {
+      if (environmentName === MANAGE_ENVIRONMENTS_OPTION) {
+        navigate(`/projects/${project.urlSlug}/environments`);
+        return;
+      }
 
-    setActiveEnvironmentName(project.urlSlug, environmentName);
+      setActiveEnvironmentName(project.urlSlug, environmentName);
+    });
   };
 
   return (
     <header class="sticky top-0 z-40 w-full shrink-0 border-b border-outline-variant/15 bg-background/80 backdrop-blur-md">
       <div class="flex min-h-14 items-center gap-3 px-5 md:px-7">
-        <button
+        <Tooltip content="Open navigation menu"><TooltipTrigger as="button"
           onClick={() => props.onMenuToggle()}
           class="lg:hidden -ml-1 flex items-center justify-center rounded-lg border-0 bg-transparent p-2 text-on-surface-variant cursor-pointer hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-          aria-label="Toggle navigation menu"
+          aria-label="Open navigation menu"
+          aria-expanded={props.isSidebarOpen}
+          data-tooltip-trigger
         >
-          <span class="material-symbols-outlined text-2xl">
-            {props.isSidebarOpen ? "close" : "menu"}
-          </span>
-        </button>
+          <span class="material-symbols-outlined text-2xl">menu</span>
+        </TooltipTrigger></Tooltip>
 
         <Breadcrumbs />
 
         <div class="hidden min-w-0 flex-[2] min-[1440px]:flex min-[1440px]:items-center min-[1440px]:justify-end min-[1440px]:gap-5">
           <div class="flex min-w-0 max-w-[36rem] flex-[1.15] items-center gap-3">
-            <span class="shrink-0 text-[11px] font-semibold uppercase tracking-[0.08em] text-on-surface-variant">
+            <span class="shrink-0 text-[12px] font-semibold uppercase tracking-[0.08em] text-on-surface-variant">
               Active Project
             </span>
             <Select
@@ -160,12 +170,12 @@ export function Header(props: HeaderProps) {
               options={projectOptions()}
               placeholder={projectsQuery.isLoading ? "Loading projects..." : "---"}
               disabled={projectsQuery.isLoading || (projects().length === 0 && !canCreateProjects)}
-              class="h-9 w-full min-w-0 rounded-xl border-outline-variant/20 bg-surface-container-low text-[12px]"
+              class="h-9 w-full min-w-0 rounded-xl border-outline-variant/20 bg-surface-container-low text-[13px]"
             />
           </div>
 
           <div class="flex min-w-0 max-w-[26rem] flex-1 items-center gap-3">
-            <span class="shrink-0 text-[11px] font-semibold uppercase tracking-[0.08em] text-on-surface-variant">
+            <span class="shrink-0 text-[12px] font-semibold uppercase tracking-[0.08em] text-on-surface-variant">
               Active Environment
             </span>
             <Select
@@ -180,7 +190,7 @@ export function Header(props: HeaderProps) {
                   : "---"
               }
               disabled={!activeProject() || environmentsQuery.isLoading}
-              class="h-9 w-full min-w-0 rounded-xl border-outline-variant/20 bg-surface-container-low text-[12px]"
+              class="h-9 w-full min-w-0 rounded-xl border-outline-variant/20 bg-surface-container-low text-[13px]"
             />
           </div>
         </div>
@@ -191,7 +201,7 @@ export function Header(props: HeaderProps) {
           <div class="h-5 w-px bg-outline-variant/20" />
 
           <a
-            class="flex items-center gap-1 text-[11px] font-medium text-outline transition-colors hover:text-primary"
+            class="flex items-center gap-1 text-[12px] font-medium text-outline transition-colors hover:text-primary"
             href="https://www.nonaconfig.com/support"
             target="_blank"
             rel="noopener noreferrer"
@@ -200,7 +210,7 @@ export function Header(props: HeaderProps) {
             <span class="hidden md:inline">Support</span>
           </a>
           <a
-            class="flex items-center gap-1 text-[11px] font-medium text-outline transition-colors hover:text-primary"
+            class="flex items-center gap-1 text-[12px] font-medium text-outline transition-colors hover:text-primary"
             href="https://www.nonaconfig.com/docs"
             target="_blank"
             rel="noopener noreferrer"
@@ -214,7 +224,7 @@ export function Header(props: HeaderProps) {
       <div class="space-y-3 border-t border-outline-variant/10 px-5 py-3 md:px-7 min-[1440px]:hidden">
         <div class="grid gap-3 sm:grid-cols-2">
           <div class="space-y-1.5">
-            <span class="block text-[11px] font-semibold uppercase tracking-[0.08em] text-on-surface-variant">
+            <span class="block text-[12px] font-semibold uppercase tracking-[0.08em] text-on-surface-variant">
               Active Project
             </span>
             <Select
@@ -223,12 +233,12 @@ export function Header(props: HeaderProps) {
               options={projectOptions()}
               placeholder={projectsQuery.isLoading ? "Loading projects..." : "---"}
               disabled={projectsQuery.isLoading || (projects().length === 0 && !canCreateProjects)}
-              class="h-10 w-full rounded-xl border-outline-variant/20 bg-surface-container-low text-[12px]"
+              class="h-10 w-full rounded-xl border-outline-variant/20 bg-surface-container-low text-[13px]"
             />
           </div>
 
           <div class="space-y-1.5">
-            <span class="block text-[11px] font-semibold uppercase tracking-[0.08em] text-on-surface-variant">
+            <span class="block text-[12px] font-semibold uppercase tracking-[0.08em] text-on-surface-variant">
               Active Environment
             </span>
             <Select
@@ -243,7 +253,7 @@ export function Header(props: HeaderProps) {
                   : "---"
               }
               disabled={!activeProject() || environmentsQuery.isLoading}
-              class="h-10 w-full rounded-xl border-outline-variant/20 bg-surface-container-low text-[12px]"
+              class="h-10 w-full rounded-xl border-outline-variant/20 bg-surface-container-low text-[13px]"
             />
           </div>
         </div>

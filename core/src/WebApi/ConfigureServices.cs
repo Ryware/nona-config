@@ -8,6 +8,9 @@ using Nona.WebApi.Authorization;
 using Nona.WebApi.Endpoints;
 using Nona.WebApi.Services;
 using System.Text;
+using System.Security.Claims;
+using Nona.Domain.Interfaces;
+using Nona.Infrastructure.Services;
 
 namespace Nona.WebApi;
 
@@ -24,12 +27,13 @@ public static class ConfigureServices
         services.AddProblemDetails();
         services.AddExceptionHandler<ApiExceptionHandler>();
 
-        services.AddAuthentication(options =>
+        var authentication = services.AddAuthentication(options =>
         {
             options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
             options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-        })
-        .AddJwtBearer(options =>
+        });
+
+        authentication.AddJwtBearer(options =>
         {
             var jwtKey = configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key is not configured");
             var jwtIssuer = configuration["Jwt:Issuer"] ?? throw new InvalidOperationException("JWT Issuer is not configured");
@@ -48,6 +52,19 @@ public static class ConfigureServices
 
             options.Events = new JwtBearerEvents
             {
+                OnTokenValidated = async context =>
+                {
+                    var email = context.Principal?.FindFirstValue(ClaimTypes.Name);
+                    var stamp = context.Principal?.FindFirstValue(JwtTokenService.CredentialStampClaim);
+                    var repository = context.HttpContext.RequestServices.GetRequiredService<IUserRepository>();
+                    var user = string.IsNullOrEmpty(email) ? null
+                        : await repository.GetAsync(email, context.HttpContext.RequestAborted);
+                    if (user is null || string.IsNullOrEmpty(stamp)
+                        || !string.Equals(stamp, JwtTokenService.GetCredentialStamp(user, jwtKey), StringComparison.Ordinal))
+                    {
+                        context.Fail("The session is no longer valid. Sign in again.");
+                    }
+                },
                 OnChallenge = async context =>
                 {
                     context.HandleResponse();
@@ -59,8 +76,9 @@ public static class ConfigureServices
                     .Forbidden("You do not have permission to access this resource.")
                     .ExecuteAsync(context.HttpContext)
             };
-        })
-        .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(
+        });
+
+        authentication.AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(
             ApiKeyAuthenticationHandler.SchemeName, null);
 
         services.AddAuthorizationBuilder()

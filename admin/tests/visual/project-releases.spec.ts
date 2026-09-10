@@ -144,6 +144,14 @@ async function mockApi(page: Page) {
     }
 
     if (
+      route.request().method() === 'POST' &&
+      path === '/admin/projects/my-app/environments/production/releases'
+    ) {
+      await route.fulfill({ status: 201, json: {} });
+      return;
+    }
+
+    if (
       route.request().method() === 'GET' &&
       path === '/admin/projects/my-app/environments/production/config-entries'
     ) {
@@ -238,10 +246,69 @@ test('release amend panel matches approved screenshot', async ({ page }) => {
   await expect(amendPanel).toBeVisible();
   await expect(page).toHaveURL('/projects/my-app?release=1.1.1&amend=1.1.0');
   for (const entry of configEntries) {
-    await expect(page.getByTestId(`amend-row-${entry.key}`)).toBeVisible();
-    await expect(page.getByTestId(`amend-value-${entry.key}`)).toHaveValue(entry.value);
+    await expect(page.getByTestId(`parameter-row-${entry.key}`)).toBeVisible();
+    await expect(page.getByTestId(`parameter-value-input-${entry.key}`)).toHaveValue(entry.value);
   }
   await expect(amendPanel).toHaveScreenshot('release-amend-panel.png');
+  await expectNoHorizontalOverflow(page);
+  expect(browserErrors).toEqual([]);
+});
+
+test('release create draft publishes an applied value and matches approved screenshot', async ({ page }) => {
+  const browserErrors = collectBrowserErrors(page);
+  const publishRequest = page.waitForRequest(request =>
+    request.method() === 'POST' &&
+    new URL(request.url()).pathname === '/admin/projects/my-app/environments/production/releases',
+  );
+
+  await page.goto('/projects/my-app/releases');
+  await expect(page.getByTestId('project-releases-section')).toBeVisible();
+  await page.getByTestId('release-create-version-button').click();
+  await page.getByTestId('release-version-input').fill('1.2');
+  await page.getByTestId('release-version-confirm-button').click();
+
+  const createPanel = page.getByTestId('release-create-panel');
+  await expect(createPanel).toBeVisible();
+  await expect(page).toHaveURL('/projects/my-app?release=1.2.0');
+  await expect(createPanel).toContainText(
+    'Creating release 1.2.0 from a snapshot of production working parameters.',
+  );
+  await expect(createPanel).toHaveScreenshot('release-create-panel.png');
+
+  const valueInput = page.getByTestId('parameter-value-input-API_URL');
+  await valueInput.fill('https://draft.example.com');
+  await expect(page.getByTestId('release-create-confirm-button')).toBeDisabled();
+  await page.getByTestId('parameter-update-API_URL').click();
+  await expect(page.getByTestId('release-create-confirm-button')).toBeEnabled();
+  await page.getByTestId('release-create-confirm-button').click();
+
+  const request = await publishRequest;
+  expect(request.postDataJSON()).toEqual({
+    version: '1.2.0',
+    makeActive: false,
+    entries: [
+      {
+        key: 'API_URL',
+        value: 'https://draft.example.com',
+        contentType: 'text',
+        scope: 'server',
+      },
+      {
+        key: 'MAX_RETRIES',
+        value: '3',
+        contentType: 'number',
+        scope: 'all',
+      },
+      {
+        key: 'FEATURE_FLAGS',
+        value: '{"dark_mode": true}',
+        contentType: 'json',
+        scope: 'client',
+      },
+    ],
+  });
+  await expect(page).toHaveURL('/projects/my-app/releases');
+  await expect(page.getByTestId('parameter-discard-dialog')).toHaveCount(0);
   await expectNoHorizontalOverflow(page);
   expect(browserErrors).toEqual([]);
 });

@@ -147,7 +147,10 @@ export class NonaOpenFeatureProvider implements Provider {
     try {
       return resolve(await this.client.getConfigValue(flagKey));
     } catch (cause) {
-      if (cause instanceof NonaClientError && cause.status === 404) {
+      if (
+        cause instanceof NonaClientError &&
+        cause.errorCode === "config_entry_not_found"
+      ) {
         return error(
           flagKey,
           defaultValue,

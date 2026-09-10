@@ -63,13 +63,13 @@ interface QueryErrorBannerProps {
 
 export function QueryErrorBanner(props: QueryErrorBannerProps) {
   return (
-    <div class="flex items-center gap-3 px-4 py-3 rounded-xl bg-error/10 border border-error/20 text-[13px] animate-fade-in">
+    <div class="flex items-center gap-3 px-4 py-3 rounded-xl bg-error/10 border border-error/20 text-[14px] animate-fade-in">
       <MIcon name="error" class="text-[18px] text-error shrink-0" />
       <span class="text-error flex-1">{props.message}</span>
       <Show when={props.onRetry}>
         <button
           onClick={() => props.onRetry?.()}
-          class="flex items-center gap-1 px-3 py-1 rounded-lg text-[12px] font-medium bg-error/10 text-error hover:bg-error/20 transition-colors cursor-pointer border-0"
+          class="flex items-center gap-1 px-3 py-1 rounded-lg text-[13px] font-medium bg-error/10 text-error hover:bg-error/20 transition-colors cursor-pointer border-0"
         >
           <MIcon name="refresh" class="text-[14px]" />
           Retry

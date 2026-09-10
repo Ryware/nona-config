@@ -103,7 +103,7 @@ This makes it possible to invite a teammate and let them activate access with Go
 
 ## What SSO does not replace
 
-SSO does not replace API keys for `/api/{environmentId}/{key}`, project-level access rules, or audit logging. SSO answers "who can sign into the admin surface." Project access still answers "what can that user work on after sign-in."
+SSO does not replace API keys for the runtime parameter routes, project-level access rules, or audit logging. SSO answers "who can sign into the admin surface." Project access still answers "what can that user work on after sign-in."
 
 ## Recommended operating model
 

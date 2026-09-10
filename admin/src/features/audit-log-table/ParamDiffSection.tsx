@@ -81,7 +81,7 @@ function UpdateDiff(props: { entry: AuditEntry }) {
       </Show>
 
       <Show when={!hasAnyDiff()}>
-        <span class="text-[10.5px] text-outline/40 italic">settings updated</span>
+        <span class="text-[11.5px] text-outline/40 italic">settings updated</span>
       </Show>
     </>
   );

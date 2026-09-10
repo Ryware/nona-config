@@ -1,3 +1,5 @@
+import { useNavigate } from "@solidjs/router";
+import { authStore } from "../../entities/auth/model/store";
 import { Title } from "@solidjs/meta";
 import { useMutation, useQuery } from "@tanstack/solid-query";
 import { createSignal, Show } from "solid-js";
@@ -14,6 +16,7 @@ import { PasswordStrengthMeter } from "../../widgets/auth-shell/PasswordStrength
 
 export default function AccountPage() {
   const { addToast } = useToast();
+  const navigate = useNavigate();
   const [currentPassword, setCurrentPassword] = createSignal("");
   const [newPassword, setNewPassword] = createSignal("");
   const [confirmPassword, setConfirmPassword] = createSignal("");
@@ -37,6 +40,8 @@ export default function AccountPage() {
       setConfirmPassword("");
       setError("");
       addToast(MSG.PASSWORD_CHANGED, "success");
+      authStore.clearSession();
+      navigate("/login", { replace: true });
     },
     onError: caught => setError(changePasswordError(caught))
   }));
@@ -68,7 +73,7 @@ export default function AccountPage() {
             </div>
             <div>
               <h1 class="font-headline text-on-surface text-lg font-bold">Account</h1>
-              <p class="text-on-surface-variant mt-1 text-sm">
+              <p class="text-on-surface-variant mt-1 text-[15px]">
                 Manage your sign-in credentials and account security.
               </p>
             </div>
@@ -92,8 +97,8 @@ export default function AccountPage() {
               <p class="font-headline text-on-surface font-semibold">
                 {accountQuery.data!.name || accountQuery.data!.email}
               </p>
-              <p class="text-outline mt-1 font-mono text-xs">{accountQuery.data!.email}</p>
-              <span class="bg-primary/10 text-primary mt-3 inline-flex rounded-md px-2 py-0.5 text-[11px] font-medium capitalize">
+              <p class="text-outline mt-1 font-mono text-[13px]">{accountQuery.data!.email}</p>
+              <span class="bg-primary/10 text-primary mt-3 inline-flex rounded-md px-2 py-0.5 text-[12px] font-medium capitalize">
                 {accountQuery.data!.role}
               </span>
             </div>
@@ -104,10 +109,10 @@ export default function AccountPage() {
                 <div data-testid="password-managed-by-sso" class="flex items-start gap-3 py-2">
                   <MIcon name="verified_user" class="text-primary text-[22px]" />
                   <div>
-                    <h2 class="font-headline text-on-surface text-sm font-semibold">
+                    <h2 class="font-headline text-on-surface text-[15px] font-semibold">
                       Password managed by SSO
                     </h2>
-                    <p class="text-on-surface-variant mt-1 text-sm">
+                    <p class="text-on-surface-variant mt-1 text-[15px]">
                       This account signs in through an external identity provider and does not have
                       a Nona Config password.
                     </p>
@@ -116,8 +121,8 @@ export default function AccountPage() {
               }
             >
               <div>
-                <h2 class="font-headline text-on-surface text-sm font-semibold">Change Password</h2>
-                <p class="text-on-surface-variant mt-1 text-xs">
+                <h2 class="font-headline text-on-surface text-[15px] font-semibold">Change Password</h2>
+                <p class="text-on-surface-variant mt-1 text-[13px]">
                   Enter your current password before choosing a new one.
                 </p>
               </div>
@@ -125,7 +130,7 @@ export default function AccountPage() {
               <Show when={error()}>
                 <div
                   role="alert"
-                  class="bg-error/8 text-error border-error/15 mt-5 rounded-xl border px-3.5 py-3 text-xs"
+                  class="bg-error/8 text-error border-error/15 mt-5 rounded-xl border px-3.5 py-3 text-[13px]"
                 >
                   {error()}
                 </div>

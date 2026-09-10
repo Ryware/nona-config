@@ -9,7 +9,7 @@ public interface IApiKeyRepository
 {
     Task<ApiKey?> GetByIdAsync(long id, CancellationToken ct = default);
 
-    Task<ApiKeyAuthenticationResult?> GetByKeyAsync(string key, CancellationToken ct = default);
+    Task<ApiKeyAuthenticationResult?> GetByKeyHashAsync(string keyHash, CancellationToken ct = default);
 
     Task<IReadOnlyList<ApiKey>> ListByProjectAsync(string projectName, CancellationToken ct = default);
 

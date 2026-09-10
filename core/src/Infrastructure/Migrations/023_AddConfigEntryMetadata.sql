@@ -1,0 +1,8 @@
+ALTER TABLE ConfigEntries ADD COLUMN Description TEXT NULL;
+ALTER TABLE ConfigEntries ADD COLUMN Unit TEXT NULL;
+
+ALTER TABLE ConfigEntryVersions ADD COLUMN Description TEXT NULL;
+ALTER TABLE ConfigEntryVersions ADD COLUMN Unit TEXT NULL;
+
+ALTER TABLE ConfigReleaseEntries ADD COLUMN Description TEXT NULL;
+ALTER TABLE ConfigReleaseEntries ADD COLUMN Unit TEXT NULL;

@@ -7,7 +7,7 @@ const OG_IMAGE_ALT = 'Nona — open source self-hosted remote config and feature
 const REPOSITORY_URL = 'https://github.com/Ryware/nona-config';
 const LICENSE_URL = 'https://www.apache.org/licenses/LICENSE-2.0';
 const DEFAULT_DESCRIPTION =
-	'Self-hosted remote config and feature flags docs for Docker deployment, HTTP access, official clients, and Firebase migration.';
+	'Self-hosted remote config and feature flags docs for Docker deployment, HTTP access, official clients, and migration tooling.';
 
 const SECTION_LABELS: Record<string, string> = {
 	cli: 'CLI and Migration',
@@ -277,6 +277,23 @@ const PAGE_FAQS: Record<string, FaqItem[]> = {
 			question: 'What is the biggest risk in this migration flow?',
 			answer:
 				'Assuming a technically successful import means the migration is finished. You still need to validate environments, scopes, content types, and real application reads afterward.',
+		},
+	],
+	'migration/aws-parameter-store': [
+		{
+			question: 'Does the Parameter Store migrator decrypt SecureString values?',
+			answer:
+				'No. It imports only parameters whose AWS type is exactly String. SecureString and StringList parameters are skipped.',
+		},
+		{
+			question: 'How are Nona keys chosen?',
+			answer:
+				'The ECS secrets mapping name becomes the Nona key, while valueFrom identifies the Parameter Store source value.',
+		},
+		{
+			question: 'Can I safely preview the import?',
+			answer:
+				'Yes. A dry run retrieves the source metadata and values needed to build the plan but never prints values or writes to Nona.',
 		},
 	],
 	'': [

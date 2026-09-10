@@ -64,7 +64,8 @@ public class RepositoryRenameTests
         await apiKeys.AddAsync(new ApiKey
         {
             Name = "client",
-            Key = "secret",
+            KeyHash = "hash",
+            Fingerprint = "secret",
             Project = "storefront",
             Environment = "development"
         });
@@ -224,7 +225,7 @@ public class RepositoryRenameTests
             new LibsqlStatement($"INSERT INTO ParameterShareLinks (TokenHash, Token, Project, Environment, Key, CanEdit, CreatedBy, CreatedAt, ExpiresAt) VALUES ('hash', 'token', 'storefront', 'development', 'feature', 1, 'tester', '{timestamp}', '2027-07-22T10:00:00.0000000Z')"),
             new LibsqlStatement($"INSERT INTO ConfigReleases (Project, Environment, Version, Major, Minor, Patch, CreatedAt, Actor) VALUES ('storefront', 'development', '1.0.0', 1, 0, 0, '{timestamp}', 'tester')"),
             new LibsqlStatement("INSERT INTO ConfigReleaseEntries (Project, Environment, ReleaseVersion, Key, Value, ContentType, Scope) VALUES ('storefront', 'development', '1.0.0', 'feature', 'true', 'boolean', 3)"),
-            new LibsqlStatement($"INSERT INTO ApiKeys (Name, Key, Project, Environment, Scope, CreatedAt, UpdatedAt) VALUES ('client', 'secret', 'storefront', 'development', 1, '{timestamp}', '{timestamp}')"),
+            new LibsqlStatement($"INSERT INTO ApiKeys (Name, KeyHash, Fingerprint, HashVersion, Project, Environment, Scope, CreatedAt, UpdatedAt) VALUES ('client', 'hash', 'secret', 1, 'storefront', 'development', 1, '{timestamp}', '{timestamp}')"),
             new LibsqlStatement($"INSERT INTO ProjectMembers (Username, ProjectName, Role, CreatedAt) VALUES ('tester', 'storefront', 1, '{timestamp}')")
         ]);
     }

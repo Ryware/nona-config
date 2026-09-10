@@ -111,7 +111,7 @@ export default function ResetPasswordPage() {
               error={!resetQuery.isPending ? loadError() : undefined}
             >
               <Show when={resetQuery.isPending}>
-                <p class="text-on-surface-variant text-center text-sm">
+                <p class="text-on-surface-variant text-center text-[15px]">
                   Please wait while we verify your link.
                 </p>
               </Show>

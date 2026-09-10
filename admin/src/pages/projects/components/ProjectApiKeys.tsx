@@ -1,23 +1,26 @@
 import { createMemo, createSignal, For, Show } from "solid-js";
-import type { ApiKey, CreateApiKeyRequest } from "../../../types";
+import type { ApiKey, CreatedApiKey, CreateApiKeyRequest } from "../../../types";
 import { useClipboard } from "../../../shared/hooks/useClipboard";
 import { Button } from "../../../shared/ui/button";
-import { Label } from "../../../shared/ui/label";
 import { Select } from "../../../shared/ui/select";
 import { MIcon } from "../../../shared/ui/icons";
 import { FormField } from "../../../widgets/auth-shell/FormField";
+import { Tooltip, TooltipLabel, TooltipTrigger } from "../../../shared/ui/tooltip";
+import { scopeTooltip, tooltipCopy } from "../../../shared/lib/tooltip-copy";
 
 interface ProjectApiKeysProps {
   apiKeys: ApiKey[];
   isLoading: boolean;
   isCreating: boolean;
   deletingId: string | null;
+  oneTimeApiKey: CreatedApiKey | null;
   canManage: boolean;
   activeEnvironmentName: string;
   showCreateForm: boolean;
   setShowCreateForm: (value: boolean) => void;
   onCreate: (data: CreateApiKeyRequest) => void;
-  onDelete: (apiKeyId: string) => void;
+  onDelete: (apiKey: ApiKey) => void;
+  onDismissSecret: () => void;
   onCopied: (message: string) => void;
 }
 
@@ -36,16 +39,17 @@ function ScopeBadge(props: { scope: ApiKey["scope"] }) {
     })[props.scope];
 
   return (
-    <span class={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${className()}`}>
-      {props.scope}
-    </span>
+    <Tooltip content={scopeTooltip(props.scope)}>
+      <TooltipTrigger as="span" tabindex="0" data-tooltip-trigger class={`rounded-full px-2 py-0.5 text-[11px] font-bold uppercase ${className()}`}>
+        {props.scope}
+      </TooltipTrigger>
+    </Tooltip>
   );
 }
 
 export function ProjectApiKeys(props: ProjectApiKeysProps) {
   const [name, setName] = createSignal("");
   const [scope, setScope] = createSignal<ApiKey["scope"]>("client");
-  const [revealed, setRevealed] = createSignal<Record<string, boolean>>({});
   const { copy } = useClipboard();
 
   const canCreate = createMemo(() => name().trim().length > 0 && !props.isCreating);
@@ -68,10 +72,6 @@ export function ProjectApiKeys(props: ProjectApiKeysProps) {
     }
   };
 
-  const toggleReveal = (id: string) => {
-    setRevealed(current => ({ ...current, [id]: !current[id] }));
-  };
-
   return (
     <section
       id="api-keys"
@@ -82,12 +82,12 @@ export function ProjectApiKeys(props: ProjectApiKeysProps) {
         <div>
           <p
             data-testid="project-api-keys-heading"
-            class="text-outline font-headline flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase"
+            class="text-outline font-headline flex items-center gap-1.5 text-[11px] font-bold tracking-widest uppercase"
           >
             <MIcon name="key" class="text-[15px]" />
             API Keys
           </p>
-          <p class="text-on-surface-variant mt-1 text-xs">
+          <p class="text-on-surface-variant mt-1 text-[13px]">
             Keys belong to this project and can be limited by access type or environment.
           </p>
         </div>
@@ -99,7 +99,7 @@ export function ProjectApiKeys(props: ProjectApiKeysProps) {
             onClick={() => props.setShowCreateForm(!props.showCreateForm)}
             aria-label="Add API Key"
             title="Add API Key"
-            class="bg-primary text-on-primary inline-flex h-10 w-10 cursor-pointer items-center justify-center gap-1.5 self-end rounded-lg border-0 px-0 text-[13px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] md:h-10 md:w-auto md:px-4 md:self-auto"
+            class="bg-primary text-on-primary inline-flex h-10 w-10 cursor-pointer items-center justify-center gap-1.5 self-end rounded-lg border-0 px-0 text-[14px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] md:h-10 md:w-auto md:px-4 md:self-auto"
           >
             <MIcon name="add" class="text-[16px]" />
             <span class="hidden md:inline">Add API Key</span>
@@ -109,7 +109,7 @@ export function ProjectApiKeys(props: ProjectApiKeysProps) {
 
       <Show when={props.canManage && props.showCreateForm}>
         <div class="bg-surface-container-low border-outline-variant/15 animate-fade-in rounded-2xl border p-6 shadow-sm">
-          <h3 class="font-headline text-on-surface mb-6 text-xs font-bold tracking-wider uppercase">
+          <h3 class="font-headline text-on-surface mb-6 text-[13px] font-bold tracking-wider uppercase">
             New API Key
           </h3>
           <div class="grid gap-6 md:grid-cols-2">
@@ -127,7 +127,7 @@ export function ProjectApiKeys(props: ProjectApiKeysProps) {
               required
             />
             <div>
-              <Label>Scope</Label>
+              <TooltipLabel content={tooltipCopy.apiKeyScope}>Scope</TooltipLabel>
               <Select
                 value={scope()}
                 onChange={value => setScope(value as ApiKey["scope"])}
@@ -158,6 +158,51 @@ export function ProjectApiKeys(props: ProjectApiKeysProps) {
         </div>
       </Show>
 
+      <Show when={props.oneTimeApiKey} keyed>
+        {created => (
+          <div
+            class="bg-primary/10 border-primary/30 animate-fade-in rounded-2xl border p-5"
+            data-testid="one-time-api-key-panel"
+          >
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <h3 class="text-primary font-headline text-[13px] font-bold tracking-wider uppercase">
+                  Save this API key now
+                </h3>
+                <p class="text-on-surface-variant mt-1 text-[13px]">
+                  Copy it now. This API key cannot be recovered after you dismiss this panel.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={props.onDismissSecret}
+                aria-label="Dismiss API key"
+                class="text-outline hover:text-on-surface cursor-pointer rounded-lg border-0 bg-transparent p-1"
+              >
+                <MIcon name="close" class="text-[18px]" />
+              </button>
+            </div>
+            <div class="mt-4 flex flex-col gap-2 sm:flex-row">
+              <code
+                data-testid="one-time-api-key-value"
+                class="text-on-surface bg-surface-container-lowest min-w-0 flex-1 overflow-x-auto rounded-lg px-3 py-2 font-mono text-[13px]"
+              >
+                {created.key}
+              </code>
+              <Button
+                type="button"
+                variant="outline"
+                aria-label="Copy new API key"
+                onClick={() => handleCopy(created.key)}
+              >
+                <MIcon name="content_copy" class="text-[16px]" />
+                Copy
+              </Button>
+            </div>
+          </div>
+        )}
+      </Show>
+
       <Show
         when={!props.isLoading}
         fallback={<div class="skeleton h-11 w-full rounded-xl" />}
@@ -165,7 +210,7 @@ export function ProjectApiKeys(props: ProjectApiKeysProps) {
         <Show
           when={props.apiKeys.length > 0}
           fallback={
-            <div class="bg-surface-container rounded-xl px-4 py-5 text-center text-xs text-on-surface-variant">
+            <div class="bg-surface-container rounded-xl px-4 py-5 text-center text-[13px] text-on-surface-variant">
               No API keys yet.
             </div>
           }
@@ -176,55 +221,36 @@ export function ProjectApiKeys(props: ProjectApiKeysProps) {
                 <div class="bg-surface-container grid gap-3 rounded-xl px-4 py-3 md:grid-cols-[minmax(160px,0.8fr)_minmax(180px,1.2fr)_auto] md:items-center">
                   <div class="min-w-0">
                     <div class="flex items-center gap-2">
-                      <span class="text-on-surface truncate text-sm font-semibold">
+                      <span class="text-on-surface truncate text-[15px] font-semibold">
                         {apiKey.name}
                       </span>
                       <ScopeBadge scope={apiKey.scope} />
                     </div>
-                    <p class="text-outline mt-1 truncate text-[11px]">
+                    <p class="text-outline mt-1 truncate text-[12px]">
                       {apiKey.environment ?? "All environments"}
                     </p>
                   </div>
 
                   <code
                     data-testid={`api-key-value-${apiKey.id}`}
-                    class="text-on-surface bg-surface-container-lowest rounded-lg px-3 py-2 font-mono text-[12px]"
+                    class="text-on-surface bg-surface-container-lowest rounded-lg px-3 py-2 font-mono text-[13px]"
                   >
-                    {revealed()[apiKey.id] ? apiKey.key : "•".repeat(32)}
+                    {"•".repeat(8)}{apiKey.fingerprint}
                   </code>
 
                   <div class="flex items-center justify-end gap-1">
-                    <button
-                      data-testid={`api-key-toggle-${apiKey.id}`}
-                      type="button"
-                      onClick={() => toggleReveal(apiKey.id)}
-                      class="text-outline hover:text-on-surface hover:bg-surface-bright cursor-pointer rounded-lg border-0 p-1.5 transition-all"
-                      title={revealed()[apiKey.id] ? "Hide" : "Show"}
-                    >
-                      <MIcon
-                        name={revealed()[apiKey.id] ? "visibility_off" : "visibility"}
-                        class="text-[16px]"
-                      />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleCopy(apiKey.key)}
-                      class="text-outline hover:text-on-surface hover:bg-surface-bright cursor-pointer rounded-lg border-0 p-1.5 transition-all"
-                      title="Copy"
-                    >
-                      <MIcon name="content_copy" class="text-[16px]" />
-                    </button>
                     <Show when={props.canManage}>
-                      <button
+                      <Tooltip content={props.deletingId === apiKey.id ? "Deleting API key" : "Delete API key"}><TooltipTrigger as="button"
                         data-testid={`api-key-delete-${apiKey.id}`}
                         type="button"
-                        onClick={() => props.onDelete(apiKey.id)}
+                        onClick={() => props.onDelete(apiKey)}
                         disabled={props.deletingId === apiKey.id}
                         class="text-outline hover:text-error hover:bg-error/10 cursor-pointer rounded-lg border-0 p-1.5 transition-all disabled:opacity-40"
-                        title="Delete API key"
+                        aria-label={`Delete ${apiKey.name} API key`}
+                        data-tooltip-trigger
                       >
                         <MIcon name="delete" class="text-[16px]" />
-                      </button>
+                      </TooltipTrigger></Tooltip>
                     </Show>
                   </div>
                 </div>

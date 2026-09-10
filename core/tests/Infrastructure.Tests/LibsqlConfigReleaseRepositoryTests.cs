@@ -134,6 +134,63 @@ public class LibsqlConfigReleaseRepositoryTests
     }
 
     [Test]
+    public async Task ListEntriesAsync_Sqld_FiltersByLiteralCaseInsensitivePrefix()
+    {
+        await using var server = await LocalSqldTestServer.StartAsync();
+        using var client = server.CreateClient();
+        var migrations = new LibsqlMigrationRunner(client, ResolveMigrationsFolder());
+        await migrations.RunMigrationsAsync();
+
+        var repository = new LibsqlConfigReleaseRepository(client);
+        var original = CreateRelease("1.1.0", "false", patch: 0);
+        var release = new ConfigRelease
+        {
+            Project = original.Project,
+            Environment = original.Environment,
+            Version = original.Version,
+            Major = original.Major,
+            Minor = original.Minor,
+            Patch = original.Patch,
+            CreatedAt = original.CreatedAt,
+            Actor = original.Actor,
+            Entries =
+            [
+                original.Entries[0],
+                new ConfigReleaseEntry
+                {
+                    Project = original.Project,
+                    Environment = original.Environment,
+                    ReleaseVersion = original.Version,
+                    Key = "Group_One",
+                    Value = "true",
+                    Scope = KeyScope.Frontend
+                },
+                new ConfigReleaseEntry
+                {
+                    Project = original.Project,
+                    Environment = original.Environment,
+                    ReleaseVersion = original.Version,
+                    Key = "GroupX:One",
+                    Value = "true",
+                    Scope = KeyScope.Frontend
+                }
+            ],
+            EntryCount = 3
+        };
+        await repository.AddAsync(release);
+
+        var entries = await repository.ListEntriesAsync(
+            "TEST-PROJECT",
+            "PRODUCTION",
+            "1.1.0",
+            KeyScope.Frontend,
+            "group_");
+
+        await Assert.That(entries).Count().IsEqualTo(1);
+        await Assert.That(entries[0].Key).IsEqualTo("Group_One");
+    }
+
+    [Test]
     public async Task GetEntryAsync_Sqld_ResolvesVersionAndScopeWithoutHydratingRelease()
     {
         await using var server = await LocalSqldTestServer.StartAsync();
@@ -223,6 +280,11 @@ public class LibsqlConfigReleaseRepositoryTests
             File.Copy(
                 Path.Combine(ResolveMigrationsFolder(), "017_AddNormalizedReleaseEntryKeys.sql"),
                 Path.Combine(migrationsFolder, "017_AddNormalizedReleaseEntryKeys.sql"));
+            await migrations.RunMigrationsAsync();
+
+            File.Copy(
+                Path.Combine(ResolveMigrationsFolder(), "023_AddConfigEntryMetadata.sql"),
+                Path.Combine(migrationsFolder, "023_AddConfigEntryMetadata.sql"));
             await migrations.RunMigrationsAsync();
 
             var repositoryBeforeInitialization = new LibsqlConfigReleaseRepository(client);
@@ -383,15 +445,17 @@ public class LibsqlConfigReleaseRepositoryTests
 
             var environment = await client.ExecuteAsync(
                 "SELECT ActiveReleaseVersion FROM Environments WHERE Project = 'test-project' AND Name = 'production'");
-            var repository = new LibsqlConfigReleaseRepository(client);
-            var release = await repository.GetAsync("test-project", "production", "0.0.0");
+            var release = await client.ExecuteAsync(
+                "SELECT Actor FROM ConfigReleases WHERE Project = 'test-project' AND Environment = 'production' AND Version = '0.0.0'");
+            var entries = await client.ExecuteAsync(
+                "SELECT Key, Value FROM ConfigReleaseEntries WHERE Project = 'test-project' AND Environment = 'production' AND ReleaseVersion = '0.0.0'");
 
             await Assert.That(environment.Rows[0].GetString("ActiveReleaseVersion")).IsEqualTo("0.0.0");
-            await Assert.That(release).IsNotNull();
-            await Assert.That(release!.Actor).IsEqualTo("Migration");
-            await Assert.That(release.Entries).Count().IsEqualTo(1);
-            await Assert.That(release.Entries[0].Key).IsEqualTo("feature.enabled");
-            await Assert.That(release.Entries[0].Value).IsEqualTo("true");
+            await Assert.That(release.Rows).Count().IsEqualTo(1);
+            await Assert.That(release.Rows[0].GetString("Actor")).IsEqualTo("Migration");
+            await Assert.That(entries.Rows).Count().IsEqualTo(1);
+            await Assert.That(entries.Rows[0].GetString("Key")).IsEqualTo("feature.enabled");
+            await Assert.That(entries.Rows[0].GetString("Value")).IsEqualTo("true");
         }
         finally
         {

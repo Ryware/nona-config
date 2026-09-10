@@ -42,7 +42,7 @@ export const CardDescription: ParentComponent<
 > = (props) => {
   return (
     <p
-      class={cn("text-[13px] text-on-surface-variant", props.class)}
+      class={cn("text-[14px] text-on-surface-variant", props.class)}
       {...props}
     />
   );

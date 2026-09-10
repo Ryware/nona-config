@@ -1,11 +1,11 @@
 ---
 title: Migration
-description: Plan and validate a move from Firebase Remote Config to Nona using the built-in CLI migration flow, with mapping and dry runs.
+description: Plan and validate a move from Firebase Remote Config or AWS Parameter Store to Nona using built-in CLI migration flows.
 ---
 
 Migration is a first-class Nona workflow.
 
-The built-in CLI migrator helps you move Firebase Remote Config parameters into:
+The built-in CLI migrators help you move Firebase Remote Config parameters or ECS-referenced AWS Parameter Store values into:
 
 - a Nona project
 - one or more Nona environments
@@ -24,6 +24,7 @@ Use this migration section when:
 - you want to preserve existing parameter work
 - you need a structured cutover path
 - you need to understand how Firebase concepts translate into Nona concepts
+- you want to replace ECS Parameter Store environment-variable injection with Nona server configuration
 
 ## What the migration path covers
 
@@ -58,8 +59,9 @@ The safest way to approach migration is:
 ## Recommended order
 
 1. [Migrate from Firebase Remote Config](/docs/migration/firebase-remote-config)
-2. [Firebase concept mapping](/docs/migration/firebase-concept-mapping)
-3. [Migration validation](/docs/migration/validation)
+2. [Migrate from AWS Parameter Store](/docs/migration/aws-parameter-store)
+3. [Firebase concept mapping](/docs/migration/firebase-concept-mapping)
+4. [Migration validation](/docs/migration/validation)
 
 ## Recommended migration sequence
 
@@ -74,6 +76,7 @@ That keeps migration as an operator workflow instead of an ad hoc manual rewrite
 ## Start here
 
 - [Migrate from Firebase Remote Config](/docs/migration/firebase-remote-config)
+- [Migrate from AWS Parameter Store](/docs/migration/aws-parameter-store)
 - [Firebase concept mapping](/docs/migration/firebase-concept-mapping)
 - [Migration validation](/docs/migration/validation)
 

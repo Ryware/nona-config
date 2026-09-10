@@ -15,6 +15,7 @@ public interface IUserRepository
 
     Task<bool> ExistsAnyAsync(CancellationToken ct = default);
     Task AddAsync(User user, CancellationToken ct = default);
+    Task<bool> TryAddFirstUserAsync(User user, CancellationToken ct = default);
     Task UpdateAsync(User user, CancellationToken ct = default);
     Task<bool> TryResetPasswordAsync(
         string passwordResetTokenHash,

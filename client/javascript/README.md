@@ -29,16 +29,19 @@ const nona = createNonaClient({
 });
 ```
 
-Reads use the environment's active release by default. To pin a client to an exact release or release line:
+Reads use working parameters by default. To use the active release, or pin a client to an exact release or release line, select release mode when constructing it:
 
 ```js
 const nona = createNonaClient({
   baseUrl: "https://nona.example.com",
   environmentId: "production",
   apiKey: "your-api-key",
+  useReleases: true,
   releaseVersion: "1.1.x"
 });
 ```
+
+Omit `releaseVersion` while keeping `useReleases: true` to follow the active release. Source and release selection are fixed for the client lifetime; create another client for a different source or selector. When `useReleases` is `false` (the default), `releaseVersion` is retained on the client but ignored for requests and cache identity.
 
 You can also pass the base URL as the first argument:
 
@@ -95,6 +98,14 @@ const banner = await nona.tryGetConfigValue("App:Banner");
 
 `values` is a map of `{ key: { value, contentType } }`. The reads after `getAllValues()` are served from the in-memory snapshot even when `cacheTtlMs` is not enabled, so six startup flags require one HTTP request.
 
+Pass an optional prefix to fetch one key group. Matching is case-insensitive, and a prefix may contain ASCII letters, digits, colons, dots, underscores, and dashes:
+
+```js
+const groupA = await nona.getAllValues({ prefix: "GroupA:" });
+```
+
+Omitting `prefix` or passing an empty string fetches all values. Each prefix has an independent ETag-backed snapshot; prefix casing variants such as `GroupA:` and `groupa:` share the same cache identity. Any other character causes the server to return `400 Bad Request`; the client throws `NonaClientError` with `status === 400`, and the failed response is not cached.
+
 The bulk endpoint accepts `client` and `all` API keys. It includes client-visible (`client` and `all`) entries and never returns server-only entries.
 
 Repeated `getAllValues()` calls automatically use the response ETag. An unchanged snapshot produces `304 Not Modified` and reuses the existing values.
@@ -109,6 +120,8 @@ try {
 } catch (error) {
   if (error instanceof NonaClientError) {
     console.error(error.status);
+    console.error(error.errorCode);
+    console.error(error.detail);
     console.error(error.message);
     console.error(error.responseBody);
     return;
@@ -125,6 +138,7 @@ try {
 - `baseUrl`: the Nona server URL
 - `environmentId`: environment used for config reads
 - `apiKey`: API key for config reads
+- `useReleases`: read release snapshots instead of working parameters (default `false`)
 - `releaseVersion`: optional exact release such as `1.1.0` or line such as `1.1.x`
 - `fetch`: custom fetch implementation
 - `defaultHeaders`: headers added to every request

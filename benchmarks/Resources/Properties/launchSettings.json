@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Nona.Benchmarks.Resources": {
+      "commandName": "Project",
+      "commandLineArgs": "--sqlite-url http://localhost:5027 --operation single-key --warmup-seconds 0.2 --measurement-seconds 1 --timeout-seconds 5 --memory-sample-ms 250 --output artifacts\\benchmarks\\debug-sqlite"
+    }
+  }
+}

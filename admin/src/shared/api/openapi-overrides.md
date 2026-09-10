@@ -2,19 +2,19 @@
  * OpenAPI Client-Side Overrides & Patches
  * =========================================
  * This file documents every place where the frontend manually patches, narrows,
- * or extends the auto-generated schema (`generated.ts`). Each entry has:
+ * or extends the canonical auto-generated schema (`src/generated/api.ts`). Each entry has:
  *   - The generated shape (what the spec says)
  *   - The client shape (what we actually use)
  *   - Why the override exists
  *   - A tracking reference to the backend issue that should fix it
  *
- * When `generated.ts` is regenerated (run `npx openapi-typescript` / CI script),
+ * When `src/generated/api.ts` is regenerated (run the repository client generator),
  * review each override below and confirm it is still necessary.
  *
  * DO NOT import from this file at runtime — it is documentation only.
  * The actual types live in `src/entities/*/model/types.ts`.
  *
- * @see scripts/verify-openapi.sh — fails CI if generated.ts changes without a review.
+ * @see verify-generated-clients.sh at the repository root — fails CI when generated clients drift.
  */
 
 // ---------------------------------------------------------------------------

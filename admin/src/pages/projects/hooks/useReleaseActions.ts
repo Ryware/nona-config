@@ -32,8 +32,10 @@ export function useReleaseActions(props: UseReleaseActionsOptions) {
     }: {
       environmentName: string;
       request: PublishConfigReleaseRequest;
+      beforeNavigate?: () => void;
     }) => configReleaseService.publish(props.projectId(), environmentName, request),
-    onSuccess: (_, { environmentName }) => {
+    onSuccess: (_, { environmentName, beforeNavigate }) => {
+      beforeNavigate?.();
       queryClient.invalidateQueries({
         queryKey: projectKeys.configReleases(params.slug, environmentName)
       });

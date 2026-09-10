@@ -52,7 +52,8 @@ public class CreateParameterShareLinkCommandHandler(
         if (!await environmentRepository.ExistsAsync(projectName, request.EnvironmentName, cancellationToken))
             return new CreateParameterShareLinkResult(false, null, "Environment not found");
 
-        if (!await configEntryRepository.ExistsAsync(projectName, request.EnvironmentName, request.Key, cancellationToken))
+        var entry = await configEntryRepository.GetAsync(projectName, request.EnvironmentName, request.Key, cancellationToken);
+        if (entry is null)
             return new CreateParameterShareLinkResult(false, null, "Config entry not found");
 
         if (!TryResolveExpiration(request.Expiration, dateTime.NowUtc, out var expiresAt, out var expirationError))
@@ -74,6 +75,21 @@ public class CreateParameterShareLinkCommandHandler(
         };
 
         await shareLinkRepository.AddAsync(shareLink, cancellationToken);
+
+        // Do not disclose a credential if its authorized project was replaced during issuance.
+        var currentProject = await projectRepository.GetByNameAsync(project.Name, cancellationToken);
+        if (currentProject is null || currentProject.Id != project.Id || currentProject.CreatedAt != project.CreatedAt)
+        {
+            await shareLinkRepository.RevokeAsync(shareLink.Id, dateTime.NowUtc, CancellationToken.None);
+            return new CreateParameterShareLinkResult(false, null, "Project changed during credential creation. Try again.");
+        }
+
+        var currentEntry = await configEntryRepository.GetAsync(projectName, request.EnvironmentName, request.Key, cancellationToken);
+        if (currentEntry is null || currentEntry.CreatedAt != entry.CreatedAt)
+        {
+            await shareLinkRepository.RevokeAsync(shareLink.Id, dateTime.NowUtc, CancellationToken.None);
+            return new CreateParameterShareLinkResult(false, null, "Parameter changed during credential creation. Try again.");
+        }
 
         if (auditLogService is not null)
         {

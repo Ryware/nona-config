@@ -228,8 +228,10 @@ public class ConfigEntryVersionHistoryTests
                 Environment = EnvironmentName,
                 Key = ConfigKey,
                 Version = 1,
-                Value = "good-value",
-                ContentType = "json",
+                Value = "250",
+                ContentType = "number",
+                Description = "Known-good checkout config",
+                Unit = "ms",
                 Scope = KeyScope.Backend,
                 CreatedAt = originalCreatedAt,
                 Actor = "alice"
@@ -245,6 +247,8 @@ public class ConfigEntryVersionHistoryTests
                     Key = entry.Key,
                     Value = entry.Value,
                     ContentType = entry.ContentType,
+                    Description = entry.Description,
+                    Unit = entry.Unit,
                     Scope = entry.Scope,
                     ActiveVersion = 3,
                     CreatedAt = entry.CreatedAt,
@@ -266,12 +270,14 @@ public class ConfigEntryVersionHistoryTests
 
         await Assert.That(result.Success).IsTrue();
         await Assert.That(result.ConfigEntry!.ActiveVersion).IsEqualTo(3);
-        await Assert.That(result.ConfigEntry!.Value).IsEqualTo("good-value");
+        await Assert.That(result.ConfigEntry!.Value).IsEqualTo("250");
 
         await fixture.ConfigEntryRepository.Received(1).AddVersionAsync(
             Arg.Is<ConfigEntry>(entry =>
-                entry.Value == "good-value"
-                && entry.ContentType == "json"
+                entry.Value == "250"
+                && entry.ContentType == "number"
+                && entry.Description == "Known-good checkout config"
+                && entry.Unit == "ms"
                 && entry.Scope == KeyScope.Backend
                 && entry.CreatedAt == originalCreatedAt
                 && entry.UpdatedAt == rollbackAt),

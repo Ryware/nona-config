@@ -1,6 +1,8 @@
 using Microsoft.Data.Sqlite;
+using Nona.Application.Common;
 using Nona.Domain.Entities;
 using Nona.Infrastructure.Repositories.Libsql;
+using Nona.Infrastructure.Services;
 using Nona.Infrastructure.Tests.Common;
 using Nona.Libsql;
 
@@ -9,6 +11,71 @@ namespace Nona.Infrastructure.Tests;
 [NotInParallel]
 public class SqliteRepositoryCompatibilityTests
 {
+    [Test]
+    public async Task ApiKeyHashMigration_PreservesExistingSecretWithoutRetainingPlaintext()
+    {
+        const string legacySecret = "0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF";
+        var directory = Path.Combine(Path.GetTempPath(), $"nona-api-key-hash-sqlite-{Guid.NewGuid():N}");
+        var migrationsDirectory = Path.Combine(directory, "Migrations");
+        Directory.CreateDirectory(migrationsDirectory);
+
+        try
+        {
+            foreach (var migration in Directory.GetFiles(ResolveMigrationsFolder(), "*.sql")
+                         .Where(path => string.Compare(
+                             Path.GetFileName(path),
+                             "023_AddConfigEntryMetadata.sql",
+                             StringComparison.OrdinalIgnoreCase) <= 0))
+            {
+                File.Copy(migration, Path.Combine(migrationsDirectory, Path.GetFileName(migration)));
+            }
+
+            using var client = new SqliteDatabaseClient(Path.Combine(directory, "nona.db"));
+            await new LibsqlMigrationRunner(client, migrationsDirectory).RunMigrationsAsync();
+            await client.ExecuteAsync(
+                """
+                INSERT INTO Projects (Name, UrlSlug, CreatedAt, UpdatedAt)
+                VALUES ('legacy-project', 'legacy-project', '2026-09-01T00:00:00Z', '2026-09-01T00:00:00Z');
+
+                INSERT INTO ApiKeys (Name, Key, Project, Environment, Scope, CreatedAt, UpdatedAt)
+                VALUES ('Legacy', @Key, 'legacy-project', NULL, 1, '2026-09-01T00:00:00Z', '2026-09-01T00:00:00Z')
+                """,
+                LibsqlParameters.Create(("Key", legacySecret)));
+
+            await new LibsqlDatabaseInitializer(client).StartAsync(CancellationToken.None);
+
+            var columns = await client.ExecuteAsync("PRAGMA table_info(ApiKeys)");
+            await Assert.That(columns.Rows.Select(row => row.GetString("name"))).Contains("KeyHash");
+            await Assert.That(columns.Rows.Select(row => row.GetString("name"))).DoesNotContain("Key");
+
+            var stored = await client.ExecuteAsync(
+                "SELECT KeyHash, Fingerprint, HashVersion FROM ApiKeys WHERE Name = 'Legacy'");
+            var expectedHash = ApiKeySecret.Hash(legacySecret);
+            await Assert.That(stored.Rows[0].GetString("KeyHash")).IsEqualTo(expectedHash);
+            await Assert.That(stored.Rows[0].GetString("KeyHash")).IsNotEqualTo(legacySecret);
+            await Assert.That(stored.Rows[0].GetString("Fingerprint")).IsEqualTo("89ABCDEF");
+            await Assert.That(stored.Rows[0].GetInt32("HashVersion")).IsEqualTo(1);
+
+            var authenticated = await new LibsqlApiKeyRepository(client).GetByKeyHashAsync(expectedHash);
+            await Assert.That(authenticated).IsNotNull();
+            await Assert.That(authenticated!.Project.Name).IsEqualTo("legacy-project");
+
+            await new LibsqlDatabaseInitializer(client).StartAsync(CancellationToken.None);
+            var afterSecondRun = await client.ExecuteAsync(
+                "SELECT KeyHash, HashVersion FROM ApiKeys WHERE Name = 'Legacy'");
+            await Assert.That(afterSecondRun.Rows[0].GetString("KeyHash")).IsEqualTo(expectedHash);
+            await Assert.That(afterSecondRun.Rows[0].GetInt32("HashVersion")).IsEqualTo(1);
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
     [Test]
     public async Task ExistingMigrationsAndProjectRepository_WorkAgainstSqlite()
     {
@@ -36,12 +103,19 @@ public class SqliteRepositoryCompatibilityTests
             var loaded = await repository.GetByNameAsync("sqlite project");
             var migrationCount = await client.ExecuteAsync(
                 "SELECT COUNT(1) AS Count FROM __MigrationsHistory");
+            var entryColumns = await client.ExecuteAsync("PRAGMA table_info(ConfigEntries)");
+            var versionColumns = await client.ExecuteAsync("PRAGMA table_info(ConfigEntryVersions)");
+            var releaseColumns = await client.ExecuteAsync("PRAGMA table_info(ConfigReleaseEntries)");
 
             await Assert.That(project.Id).IsGreaterThan(0);
             await Assert.That(loaded).IsNotNull();
             await Assert.That(loaded!.UrlSlug).IsEqualTo("sqlite-project");
             await Assert.That(await repository.CountAsync()).IsEqualTo(1);
-            await Assert.That(migrationCount.Rows[0].GetInt32("Count")).IsEqualTo(23);
+            await Assert.That(migrationCount.Rows[0].GetInt32("Count")).IsEqualTo(25);
+            await Assert.That(entryColumns.Rows.Select(row => row.GetString("name"))).Contains("Description");
+            await Assert.That(entryColumns.Rows.Select(row => row.GetString("name"))).Contains("Unit");
+            await Assert.That(versionColumns.Rows.Select(row => row.GetString("name"))).Contains("Description");
+            await Assert.That(releaseColumns.Rows.Select(row => row.GetString("name"))).Contains("Unit");
         }
         finally
         {

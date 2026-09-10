@@ -10,6 +10,8 @@ public class ConfigEntryVersion
     public int Version { get; init; }
     public required string Value { get; init; }
     public string ContentType { get; init; } = "text";
+    public string? Description { get; init; }
+    public string? Unit { get; init; }
     public KeyScope Scope { get; init; } = KeyScope.All;
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
     public string Actor { get; init; } = "System";

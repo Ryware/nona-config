@@ -136,7 +136,7 @@ export function SsoSection(props: SsoSectionProps) {
 
   return (
     <Show when={hasSsoOptions()}>
-      <div class="my-6 flex items-center gap-4 text-outline text-[9px] font-bold uppercase tracking-widest">
+      <div class="my-6 flex items-center gap-4 text-outline text-[10px] font-bold uppercase tracking-widest">
         <div class="h-px flex-1 bg-outline-variant/30" />
         <span>{props.dividerLabel || "Or continue with SSO"}</span>
         <div class="h-px flex-1 bg-outline-variant/30" />
@@ -147,7 +147,7 @@ export function SsoSection(props: SsoSectionProps) {
           <div class="flex flex-col gap-2">
             <div ref={(element) => { googleButtonHost = element; }} class="w-full flex justify-center" />
             <Show when={activeSsoProvider() === "google"}>
-              <p class="text-center text-[10px] text-outline uppercase tracking-wider font-bold">Redirecting to Google…</p>
+              <p class="text-center text-[11px] text-outline uppercase tracking-wider font-bold">Redirecting to Google…</p>
             </Show>
           </div>
         </Show>
@@ -155,7 +155,7 @@ export function SsoSection(props: SsoSectionProps) {
         <Show when={props.ssoConfig?.microsoft.enabled}>
           <Button
             variant="outline"
-            class="w-full h-11 text-on-surface text-xs font-bold uppercase tracking-wider bg-surface-container-low border border-outline-variant/15 hover:bg-surface-container-high/40 transition-colors flex items-center justify-center gap-2"
+            class="w-full h-11 text-on-surface text-[13px] font-bold uppercase tracking-wider bg-surface-container-low border border-outline-variant/15 hover:bg-surface-container-high/40 transition-colors flex items-center justify-center gap-2"
             disabled={isCurrentlyBusy()}
             onClick={handleMicrosoftLogin}
           >

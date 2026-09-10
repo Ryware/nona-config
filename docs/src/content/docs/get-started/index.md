@@ -30,7 +30,7 @@ If you are evaluating the product, this path is the fastest way to understand th
 If you want the shortest possible path:
 
 1. start Nona with Docker
-2. run `nona init --yes --base-url http://localhost:18080 --email admin@example.com --password <password> --project storefront --print-key`
+2. run `nona init --yes --base-url http://localhost:18080 --email admin@example.com --password <password> --project storefront`
 3. paste the printed values into your app `.env`
 4. run the printed verification curl
 
@@ -82,8 +82,7 @@ nona init \
   --base-url https://nona.example.com \
   --email admin@example.com \
   --password <password> \
-  --project storefront \
-  --print-key
+  --project storefront
 ```
 
 ## FAQ

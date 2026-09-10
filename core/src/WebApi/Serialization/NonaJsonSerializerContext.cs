@@ -28,6 +28,7 @@ namespace Nona.WebApi.Serialization;
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
 [JsonSerializable(typeof(bool))]
+[JsonSerializable(typeof(DateOnly?))]
 [JsonSerializable(typeof(ApiProblemDetails))]
 [JsonSerializable(typeof(ApiValidationProblemDetails))]
 [JsonSerializable(typeof(LoginRequest))]
@@ -61,6 +62,7 @@ namespace Nona.WebApi.Serialization;
 [JsonSerializable(typeof(IReadOnlyList<ConfigReleaseDto>))]
 [JsonSerializable(typeof(CreateApiKeyRequest))]
 [JsonSerializable(typeof(ApiKeyDto))]
+[JsonSerializable(typeof(CreatedApiKeyDto))]
 [JsonSerializable(typeof(IReadOnlyList<ApiKeyDto>))]
 [JsonSerializable(typeof(CreateUserRequest))]
 [JsonSerializable(typeof(UpdateUserRequest))]

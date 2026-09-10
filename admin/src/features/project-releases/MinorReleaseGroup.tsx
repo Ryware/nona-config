@@ -19,15 +19,15 @@ export function MinorReleaseGroup(props: MinorReleaseGroupProps) {
       <div data-testid={`release-minor-group-${local.minorGroup.key}`}>
         <div class="flex select-none items-center gap-1.5 rounded-md px-1.5 py-1">
           <MIcon name="chevron_right" class="text-outline text-[15px]" />
-          <span class="text-on-surface font-mono text-[12px] font-bold">
+          <span class="text-on-surface font-mono text-[13px] font-bold">
             {local.minorGroup.label}
           </span>
-          <span class="text-outline text-[10.5px]">
+          <span class="text-outline text-[11.5px]">
             {local.minorGroup.releases.length}{" "}
             {local.minorGroup.releases.length === 1 ? "release" : "releases"}
           </span>
           <Show when={local.minorGroup.hasActive}>
-            <span class="bg-primary/10 text-primary rounded-md px-2 py-0.5 text-[11px] font-bold">
+            <span class="bg-primary/10 text-primary rounded-md px-2 py-0.5 text-[12px] font-bold">
               Active
             </span>
           </Show>

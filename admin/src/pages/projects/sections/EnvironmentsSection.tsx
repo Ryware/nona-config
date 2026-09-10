@@ -13,11 +13,15 @@ import type { CreateEnvironmentRequest } from "../../../types";
 import { ProjectSectionLayout } from "../components/ProjectSectionLayout";
 import { useProjectContext } from "../hooks/useProjectContext";
 
+const errorMessage = (caught: unknown, fallback: string) =>
+  caught instanceof Error && caught.message ? caught.message : fallback;
+
 export default function EnvironmentsSection() {
   const params = useParams<{ slug: string }>();
   const queryClient = useQueryClient();
   const { addToast } = useToast();
   const [showEnvForm, setShowEnvForm] = createSignal(false);
+  const [createEnvError, setCreateEnvError] = createSignal("");
   const [hasAutoOpenedEnvForm, setHasAutoOpenedEnvForm] = createSignal(false);
   const [confirmDeleteEnv, setConfirmDeleteEnv] = createSignal<string | null>(null);
 
@@ -50,16 +54,22 @@ export default function EnvironmentsSection() {
 
   useEscapeKey(() => {
     setShowEnvForm(false);
+    setCreateEnvError("");
   });
 
   const createEnvMutation = useMutation(() => ({
     mutationFn: (req: CreateEnvironmentRequest) => environmentService.create(req),
+    onMutate: () => setCreateEnvError(""),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: projectKeys.environments(params.slug) });
       setShowEnvForm(false);
       addToast(MSG.ENV_CREATED, "success");
     },
-    onError: () => addToast(MSG.ENV_CREATE_FAILED, "error")
+    onError: error => {
+      const message = errorMessage(error, MSG.ENV_CREATE_FAILED);
+      setCreateEnvError(message);
+      addToast(message, "error");
+    }
   }));
 
   const deleteEnvMutation = useMutation(() => ({
@@ -69,7 +79,7 @@ export default function EnvironmentsSection() {
       queryClient.invalidateQueries({ queryKey: projectKeys.environments(params.slug) });
       addToast(MSG.ENV_DELETED, "success");
     },
-    onError: () => addToast(MSG.ENV_DELETE_FAILED, "error")
+    onError: error => addToast(errorMessage(error, MSG.ENV_DELETE_FAILED), "error")
   }));
 
   return (
@@ -86,9 +96,14 @@ export default function EnvironmentsSection() {
           onCreateEnv={(name: string) => createEnvMutation.mutate({ projectId: projectId(), name })}
           onDeleteEnv={setConfirmDeleteEnv}
           showEnvForm={showEnvForm()}
-          setShowEnvForm={setShowEnvForm}
+          setShowEnvForm={(open: boolean) => {
+            if (!open) setCreateEnvError("");
+            setShowEnvForm(open);
+          }}
           createEnvPending={createEnvMutation.isPending}
           canManage={canManageProject()}
+          createEnvError={createEnvError()}
+          onDismissCreateEnvError={() => setCreateEnvError("")}
         />
       </ProjectSectionLayout>
 

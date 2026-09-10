@@ -1,4 +1,4 @@
-# Nona — Open Source Firebase Remote Config Alternative
+# <a href="https://nonaconfig.com"><img src=".github/assets/nona-logo.svg" alt="" width="38" height="38" /></a> Nona - Open Source Firebase Remote Config Alternative
 
 **Self-hosted feature flags and remote configuration for web, mobile, and backend apps.**
 
@@ -36,7 +36,7 @@ so change whatever you like.
 - [Client Libraries](#client-libraries)
 - [API](#api)
 - [Docker Compose](#docker-compose)
-- [Migrate from Firebase Remote Config](#migrate-from-firebase-remote-config)
+- [Migrate existing configuration](#migrate-existing-configuration)
 - [Performance](#performance)
 - [Architecture](#architecture)
 
@@ -83,10 +83,10 @@ docker run -d \
 - **API base:** `http://localhost:18080`
 - **Guided setup:** `https://nonaconfig.com/docs/get-started/`
 
-Create a project, add an environment, set your first key-value pair, publish a release, and set it active. Then fetch the value:
+Create a project, add an environment, set your first key-value pair, and create an API key. Then fetch the working value:
 
 ```bash
-curl "http://localhost:18080/api/production/Features%3ACheckout" \
+curl "http://localhost:18080/api/environments/production/parameters/Features%3ACheckout" \
   -H "X-Api-Key: your-api-key"
 ```
 
@@ -109,7 +109,7 @@ This repository is the Nona monorepo:
 
 - `core`, `cli`, `libsql`, `migrator`: backend API, CLI, storage library, and migration tooling
 - `admin`: admin web UI
-- `client`: JavaScript SDK, .NET SDK, and JavaScript OpenFeature provider
+- `client`: JavaScript SDK, .NET SDK, Kotlin/Android SDK, Swift SDK, and the OpenFeature providers
 - `docs`: documentation site
 
 ---
@@ -129,6 +129,7 @@ const nona = createNonaClient({
   baseUrl: "https://nona.example.com",
   environmentId: "production",
   apiKey: process.env.NONA_API_KEY,
+  useReleases: true,
   releaseVersion: "1.1.x"
 });
 
@@ -158,6 +159,32 @@ Console.WriteLine(value.Value);
 
 ---
 
+### Swift / iOS
+
+The Swift client supports CocoaPods and Swift Package Manager, with defaults,
+offline caching, and explicit fetch/activate. See
+[client/swift/README.md](client/swift/README.md) for branch installation and usage.
+
+### Kotlin / Android
+
+```kotlin
+val config = NonaConfig.create(context, NonaOptions(
+    baseUrl = "https://nona.example.com",
+    environmentId = "production",
+    apiKey = BuildConfig.NONA_FRONTEND_KEY
+))
+
+config.setDefaults(mapOf("Features:Checkout" to false))
+config.initialize()       // restore the cached snapshot
+config.fetchAndActivate() // refresh from the network
+
+val enabled = config.getBoolean("Features:Checkout")
+```
+
+In-app defaults, separate fetch and activate, synchronous reads, and an offline cache that survives restarts. Usable from Java too, and needs a frontend-scoped API key. See [client/kotlin/README.md](client/kotlin/README.md).
+
+---
+
 ### OpenFeature / JavaScript
 
 ```bash
@@ -168,24 +195,34 @@ See [client/javascript-openfeature-provider/README.md](client/javascript-openfea
 
 ---
 
+### OpenFeature / JavaScript in the browser
+
+```bash
+npm install nona-client nona-openfeature-web-provider @openfeature/web-sdk
+```
+
+Loads the environment's frontend-scoped config as one snapshot and evaluates synchronously, which is what the OpenFeature web SDK expects. Requires a frontend-scoped API key. See [client/javascript-openfeature-web-provider/README.md](client/javascript-openfeature-web-provider/README.md) for setup and usage.
+
+---
+
 ### Any language (plain HTTP)
 
-No SDK needed. A single GET request returns one config value from the environment's active release, from its working parameters when no release is active, or from a pinned release version:
+No SDK needed. Choose the working, active-release, or selected-release route explicitly. The version is a path segment and may be exact or a release line:
 
 ```bash
 # curl
-curl "https://your-nona-host/api/production/Features%3ACheckout?version=1.1.x" \
+curl "https://your-nona-host/api/environments/production/releases/1.1.x/parameters/Features%3ACheckout" \
   -H "X-Api-Key: your-api-key"
 
 # Python
 import httpx
 value = httpx.get(
-    "https://your-nona-host/api/production/Features%3ACheckout",
+    "https://your-nona-host/api/environments/production/parameters/Features%3ACheckout",
     headers={"X-Api-Key": api_key}
 ).text
 
 # Go
-req, _ := http.NewRequest("GET", "https://your-nona-host/api/production/Features%3ACheckout", nil)
+req, _ := http.NewRequest("GET", "https://your-nona-host/api/environments/production/parameters/Features%3ACheckout", nil)
 req.Header.Set("X-Api-Key", apiKey)
 ```
 
@@ -218,12 +255,16 @@ CLI packages:
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/api/{environmentId}/{key}` | Fetch one key from the active release, or working parameters when none is active |
-| `GET` | `/api/{environmentId}/{key}?version=1.1.0` | Fetch one key from an exact release |
-| `GET` | `/api/{environmentId}/{key}?version=1.1.x` | Fetch one key from the highest patch in a release line |
-| `GET` | `/api/{environmentId}` | Fetch all client-visible keys with ETag support |
+| `GET` | `/api/environments/{environmentId}/parameters/{key}` | Fetch one working parameter |
+| `GET` | `/api/environments/{environmentId}/parameters` | Fetch all client-visible working parameters with ETag support |
+| `GET` | `/api/environments/{environmentId}/releases/active/parameters/{key}` | Fetch one parameter from the active release |
+| `GET` | `/api/environments/{environmentId}/releases/{version}/parameters/{key}` | Fetch one parameter from an exact or wildcard release selector |
+| `GET` | `/api/environments/{environmentId}/releases/active/parameters` | Fetch all client-visible parameters from the active release |
+| `GET` | `/api/environments/{environmentId}/releases/{version}/parameters?prefix=GroupA%3A` | Fetch a prefix from an exact or wildcard release selector |
 
 Authentication: `X-Api-Key` request header.
+
+Non-empty prefixes may contain only ASCII letters, digits, colons, dots, underscores, and dashes. Invalid prefixes return `400 Bad Request`; an empty prefix is unfiltered.
 
 The API key determines the project. The response body contains the raw stored value, and `X-Nona-Content-Type` tells the client whether the value is `text`, `number`, `boolean`, or `json`.
 
@@ -262,8 +303,10 @@ docker compose -f primary-replica-prod.yml up -d
 
 | Service | API port | libSQL port | gRPC port |
 |---------|----------|-------------|-----------|
-| `nona-primary` | `18081` | `19080` | `15001` |
-| `nona-replica` | `18082` | `19082` | — |
+| `nona-primary` | `18081` | internal only | internal only |
+| `nona-replica` | `18082` | internal only | — |
+
+The replication compose files publish only the Nona API. SQL HTTP and replication gRPC stay on the private container network; Nona authentication does not protect these database listeners.
 
 The replica connects to the primary over gRPC and syncs automatically.
 
@@ -284,7 +327,7 @@ docker run -d \
 
 ---
 
-## Migrate from Firebase Remote Config
+## Migrate existing configuration
 
 The Nona CLI includes a built-in Firebase Remote Config migration command that imports your existing parameters using a migration config file.
 
@@ -300,6 +343,16 @@ nona migrate firebase \
 
 See [`cli/src/Nona.Cli/README.md`](cli/src/Nona.Cli/README.md) for the full CLI reference.
 
+The CLI can also import AWS Parameter Store `String` values referenced by an ECS task definition:
+
+```bash
+nona migrate parameter-store \
+  --task-definition ./task-definition.json \
+  --environment production \
+  --project backend-service \
+  --dry-run
+```
+
 ---
 
 ## Performance
@@ -309,7 +362,7 @@ means concurrent, closed-loop HTTP clients.
 
 ### Full environment
 
-Each request used `GET /api/{environment}` and consumed the complete response
+Each request used `GET /api/environments/{environment}/parameters` and consumed the complete response
 body.
 
 | Keys returned | Users | Average (ms) | p50 (ms) | p95 (ms) | p99 (ms) | req/s |
@@ -321,7 +374,7 @@ body.
 
 ### Single key
 
-Each request used `GET /api/{environment}/{key}` to read one fixed key from an
+Each request used `GET /api/environments/{environment}/parameters/{key}` to read one fixed key from an
 environment containing 10,000 keys.
 
 | Keys returned | Users | Average (ms) | p50 (ms) | p95 (ms) | p99 (ms) | req/s |

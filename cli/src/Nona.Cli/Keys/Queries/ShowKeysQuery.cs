@@ -46,7 +46,7 @@ internal sealed class ShowKeysQueryHandler(Func<HttpClient>? httpClientFactory =
     internal static void WriteKey(ApiKeyDto key)
     {
         Console.WriteLine($"  {key.Id}: {key.Name}");
-        Console.WriteLine($"    Key:         {key.Key}");
+        Console.WriteLine($"    Fingerprint: {new string('•', 8)}{key.Fingerprint}");
         Console.WriteLine($"    Environment: {key.Environment ?? "Project-wide"}");
         Console.WriteLine($"    Scope:       {key.Scope}");
         Console.WriteLine($"    Created:     {key.CreatedAt:O}");

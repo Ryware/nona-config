@@ -6,7 +6,7 @@ namespace Nona.Application.Admin.ApiKeys.DTOs;
 public record ApiKeyDto(
     long Id,
     string Name,
-    string Key,
+    string Fingerprint,
     string Project,
     string? Environment,
     string Scope,
@@ -20,7 +20,21 @@ internal static class ApiKeyDtoMapping
         return new ApiKeyDto(
             apiKey.Id,
             apiKey.Name,
-            apiKey.Key,
+            apiKey.Fingerprint,
+            apiKey.Project,
+            apiKey.Environment,
+            apiKey.Scope.ToApiString(),
+            apiKey.CreatedAt,
+            apiKey.UpdatedAt);
+    }
+
+    public static CreatedApiKeyDto ToCreatedDto(this ApiKey apiKey, string secret)
+    {
+        return new CreatedApiKeyDto(
+            apiKey.Id,
+            apiKey.Name,
+            secret,
+            apiKey.Fingerprint,
             apiKey.Project,
             apiKey.Environment,
             apiKey.Scope.ToApiString(),
@@ -28,3 +42,14 @@ internal static class ApiKeyDtoMapping
             apiKey.UpdatedAt);
     }
 }
+
+public record CreatedApiKeyDto(
+    long Id,
+    string Name,
+    string Key,
+    string Fingerprint,
+    string Project,
+    string? Environment,
+    string Scope,
+    DateTime CreatedAt,
+    DateTime UpdatedAt);

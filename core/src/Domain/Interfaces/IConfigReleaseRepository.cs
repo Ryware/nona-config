@@ -39,6 +39,14 @@ public interface IConfigReleaseRepository
         KeyScope requiredScope,
         CancellationToken ct = default);
 
+    Task<IReadOnlyList<ConfigReleaseEntry>> ListEntriesAsync(
+        string projectName,
+        string environmentName,
+        string version,
+        KeyScope requiredScope,
+        string? prefix,
+        CancellationToken ct = default);
+
     Task<bool> ExistsAsync(string projectName, string environmentName, string version, CancellationToken ct = default);
 
     Task<bool> AddAsync(ConfigRelease release, CancellationToken ct = default);

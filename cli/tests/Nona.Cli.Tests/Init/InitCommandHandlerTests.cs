@@ -16,25 +16,19 @@ public sealed class InitCommandHandlerTests
     [Test]
     public async Task ColdStart_BootstrapsResources_AndPrintsDotenv()
     {
-        var server = new SequenceServer(
-            Json(HttpStatusCode.OK, "true"),
-            Json(HttpStatusCode.OK, """
-                {"token":"jwt-token","username":"admin@example.com","role":"admin","expiresAt":"2026-06-04T12:00:00Z"}
-                """),
-            Json(HttpStatusCode.OK, "[]"),
-            Json(HttpStatusCode.Created, """{"name":"nona-todo"}"""),
-            Json(HttpStatusCode.OK, "[]"),
-            Json(HttpStatusCode.Created, """{"name":"production"}"""),
-            Json(HttpStatusCode.OK, """{"key":"Features:Example"}"""),
-            Json(HttpStatusCode.OK, "[]"),
-            Json(HttpStatusCode.Created, $$"""{"id":7,"name":"nona init client","key":"{{FullKey}}","environment":"production","scope":"client"}"""));
+        var server = CreateColdStartServer();
 
-        var (exitCode, output) = await RunAsync(server, PrintKey: false);
+        var (exitCode, output, error) = await RunWithErrorAsync(
+            server,
+            BuildCommand());
 
         await Assert.That(exitCode).IsEqualTo(0);
         await Assert.That(output).Contains("VITE_NONA_BASE_URL=http://nona.test");
-        await Assert.That(output).Contains("VITE_NONA_API_KEY=****158D");
-        await Assert.That(output).Contains("--print-key");
+        await Assert.That(output).Contains($"VITE_NONA_API_KEY={FullKey}");
+        await Assert.That(output).Contains(
+            "# Verify: curl -H \"X-Api-Key: $VITE_NONA_API_KEY\" " +
+            "http://nona.test/api/environments/production/parameters/Features%3AExample");
+        await Assert.That(error).Contains("cannot be recovered");
 
         var seedRequest = server.Requests.Single(request => request.Method == "PUT");
         using var seedBody = JsonDocument.Parse(seedRequest.Body);
@@ -55,7 +49,23 @@ public sealed class InitCommandHandlerTests
     }
 
     [Test]
-    public async Task WarmStart_ReusesExistingProjectEnvironmentAndKey()
+    public async Task ColdStart_EnvExportPrintsWorkingParameterVerificationUrl()
+    {
+        var server = CreateColdStartServer();
+
+        var (exitCode, output, _) = await RunWithErrorAsync(
+            server,
+            BuildCommand(Format: "env-export"));
+
+        await Assert.That(exitCode).IsEqualTo(CliExitCodes.Success);
+        await Assert.That(output).Contains($"export VITE_NONA_API_KEY='{FullKey}'");
+        await Assert.That(output).Contains(
+            "# Verify: curl -H \"X-Api-Key: $VITE_NONA_API_KEY\" " +
+            "http://nona.test/api/environments/production/parameters/Features%3AExample");
+    }
+
+    [Test]
+    public async Task WarmStart_ExplainsThatAnExistingKeyCannotBeRecovered()
     {
         var server = new SequenceServer(
             Json(HttpStatusCode.OK, "false"),
@@ -63,12 +73,18 @@ public sealed class InitCommandHandlerTests
             Json(HttpStatusCode.OK, """[{"name":"nona-todo"}]"""),
             Json(HttpStatusCode.OK, """[{"name":"production"}]"""),
             Json(HttpStatusCode.OK, """{"key":"Features:Example"}"""),
-            Json(HttpStatusCode.OK, $$"""[{"id":7,"name":"nona init client","key":"{{FullKey}}","environment":"production","scope":"client"}]"""));
+            Json(HttpStatusCode.OK, """[{"id":7,"name":"nona init client","fingerprint":"AAAA158D","environment":"production","scope":"client"}]"""));
 
-        var (exitCode, output) = await RunAsync(server, PrintKey: true);
+        var (exitCode, output, error) = await RunWithErrorAsync(
+            server,
+            BuildCommand());
 
-        await Assert.That(exitCode).IsEqualTo(0);
-        await Assert.That(output).Contains($"VITE_NONA_API_KEY={FullKey}");
+        await Assert.That(exitCode).IsEqualTo(1);
+        await Assert.That(output).DoesNotContain("VITE_NONA_API_KEY");
+        await Assert.That(error).Contains("cannot be recovered");
+        await Assert.That(error).Contains("nona keys create --project nona-todo");
+        await Assert.That(error).Contains("nona keys delete --project nona-todo --id 7");
+        await Assert.That(error).DoesNotContain("regenerate");
         await Assert.That(server.Requests.Any(r => r.Method == "POST" && r.Path.Contains("api-keys", StringComparison.Ordinal))).IsFalse();
         await Assert.That(server.Requests.Any(r => r.Method == "POST" && r.Path == "/admin/projects")).IsFalse();
     }
@@ -84,7 +100,7 @@ public sealed class InitCommandHandlerTests
             Json(HttpStatusCode.OK, "[]"),
             Json(HttpStatusCode.Created, $$"""{"id":7,"name":"nona init client","key":"{{FullKey}}","environment":"production","scope":"client"}"""));
 
-        var command = BuildCommand(IncludeSeedFlag: false, Format: "json", PrintKey: true);
+        var command = BuildCommand(IncludeSeedFlag: false, Format: "json");
         var (exitCode, output) = await RunAsync(server, command);
 
         using var document = JsonDocument.Parse(output);
@@ -124,13 +140,20 @@ public sealed class InitCommandHandlerTests
     }
 
     private static async Task<(int ExitCode, string Output)> RunAsync(
-        SequenceServer server,
-        bool PrintKey = true)
+        SequenceServer server)
     {
-        return await RunAsync(server, BuildCommand(PrintKey: PrintKey));
+        return await RunAsync(server, BuildCommand());
     }
 
     private static async Task<(int ExitCode, string Output)> RunAsync(
+        SequenceServer server,
+        InitCommand command)
+    {
+        var result = await RunWithErrorAsync(server, command);
+        return (result.ExitCode, result.Output);
+    }
+
+    private static async Task<(int ExitCode, string Output, string Error)> RunWithErrorAsync(
         SequenceServer server,
         InitCommand command)
     {
@@ -146,7 +169,7 @@ public sealed class InitCommandHandlerTests
 
             var handler = new InitCommandHandler(server.CreateClient);
             var exitCode = await handler.HandleAsync(command, CancellationToken.None);
-            return (exitCode, output.ToString());
+            return (exitCode, output.ToString(), error.ToString());
         }
         finally
         {
@@ -158,7 +181,6 @@ public sealed class InitCommandHandlerTests
     private static InitCommand BuildCommand(
         SeedFlag? SeedFlag = null,
         string Format = "dotenv",
-        bool PrintKey = true,
         bool IncludeSeedFlag = true)
     {
         return new InitCommand(
@@ -169,9 +191,22 @@ public sealed class InitCommandHandlerTests
             Environment: "production",
             SeedFlag: IncludeSeedFlag ? SeedFlag ?? new SeedFlag("Features:Example", "true") : null,
             Scope: "client",
-            Format: Format,
-            PrintKey: PrintKey);
+            Format: Format);
     }
+
+    private static SequenceServer CreateColdStartServer()
+        => new(
+            Json(HttpStatusCode.OK, "true"),
+            Json(HttpStatusCode.OK, """
+                {"token":"jwt-token","username":"admin@example.com","role":"admin","expiresAt":"2026-06-04T12:00:00Z"}
+                """),
+            Json(HttpStatusCode.OK, "[]"),
+            Json(HttpStatusCode.Created, """{"name":"nona-todo"}"""),
+            Json(HttpStatusCode.OK, "[]"),
+            Json(HttpStatusCode.Created, """{"name":"production"}"""),
+            Json(HttpStatusCode.OK, """{"key":"Features:Example"}"""),
+            Json(HttpStatusCode.OK, "[]"),
+            Json(HttpStatusCode.Created, $$"""{"id":7,"name":"nona init client","key":"{{FullKey}}","environment":"production","scope":"client"}"""));
 
     private static HttpResponseMessage Json(HttpStatusCode status, string body)
     {

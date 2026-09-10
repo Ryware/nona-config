@@ -102,7 +102,7 @@ export default function LoginPage(props: LoginPageProps = {}) {
         <Show when={searchParams.passwordReset === "success"}>
           <div
             data-testid="password-reset-success"
-            class="bg-success/10 text-success border-success/20 mb-5 flex items-start gap-2 rounded-xl border px-3.5 py-3 text-xs"
+            class="bg-success/10 text-success border-success/20 mb-5 flex items-start gap-2 rounded-xl border px-3.5 py-3 text-[13px]"
           >
             <span class="material-symbols-outlined text-[17px]">check_circle</span>
             <span>{MSG.PASSWORD_RESET_COMPLETE}</span>
@@ -149,7 +149,7 @@ export default function LoginPage(props: LoginPageProps = {}) {
                 </Show>
               </div>
               <span
-                class="text-on-surface-variant text-[12px] select-none"
+                class="text-on-surface-variant text-[13px] select-none"
                 onClick={() => setRememberMe(v => !v)}
               >
                 Remember me on this device
@@ -179,7 +179,7 @@ export default function LoginPage(props: LoginPageProps = {}) {
         />
 
         <div class="border-outline-variant/15 mt-6 border-t pt-5">
-          <div class="text-outline flex items-center justify-center gap-6 text-[10px] font-medium">
+          <div class="text-outline flex items-center justify-center gap-6 text-[11px] font-medium">
             <a
               class="hover:text-primary flex items-center gap-1.5 transition-colors"
               href="https://www.nonaconfig.com/support"

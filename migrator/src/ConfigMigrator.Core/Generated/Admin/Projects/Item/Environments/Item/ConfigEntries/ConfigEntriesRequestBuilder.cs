@@ -35,7 +35,7 @@ namespace Nona.Migrator.Core.Generated.Admin.Projects.Item.Environments.Item.Con
         /// </summary>
         /// <param name="pathParameters">Path parameters for the request</param>
         /// <param name="requestAdapter">The request adapter to use to execute the requests.</param>
-        public ConfigEntriesRequestBuilder(Dictionary<string, object> pathParameters, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/admin/projects/{projectId}/environments/{environment%2Did}/config-entries", pathParameters)
+        public ConfigEntriesRequestBuilder(Dictionary<string, object> pathParameters, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/admin/projects/{projectId}/environments/{environment%2Did}/config-entries{?prefix*}", pathParameters)
         {
         }
         /// <summary>
@@ -43,25 +43,27 @@ namespace Nona.Migrator.Core.Generated.Admin.Projects.Item.Environments.Item.Con
         /// </summary>
         /// <param name="rawUrl">The raw URL to use for the request builder.</param>
         /// <param name="requestAdapter">The request adapter to use to execute the requests.</param>
-        public ConfigEntriesRequestBuilder(string rawUrl, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/admin/projects/{projectId}/environments/{environment%2Did}/config-entries", rawUrl)
+        public ConfigEntriesRequestBuilder(string rawUrl, IRequestAdapter requestAdapter) : base(requestAdapter, "{+baseurl}/admin/projects/{projectId}/environments/{environment%2Did}/config-entries{?prefix*}", rawUrl)
         {
         }
         /// <returns>A List&lt;global::Nona.Migrator.Core.Generated.Models.ConfigEntryDto&gt;</returns>
         /// <param name="cancellationToken">Cancellation token to use when cancelling requests</param>
         /// <param name="requestConfiguration">Configuration for the request such as headers, query parameters, and middleware options.</param>
+        /// <exception cref="global::Nona.Migrator.Core.Generated.Models.ApiProblemDetails">When receiving a 400 status code</exception>
         /// <exception cref="global::Nona.Migrator.Core.Generated.Models.ApiProblemDetails">When receiving a 4XX or 5XX status code</exception>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
-        public async Task<List<global::Nona.Migrator.Core.Generated.Models.ConfigEntryDto>?> GetAsync(Action<RequestConfiguration<DefaultQueryParameters>>? requestConfiguration = default, CancellationToken cancellationToken = default)
+        public async Task<List<global::Nona.Migrator.Core.Generated.Models.ConfigEntryDto>?> GetAsync(Action<RequestConfiguration<global::Nona.Migrator.Core.Generated.Admin.Projects.Item.Environments.Item.ConfigEntries.ConfigEntriesRequestBuilder.ConfigEntriesRequestBuilderGetQueryParameters>>? requestConfiguration = default, CancellationToken cancellationToken = default)
         {
 #nullable restore
 #else
-        public async Task<List<global::Nona.Migrator.Core.Generated.Models.ConfigEntryDto>> GetAsync(Action<RequestConfiguration<DefaultQueryParameters>> requestConfiguration = default, CancellationToken cancellationToken = default)
+        public async Task<List<global::Nona.Migrator.Core.Generated.Models.ConfigEntryDto>> GetAsync(Action<RequestConfiguration<global::Nona.Migrator.Core.Generated.Admin.Projects.Item.Environments.Item.ConfigEntries.ConfigEntriesRequestBuilder.ConfigEntriesRequestBuilderGetQueryParameters>> requestConfiguration = default, CancellationToken cancellationToken = default)
         {
 #endif
             var requestInfo = ToGetRequestInformation(requestConfiguration);
             var errorMapping = new Dictionary<string, ParsableFactory<IParsable>>
             {
+                { "400", global::Nona.Migrator.Core.Generated.Models.ApiProblemDetails.CreateFromDiscriminatorValue },
                 { "XXX", global::Nona.Migrator.Core.Generated.Models.ApiProblemDetails.CreateFromDiscriminatorValue },
             };
             var collectionResult = await RequestAdapter.SendCollectionAsync<global::Nona.Migrator.Core.Generated.Models.ConfigEntryDto>(requestInfo, global::Nona.Migrator.Core.Generated.Models.ConfigEntryDto.CreateFromDiscriminatorValue, errorMapping, cancellationToken).ConfigureAwait(false);
@@ -71,11 +73,11 @@ namespace Nona.Migrator.Core.Generated.Admin.Projects.Item.Environments.Item.Con
         /// <param name="requestConfiguration">Configuration for the request such as headers, query parameters, and middleware options.</param>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
-        public RequestInformation ToGetRequestInformation(Action<RequestConfiguration<DefaultQueryParameters>>? requestConfiguration = default)
+        public RequestInformation ToGetRequestInformation(Action<RequestConfiguration<global::Nona.Migrator.Core.Generated.Admin.Projects.Item.Environments.Item.ConfigEntries.ConfigEntriesRequestBuilder.ConfigEntriesRequestBuilderGetQueryParameters>>? requestConfiguration = default)
         {
 #nullable restore
 #else
-        public RequestInformation ToGetRequestInformation(Action<RequestConfiguration<DefaultQueryParameters>> requestConfiguration = default)
+        public RequestInformation ToGetRequestInformation(Action<RequestConfiguration<global::Nona.Migrator.Core.Generated.Admin.Projects.Item.Environments.Item.ConfigEntries.ConfigEntriesRequestBuilder.ConfigEntriesRequestBuilderGetQueryParameters>> requestConfiguration = default)
         {
 #endif
             var requestInfo = new RequestInformation(Method.GET, UrlTemplate, PathParameters);
@@ -92,12 +94,27 @@ namespace Nona.Migrator.Core.Generated.Admin.Projects.Item.Environments.Item.Con
         {
             return new global::Nona.Migrator.Core.Generated.Admin.Projects.Item.Environments.Item.ConfigEntries.ConfigEntriesRequestBuilder(rawUrl, RequestAdapter);
         }
+        [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
+        #pragma warning disable CS1591
+        public partial class ConfigEntriesRequestBuilderGetQueryParameters 
+        #pragma warning restore CS1591
+        {
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
+#nullable enable
+            [QueryParameter("prefix")]
+            public string? Prefix { get; set; }
+#nullable restore
+#else
+            [QueryParameter("prefix")]
+            public string Prefix { get; set; }
+#endif
+        }
         /// <summary>
         /// Configuration for the request such as headers, query parameters, and middleware options.
         /// </summary>
         [Obsolete("This class is deprecated. Please use the generic RequestConfiguration class generated by the generator.")]
         [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
-        public partial class ConfigEntriesRequestBuilderGetRequestConfiguration : RequestConfiguration<DefaultQueryParameters>
+        public partial class ConfigEntriesRequestBuilderGetRequestConfiguration : RequestConfiguration<global::Nona.Migrator.Core.Generated.Admin.Projects.Item.Environments.Item.ConfigEntries.ConfigEntriesRequestBuilder.ConfigEntriesRequestBuilderGetQueryParameters>
         {
         }
     }

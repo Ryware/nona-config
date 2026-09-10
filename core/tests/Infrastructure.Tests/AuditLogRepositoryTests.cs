@@ -12,6 +12,83 @@ namespace Nona.Infrastructure.Tests;
 public class AuditLogRepositoryTests
 {
     [Test]
+    [Arguments(false, false)]
+    [Arguments(true, false)]
+    [Arguments(false, true)]
+    public async Task ListBatchAsync_Sqld_AbsentOrIncompleteCursorReturnsFirstBatch(
+        bool hasTimestamp,
+        bool hasId)
+    {
+        await using var server = await LocalSqldTestServer.StartAsync();
+        using var client = server.CreateClient();
+        await new LibsqlMigrationRunner(client, ResolveMigrationsFolder()).RunMigrationsAsync();
+        var repository = new LibsqlAuditLogRepository(client);
+        var createdAt = new DateTime(2026, 7, 29, 12, 0, 0, DateTimeKind.Utc);
+        await SeedCursorEntriesAsync(repository, createdAt);
+
+        var entries = await repository.ListBatchAsync(new AuditLogBatchRequest(
+            new AuditLogFilter(),
+            BeforeCreatedAt: hasTimestamp ? createdAt.AddDays(-1) : null,
+            BeforeId: hasId ? 999 : null,
+            Limit: 2));
+
+        await Assert.That(entries.Select(entry => entry.Target)
+            .SequenceEqual(new[] { "newest-a", "newest-b" })).IsTrue();
+    }
+
+    [Test]
+    public async Task ListBatchAsync_Sqld_CursorTraversesTiedAndOlderRowsUntilExhausted()
+    {
+        await using var server = await LocalSqldTestServer.StartAsync();
+        using var client = server.CreateClient();
+        await new LibsqlMigrationRunner(client, ResolveMigrationsFolder()).RunMigrationsAsync();
+        var repository = new LibsqlAuditLogRepository(client);
+        var createdAt = new DateTime(2026, 7, 29, 12, 0, 0, DateTimeKind.Utc);
+        await SeedCursorEntriesAsync(repository, createdAt);
+
+        DateTime? beforeCreatedAt = null;
+        long? beforeId = null;
+        var targets = new List<string>();
+        var batchSizes = new List<int>();
+        for (var batchIndex = 0; batchIndex < 4; batchIndex++)
+        {
+            var entries = await repository.ListBatchAsync(new AuditLogBatchRequest(
+                new AuditLogFilter(), beforeCreatedAt, beforeId, Limit: 2));
+            batchSizes.Add(entries.Count);
+            targets.AddRange(entries.Select(entry => entry.Target));
+            if (entries.Count == 0)
+            {
+                break;
+            }
+
+            beforeCreatedAt = entries[^1].CreatedAt;
+            beforeId = entries[^1].Id;
+        }
+
+        await Assert.That(batchSizes.SequenceEqual(new[] { 2, 2, 1, 0 })).IsTrue();
+        await Assert.That(targets.SequenceEqual(
+            new[] { "newest-a", "newest-b", "newest-c", "older-a", "older-b" })).IsTrue();
+    }
+
+    private static async Task SeedCursorEntriesAsync(LibsqlAuditLogRepository repository, DateTime createdAt)
+    {
+        foreach (var (target, dayOffset) in new[]
+                 {
+                     ("older-a", -1), ("newest-a", 0), ("newest-b", 0), ("older-b", -1), ("newest-c", 0)
+                 })
+        {
+            await repository.AddAsync(new AuditLogEntry
+            {
+                Actor = "cursor.user@example.test",
+                ActionKind = AuditActionKind.Update,
+                Action = "Updated Parameter",
+                Target = target,
+                CreatedAt = createdAt.AddDays(dayOffset)
+            });
+        }
+    }
+
+    [Test]
     public async Task Repository_RoundTripsPersistedActionKind()
     {
         var directory = CreateTempDirectory("nona-audit-log");

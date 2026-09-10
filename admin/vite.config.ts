@@ -62,7 +62,6 @@ export default defineConfig(({ mode }) => {
           'src/widgets/**',
         ],
         exclude: [
-          'src/shared/api/generated.ts',
           'src/**/*.test.{ts,tsx}',
           'src/__tests__/**',
         ],

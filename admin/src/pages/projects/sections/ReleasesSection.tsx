@@ -69,7 +69,7 @@ export default function ReleasesSection() {
         <Show
           when={activeEnvName()}
           fallback={
-            <div class="border-outline-variant/15 bg-surface-container-low rounded-2xl border px-5 py-6 text-sm text-on-surface-variant">
+            <div class="border-outline-variant/15 bg-surface-container-low rounded-2xl border px-5 py-6 text-[15px] text-on-surface-variant">
               Select an active environment from the header to manage releases.
             </div>
           }
@@ -188,7 +188,6 @@ export default function ReleasesSection() {
         placeholder="1.2"
         validationMessage="Use major.minor."
         versionFormat="majorMinor"
-        normalizeVersion={version => `${version}.0`}
         onConfirm={version => {
           setCreateVersionOpen(false);
           navigate(`/projects/${params.slug}?release=${encodeURIComponent(version)}`);

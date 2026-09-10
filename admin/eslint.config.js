@@ -12,7 +12,6 @@ export default tseslint.config(
     ignores: [
       "dist/**",
       "node_modules/**",
-      "src/shared/api/generated.ts",
       "*.config.js",
       "*.config.ts",
       "postcss.config.js",

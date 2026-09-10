@@ -97,13 +97,13 @@ export default function SsoCallbackPage() {
           fallback={
             <a
               href="/login"
-              class="text-primary block text-center text-xs font-medium hover:underline"
+              class="text-primary block text-center text-[13px] font-medium hover:underline"
             >
               Return to login
             </a>
           }
         >
-          <p class="text-on-surface-variant text-center text-[12.5px]">
+          <p class="text-on-surface-variant text-center text-[13.5px]">
             Please wait while we return you to Nona Config.
           </p>
         </Show>

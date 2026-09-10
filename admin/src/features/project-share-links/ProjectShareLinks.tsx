@@ -24,12 +24,12 @@ export function ProjectShareLinks(props: ProjectShareLinksProps) {
       <div>
         <p
           data-testid="project-shared-links-heading"
-          class="text-outline font-headline flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase"
+          class="text-outline font-headline flex items-center gap-1.5 text-[11px] font-bold tracking-widest uppercase"
         >
           <MIcon name="link" class="text-[15px]" />
           Shared Links
         </p>
-        <p class="text-on-surface-variant mt-1 text-xs">
+        <p class="text-on-surface-variant mt-1 text-[13px]">
           All parameter share links for the active environment: {props.environmentName}.
         </p>
       </div>
@@ -41,7 +41,7 @@ export function ProjectShareLinks(props: ProjectShareLinksProps) {
         <Show
           when={props.shareLinks.length > 0}
           fallback={
-            <div class="bg-surface-container rounded-xl px-4 py-5 text-center text-xs text-on-surface-variant">
+            <div class="bg-surface-container rounded-xl px-4 py-5 text-center text-[13px] text-on-surface-variant">
               No share links yet.
             </div>
           }
@@ -55,11 +55,11 @@ export function ProjectShareLinks(props: ProjectShareLinksProps) {
                   <div class="bg-surface-container grid gap-3 rounded-xl px-4 py-3 md:grid-cols-[minmax(220px,1fr)_auto] md:items-center">
                     <div class="min-w-0">
                       <div class="flex flex-wrap items-center gap-2">
-                        <span class="text-on-surface truncate font-mono text-[13px] font-bold">
+                        <span class="text-on-surface truncate font-mono text-[14px] font-bold">
                           {link.key}
                         </span>
                         <span
-                          class={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
+                          class={`rounded-full px-2 py-0.5 text-[11px] font-bold uppercase ${
                             link.canEdit
                               ? "bg-secondary/10 text-secondary"
                               : "bg-primary/10 text-primary"
@@ -68,7 +68,7 @@ export function ProjectShareLinks(props: ProjectShareLinksProps) {
                           {link.canEdit ? "Edit" : "View"}
                         </span>
                         <span
-                          class={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
+                          class={`rounded-full px-2 py-0.5 text-[11px] font-bold uppercase ${
                             status() === "active"
                               ? "bg-success/10 text-success"
                               : "bg-error/10 text-error"
@@ -77,10 +77,10 @@ export function ProjectShareLinks(props: ProjectShareLinksProps) {
                           {status()}
                         </span>
                       </div>
-                      <p class="text-on-surface-variant mt-1 text-[12px]">
+                      <p class="text-on-surface-variant mt-1 text-[13px]">
                         Expires {formatDate(link.expiresAt)}
                       </p>
-                      <p class="text-outline mt-0.5 text-[11px]">
+                      <p class="text-outline mt-0.5 text-[12px]">
                         Created by {link.createdBy}
                       </p>
                     </div>

@@ -9,7 +9,11 @@ public class InMemoryConfigEntryRepository : IConfigEntryRepository
 {
     private readonly ConcurrentDictionary<string, ConfigEntry> _entries = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, List<ConfigEntryVersion>> _versions = new(StringComparer.OrdinalIgnoreCase);
-    private readonly object _versionGate = new();
+    private readonly object _versionGate = InMemoryRepositoryGate.SyncRoot;
+    private readonly InMemoryParameterShareLinkRepository? _shareLinks;
+
+    public InMemoryConfigEntryRepository() { }
+    public InMemoryConfigEntryRepository(InMemoryParameterShareLinkRepository shareLinks) => _shareLinks = shareLinks;
 
     private static string GetKey(string projectName, string environmentName, string key) => $"{projectName}:{environmentName}:{key}";
 
@@ -26,6 +30,33 @@ public class InMemoryConfigEntryRepository : IConfigEntryRepository
         lock (_versionGate)
         {
             return Task.FromResult<ConfigEntry?>(AddVersionCore(entry, actor));
+        }
+    }
+
+    public Task<ConfigEntry?> GetSharedAsync(ParameterShareLink link, DateTime now, CancellationToken ct = default)
+    {
+        lock (_versionGate)
+        {
+            if (_shareLinks is null || !_shareLinks.IsActive(link, now)) return Task.FromResult<ConfigEntry?>(null);
+            return GetAsync(link.Project, link.Environment, link.Key, ct);
+        }
+    }
+
+    public Task<ConfigEntry?> UpdateSharedValueAsync(ConfigEntry entry, ParameterShareLink link, DateTime now, CancellationToken ct = default)
+    {
+        lock (_versionGate)
+        {
+            if (_shareLinks is null || !_shareLinks.IsActive(link, now, requireEdit: true)
+                || !string.Equals(entry.Project, link.Project, StringComparison.OrdinalIgnoreCase)
+                || !string.Equals(entry.Environment, link.Environment, StringComparison.OrdinalIgnoreCase)
+                || !string.Equals(entry.Key, link.Key, StringComparison.OrdinalIgnoreCase)
+                || !_entries.TryGetValue(GetKey(entry.Project, entry.Environment, entry.Key), out var current)
+                || current.ContentType != entry.ContentType)
+                return Task.FromResult<ConfigEntry?>(null);
+            var updated = CloneEntry(current, current.Project, current.Environment);
+            updated.Value = entry.Value;
+            updated.UpdatedAt = now;
+            return Task.FromResult<ConfigEntry?>(AddVersionCore(updated, $"Shared link #{link.Id}"));
         }
     }
 
@@ -57,10 +88,19 @@ public class InMemoryConfigEntryRepository : IConfigEntryRepository
     }
 
     public Task<IReadOnlyList<ConfigEntry>> ListAsync(string projectName, string environmentName, CancellationToken ct = default)
+        => ListAsync(projectName, environmentName, prefix: null, ct);
+
+    public Task<IReadOnlyList<ConfigEntry>> ListAsync(
+        string projectName,
+        string environmentName,
+        string? prefix,
+        CancellationToken ct = default)
     {
         var entries = _entries.Values
             .Where(e => e.Project.Equals(projectName, StringComparison.OrdinalIgnoreCase)
-                     && e.Environment.Equals(environmentName, StringComparison.OrdinalIgnoreCase))
+                     && e.Environment.Equals(environmentName, StringComparison.OrdinalIgnoreCase)
+                     && ConfigEntryPrefix.StartsWith(e.Key, prefix))
+            .OrderBy(e => e.Key, StringComparer.Ordinal)
             .ToList();
         return Task.FromResult<IReadOnlyList<ConfigEntry>>(entries);
     }
@@ -96,20 +136,19 @@ public class InMemoryConfigEntryRepository : IConfigEntryRepository
     public Task DeleteAsync(string projectName, string environmentName, string key, CancellationToken ct = default)
     {
         var storageKey = GetKey(projectName, environmentName, key);
-        _entries.TryRemove(storageKey, out _);
-        _versions.TryRemove(storageKey, out _);
-        return Task.CompletedTask;
-    }
-
-    public Task DeleteManyAsync(string projectName, string environmentName, IEnumerable<string> keys, CancellationToken ct = default)
-    {
-        foreach (var key in keys)
+        lock (_versionGate)
         {
-            var storageKey = GetKey(projectName, environmentName, key);
+            _shareLinks?.DeleteEnvironment(projectName, environmentName, key);
             _entries.TryRemove(storageKey, out _);
             _versions.TryRemove(storageKey, out _);
         }
         return Task.CompletedTask;
+    }
+
+    public async Task DeleteManyAsync(string projectName, string environmentName, IEnumerable<string> keys, CancellationToken ct = default)
+    {
+        foreach (var key in keys)
+            await DeleteAsync(projectName, environmentName, key, ct);
     }
 
     public Task<int> CountAsync(CancellationToken ct = default)
@@ -188,6 +227,8 @@ public class InMemoryConfigEntryRepository : IConfigEntryRepository
             Version = nextVersion,
             Value = entry.Value,
             ContentType = entry.ContentType,
+            Description = entry.Description,
+            Unit = entry.Unit,
             Scope = entry.Scope,
             CreatedAt = versionTimestamp,
             Actor = normalizedActor
@@ -200,6 +241,8 @@ public class InMemoryConfigEntryRepository : IConfigEntryRepository
             Key = entry.Key,
             Value = entry.Value,
             ContentType = entry.ContentType,
+            Description = entry.Description,
+            Unit = entry.Unit,
             Scope = entry.Scope,
             ActiveVersion = nextVersion,
             CreatedAt = createdAt,
@@ -219,6 +262,8 @@ public class InMemoryConfigEntryRepository : IConfigEntryRepository
             Key = entry.Key,
             Value = entry.Value,
             ContentType = entry.ContentType,
+            Description = entry.Description,
+            Unit = entry.Unit,
             Scope = entry.Scope,
             ActiveVersion = entry.ActiveVersion,
             CreatedAt = entry.CreatedAt,
@@ -239,6 +284,8 @@ public class InMemoryConfigEntryRepository : IConfigEntryRepository
             Version = version.Version,
             Value = version.Value,
             ContentType = version.ContentType,
+            Description = version.Description,
+            Unit = version.Unit,
             Scope = version.Scope,
             CreatedAt = version.CreatedAt,
             Actor = version.Actor

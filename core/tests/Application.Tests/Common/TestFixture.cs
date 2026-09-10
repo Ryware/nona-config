@@ -37,6 +37,8 @@ public class TestFixture
                     Key = entry.Key,
                     Value = entry.Value,
                     ContentType = entry.ContentType,
+                    Description = entry.Description,
+                    Unit = entry.Unit,
                     Scope = entry.Scope,
                     ActiveVersion = entry.ActiveVersion,
                     CreatedAt = entry.CreatedAt,

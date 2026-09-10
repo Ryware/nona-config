@@ -161,6 +161,8 @@ public sealed class LibsqlConfigReleaseRepository : IConfigReleaseRepository
                 entries.Key,
                 entries.Value,
                 entries.ContentType,
+                entries.Description,
+                entries.Unit,
                 entries.Scope
             FROM ConfigReleases releases
             LEFT JOIN ConfigReleaseEntries entries
@@ -211,6 +213,8 @@ public sealed class LibsqlConfigReleaseRepository : IConfigReleaseRepository
                 entries.Key,
                 entries.Value,
                 entries.ContentType,
+                entries.Description,
+                entries.Unit,
                 entries.Scope
             FROM (
                 SELECT Project, Environment, Version
@@ -275,28 +279,39 @@ public sealed class LibsqlConfigReleaseRepository : IConfigReleaseRepository
         return result.Rows.Select(row => MapRelease(row, [])).ToList();
     }
 
-    public async Task<IReadOnlyList<ConfigReleaseEntry>> ListEntriesAsync(
+    public Task<IReadOnlyList<ConfigReleaseEntry>> ListEntriesAsync(
         string projectName,
         string environmentName,
         string version,
         KeyScope requiredScope,
         CancellationToken ct = default)
+        => ListEntriesAsync(projectName, environmentName, version, requiredScope, prefix: null, ct);
+
+    public async Task<IReadOnlyList<ConfigReleaseEntry>> ListEntriesAsync(
+        string projectName,
+        string environmentName,
+        string version,
+        KeyScope requiredScope,
+        string? prefix,
+        CancellationToken ct = default)
     {
         var result = await _client.ExecuteAsync(
             """
-            SELECT Project, Environment, ReleaseVersion, Key, Value, ContentType, Scope
+            SELECT Project, Environment, ReleaseVersion, Key, Value, ContentType, Description, Unit, Scope
             FROM ConfigReleaseEntries
             WHERE Project = @ProjectName COLLATE NOCASE
               AND Environment = @EnvironmentName COLLATE NOCASE
               AND ReleaseVersion = @Version COLLATE NOCASE
               AND (Scope & @RequiredScope) != 0
+              AND (@Prefix = '' OR substr(Key, 1, length(@Prefix)) = @Prefix COLLATE NOCASE)
             ORDER BY Key
             """,
             LibsqlParameters.Create(
                 ("ProjectName", projectName),
                 ("EnvironmentName", environmentName),
                 ("Version", version),
-                ("RequiredScope", (int)requiredScope)),
+                ("RequiredScope", (int)requiredScope),
+                ("Prefix", prefix ?? string.Empty)),
             ct);
 
         return result.Rows.Select(MapEntry).ToList();
@@ -337,10 +352,10 @@ public sealed class LibsqlConfigReleaseRepository : IConfigReleaseRepository
             statements.Add(new LibsqlStatement(
                 """
                 INSERT OR IGNORE INTO ConfigReleaseEntries (
-                    Project, Environment, ReleaseVersion, Key, NormalizedKey, Value, ContentType, Scope
+                    Project, Environment, ReleaseVersion, Key, NormalizedKey, Value, ContentType, Description, Unit, Scope
                 )
                 VALUES (
-                    @Project, @Environment, @ReleaseVersion, @Key, @NormalizedKey, @Value, @ContentType, @Scope
+                    @Project, @Environment, @ReleaseVersion, @Key, @NormalizedKey, @Value, @ContentType, @Description, @Unit, @Scope
                 )
                 """,
                 ToEntryParameters(entry)));
@@ -431,7 +446,7 @@ public sealed class LibsqlConfigReleaseRepository : IConfigReleaseRepository
     {
         var result = await _client.ExecuteAsync(
             """
-            SELECT Project, Environment, ReleaseVersion, Key, Value, ContentType, Scope
+            SELECT Project, Environment, ReleaseVersion, Key, Value, ContentType, Description, Unit, Scope
             FROM ConfigReleaseEntries
             WHERE Project = @ProjectName COLLATE NOCASE
               AND Environment = @EnvironmentName COLLATE NOCASE
@@ -520,6 +535,8 @@ public sealed class LibsqlConfigReleaseRepository : IConfigReleaseRepository
             Key = row.GetString("Key"),
             Value = row.GetString("Value"),
             ContentType = row.GetString("ContentType"),
+            Description = row.GetNullableString("Description"),
+            Unit = row.GetNullableString("Unit"),
             Scope = (KeyScope)row.GetInt32("Scope")
         };
     }
@@ -558,6 +575,8 @@ public sealed class LibsqlConfigReleaseRepository : IConfigReleaseRepository
             ("NormalizedKey", NormalizeKey(entry.Key)),
             ("Value", entry.Value),
             ("ContentType", entry.ContentType),
+            ("Description", entry.Description),
+            ("Unit", entry.Unit),
             ("Scope", (int)entry.Scope));
     }
 

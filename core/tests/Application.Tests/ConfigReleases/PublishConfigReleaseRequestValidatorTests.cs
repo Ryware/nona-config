@@ -1,6 +1,7 @@
 using Nona.Application.Admin.ConfigReleases.Commands;
 using Nona.Application.Admin.ConfigReleases.DTOs;
 using Nona.Application.Admin.ConfigReleases.Validators;
+using Nona.Application.Common;
 
 namespace Nona.Application.Tests.ConfigReleases;
 
@@ -131,6 +132,22 @@ public class PublishConfigReleaseRequestValidatorTests
     }
 
     [Test]
+    public async Task ValidatesTrimmedMetadataLengths()
+    {
+        var result = await ValidateAsync(
+        [
+            Entry(
+                "number.value",
+                "42",
+                "number",
+                description: $" {new string('d', ConfigEntryMetadata.MaxDescriptionLength)} ",
+                unit: $" {new string('u', ConfigEntryMetadata.MaxUnitLength)} ")
+        ]);
+
+        await Assert.That(result.IsValid).IsTrue();
+    }
+
+    [Test]
     public async Task AllowsSupportedKeySeparators()
     {
         var result = await ValidateAsync(
@@ -154,8 +171,10 @@ public class PublishConfigReleaseRequestValidatorTests
         string key,
         string value = "value",
         string contentType = "text",
-        string scope = "all")
+        string scope = "all",
+        string? description = null,
+        string? unit = null)
     {
-        return new ConfigReleaseEntryDto(key, value, contentType, scope);
+        return new ConfigReleaseEntryDto(key, value, contentType, scope, description, unit);
     }
 }

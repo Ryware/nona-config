@@ -19,7 +19,7 @@ export function ReleaseList(props: ReleaseListProps) {
       <Show
         when={local.releases.length > 0}
         fallback={
-          <div class="bg-surface-container rounded-xl px-4 py-5 text-center text-xs text-on-surface-variant">
+          <div class="bg-surface-container rounded-xl px-4 py-5 text-center text-[13px] text-on-surface-variant">
             No releases yet.
           </div>
         }

@@ -15,7 +15,7 @@ internal sealed class CreateApiKeyCommandHandler(Func<HttpClient>? httpClientFac
 
     public async Task<int> HandleAsync(CreateApiKeyCommand command, CancellationToken ct)
     {
-        var result = await _client.SendAsync<ApiKeyDto>(
+        var result = await _client.SendAsync<CreatedApiKeyDto>(
             command.Connection,
             HttpMethod.Post,
             $"admin/projects/{Segment(command.Project)}/api-keys",
@@ -33,9 +33,17 @@ internal sealed class CreateApiKeyCommandHandler(Func<HttpClient>? httpClientFac
             return 1;
         }
 
-        Console.WriteLine("Created API key");
-        ShowKeysQueryHandler.WriteKey(result.Value);
+        WriteCreatedKey("Created", result.Value);
         return 0;
+    }
+
+    internal static void WriteCreatedKey(string action, CreatedApiKeyDto apiKey)
+    {
+        Console.WriteLine($"{action} API key {apiKey.Id}: {apiKey.Name}");
+        Console.WriteLine("Warning: store this secret now; it cannot be recovered after this command exits.");
+        Console.WriteLine($"Key: {apiKey.Key}");
+        Console.WriteLine($"Environment: {apiKey.Environment ?? "Project-wide"}");
+        Console.WriteLine($"Scope: {apiKey.Scope}");
     }
 
     private static string Segment(string value) => Uri.EscapeDataString(value);

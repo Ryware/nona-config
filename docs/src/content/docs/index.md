@@ -1,6 +1,6 @@
 ---
 title: Nona Docs
-description: Self-hosted remote config and feature flags docs for Docker deployment, HTTP access, official clients, and Firebase migration.
+description: Self-hosted remote config and feature flags docs for Docker deployment, HTTP access, official clients, and migration tooling.
 ---
 
 Nona is an open source, self-hosted remote config and feature flag service for web, mobile, and backend apps.
@@ -18,7 +18,7 @@ Use Nona when you want to:
 
 ## Why teams use Nona
 
-Nona is built for teams that want remote config without platform lock-in. The core product traits are self-hosted deployment, open source code, Docker-first operations, plain HTTP plus official clients, projects and environments, client/server/shared scopes, config history and rollback, and Firebase migration tooling.
+Nona is built for teams that want remote config without platform lock-in. The core product traits are self-hosted deployment, open source code, Docker-first operations, plain HTTP plus official clients, projects and environments, client/server/shared scopes, config history and rollback, and built-in migration tooling.
 
 If you are evaluating alternatives, start with [Firebase Remote Config alternative](/docs/comparisons/firebase-remote-config-alternative).
 
@@ -112,6 +112,7 @@ Use the smallest integration path that fits your app:
 If you are replacing an existing hosted setup:
 
 - [Migrate from Firebase Remote Config](/docs/migration/firebase-remote-config)
+- [Migrate from AWS Parameter Store](/docs/migration/aws-parameter-store)
 - [Firebase concept mapping](/docs/migration/firebase-concept-mapping)
 - [Migration validation](/docs/migration/validation)
 - [Firebase Remote Config alternative](/docs/comparisons/firebase-remote-config-alternative)

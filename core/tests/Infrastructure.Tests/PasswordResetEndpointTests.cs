@@ -73,6 +73,9 @@ public class PasswordResetEndpointTests
                 .IsEqualTo("password_reset_invalid_or_used");
         }
 
+        using var staleSession = await SendAuthorizedAsync(client, HttpMethod.Get, "/auth/me", user.Token);
+        await Assert.That(staleSession.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
+
         using var oldLogin = await client.PostAsJsonAsync(
             "/auth/login",
             new { email = user.Email, password = OldPassword });
@@ -81,6 +84,10 @@ public class PasswordResetEndpointTests
             new { email = user.Email, password = NewPassword });
         await Assert.That(oldLogin.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
         await Assert.That(newLogin.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        using var loginBody = await ParseJsonAsync(newLogin);
+        using var freshSession = await SendAuthorizedAsync(client, HttpMethod.Get, "/auth/me",
+            loginBody.RootElement.GetProperty("token").GetString()!);
+        await Assert.That(freshSession.StatusCode).IsEqualTo(HttpStatusCode.OK);
     }
 
     [Test]

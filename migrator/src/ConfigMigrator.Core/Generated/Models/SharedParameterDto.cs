@@ -42,6 +42,14 @@ namespace Nona.Migrator.Core.Generated.Models
 #else
         public string Key { get; set; }
 #endif
+        /// <summary>The unit property</summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
+#nullable enable
+        public string? Unit { get; set; }
+#nullable restore
+#else
+        public string Unit { get; set; }
+#endif
         /// <summary>The value property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
@@ -80,6 +88,7 @@ namespace Nona.Migrator.Core.Generated.Models
                 { "environment", n => { Environment = n.GetStringValue(); } },
                 { "expiresAt", n => { ExpiresAt = n.GetDateTimeOffsetValue(); } },
                 { "key", n => { Key = n.GetStringValue(); } },
+                { "unit", n => { Unit = n.GetStringValue(); } },
                 { "value", n => { Value = n.GetStringValue(); } },
             };
         }
@@ -95,6 +104,7 @@ namespace Nona.Migrator.Core.Generated.Models
             writer.WriteStringValue("environment", Environment);
             writer.WriteDateTimeOffsetValue("expiresAt", ExpiresAt);
             writer.WriteStringValue("key", Key);
+            writer.WriteStringValue("unit", Unit);
             writer.WriteStringValue("value", Value);
             writer.WriteAdditionalData(AdditionalData);
         }

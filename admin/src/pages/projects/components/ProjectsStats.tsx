@@ -17,7 +17,7 @@ export function ProjectsStats(props: ProjectsStatsProps) {
 
   return (
     <Show when={props.isSuccess && props.projects.length > 0}>
-      <div class="flex items-center gap-1.5 text-[12.5px]">
+      <div class="flex items-center gap-1.5 text-[13.5px]">
         <span class="font-medium text-on-surface">{props.projects.length}</span>
         <span class="text-on-surface-variant">
           {props.projects.length === 1 ? "project" : "projects"}

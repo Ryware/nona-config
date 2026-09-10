@@ -46,7 +46,7 @@ export function ProjectCreateForm(props: ProjectCreateFormProps) {
       data-testid="project-create-form"
       class="bg-surface-container-low border-outline-variant/15 animate-fade-in rounded-2xl border p-6 shadow-sm"
     >
-      <h3 class="font-headline text-on-surface mb-6 text-xs font-bold tracking-wider uppercase">
+      <h3 class="font-headline text-on-surface mb-6 text-[13px] font-bold tracking-wider uppercase">
         New Project
       </h3>
       <form onSubmit={handleSubmit} class="grid gap-6 md:grid-cols-2">
@@ -65,11 +65,11 @@ export function ProjectCreateForm(props: ProjectCreateFormProps) {
             leftIcon="folder"
             testId="project-name-input"
           />
-          <p class="text-outline mt-2 text-[10px] font-medium tracking-wider uppercase">
+          <p class="text-outline mt-2 text-[11px] font-medium tracking-wider uppercase">
             Use letters, numbers, and hyphens only.
           </p>
           <Show when={createError()}>
-            <p class="text-error mt-2 text-[11px] font-bold">{createError()}</p>
+            <p class="text-error mt-2 text-[12px] font-bold">{createError()}</p>
           </Show>
         </div>
         <FormField

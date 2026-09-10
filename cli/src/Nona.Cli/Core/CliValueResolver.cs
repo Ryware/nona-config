@@ -43,6 +43,33 @@ internal sealed class CliValueResolver(CliDefaults defaults, CliAuthSession? ses
         return ConnectionResolutionResult.Ok(new NonaCliConnectionOptions(baseUrl, token));
     }
 
+    public MigrationConnectionResolution ResolveMigrationConnection(
+        string? parsedBaseUrl,
+        string? parsedToken,
+        string? parsedEmail,
+        string? parsedPassword)
+    {
+        var baseUrl = BaseUrl(parsedBaseUrl);
+        var token = Token(parsedToken);
+        var email = Email(parsedEmail);
+        var password = Password(parsedPassword);
+
+        if (string.IsNullOrWhiteSpace(baseUrl) && session is not null && !session.IsExpired)
+            baseUrl = session.BaseUrl;
+
+        if (string.IsNullOrWhiteSpace(token)
+            && string.IsNullOrWhiteSpace(email)
+            && session is not null
+            && !session.IsExpired
+            && !string.IsNullOrWhiteSpace(baseUrl)
+            && session.MatchesBaseUrl(baseUrl))
+        {
+            token = session.Token;
+        }
+
+        return new MigrationConnectionResolution(baseUrl, token, email, password);
+    }
+
     public string[] BuildFirebaseArgs(
         string? config,
         bool dryRun,
@@ -54,6 +81,34 @@ internal sealed class CliValueResolver(CliDefaults defaults, CliAuthSession? ses
     {
         var args = new List<string>();
         if (config is not null) { args.Add("--config"); args.Add(config); }
+        if (dryRun) args.Add("--dry-run");
+        if (baseUrl is not null) { args.Add("--base-url"); args.Add(baseUrl); }
+        if (project is not null) { args.Add("--project"); args.Add(project); }
+        if (token is not null) { args.Add("--token"); args.Add(token); }
+        if (email is not null) { args.Add("--email"); args.Add(email); }
+        if (password is not null) { args.Add("--password"); args.Add(password); }
+        return [.. args];
+    }
+
+    public string[] BuildParameterStoreArgs(
+        string taskDefinition,
+        string environment,
+        string? region,
+        string? profile,
+        bool dryRun,
+        string? baseUrl,
+        string? project,
+        string? token,
+        string? email,
+        string? password)
+    {
+        var args = new List<string>
+        {
+            "--task-definition", taskDefinition,
+            "--environment", environment
+        };
+        if (region is not null) { args.Add("--region"); args.Add(region); }
+        if (profile is not null) { args.Add("--profile"); args.Add(profile); }
         if (dryRun) args.Add("--dry-run");
         if (baseUrl is not null) { args.Add("--base-url"); args.Add(baseUrl); }
         if (project is not null) { args.Add("--project"); args.Add(project); }
@@ -86,3 +141,9 @@ internal sealed record ConnectionResolutionResult(bool Success, string? Error, N
     public static ConnectionResolutionResult Ok(NonaCliConnectionOptions connection) => new(true, null, connection);
     public static ConnectionResolutionResult Fail(string error) => new(false, error, null);
 }
+
+internal sealed record MigrationConnectionResolution(
+    string? BaseUrl,
+    string? Token,
+    string? Email,
+    string? Password);

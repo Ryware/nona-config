@@ -23,24 +23,24 @@ typography:
   headline:
     fontFamily: "Space Grotesk, sans-serif"
     fontWeight: 700
-    fontSize: "17px"
+    fontSize: "18px"
     lineHeight: 1.3
     letterSpacing: "-0.01em"
   body:
     fontFamily: "Inter, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif"
     fontWeight: 400
-    fontSize: "13px"
+    fontSize: "14px"
     lineHeight: 1.5
   label:
     fontFamily: "Inter, system-ui, sans-serif"
     fontWeight: 500
-    fontSize: "11px"
+    fontSize: "12px"
     lineHeight: 1
     letterSpacing: "0.05em"
   mono:
     fontFamily: "JetBrains Mono, ui-monospace, SFMono-Regular, monospace"
     fontWeight: 400
-    fontSize: "11px"
+    fontSize: "12px"
     lineHeight: 1.5
 rounded:
   sm: "6px"
