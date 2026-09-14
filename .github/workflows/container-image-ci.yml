@@ -6,7 +6,7 @@ on:
       - master
       - development
     tags:
-      - v*
+      - '[0-9]+.[0-9]+.[0-9]+'
   pull_request:
   workflow_dispatch:
     inputs:
@@ -15,6 +15,21 @@ on:
         required: false
         type: boolean
         default: false
+  workflow_call:
+    inputs:
+      version:
+        description: Stable shared release version.
+        required: false
+        type: string
+      checkout_ref:
+        description: Immutable commit to build and publish.
+        required: false
+        type: string
+      publish_image:
+        description: Publish the shared release image.
+        required: false
+        default: true
+        type: boolean
 
 permissions:
   contents: read
@@ -31,6 +46,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.checkout_ref || github.sha }}
 
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
@@ -64,6 +81,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.checkout_ref || github.sha }}
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -88,6 +107,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.checkout_ref || github.sha }}
 
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
@@ -104,6 +125,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.checkout_ref || github.sha }}
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -128,6 +151,19 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.checkout_ref || github.sha }}
+
+      - name: Validate shared release version
+        if: github.event_name == 'workflow_call' || github.ref_type == 'tag'
+        env:
+          RELEASE_VERSION: ${{ inputs.version || github.ref_name }}
+        shell: bash
+        run: |
+          if [[ ! "$RELEASE_VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo 'Expected a stable version such as 4.0.0, without a prefix.' >&2
+            exit 1
+          fi
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -224,7 +260,11 @@ jobs:
 
   deploy:
     name: Publish container image
-    if: github.event_name == 'workflow_dispatch' && inputs.publish_image == true && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/development')
+    if: >-
+      (github.event_name == 'workflow_call' && inputs.publish_image == true) ||
+      (github.event_name == 'push' && github.ref_type == 'tag') ||
+      (github.event_name == 'workflow_dispatch' && inputs.publish_image == true &&
+      (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/development'))
     needs:
       - verify-generated-clients
       - test-admin-frontend
@@ -235,6 +275,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.checkout_ref || github.sha }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -251,10 +293,11 @@ jobs:
         with:
           images: ${{ env.IMAGE_NAME }}
           tags: |
-            type=ref,event=branch
+            type=raw,value=${{ inputs.version }},enable=${{ github.event_name == 'workflow_call' }}
+            type=ref,event=branch,enable=${{ github.event_name != 'workflow_call' }}
             type=ref,event=tag
             type=sha
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/master' }}
+            type=raw,value=latest,enable=${{ github.event_name == 'workflow_call' || (github.event_name == 'push' && github.ref_type == 'tag') || github.ref == 'refs/heads/master' }}
             type=raw,value=dev,enable=${{ github.ref == 'refs/heads/development' }}
 
       - name: Deploy container
