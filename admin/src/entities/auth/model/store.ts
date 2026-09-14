@@ -1,3 +1,5 @@
+import { queryClient } from "../../../shared/api/query-client";
+import { advanceSession } from "../../../shared/api/session";
 import { USER_ROLES, type UserRole } from "./roles";
 
 /**
@@ -14,22 +16,42 @@ export interface AuthSession {
   username?: string;
 }
 
+function clearSessionData() {
+  advanceSession();
+  void queryClient.cancelQueries();
+  queryClient.clear();
+}
+
 export const authStore = {
   /**
    * Persist token and session metadata after a successful login.
    * @param rememberMe - true → localStorage, false → sessionStorage (cleared on tab close)
    */
   saveSession(token: string, session: AuthSession, rememberMe = true): void {
+    this.clearSession();
     const storage = rememberMe ? localStorage : sessionStorage;
     storage.setItem("auth_token", token);
     storage.setItem("auth_session", JSON.stringify(session));
   },
 
   clearSession(): void {
+    // Cancel before clearing so responses from the old session cannot repopulate it.
+    clearSessionData();
     localStorage.removeItem("auth_token");
     sessionStorage.removeItem("auth_token");
     localStorage.removeItem("auth_session");
     sessionStorage.removeItem("auth_session");
+  },
+
+  handleStorageChange(event: StorageEvent): void {
+    if (
+      event.storageArea !== localStorage ||
+      (event.key !== null && event.key !== "auth_token" && event.key !== "auth_session")
+    )
+      return;
+    clearSessionData();
+    // Reload also discards component-local copies without overwriting the other tab's session.
+    window.location.reload();
   },
 
   getToken(): string | null {

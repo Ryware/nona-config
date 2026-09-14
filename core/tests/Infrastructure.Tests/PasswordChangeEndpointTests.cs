@@ -23,7 +23,7 @@ public class PasswordChangeEndpointTests
     private const string NewPassword = "NewPassword123!";
 
     [Test]
-    public async Task PasswordUserCanChangePasswordAndKeepCurrentToken()
+    public async Task PasswordUserCanChangePasswordAndRevokeCurrentToken()
     {
         await using var app = await StartAppAsync();
         var client = app.GetTestClient();
@@ -92,7 +92,7 @@ public class PasswordChangeEndpointTests
             "/auth/me",
             session.Token))
         {
-            await Assert.That(existingTokenResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
+            await Assert.That(existingTokenResponse.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
         }
 
         using var oldLogin = await client.PostAsJsonAsync(
@@ -103,6 +103,10 @@ public class PasswordChangeEndpointTests
             new { email = session.Email, password = NewPassword });
         await Assert.That(oldLogin.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
         await Assert.That(newLogin.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        using var loginBody = await ParseJsonAsync(newLogin);
+        using var freshSession = await SendAuthorizedAsync(client, HttpMethod.Get, "/auth/me",
+            loginBody.RootElement.GetProperty("token").GetString()!);
+        await Assert.That(freshSession.StatusCode).IsEqualTo(HttpStatusCode.OK);
     }
 
     [Test]
@@ -141,6 +145,29 @@ public class PasswordChangeEndpointTests
             "/auth/password",
             new { currentPassword = "current", newPassword = NewPassword });
         await Assert.That(anonymousResponse.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
+    }
+
+    [Test]
+    public async Task TokenWithoutCredentialBindingIsRejected()
+    {
+        await using var app = await StartAppAsync();
+        var client = app.GetTestClient();
+        var session = await RegisterAsync(client);
+        var configuration = app.Services.GetRequiredService<IConfiguration>();
+        var legacyToken = new Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler().CreateToken(
+            new Microsoft.IdentityModel.Tokens.SecurityTokenDescriptor
+            {
+                Subject = new System.Security.Claims.ClaimsIdentity([
+                    new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Name, session.Email)]),
+                Issuer = configuration["Jwt:Issuer"],
+                Audience = configuration["Jwt:Audience"],
+                Expires = DateTime.UtcNow.AddHours(1),
+                SigningCredentials = new Microsoft.IdentityModel.Tokens.SigningCredentials(
+                    new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(configuration["Jwt:Key"]!)),
+                    Microsoft.IdentityModel.Tokens.SecurityAlgorithms.HmacSha256)
+            });
+        using var response = await SendAuthorizedAsync(client, HttpMethod.Get, "/auth/me", legacyToken);
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
     }
 
     private static async Task<Session> RegisterAsync(HttpClient client)

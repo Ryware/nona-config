@@ -1,0 +1,112 @@
+name: Swift CocoaPods release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Existing release tag matching the podspec version (for example 0.1.0).
+        required: true
+        type: string
+      publish:
+        description: Publish to CocoaPods Trunk after all checks pass.
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+# Never interrupt a release while Trunk may be accepting it.
+concurrency:
+  group: swift-cocoapods-release
+  cancel-in-progress: false
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      sha: ${{ steps.release.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Resolve an existing stable version tag
+        id: release
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "$RELEASE_VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo 'Expected a stable version such as 0.1.0, without a v prefix.' >&2
+            exit 1
+          fi
+          git fetch --no-tags origin "refs/tags/$RELEASE_VERSION"
+          sha=$(git rev-parse 'FETCH_HEAD^{commit}')
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "Release $RELEASE_VERSION: $sha" >> "$GITHUB_STEP_SUMMARY"
+
+  test:
+    needs: resolve
+    uses: ./.github/workflows/swift-client.yml
+    with:
+      checkout_ref: ${{ needs.resolve.outputs.sha }}
+
+  release:
+    needs: [resolve, test]
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve.outputs.sha }}
+          persist-credentials: false
+      - name: Install CocoaPods
+        run: |
+          if ! command -v pod > /dev/null; then brew install cocoapods; fi
+          pod --version
+      - name: Verify podspec and release source
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          pod ipc spec NonaClient.podspec > "$RUNNER_TEMP/NonaClient.json"
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          spec = json.loads((Path(os.environ['RUNNER_TEMP']) / 'NonaClient.json').read_text())
+          expected = {'git': 'https://github.com/Ryware/nona-config.git', 'tag': os.environ['RELEASE_VERSION']}
+          if spec.get('name') != 'NonaClient' or spec.get('version') != os.environ['RELEASE_VERSION'] or spec.get('source') != expected:
+              raise SystemExit('Pod name, version or source does not match the requested NonaClient release.')
+          PY
+      - name: Validate the pod downloaded from the release tag
+        run: |
+          pod spec lint NonaClient.podspec --platforms=ios,osx --swift-version=5.9
+          pod spec lint NonaClient.podspec --platforms=ios,osx --swift-version=6.0
+      - name: Ensure the tag still points to the tested commit
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+          RELEASE_SHA: ${{ needs.resolve.outputs.sha }}
+        run: |
+          git fetch --no-tags origin "refs/tags/$RELEASE_VERSION"
+          test "$(git rev-parse 'FETCH_HEAD^{commit}')" = "$RELEASE_SHA"
+      - name: Publish to CocoaPods Trunk
+        if: inputs.publish
+        env:
+          COCOAPODS_TRUNK_TOKEN: ${{ secrets.COCOAPODS_TRUNK_TOKEN }}
+        run: |
+          if [ -z "$COCOAPODS_TRUNK_TOKEN" ]; then
+            echo 'Add COCOAPODS_TRUNK_TOKEN in repository Actions secrets before publishing.' >&2
+            exit 1
+          fi
+          pod trunk push NonaClient.podspec
+      - name: Summarize result
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+          PUBLISH: ${{ inputs.publish }}
+        run: |
+          if [ "$PUBLISH" = true ]; then
+            echo "Published NonaClient $RELEASE_VERSION to CocoaPods Trunk." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Validated NonaClient $RELEASE_VERSION. Dry run: nothing published." >> "$GITHUB_STEP_SUMMARY"
+          fi

@@ -18,7 +18,7 @@ public sealed class LibsqlApiKeyRepository : IApiKeyRepository
     {
         var result = await _client.ExecuteAsync(
             """
-            SELECT Id, Name, Key, Project, Environment, Scope, CreatedAt, UpdatedAt
+            SELECT Id, Name, KeyHash, Fingerprint, HashVersion, Project, Environment, Scope, CreatedAt, UpdatedAt
             FROM ApiKeys
             WHERE Id = @Id
             LIMIT 1
@@ -29,7 +29,7 @@ public sealed class LibsqlApiKeyRepository : IApiKeyRepository
         return result.Rows.Count == 0 ? null : MapApiKey(result.Rows[0]);
     }
 
-    public async Task<ApiKeyAuthenticationResult?> GetByKeyAsync(string key, CancellationToken ct = default)
+    public async Task<ApiKeyAuthenticationResult?> GetByKeyHashAsync(string keyHash, CancellationToken ct = default)
     {
         var result = await _client.ExecuteAsync(
             """
@@ -43,10 +43,11 @@ public sealed class LibsqlApiKeyRepository : IApiKeyRepository
                 p.UpdatedAt AS ProjectUpdatedAt
             FROM ApiKeys ak
             INNER JOIN Projects p ON p.Name = ak.Project COLLATE NOCASE
-            WHERE ak.Key = @Key
+            WHERE ak.KeyHash = @KeyHash
+              AND ak.HashVersion = 1
             LIMIT 1
             """,
-            LibsqlParameters.Create(("Key", key)),
+            LibsqlParameters.Create(("KeyHash", keyHash)),
             ct);
 
         if (result.Rows.Count == 0)
@@ -72,7 +73,7 @@ public sealed class LibsqlApiKeyRepository : IApiKeyRepository
     {
         var result = await _client.ExecuteAsync(
             """
-            SELECT Id, Name, Key, Project, Environment, Scope, CreatedAt, UpdatedAt
+            SELECT Id, Name, KeyHash, Fingerprint, HashVersion, Project, Environment, Scope, CreatedAt, UpdatedAt
             FROM ApiKeys
             WHERE Project = @ProjectName COLLATE NOCASE
             ORDER BY Name
@@ -87,8 +88,12 @@ public sealed class LibsqlApiKeyRepository : IApiKeyRepository
     {
         var result = await _client.ExecuteAsync(
             """
-            INSERT INTO ApiKeys (Name, Key, Project, Environment, Scope, CreatedAt, UpdatedAt)
-            VALUES (@Name, @Key, @Project, @Environment, @Scope, @CreatedAt, @UpdatedAt)
+            INSERT INTO ApiKeys (
+                Name, KeyHash, Fingerprint, HashVersion, Project, Environment, Scope, CreatedAt, UpdatedAt
+            )
+            VALUES (
+                @Name, @KeyHash, @Fingerprint, @HashVersion, @Project, @Environment, @Scope, @CreatedAt, @UpdatedAt
+            )
             RETURNING Id
             """,
             ToParameters(apiKey),
@@ -114,7 +119,9 @@ public sealed class LibsqlApiKeyRepository : IApiKeyRepository
         {
             Id = row.GetInt64("Id"),
             Name = row.GetString("Name"),
-            Key = row.GetString("Key"),
+            KeyHash = row.GetString("KeyHash"),
+            Fingerprint = row.GetString("Fingerprint"),
+            HashVersion = row.GetInt32("HashVersion"),
             Project = row.GetString("Project"),
             Environment = row.GetNullableString("Environment"),
             Scope = (KeyScope)row.GetInt32("Scope"),
@@ -127,7 +134,9 @@ public sealed class LibsqlApiKeyRepository : IApiKeyRepository
     {
         return LibsqlParameters.Create(
             ("Name", apiKey.Name),
-            ("Key", apiKey.Key),
+            ("KeyHash", apiKey.KeyHash),
+            ("Fingerprint", apiKey.Fingerprint),
+            ("HashVersion", apiKey.HashVersion),
             ("Project", apiKey.Project),
             ("Environment", apiKey.Environment),
             ("Scope", (int)apiKey.Scope),

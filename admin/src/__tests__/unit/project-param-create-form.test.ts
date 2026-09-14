@@ -4,7 +4,7 @@ import { isValidConfigEntryValue } from "../../features/project-param-edit/confi
 describe("isValidConfigEntryValue", () => {
   it("matches backend value validation for config entry content types", () => {
     expect(isValidConfigEntryValue("text", "hello")).toBe(true);
-    expect(isValidConfigEntryValue("text", "")).toBe(false);
+    expect(isValidConfigEntryValue("text", "")).toBe(true);
 
     expect(isValidConfigEntryValue("number", "42")).toBe(true);
     expect(isValidConfigEntryValue("number", "1.5")).toBe(true);

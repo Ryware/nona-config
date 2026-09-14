@@ -14,7 +14,7 @@ export function UserIdentityForm(props: UserIdentityFormProps) {
   return (
     <section class="bg-surface-container-low border-outline-variant/15 space-y-5 rounded-xl border p-4 sm:p-8">
       <div class="flex items-center gap-3">
-        <div class="bg-primary/10 border-primary/20 text-primary flex h-7 w-7 shrink-0 items-center justify-center rounded-full border font-mono text-xs font-bold shadow-[0_0_12px_rgba(99,102,241,0.15)]">
+        <div class="bg-primary/10 border-primary/20 text-primary flex h-7 w-7 shrink-0 items-center justify-center rounded-full border font-mono text-[13px] font-bold shadow-[0_0_12px_rgba(99,102,241,0.15)]">
           01
         </div>
         <h3 class="font-headline text-on-surface text-lg font-bold">

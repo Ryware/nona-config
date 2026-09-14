@@ -4,4 +4,6 @@ public record ConfigReleaseEntryDto(
     string Key,
     string Value,
     string ContentType,
-    string Scope);
+    string Scope,
+    string? Description = null,
+    string? Unit = null);

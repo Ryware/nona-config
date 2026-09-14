@@ -1,0 +1,17 @@
+// QA-only consumer check. No production repository configuration is changed.
+def repositoryPath = System.getProperty('nona.qa.repository')
+if (!repositoryPath) throw new GradleException('Set -Dnona.qa.repository to the isolated Maven directory')
+settingsEvaluated { settings ->
+    settings.dependencyResolutionManagement.repositories.maven {
+        url = new File(repositoryPath).toURI()
+        content { includeGroup('com.nonaconfig') }
+    }
+}
+gradle.projectsEvaluated {
+    def libraryVersion = gradle.rootProject.project(':nona-client').version.toString()
+    gradle.rootProject.project(':sample').configurations.configureEach {
+        resolutionStrategy.dependencySubstitution {
+            substitute project(':nona-client') using module("com.nonaconfig:nona-client:$libraryVersion")
+        }
+    }
+}

@@ -126,16 +126,13 @@ public sealed class LibsqlEnvironmentRepository : IEnvironmentRepository
 
     public async Task DeleteAsync(string projectName, string environmentName, CancellationToken ct = default)
     {
-        await _client.ExecuteAsync(
-            """
-            DELETE FROM Environments
-            WHERE Project = @ProjectName COLLATE NOCASE
-              AND Name = @EnvironmentName COLLATE NOCASE
-            """,
-            LibsqlParameters.Create(
-                ("ProjectName", projectName),
-                ("EnvironmentName", environmentName)),
-            ct);
+        var parameters = LibsqlParameters.Create(("ProjectName", projectName), ("EnvironmentName", environmentName));
+        await _client.ExecuteBatchAsync(
+        [
+            new LibsqlStatement("DELETE FROM ApiKeys WHERE Project = @ProjectName COLLATE NOCASE AND Environment = @EnvironmentName COLLATE NOCASE", parameters),
+            new LibsqlStatement("DELETE FROM ParameterShareLinks WHERE Project = @ProjectName COLLATE NOCASE AND Environment = @EnvironmentName COLLATE NOCASE", parameters),
+            new LibsqlStatement("DELETE FROM Environments WHERE Project = @ProjectName COLLATE NOCASE AND Name = @EnvironmentName COLLATE NOCASE", parameters)
+        ], ct);
     }
 
     private static ProjectEnvironment Map(LibsqlRow row)

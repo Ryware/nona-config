@@ -114,7 +114,7 @@ export default function RegisterPage() {
           </div>
         </form>
 
-        <div class="text-on-surface-variant mt-5 text-center text-[12px]">
+        <div class="text-on-surface-variant mt-5 text-center text-[13px]">
           Already have an account?{" "}
           <A
             href="/login"
@@ -126,7 +126,7 @@ export default function RegisterPage() {
 
         {/* Security Info footer */}
         <div class="border-outline-variant/15 mt-6 border-t pt-5">
-          <div class="text-outline flex items-center justify-center gap-6 text-[10px] font-medium">
+          <div class="text-outline flex items-center justify-center gap-6 text-[11px] font-medium">
             <span class="flex items-center gap-1.5">
               <span class="material-symbols-outlined text-[14px]">lock</span>
               TLS 1.3

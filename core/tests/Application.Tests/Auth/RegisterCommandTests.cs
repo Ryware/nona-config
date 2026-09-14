@@ -19,7 +19,18 @@ public class RegisterCommandTests
     public RegisterCommandTests()
     {
         _dateTime.NowUtc.Returns(new DateTime(2026, 6, 3, 12, 0, 0, DateTimeKind.Utc));
+        _userRepository.TryAddFirstUserAsync(Arg.Any<User>(), Arg.Any<CancellationToken>()).Returns(true);
         _passwordHasher.HashPassword("Password123!").Returns(("hashed-password", string.Empty));
+    }
+
+    [Test]
+    public async Task LosingBootstrapRaceDoesNotLogIn()
+    {
+        _userRepository.TryAddFirstUserAsync(Arg.Any<User>(), Arg.Any<CancellationToken>()).Returns(false);
+        var handler = new RegisterCommandHandler(_mediator, _userRepository, _dateTime, _passwordHasher);
+        var result = await handler.Handle(new RegisterCommand("admin@example.com", "Password123!"), default);
+        await Assert.That(result.ErrorCode).IsEqualTo(AuthErrorCodes.RegistrationDisabled);
+        await _mediator.DidNotReceive().Send(Arg.Any<LoginCommand>(), Arg.Any<CancellationToken>());
     }
 
     [Test]
@@ -41,7 +52,7 @@ public class RegisterCommandTests
         await Assert.That(result.Success).IsTrue();
         await Assert.That(result.Response).IsNotNull();
         await Assert.That(result.Response!.Token).IsEqualTo("jwt-token");
-        await _userRepository.Received(1).AddAsync(Arg.Is<User>(user =>
+        await _userRepository.Received(1).TryAddFirstUserAsync(Arg.Is<User>(user =>
             user.Email == "admin@example.com" &&
             user.Role == UserRole.Admin &&
             user.PasswordHash == "hashed-password"), Arg.Any<CancellationToken>());
@@ -79,7 +90,7 @@ public class RegisterCommandTests
         await Assert.That(result.Error).IsEqualTo("User already exists");
         await Assert.That(result.ErrorCode).IsEqualTo(AuthErrorCodes.UserAlreadyExists);
         await _userRepository.DidNotReceive()
-            .AddAsync(Arg.Any<User>(), Arg.Any<CancellationToken>());
+            .TryAddFirstUserAsync(Arg.Any<User>(), Arg.Any<CancellationToken>());
     }
 
     [Test]
@@ -97,6 +108,6 @@ public class RegisterCommandTests
         await Assert.That(result.Error).IsEqualTo("Registration is disabled");
         await Assert.That(result.ErrorCode).IsEqualTo(AuthErrorCodes.RegistrationDisabled);
         await _userRepository.DidNotReceive()
-            .AddAsync(Arg.Any<User>(), Arg.Any<CancellationToken>());
+            .TryAddFirstUserAsync(Arg.Any<User>(), Arg.Any<CancellationToken>());
     }
 }

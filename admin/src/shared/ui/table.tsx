@@ -9,7 +9,7 @@ export const Table: ParentComponent<JSX.HTMLAttributes<HTMLTableElement>> = (
   return (
     <div class="w-full overflow-auto">
       <table
-        class={cn("w-full caption-bottom text-sm", local.class)}
+        class={cn("w-full caption-bottom text-[15px]", local.class)}
         {...others}
       >
         {local.children}
@@ -87,7 +87,7 @@ export const TableHead: ParentComponent<
   return (
     <th
       class={cn(
-        "h-11 px-4 text-left text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider [&:has([role=checkbox])]:pr-0",
+        "h-11 px-4 text-left text-[12px] font-semibold text-on-surface-variant uppercase tracking-wider [&:has([role=checkbox])]:pr-0",
         local.class,
       )}
       {...others}
@@ -120,7 +120,7 @@ export const TableCaption: ParentComponent<
   const [local, others] = splitProps(props, ["class", "children"]);
   return (
     <caption
-      class={cn("mt-4 text-sm text-on-surface-variant", local.class)}
+      class={cn("mt-4 text-[15px] text-on-surface-variant", local.class)}
       {...others}
     >
       {local.children}

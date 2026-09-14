@@ -32,8 +32,6 @@ internal sealed class InitCommands(CliContext ctx) : ICliCommandGroup
             "API key and entry scope: client, server, or all. Default: client.");
         var formatOpt = new Option<string?>("--format",
             "Output format: dotenv, json, or env-export. Default: dotenv.");
-        var printKeyOpt = new Option<bool>("--print-key",
-            "Print the full API key. By default only the last four characters are shown.");
         var yesOpt = new Option<bool>("--yes",
             "Non-interactive mode; never prompt.");
 
@@ -70,7 +68,6 @@ internal sealed class InitCommands(CliContext ctx) : ICliCommandGroup
         cmd.AddOption(noSeedFlagOpt);
         cmd.AddOption(scopeOpt);
         cmd.AddOption(formatOpt);
-        cmd.AddOption(printKeyOpt);
         cmd.AddOption(yesOpt);
 
         cmd.Handler = CommandHandler.Create(async (InvocationContext ic) =>
@@ -85,7 +82,6 @@ internal sealed class InitCommands(CliContext ctx) : ICliCommandGroup
                 noSeedFlag: ic.ParseResult.GetValueForOption(noSeedFlagOpt),
                 parsedScope: ic.ParseResult.GetValueForOption(scopeOpt),
                 parsedFormat: ic.ParseResult.GetValueForOption(formatOpt),
-                printKey: ic.ParseResult.GetValueForOption(printKeyOpt),
                 yes: ic.ParseResult.GetValueForOption(yesOpt));
 
             if (!resolved.Success)
@@ -112,7 +108,6 @@ internal sealed class InitCommands(CliContext ctx) : ICliCommandGroup
         bool noSeedFlag,
         string? parsedScope,
         string? parsedFormat,
-        bool printKey,
         bool yes)
     {
         var canPrompt = !yes && !Console.IsInputRedirected;
@@ -195,8 +190,7 @@ internal sealed class InitCommands(CliContext ctx) : ICliCommandGroup
             Environment: environment,
             SeedFlag: seedFlag,
             Scope: scope,
-            Format: format,
-            PrintKey: printKey));
+            Format: format));
     }
 
     private static string? FirstValue(params string?[] values)

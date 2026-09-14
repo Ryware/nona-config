@@ -31,9 +31,9 @@ export function AuditLogsTable(props: AuditLogsTableProps) {
           <table class="w-full text-left border-collapse">
             <thead>
               <tr class="border-b border-outline-variant/15 bg-surface-container-lowest/50">
-                <th class="px-6 py-3 text-[11px] font-medium text-outline uppercase tracking-[0.05em]">Activity</th>
-                <th class="px-6 py-3 text-[11px] font-medium text-outline uppercase tracking-[0.05em] text-center w-32">Context</th>
-                <th class="px-6 py-3 text-[11px] font-medium text-outline uppercase tracking-[0.05em] text-right w-44">When</th>
+                <th class="px-6 py-3 text-[12px] font-medium text-outline uppercase tracking-[0.05em]">Activity</th>
+                <th class="px-6 py-3 text-[12px] font-medium text-outline uppercase tracking-[0.05em] text-center w-32">Context</th>
+                <th class="px-6 py-3 text-[12px] font-medium text-outline uppercase tracking-[0.05em] text-right w-44">When</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-outline-variant/10" data-testid="audit-log-list">
@@ -45,8 +45,8 @@ export function AuditLogsTable(props: AuditLogsTableProps) {
                 <tr>
                   <td colspan="3" class="py-16 text-center">
                     <MIcon name="search_off" class="text-[40px] text-outline/30 block mx-auto mb-3" />
-                    <p class="text-on-surface-variant text-[13px]">No activity recorded yet.</p>
-                    <p class="text-outline text-[12px] mt-1">Try adjusting your filters.</p>
+                    <p class="text-on-surface-variant text-[14px]">No activity recorded yet.</p>
+                    <p class="text-outline text-[13px] mt-1">Try adjusting your filters.</p>
                   </td>
                 </tr>
               </Show>
@@ -63,7 +63,7 @@ export function AuditLogsTable(props: AuditLogsTableProps) {
 
       <Show when={props.totalCount > 0}>
         <div class="flex items-center justify-between">
-          <p class="text-[12px] text-outline">
+          <p class="text-[13px] text-outline">
             <span class="font-medium text-on-surface-variant">
               {props.page * props.pageSize + 1}
               –
@@ -83,19 +83,19 @@ export function AuditLogsTable(props: AuditLogsTableProps) {
             <Show when={firstVisiblePage() > 0}>
               <button
                 onClick={() => props.onChangePage(0)}
-                class="h-8 min-w-8 px-2.5 flex items-center justify-center rounded-lg text-[12px] font-medium border border-transparent text-outline hover:text-on-surface hover:bg-surface-container-high/30 transition-all cursor-pointer"
+                class="h-8 min-w-8 px-2.5 flex items-center justify-center rounded-lg text-[13px] font-medium border border-transparent text-outline hover:text-on-surface hover:bg-surface-container-high/30 transition-all cursor-pointer"
               >
                 1
               </button>
               <Show when={firstVisiblePage() > 1}>
-                <span class="text-outline mx-0.5 text-[12px]">…</span>
+                <span class="text-outline mx-0.5 text-[13px]">…</span>
               </Show>
             </Show>
             <For each={pageNumbers()}>
               {(i) => (
                 <button
                   onClick={() => props.onChangePage(i)}
-                  class={`h-8 min-w-8 px-2.5 flex items-center justify-center rounded-lg text-[12px] font-medium border transition-all cursor-pointer ${
+                  class={`h-8 min-w-8 px-2.5 flex items-center justify-center rounded-lg text-[13px] font-medium border transition-all cursor-pointer ${
                     props.page === i
                       ? "bg-surface-container-high text-on-surface border-outline-variant/30"
                       : "border-transparent text-outline hover:text-on-surface hover:bg-surface-container-high/30"
@@ -107,11 +107,11 @@ export function AuditLogsTable(props: AuditLogsTableProps) {
             </For>
             <Show when={lastVisiblePage() < props.totalPages - 1}>
               <Show when={lastVisiblePage() < props.totalPages - 2}>
-                <span class="text-outline mx-0.5 text-[12px]">…</span>
+                <span class="text-outline mx-0.5 text-[13px]">…</span>
               </Show>
               <button
                 onClick={() => props.onChangePage(props.totalPages - 1)}
-                class="h-8 min-w-8 px-2.5 flex items-center justify-center rounded-lg text-[12px] font-medium border border-transparent text-outline hover:text-on-surface hover:bg-surface-container-high/30 transition-all cursor-pointer"
+                class="h-8 min-w-8 px-2.5 flex items-center justify-center rounded-lg text-[13px] font-medium border border-transparent text-outline hover:text-on-surface hover:bg-surface-container-high/30 transition-all cursor-pointer"
               >
                 {props.totalPages}
               </button>

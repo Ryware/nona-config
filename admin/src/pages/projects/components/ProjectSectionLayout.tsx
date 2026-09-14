@@ -1,10 +1,9 @@
 import { Title } from "@solidjs/meta";
 import { Show, type JSX } from "solid-js";
 
+import type { ProjectPageSection } from "../../../shared/lib/project-navigation";
 import type { Project } from "../../../types";
 import { ProjectPageSkeleton } from "./ProjectPageSkeleton";
-
-export type ProjectPageSection = "environments" | "parameters" | "sharedLinks" | "apiKeys" | "releases";
 
 interface ProjectSectionLayoutProps {
   section: ProjectPageSection;
@@ -37,7 +36,7 @@ export function ProjectSectionLayout(props: ProjectSectionLayoutProps) {
             fallback={
               <div class="flex items-center justify-between gap-4">
                 <div>
-                  <h2 class="font-headline text-on-surface text-[17px] font-bold tracking-tight">
+                  <h2 class="font-headline text-on-surface text-[18px] font-bold tracking-tight">
                     Projects
                   </h2>
                 </div>

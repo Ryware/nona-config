@@ -94,7 +94,7 @@ export default function InvitePage() {
             error={!invitationQuery.isPending ? inviteLoadError() : undefined}
           >
             <Show when={invitationQuery.isPending}>
-              <p class="text-on-surface-variant text-center text-sm">
+              <p class="text-on-surface-variant text-center text-[15px]">
                 Please wait while we verify your link.
               </p>
             </Show>
@@ -106,14 +106,14 @@ export default function InvitePage() {
           description={`You're joining as ${invitationQuery.data?.email}. Create a password or continue with SSO to activate your account.`}
           error={error()}
         >
-          <div class="border-outline-variant/15 bg-surface-container-low/40 text-on-surface mb-6 rounded-xl border px-4 py-3.5 text-xs">
-            <div class="text-outline font-headline mb-1.5 text-[9px] font-bold tracking-wider uppercase">
+          <div class="border-outline-variant/15 bg-surface-container-low/40 text-on-surface mb-6 rounded-xl border px-4 py-3.5 text-[13px]">
+            <div class="text-outline font-headline mb-1.5 text-[10px] font-bold tracking-wider uppercase">
               Invited Account
             </div>
-            <div class="text-on-surface text-sm font-bold">
+            <div class="text-on-surface text-[15px] font-bold">
               {invitationQuery.data?.name || invitationQuery.data?.email}
             </div>
-            <div class="text-on-surface-variant mt-0.5 font-mono text-[11px]">
+            <div class="text-on-surface-variant mt-0.5 font-mono text-[12px]">
               {invitationQuery.data?.email}
             </div>
           </div>

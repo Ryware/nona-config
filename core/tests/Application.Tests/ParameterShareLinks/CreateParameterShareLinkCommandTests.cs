@@ -15,6 +15,56 @@ public class CreateParameterShareLinkCommandTests
     private const string ConfigKey = "API_URL";
 
     [Test]
+    public async Task RecreatedParameterDuringIssuanceRevokesLinkBeforeDisclosure()
+    {
+        var fixture = new TestFixture();
+        fixture.SetupAsSystemAdmin();
+        fixture.SetupProjectExists(ProjectName);
+        fixture.SetupEnvironmentExists(ProjectName, EnvironmentName);
+        fixture.SetupConfigEntryExists(ProjectName, EnvironmentName, ConfigKey);
+        var links = Substitute.For<IParameterShareLinkRepository>();
+        links.When(repository => repository.AddAsync(Arg.Any<ParameterShareLink>(), Arg.Any<CancellationToken>()))
+            .Do(call =>
+            {
+                call.ArgAt<ParameterShareLink>(0).Id = 43;
+                fixture.ConfigEntryRepository.GetAsync(ProjectName, EnvironmentName, ConfigKey, Arg.Any<CancellationToken>())
+                    .Returns(new ConfigEntry { Project = ProjectName, Environment = EnvironmentName, Key = ConfigKey, Value = "replacement", CreatedAt = DateTime.UtcNow.AddDays(1) });
+            });
+        var handler = new CreateParameterShareLinkCommandHandler(fixture.ProjectRepository,
+            fixture.EnvironmentRepository, fixture.ConfigEntryRepository, links, fixture.ProjectAccessService, fixture.DateTime);
+        var result = await handler.Handle(new CreateParameterShareLinkCommand(ProjectName, EnvironmentName, ConfigKey, null, true), default);
+        await Assert.That(result.Success).IsFalse();
+        await Assert.That(result.ShareLink).IsNull();
+        await links.Received(1).RevokeAsync(43, Arg.Any<DateTime>(), CancellationToken.None);
+    }
+
+    [Test]
+    public async Task RecreatedProjectDuringIssuanceRevokesLinkBeforeDisclosure()
+    {
+        var fixture = new TestFixture();
+        fixture.SetupAsSystemAdmin();
+        fixture.SetupProjectExists(ProjectName);
+        fixture.SetupEnvironmentExists(ProjectName, EnvironmentName);
+        fixture.SetupConfigEntryExists(ProjectName, EnvironmentName, ConfigKey);
+        var links = Substitute.For<IParameterShareLinkRepository>();
+        links.When(repository => repository.AddAsync(Arg.Any<ParameterShareLink>(), Arg.Any<CancellationToken>()))
+            .Do(call =>
+            {
+                call.ArgAt<ParameterShareLink>(0).Id = 42;
+                fixture.ProjectRepository.GetByNameAsync(ProjectName, Arg.Any<CancellationToken>())
+                    .Returns(new Project { Name = ProjectName, CreatedAt = DateTime.UtcNow.AddDays(1) });
+            });
+        var handler = new CreateParameterShareLinkCommandHandler(fixture.ProjectRepository,
+            fixture.EnvironmentRepository, fixture.ConfigEntryRepository, links,
+            fixture.ProjectAccessService, fixture.DateTime);
+        var result = await handler.Handle(
+            new CreateParameterShareLinkCommand(ProjectName, EnvironmentName, ConfigKey, null, true), default);
+        await Assert.That(result.Success).IsFalse();
+        await Assert.That(result.ShareLink).IsNull();
+        await links.Received(1).RevokeAsync(42, Arg.Any<DateTime>(), CancellationToken.None);
+    }
+
+    [Test]
     public async Task CreateShareLink_StoresHashAndReturnsSixteenCharacterToken()
     {
         var now = new DateTime(2026, 7, 2, 12, 0, 0, DateTimeKind.Utc);
@@ -98,6 +148,34 @@ public class CreateParameterShareLinkCommandTests
 
         await Assert.That(result.Success).IsFalse();
         await Assert.That(result.Error).IsEqualTo("Expiration must be one of: 1h, 1d, 3d, 30d, 12m.");
+        await shareLinkRepository.DidNotReceive().AddAsync(
+            Arg.Any<ParameterShareLink>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Test]
+    public async Task CreateShareLink_RejectsKeyWithoutDefaultParameter()
+    {
+        var fixture = new TestFixture();
+        fixture.SetupAsSystemAdmin();
+        fixture.SetupProjectExists(ProjectName);
+        fixture.SetupEnvironmentExists(ProjectName, EnvironmentName);
+
+        var shareLinkRepository = Substitute.For<IParameterShareLinkRepository>();
+        var handler = new CreateParameterShareLinkCommandHandler(
+            fixture.ProjectRepository,
+            fixture.EnvironmentRepository,
+            fixture.ConfigEntryRepository,
+            shareLinkRepository,
+            fixture.ProjectAccessService,
+            fixture.DateTime);
+
+        var result = await handler.Handle(
+            new CreateParameterShareLinkCommand(ProjectName, EnvironmentName, ConfigKey, null, true),
+            CancellationToken.None);
+
+        await Assert.That(result.Success).IsFalse();
+        await Assert.That(result.Error).IsEqualTo("Config entry not found");
         await shareLinkRepository.DidNotReceive().AddAsync(
             Arg.Any<ParameterShareLink>(),
             Arg.Any<CancellationToken>());

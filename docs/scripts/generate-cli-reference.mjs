@@ -54,7 +54,7 @@ function walk(path) {
 	const normalized = removeRepeatedCommonOptions(help);
 	pages.push({ path, help: normalized.help, commonOptions: normalized.commonOptions });
 
-	for (const command of parseChildCommands(help)) {
+	for (const command of parseChildCommands(help, path)) {
 		walk([...path, command]);
 	}
 }
@@ -69,7 +69,7 @@ function readHelp(path) {
 	return output.replaceAll('Nona.Cli', 'nona').trim();
 }
 
-function parseChildCommands(help) {
+function parseChildCommands(help, parentPath) {
 	const lines = help.split(/\r?\n/);
 	const commands = [];
 	let inCommands = false;
@@ -87,13 +87,26 @@ function parseChildCommands(help) {
 		const match = line.match(/^\s+(.+?)(?:\s{2,}|\t+).+$/);
 		if (!match) continue;
 
-		const primary = match[1].split(',')[0]?.trim().split(/\s+/)[0];
+		const aliases = match[1]
+			.split(',')
+			.map((alias) => alias.trim().split(/\s+/)[0])
+			.filter(Boolean);
+		const primary = resolvePrimaryCommand(parentPath, aliases);
 		if (primary && !primary.startsWith('-')) {
 			commands.push(primary);
 		}
 	}
 
 	return commands;
+}
+
+function resolvePrimaryCommand(parentPath, aliases) {
+	if (aliases.length < 2) return aliases[0];
+
+	const help = readHelp([...parentPath, aliases[0]]);
+	const usage = help.match(/^\s*nona\s+(.+?)\s+\[options\]/m)?.[1];
+	const primary = usage?.trim().split(/\s+/).at(-1);
+	return primary && aliases.includes(primary) ? primary : aliases[0];
 }
 
 function removeRepeatedCommonOptions(help) {

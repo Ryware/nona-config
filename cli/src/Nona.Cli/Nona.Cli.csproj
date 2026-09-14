@@ -10,7 +10,7 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>nona</ToolCommandName>
     <PackageId>Nona.Cli</PackageId>
-    <Description>CLI for Nona key management and Firebase Remote Config migrations.</Description>
+    <Description>CLI for Nona administration and configuration migrations.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageTags>nona;cli;config;migration</PackageTags>
   </PropertyGroup>
@@ -38,6 +38,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\migrator\src\AwsParameterStoreMigrator\Migrator.AwsParameterStore.csproj" />
     <ProjectReference Include="..\..\..\migrator\src\ConfigMigrator.Core\Migrator.Core.csproj" />
     <ProjectReference Include="..\..\..\migrator\src\FirebaseRemoteConfigMigrator\Migrator.FirebaseRemoteConfig.csproj" />
   </ItemGroup>

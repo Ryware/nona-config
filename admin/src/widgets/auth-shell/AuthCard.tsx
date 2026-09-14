@@ -38,7 +38,7 @@ export const AuthCard: Component<AuthCardProps> = props => {
               {props.title}
             </h2>
             <Show when={props.description}>
-              <p class="text-on-surface-variant max-w-[32ch] text-[13px] leading-relaxed sm:max-w-none sm:text-xs">
+              <p class="text-on-surface-variant max-w-[32ch] text-[14px] leading-relaxed sm:max-w-none sm:text-[13px]">
                 {props.description}
               </p>
             </Show>
@@ -46,7 +46,7 @@ export const AuthCard: Component<AuthCardProps> = props => {
 
           {/* Error */}
           <Show when={props.error}>
-            <div class="text-error bg-error-container/10 border-error/25 mb-6 flex items-center gap-2 rounded-xl border p-3 text-xs">
+            <div class="text-error bg-error-container/10 border-error/25 mb-6 flex items-center gap-2 rounded-xl border p-3 text-[13px]">
               <span class="material-symbols-outlined shrink-0 text-[16px]">error</span>
               <span class="font-medium">{props.error}</span>
             </div>

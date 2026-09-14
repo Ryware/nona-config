@@ -27,8 +27,12 @@ mono_crash.*
 !cli/tests/Nona.Cli.Tests/Releases/**
 !cli/src/Nona.Cli/Core/Generated/Admin/Projects/Item/Environments/Item/Releases/
 !cli/src/Nona.Cli/Core/Generated/Admin/Projects/Item/Environments/Item/Releases/**
+!cli/src/Nona.Cli/Core/Generated/Api/Environments/Item/Releases/
+!cli/src/Nona.Cli/Core/Generated/Api/Environments/Item/Releases/**
 !migrator/src/ConfigMigrator.Core/Generated/Admin/Projects/Item/Environments/Item/Releases/
 !migrator/src/ConfigMigrator.Core/Generated/Admin/Projects/Item/Environments/Item/Releases/**
+!migrator/src/ConfigMigrator.Core/Generated/Api/Environments/Item/Releases/
+!migrator/src/ConfigMigrator.Core/Generated/Api/Environments/Item/Releases/**
 x64/
 x86/
 [Ww][Ii][Nn]32/
@@ -377,3 +381,11 @@ core/src/WebApi/nona-config.db
 # API client source is checked in; regenerate it with ./generate-clients.sh.
 openapi.json
 .nona-generate-clients.lock/
+
+# Swift / Xcode
+.build/
+.swiftpm/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+Pods/

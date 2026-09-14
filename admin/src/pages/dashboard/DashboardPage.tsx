@@ -25,7 +25,7 @@ function StatCard(props: StatCardProps) {
       class="bg-surface-container-low border-outline-variant/15 flex flex-col gap-4 rounded-2xl border p-6 shadow-sm"
     >
       <div class="flex items-center justify-between">
-        <span class="text-on-surface-variant text-[11px] font-medium tracking-[0.05em] uppercase">
+        <span class="text-on-surface-variant text-[12px] font-medium tracking-[0.05em] uppercase">
           {props.label}
         </span>
         <span class="material-symbols-outlined text-primary text-[20px]">{props.icon}</span>
@@ -55,11 +55,11 @@ export default function DashboardPage() {
         <div class="space-y-1.5">
           <h2
             data-testid="dashboard-heading"
-            class="font-headline text-on-surface text-[17px] font-bold tracking-tight"
+            class="font-headline text-on-surface text-[18px] font-bold tracking-tight"
           >
             Dashboard
           </h2>
-          <p class="text-on-surface-variant text-[12.5px]">System overview at a glance</p>
+          <p class="text-on-surface-variant text-[13.5px]">System overview at a glance</p>
         </div>
 
         <Show when={countsQuery.isError}>
@@ -95,7 +95,7 @@ export default function DashboardPage() {
 
         {/* Quick Actions */}
         <div class="space-y-3">
-          <h3 class="font-headline text-on-surface/90 text-[14px] font-bold">Quick Actions</h3>
+          <h3 class="font-headline text-on-surface/90 text-[15px] font-bold">Quick Actions</h3>
           <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <a
               data-testid="dashboard-manage-projects-link"
@@ -106,10 +106,10 @@ export default function DashboardPage() {
                 <MIcon name="folder" class="text-[20px]" />
               </div>
               <div class="min-w-0 flex-1">
-                <div class="font-headline text-on-surface group-hover:text-primary text-[14px] font-semibold transition-colors">
+                <div class="font-headline text-on-surface group-hover:text-primary text-[15px] font-semibold transition-colors">
                   Manage Projects
                 </div>
-                <div class="text-outline mt-0.5 text-[11px]">
+                <div class="text-outline mt-0.5 text-[12px]">
                   Configure environments and parameters
                 </div>
               </div>
@@ -128,10 +128,10 @@ export default function DashboardPage() {
                 <MIcon name="group" class="text-[20px]" />
               </div>
               <div class="min-w-0 flex-1">
-                <div class="font-headline text-on-surface group-hover:text-primary text-[14px] font-semibold transition-colors">
+                <div class="font-headline text-on-surface group-hover:text-primary text-[15px] font-semibold transition-colors">
                   Team Management
                 </div>
-                <div class="text-outline mt-0.5 text-[11px]">Manage members, roles, and access</div>
+                <div class="text-outline mt-0.5 text-[12px]">Manage members, roles, and access</div>
               </div>
               <MIcon
                 name="chevron_right"
@@ -148,10 +148,10 @@ export default function DashboardPage() {
                 <MIcon name="manage_history" class="text-[20px]" />
               </div>
               <div class="min-w-0 flex-1">
-                <div class="font-headline text-on-surface group-hover:text-primary text-[14px] font-semibold transition-colors">
+                <div class="font-headline text-on-surface group-hover:text-primary text-[15px] font-semibold transition-colors">
                   Security Audit Logs
                 </div>
-                <div class="text-outline mt-0.5 text-[11px]">Audit changes and user activities</div>
+                <div class="text-outline mt-0.5 text-[12px]">Audit changes and user activities</div>
               </div>
               <MIcon
                 name="chevron_right"

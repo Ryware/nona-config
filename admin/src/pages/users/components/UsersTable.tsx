@@ -57,16 +57,16 @@ export function UsersTable(props: UsersTableProps) {
               <div class="bg-primary/5 mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl">
                 <MIcon name="group_add" class="text-primary/60 text-3xl" />
               </div>
-              <p class="text-on-surface font-headline mb-1 text-[14px] font-bold">
+              <p class="text-on-surface font-headline mb-1 text-[15px] font-bold">
                 No team members yet
               </p>
-              <p class="text-on-surface-variant mb-4 text-[13px]">
+              <p class="text-on-surface-variant mb-4 text-[14px]">
                 Invite your first team member to get started.
               </p>
               <button
                 type="button"
                 onClick={() => props.onInvite()}
-                class="bg-primary text-on-primary inline-flex cursor-pointer items-center gap-2 rounded-lg border-0 px-4 py-2 text-[13px] font-semibold transition-all hover:brightness-105 active:scale-[0.98]"
+                class="bg-primary text-on-primary inline-flex cursor-pointer items-center gap-2 rounded-lg border-0 px-4 py-2 text-[14px] font-semibold transition-all hover:brightness-105 active:scale-[0.98]"
               >
                 <MIcon name="person_add" class="text-[17px]" />
                 Invite User
@@ -77,7 +77,7 @@ export function UsersTable(props: UsersTableProps) {
           <Show
             when={!props.isLoading && props.filteredUsers.length === 0 && props.totalUsersCount > 0}
           >
-            <div class="text-on-surface-variant py-10 text-center text-sm">
+            <div class="text-on-surface-variant py-10 text-center text-[15px]">
               No members match your search
             </div>
           </Show>
@@ -119,26 +119,26 @@ export function UsersTable(props: UsersTableProps) {
                         >
                           <MIcon name="expand_more" class="text-[16px]" />
                         </div>
-                        <div class="font-headline bg-primary/10 text-primary border-primary/20 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-xs font-bold">
+                        <div class="font-headline bg-primary/10 text-primary border-primary/20 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-[13px] font-bold">
                           {initials}
                         </div>
                         <div class="min-w-0 flex-1 space-y-3">
                           <div class="min-w-0">
-                            <div class="font-headline text-on-surface text-sm font-semibold">
+                            <div class="font-headline text-on-surface text-[15px] font-semibold">
                               {user.name || "Pending Invite"}
                             </div>
-                            <div class="text-outline mt-0.5 break-all font-mono text-[11.5px]">
+                            <div class="text-outline mt-0.5 break-all font-mono text-[12.5px]">
                               {user.email}
                             </div>
                           </div>
 
                           <div class="flex flex-wrap gap-2">
                             <span
-                              class={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-medium ${rm.class}`}
+                              class={`inline-flex items-center rounded-md px-2 py-0.5 text-[12px] font-medium ${rm.class}`}
                             >
                               {rm.label}
                             </span>
-                            <span class="text-on-surface-variant inline-flex items-center gap-1.5 text-[12px]">
+                            <span class="text-on-surface-variant inline-flex items-center gap-1.5 text-[13px]">
                               <span class="material-symbols-outlined text-outline text-[16px]">
                                 {user.role === "admin" ? "public" : "lock_person"}
                               </span>
@@ -241,16 +241,16 @@ export function UsersTable(props: UsersTableProps) {
         <table class="w-full border-collapse text-left">
           <thead>
             <tr class="border-outline-variant/15 bg-surface-container-lowest/50 border-b">
-              <th class="text-outline px-6 py-3 text-[11px] font-medium tracking-[0.05em] uppercase">
+              <th class="text-outline px-6 py-3 text-[12px] font-medium tracking-[0.05em] uppercase">
                 Member
               </th>
-              <th class="text-outline px-6 py-3 text-[11px] font-medium tracking-[0.05em] uppercase">
+              <th class="text-outline px-6 py-3 text-[12px] font-medium tracking-[0.05em] uppercase">
                 System Role
               </th>
-              <th class="text-outline px-6 py-3 text-[11px] font-medium tracking-[0.05em] uppercase">
+              <th class="text-outline px-6 py-3 text-[12px] font-medium tracking-[0.05em] uppercase">
                 Project Scope
               </th>
-              <th class="text-outline w-24 px-6 py-3 text-right text-[11px] font-medium tracking-[0.05em] uppercase">
+              <th class="text-outline w-24 px-6 py-3 text-right text-[12px] font-medium tracking-[0.05em] uppercase">
                 Actions
               </th>
             </tr>
@@ -293,16 +293,16 @@ export function UsersTable(props: UsersTableProps) {
                   <div class="bg-primary/5 mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl">
                     <MIcon name="group_add" class="text-primary/60 text-3xl" />
                   </div>
-                  <p class="text-on-surface font-headline mb-1 text-[14px] font-bold">
+                  <p class="text-on-surface font-headline mb-1 text-[15px] font-bold">
                     No team members yet
                   </p>
-                  <p class="text-on-surface-variant mb-4 text-[13px]">
+                  <p class="text-on-surface-variant mb-4 text-[14px]">
                     Invite your first team member to get started.
                   </p>
                   <button
                     type="button"
                     onClick={() => props.onInvite()}
-                    class="bg-primary text-on-primary inline-flex cursor-pointer items-center gap-2 rounded-lg border-0 px-4 py-2 text-[13px] font-semibold transition-all hover:brightness-105 active:scale-[0.98]"
+                    class="bg-primary text-on-primary inline-flex cursor-pointer items-center gap-2 rounded-lg border-0 px-4 py-2 text-[14px] font-semibold transition-all hover:brightness-105 active:scale-[0.98]"
                   >
                     <MIcon name="person_add" class="text-[17px]" />
                     Invite User
@@ -315,7 +315,7 @@ export function UsersTable(props: UsersTableProps) {
               when={!props.isLoading && props.filteredUsers.length === 0 && props.totalUsersCount > 0}
             >
               <tr>
-                <td colSpan={4} class="text-on-surface-variant py-10 text-center text-sm">
+                <td colSpan={4} class="text-on-surface-variant py-10 text-center text-[15px]">
                   No members match your search
                 </td>
               </tr>
@@ -354,14 +354,14 @@ export function UsersTable(props: UsersTableProps) {
                             >
                               <MIcon name="expand_more" class="text-[16px]" />
                             </div>
-                            <div class="font-headline bg-primary/10 text-primary border-primary/20 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-xs font-bold">
+                            <div class="font-headline bg-primary/10 text-primary border-primary/20 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-[13px] font-bold">
                               {initials}
                             </div>
                             <div>
-                              <div class="font-headline text-on-surface text-sm font-semibold">
+                              <div class="font-headline text-on-surface text-[15px] font-semibold">
                                 {user.name || "Pending Invite"}
                               </div>
-                              <div class="text-outline mt-0.5 font-mono text-[11.5px]">
+                              <div class="text-outline mt-0.5 font-mono text-[12.5px]">
                                 {user.email}
                               </div>
                             </div>
@@ -369,13 +369,13 @@ export function UsersTable(props: UsersTableProps) {
                         </td>
                         <td class="px-6 py-4">
                           <span
-                            class={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-medium ${rm.class}`}
+                            class={`inline-flex items-center rounded-md px-2 py-0.5 text-[12px] font-medium ${rm.class}`}
                           >
                             {rm.label}
                           </span>
                         </td>
                         <td class="px-6 py-4">
-                          <div class="text-on-surface-variant flex items-center gap-1.5 text-sm">
+                          <div class="text-on-surface-variant flex items-center gap-1.5 text-[15px]">
                             <span class="material-symbols-outlined text-outline text-[16px]">
                               {user.role === "admin" ? "public" : "lock_person"}
                             </span>

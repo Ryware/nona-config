@@ -88,6 +88,30 @@ describe('ApiClient', () => {
       await expect(client.get('/test-problem')).rejects.toThrow('Resource was not found');
     });
 
+    it('prefers deterministically ordered field-level validation errors', async () => {
+      server.use(
+        http.get(`${BASE}/test-validation-problem`, () =>
+          HttpResponse.json(
+            {
+              title: 'One or more validation errors occurred.',
+              status: 400,
+              detail: 'One or more validation errors occurred.',
+              errors: {
+                'Entries[1].Scope': ["Invalid scope. Must be 'client', 'server', or 'all'."],
+                'Entries[0].Value': ["Value must be valid JSON when contentType is 'json'."],
+              },
+            },
+            { status: 400 },
+          ),
+        ),
+      );
+
+      await expect(client.get('/test-validation-problem')).rejects.toThrow(
+        "Entries[0].Value: Value must be valid JSON when contentType is 'json'.; " +
+          "Entries[1].Scope: Invalid scope. Must be 'client', 'server', or 'all'.",
+      );
+    });
+
     it('throws generic message when no error fields in body', async () => {
       server.use(
         http.get(`${BASE}/test-generic`, () =>

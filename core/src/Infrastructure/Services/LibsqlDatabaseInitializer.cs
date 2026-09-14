@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Hosting;
+using Nona.Application.Common;
 using Nona.Infrastructure.Repositories.Libsql;
 using Nona.Libsql;
 
@@ -34,12 +35,42 @@ public sealed class LibsqlDatabaseInitializer : IHostedService
 
         var directRunner = new LibsqlMigrationRunner(_client, _migrationsFolder);
         await directRunner.RunMigrationsAsync(cancellationToken);
+        await HashLegacyApiKeysAsync(cancellationToken);
         await NormalizeReleaseEntryKeysAsync(cancellationToken);
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
         return Task.CompletedTask;
+    }
+
+    private async Task HashLegacyApiKeysAsync(CancellationToken cancellationToken)
+    {
+        var result = await _client.ExecuteAsync(
+            """
+            SELECT Id, KeyHash
+            FROM ApiKeys
+            WHERE HashVersion = 0
+            """,
+            ct: cancellationToken);
+
+        var updates = result.Rows.Select(row => new LibsqlStatement(
+            """
+            UPDATE ApiKeys
+            SET KeyHash = @KeyHash,
+                HashVersion = @HashVersion
+            WHERE Id = @Id
+              AND HashVersion = 0
+            """,
+            LibsqlParameters.Create(
+                ("Id", row.GetInt64("Id")),
+                ("KeyHash", ApiKeySecret.Hash(row.GetString("KeyHash"))),
+                ("HashVersion", ApiKeySecret.CurrentHashVersion)))).ToList();
+
+        foreach (var batch in updates.Chunk(500))
+        {
+            await _client.ExecuteBatchAsync(batch, cancellationToken);
+        }
     }
 
     private async Task NormalizeReleaseEntryKeysAsync(CancellationToken cancellationToken)

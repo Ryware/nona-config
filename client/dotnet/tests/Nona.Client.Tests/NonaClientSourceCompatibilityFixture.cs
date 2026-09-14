@@ -10,6 +10,7 @@ internal static class NonaClientSourceCompatibilityFixture
         JsonTypeInfo<T> jsonTypeInfo)
     {
         _ = client.GetConfigValueAsync("flag", default);
+        _ = client.GetAllValuesAsync(cancellationToken: default);
         _ = client.TryGetConfigValueAsync("flag", default);
         _ = client.GetStringValueAsync("flag", default);
         _ = client.GetJsonValueAsync("flag", jsonTypeInfo, default);

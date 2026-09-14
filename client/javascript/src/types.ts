@@ -7,6 +7,7 @@ export interface NonaClientOptions {
   baseUrl: string | URL;
   environmentId: string;
   apiKey?: string;
+  useReleases?: boolean;
   releaseVersion?: string;
   fetch?: typeof fetch;
   defaultHeaders?: HeadersInit;
@@ -16,7 +17,10 @@ export interface NonaClientOptions {
 
 export interface NonaRequestOptions {
   signal?: AbortSignal;
-  releaseVersion?: string;
+}
+
+export interface NonaGetAllValuesOptions extends NonaRequestOptions {
+  prefix?: string;
 }
 
 export interface NonaConfigValue {

@@ -13,7 +13,7 @@ public class InMemoryProjectRepository : IProjectRepository
     private readonly InMemoryApiKeyRepository? _apiKeyRepository;
     private readonly InMemoryParameterShareLinkRepository? _parameterShareLinkRepository;
     private readonly InMemoryProjectMemberRepository? _projectMemberRepository;
-    private readonly object _renameGate = new();
+    private readonly object _renameGate = InMemoryRepositoryGate.SyncRoot;
     private long _nextId = 1;
 
     public InMemoryProjectRepository()
@@ -89,7 +89,12 @@ public class InMemoryProjectRepository : IProjectRepository
 
     public Task DeleteAsync(string name, CancellationToken ct = default)
     {
-        _projects.TryRemove(name, out _);
+        lock (_renameGate)
+        {
+            _apiKeyRepository?.DeleteProject(name);
+            _parameterShareLinkRepository?.DeleteProject(name);
+            _projects.TryRemove(name, out _);
+        }
         return Task.CompletedTask;
     }
 

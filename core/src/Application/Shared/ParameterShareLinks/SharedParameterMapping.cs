@@ -16,6 +16,7 @@ internal static class SharedParameterMapping
             entry.Value,
             entry.ContentType,
             canEdit,
-            expiresAt);
+            expiresAt,
+            entry.Unit);
     }
 }

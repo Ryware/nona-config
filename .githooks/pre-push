@@ -9,7 +9,7 @@ script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 root=$(git -C "$script_dir" rev-parse --show-toplevel)
 remote_name=${1:-origin}
 
-tmp_dir=${TMPDIR:-/tmp}/nona-pre-push.$$
+tmp_dir=$(mktemp -d "${TMPDIR:-/tmp}/nona-pre-push.XXXXXXXXXX") || exit 1
 refs_file=$tmp_dir/refs
 cs_files_file=$tmp_dir/cs-files
 dotnet_files_file=$tmp_dir/dotnet-files
@@ -19,7 +19,6 @@ cleanup() {
 }
 
 trap cleanup EXIT HUP INT TERM
-mkdir -p "$tmp_dir"
 : >"$refs_file"
 : >"$cs_files_file"
 : >"$dotnet_files_file"

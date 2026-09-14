@@ -5,6 +5,8 @@ description: Learn how Nona API keys are scoped to projects, environments, and r
 
 Nona uses API keys for config reads.
 
+The full secret is shown only when a key is created. Nona stores a SHA-256 hash of the secret, not the secret itself, so an existing key cannot be revealed or copied later. Key lists show only an eight-character fingerprint that helps you identify the credential.
+
 An API key belongs to one project and can optionally be restricted to:
 
 - one environment
@@ -40,6 +42,7 @@ In admin:
 5. choose the scope
 6. optionally choose one environment
 7. click `Create`
+8. copy the secret from the one-time panel before dismissing it
 
 With the CLI:
 
@@ -57,6 +60,30 @@ List keys later with:
 nona keys list --project storefront
 ```
 
+The list contains metadata and a masked fingerprint, never a usable secret.
+
+## Replace or delete a key
+
+Replace a credential without interrupting consumers by creating a separate key:
+
+```bash
+nona keys create \
+  --project storefront \
+  --name "Backend worker replacement" \
+  --scope server \
+  --environment production
+```
+
+Copy the new secret from the one-time output, update the consumers, and verify they use it. The old and replacement keys can coexist while you migrate.
+
+Delete the old key after the migration is complete:
+
+```bash
+nona keys delete --project storefront --id 42
+```
+
+Deleting a key permanently invalidates it and takes effect immediately. The replacement remains valid.
+
 ## Why narrower keys are better
 
 Narrow keys reduce blast radius.
@@ -72,7 +99,9 @@ For example:
 - create separate keys for separate apps or services
 - scope them as narrowly as possible
 - store them in environment variables or a secrets system
-- rotate them when access patterns change
+- replace them when access patterns change or a secret may have been exposed
+- delete keys that are no longer needed
+- create and verify a replacement before deleting an old key when uninterrupted access matters
 
 ## Common operating pattern
 
@@ -109,6 +138,10 @@ Frontend and mobile apps should usually use `client` scope unless there is a rea
 Using keys that are broader than they need to be.
 
 That increases blast radius and makes accidental exposure harder to contain.
+
+### Can I retrieve a key after creating it?
+
+No. Nona stores only a hash and shows the secret once. If the secret is lost, create a replacement, update its consumers, and delete the old key.
 
 ## Related docs
 

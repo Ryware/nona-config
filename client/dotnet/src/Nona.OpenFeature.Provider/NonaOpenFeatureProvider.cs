@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Net;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -153,7 +152,8 @@ public sealed class NonaOpenFeatureProvider : FeatureProvider
                 .ConfigureAwait(false);
             return resolve(config);
         }
-        catch (NonaClientException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        catch (NonaClientException ex) when (
+            string.Equals(ex.ErrorCode, "config_entry_not_found", StringComparison.Ordinal))
         {
             return Error(flagKey, defaultValue, ErrorType.FlagNotFound, ex.Message);
         }

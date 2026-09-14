@@ -28,7 +28,7 @@ public class SharedParameterCommandTests
         dateTime.NowUtc.Returns(_now);
         shareLinkRepository.GetByTokenHashAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(EditableLink());
-        configEntryRepository.GetAsync(ProjectName, EnvironmentName, ConfigKey, Arg.Any<CancellationToken>())
+        configEntryRepository.GetSharedAsync(Arg.Any<ParameterShareLink>(), _now, Arg.Any<CancellationToken>())
             .Returns(Entry("https://api.example.com"));
 
         var handler = new GetSharedParameterQueryHandler(
@@ -75,10 +75,9 @@ public class SharedParameterCommandTests
 
         await Assert.That(result.Success).IsFalse();
         await Assert.That(result.ErrorCode).IsEqualTo(ParameterShareLinkErrorCodes.Expired);
-        await configEntryRepository.DidNotReceive().GetAsync(
-            Arg.Any<string>(),
-            Arg.Any<string>(),
-            Arg.Any<string>(),
+        await configEntryRepository.DidNotReceive().GetSharedAsync(
+            Arg.Any<ParameterShareLink>(),
+            Arg.Any<DateTime>(),
             Arg.Any<CancellationToken>());
     }
 
@@ -103,10 +102,9 @@ public class SharedParameterCommandTests
 
         await Assert.That(result.Success).IsFalse();
         await Assert.That(result.ErrorCode).IsEqualTo(ParameterShareLinkErrorCodes.Revoked);
-        await configEntryRepository.DidNotReceive().GetAsync(
-            Arg.Any<string>(),
-            Arg.Any<string>(),
-            Arg.Any<string>(),
+        await configEntryRepository.DidNotReceive().GetSharedAsync(
+            Arg.Any<ParameterShareLink>(),
+            Arg.Any<DateTime>(),
             Arg.Any<CancellationToken>());
     }
 
@@ -131,9 +129,10 @@ public class SharedParameterCommandTests
 
         await Assert.That(result.Success).IsFalse();
         await Assert.That(result.ErrorCode).IsEqualTo(ParameterShareLinkErrorCodes.ViewOnly);
-        await configEntryRepository.DidNotReceive().AddVersionAsync(
+        await configEntryRepository.DidNotReceive().UpdateSharedValueAsync(
             Arg.Any<ConfigEntry>(),
-            Arg.Any<string>(),
+            Arg.Any<ParameterShareLink>(),
+            Arg.Any<DateTime>(),
             Arg.Any<CancellationToken>());
     }
 
@@ -152,9 +151,10 @@ public class SharedParameterCommandTests
         configEntryRepository.GetAsync(ProjectName, EnvironmentName, ConfigKey, Arg.Any<CancellationToken>())
             .Returns(Entry("https://api.example.com"));
         configEntryRepository
-            .AddVersionAsync(
+            .UpdateSharedValueAsync(
                 Arg.Do<ConfigEntry>(entry => savedEntry = entry),
-                "Shared link #7",
+                Arg.Is<ParameterShareLink>(link => link.Id == 7),
+                _now,
                 Arg.Any<CancellationToken>())
             .Returns(call => call.ArgAt<ConfigEntry>(0));
 
@@ -187,6 +187,41 @@ public class SharedParameterCommandTests
             Arg.Any<CancellationToken>());
     }
 
+    [Test]
+    public async Task UpdateSharedParameter_PreservesVersionedMetadata()
+    {
+        var shareLinkRepository = Substitute.For<IParameterShareLinkRepository>();
+        var configEntryRepository = Substitute.For<IConfigEntryRepository>();
+        var dateTime = Substitute.For<IDateTime>();
+        ConfigEntry? savedEntry = null;
+
+        dateTime.NowUtc.Returns(_now);
+        shareLinkRepository.GetByTokenHashAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(EditableLink());
+        configEntryRepository.GetAsync(ProjectName, EnvironmentName, ConfigKey, Arg.Any<CancellationToken>())
+            .Returns(Entry("100", "number", "ms", "Request timeout"));
+        configEntryRepository.UpdateSharedValueAsync(
+                Arg.Do<ConfigEntry>(entry => savedEntry = entry),
+                Arg.Any<ParameterShareLink>(),
+                _now,
+                Arg.Any<CancellationToken>())
+            .Returns(call => call.ArgAt<ConfigEntry>(0));
+
+        var handler = new UpdateSharedParameterCommandHandler(
+            shareLinkRepository,
+            configEntryRepository,
+            dateTime);
+
+        var result = await handler.Handle(
+            new UpdateSharedParameterCommand(Token, "250"),
+            CancellationToken.None);
+
+        await Assert.That(result.Success).IsTrue();
+        await Assert.That(savedEntry!.Description).IsEqualTo("Request timeout");
+        await Assert.That(savedEntry.Unit).IsEqualTo("ms");
+        await Assert.That(result.Parameter!.Unit).IsEqualTo("ms");
+    }
+
     private ParameterShareLink EditableLink(bool canEdit = true, DateTime? expiresAt = null)
     {
         return new ParameterShareLink
@@ -204,7 +239,11 @@ public class SharedParameterCommandTests
         };
     }
 
-    private ConfigEntry Entry(string value)
+    private ConfigEntry Entry(
+        string value,
+        string contentType = "text",
+        string? unit = null,
+        string? description = null)
     {
         return new ConfigEntry
         {
@@ -212,7 +251,9 @@ public class SharedParameterCommandTests
             Environment = EnvironmentName,
             Key = ConfigKey,
             Value = value,
-            ContentType = "text",
+            ContentType = contentType,
+            Description = description,
+            Unit = unit,
             Scope = KeyScope.All,
             CreatedAt = _now.AddDays(-1),
             UpdatedAt = _now.AddDays(-1)

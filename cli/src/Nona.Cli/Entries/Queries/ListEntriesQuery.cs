@@ -3,7 +3,11 @@ using Nona.Cli.Entries;
 
 namespace Nona.Cli.Entries.Queries;
 
-internal sealed record ListEntriesQuery(NonaCliConnectionOptions Connection, string Project, string Environment);
+internal sealed record ListEntriesQuery(
+    NonaCliConnectionOptions Connection,
+    string Project,
+    string Environment,
+    string? Prefix = null);
 
 internal sealed class ListEntriesQueryHandler(Func<HttpClient>? httpClientFactory = null)
 {
@@ -14,7 +18,9 @@ internal sealed class ListEntriesQueryHandler(Func<HttpClient>? httpClientFactor
 
         using var api = NonaClientFactory.Create(query.Connection, httpClientFactory);
         var entries = await api.Admin.Projects[query.Project]
-            .Environments[query.Environment].ConfigEntries.GetAsync(cancellationToken: ct);
+            .Environments[query.Environment].ConfigEntries.GetAsync(
+                request => request.QueryParameters.Prefix = query.Prefix,
+                cancellationToken: ct);
 
         if (entries is null || entries.Count == 0)
         {

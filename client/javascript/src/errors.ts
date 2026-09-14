@@ -5,7 +5,9 @@ export class NonaClientError extends Error {
     public readonly method: string,
     public readonly url: string,
     public readonly responseBody?: string,
-    public readonly cause?: unknown
+    public readonly cause?: unknown,
+    public readonly errorCode?: string,
+    public readonly detail?: string
   ) {
     super(message);
     this.name = "NonaClientError";

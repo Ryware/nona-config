@@ -14,6 +14,7 @@ import EnvironmentsSection from '../../pages/projects/sections/EnvironmentsSecti
 import ParametersSection from '../../pages/projects/sections/ParametersSection';
 import ReleasesSection from '../../pages/projects/sections/ReleasesSection';
 import SharedLinksSection from '../../pages/projects/sections/SharedLinksSection';
+import { UnsavedChangesProvider } from '../../shared/hooks/useUnsavedChanges';
 import { ToastProvider } from '../../shared/ui/toast';
 import { mockToken } from '../mocks/data';
 
@@ -47,7 +48,7 @@ export function renderProjectSections(path = '/projects/my-app') {
     <MetaProvider>
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
-          <Router>
+          <Router root={props => <UnsavedChangesProvider>{props.children}</UnsavedChangesProvider>}>
             <Route path="/projects/:slug" component={ParametersSection} />
             <Route path="/projects/:slug/environments" component={EnvironmentsSection} />
             <Route path="/projects/:slug/shared-links" component={SharedLinksSection} />

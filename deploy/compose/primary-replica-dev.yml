@@ -6,8 +6,6 @@ services:
       dockerfile: Dockerfile
     ports:
       - "${NONA_PRIMARY_API_PORT:-18081}:8080"
-      - "${NONA_PRIMARY_LIBSQL_PORT:-19080}:9080"
-      - "${NONA_PRIMARY_GRPC_PORT:-15001}:5001"
     environment:
       Storage__Libsql__ManagedPrimary__ExtraArgs__0: --grpc-listen-addr
       Storage__Libsql__ManagedPrimary__ExtraArgs__1: 0.0.0.0:5001
@@ -32,7 +30,6 @@ services:
       - nona-primary
     ports:
       - "${NONA_REPLICA_API_PORT:-18082}:8080"
-      - "${NONA_REPLICA_LIBSQL_PORT:-19082}:9080"
     environment:
       Storage__Libsql__ManagedPrimary__ExtraArgs__0: --primary-grpc-url
       Storage__Libsql__ManagedPrimary__ExtraArgs__1: http://nona-primary:5001

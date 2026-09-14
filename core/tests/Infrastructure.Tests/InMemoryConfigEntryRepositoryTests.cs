@@ -7,6 +7,33 @@ namespace Nona.Infrastructure.Tests;
 public class InMemoryConfigEntryRepositoryTests
 {
     [Test]
+    public async Task ListAsync_FiltersByLiteralCaseInsensitivePrefix()
+    {
+        var repository = new InMemoryConfigEntryRepository();
+        foreach (var key in new[] { "GroupA:One", "groupa:Two", "GroupA_Three", "GroupB:One" })
+        {
+            await repository.AddAsync(new ConfigEntry
+            {
+                Project = "test-project",
+                Environment = "production",
+                Key = key,
+                Value = "true",
+                ContentType = "boolean",
+                Scope = KeyScope.Frontend
+            });
+        }
+
+        var colon = await repository.ListAsync("TEST-PROJECT", "PRODUCTION", "groupa:");
+        var underscore = await repository.ListAsync("test-project", "production", "GroupA_");
+        var unfiltered = await repository.ListAsync("test-project", "production", string.Empty);
+
+        await Assert.That(colon.Select(entry => entry.Key)).IsEquivalentTo(["GroupA:One", "groupa:Two"]);
+        await Assert.That(underscore).Count().IsEqualTo(1);
+        await Assert.That(underscore[0].Key).IsEqualTo("GroupA_Three");
+        await Assert.That(unfiltered).Count().IsEqualTo(4);
+    }
+
+    [Test]
     public async Task AddVersionAsync_RejectsInvalidKey()
     {
         var repository = new InMemoryConfigEntryRepository();
@@ -50,6 +77,7 @@ public class InMemoryConfigEntryRepositoryTests
             Key = key,
             Value = "false",
             ContentType = "boolean",
+            Description = "Initial toggle",
             Scope = KeyScope.Frontend,
             CreatedAt = firstAt,
             UpdatedAt = firstAt
@@ -62,6 +90,7 @@ public class InMemoryConfigEntryRepositoryTests
             Key = key,
             Value = "true",
             ContentType = "boolean",
+            Description = "Updated toggle",
             Scope = KeyScope.Backend,
             CreatedAt = firstAt,
             UpdatedAt = secondAt
@@ -78,6 +107,8 @@ public class InMemoryConfigEntryRepositoryTests
             Key = key,
             Value = targetVersion!.Value,
             ContentType = targetVersion.ContentType,
+            Description = targetVersion.Description,
+            Unit = targetVersion.Unit,
             Scope = targetVersion.Scope,
             CreatedAt = firstAt,
             UpdatedAt = rollbackAt
@@ -92,8 +123,10 @@ public class InMemoryConfigEntryRepositoryTests
         await Assert.That(versions[1].Version).IsEqualTo(2);
         await Assert.That(versions[2].Version).IsEqualTo(1);
         await Assert.That(versions[0].Value).IsEqualTo("false");
+        await Assert.That(versions[0].Description).IsEqualTo("Initial toggle");
         await Assert.That(versions[0].Actor).IsEqualTo("carol");
         await Assert.That(versions[1].Value).IsEqualTo("true");
+        await Assert.That(versions[1].Description).IsEqualTo("Updated toggle");
         await Assert.That(versions[1].Actor).IsEqualTo("bob");
         await Assert.That(versions[2].Scope).IsEqualTo(KeyScope.Frontend);
         await Assert.That(versions[2].Actor).IsEqualTo("alice");

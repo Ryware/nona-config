@@ -20,7 +20,7 @@ export function DiffField(props: DiffFieldProps) {
   const max = () => props.maxLength ?? 28;
 
   const oldClasses = () => {
-    let cls = "text-[10.5px] text-error/70 line-through";
+    let cls = "text-[11.5px] text-error/70 line-through";
     if (props.mono) cls += " font-mono";
     if (props.italic) cls += " italic";
     return cls;
@@ -28,7 +28,7 @@ export function DiffField(props: DiffFieldProps) {
 
   const newClasses = () => {
     const color = props.newColor ?? "text-on-surface";
-    let cls = `text-[10.5px] ${color}`;
+    let cls = `text-[11.5px] ${color}`;
     if (props.mono) cls += " font-mono";
     if (props.italic) cls += " italic";
     return cls;
@@ -36,7 +36,7 @@ export function DiffField(props: DiffFieldProps) {
 
   return (
     <div class="flex items-baseline gap-2">
-      <span class="text-[9.5px] font-medium text-outline/40 w-10 shrink-0 uppercase tracking-wide">
+      <span class="text-[10.5px] font-medium text-outline/40 w-10 shrink-0 uppercase tracking-wide">
         {props.label}
       </span>
       <div class="flex items-baseline gap-1.5 flex-wrap">
@@ -46,7 +46,7 @@ export function DiffField(props: DiffFieldProps) {
           </span>
         </Show>
         <Show when={props.oldValue !== undefined && props.newValue !== undefined}>
-          <span class="text-outline/30 text-[10px]">→</span>
+          <span class="text-outline/30 text-[11px]">→</span>
         </Show>
         <Show when={props.newValue !== undefined}>
           <span class={newClasses()} title={props.newValue}>

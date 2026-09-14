@@ -12,7 +12,7 @@ export function AccessDenied() {
       >
         <MIcon name="lock" class="text-primary mb-3 block text-4xl" />
         <h1 class="font-headline text-on-surface text-lg font-bold">Access denied</h1>
-        <p class="text-on-surface-variant mt-2 text-sm">
+        <p class="text-on-surface-variant mt-2 text-[15px]">
           Ask an Admin if you need access to this page.
         </p>
       </section>

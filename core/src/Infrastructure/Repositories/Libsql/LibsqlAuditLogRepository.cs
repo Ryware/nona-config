@@ -77,7 +77,8 @@ public sealed class LibsqlAuditLogRepository : IAuditLogRepository
         AuditLogBatchRequest request,
         CancellationToken ct = default)
     {
-        var cursorSql = request.BeforeCreatedAt is not null && request.BeforeId is not null
+        var hasCursor = request.BeforeCreatedAt is not null && request.BeforeId is not null;
+        var cursorSql = hasCursor
             ? """
                 AND (CreatedAt < @BeforeCreatedAt OR
                      (CreatedAt = @BeforeCreatedAt AND rowid > @BeforeId))
@@ -92,7 +93,7 @@ public sealed class LibsqlAuditLogRepository : IAuditLogRepository
             ORDER BY CreatedAt DESC, rowid ASC
             LIMIT @Limit
             """,
-            ToParameters(request),
+            ToParameters(request, hasCursor),
             ct);
 
         return result.Rows.Select(Map).ToList();
@@ -169,18 +170,20 @@ public sealed class LibsqlAuditLogRepository : IAuditLogRepository
             ("CreatedToExclusive", filter.CreatedToExclusive?.ToString("O")));
     }
 
-    private static IReadOnlyDictionary<string, object?> ToParameters(AuditLogBatchRequest request)
+    private static IReadOnlyDictionary<string, object?> ToParameters(AuditLogBatchRequest request, bool hasCursor)
     {
-        return LibsqlParameters.Create(
-            ("Search", Normalize(request.Filter.Search)),
-            ("Action", Normalize(request.Filter.Action)),
-            ("Environment", Normalize(request.Filter.Environment)),
-            ("GlobalScopeEnvironment", AuditLogFilter.GlobalScopeEnvironment),
-            ("CreatedFrom", request.Filter.CreatedFrom?.ToString("O")),
-            ("CreatedToExclusive", request.Filter.CreatedToExclusive?.ToString("O")),
-            ("BeforeCreatedAt", request.BeforeCreatedAt?.ToString("O")),
-            ("BeforeId", request.BeforeId),
-            ("Limit", request.Limit));
+        var parameters = new Dictionary<string, object?>(ToParameters(request.Filter), StringComparer.OrdinalIgnoreCase)
+        {
+            ["Limit"] = request.Limit
+        };
+
+        if (hasCursor)
+        {
+            parameters["BeforeCreatedAt"] = request.BeforeCreatedAt?.ToString("O");
+            parameters["BeforeId"] = request.BeforeId;
+        }
+
+        return parameters;
     }
 
     private static string? Normalize(string? value)

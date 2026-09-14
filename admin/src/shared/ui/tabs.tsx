@@ -58,7 +58,7 @@ export const TabsTrigger: ParentComponent<TabsTriggerProps> = (props) => {
     <button
       role="tab"
       aria-selected={isActive()}
-      class={`px-4 py-2.5 text-[13px] font-medium transition-all border-b-2 -mb-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
+      class={`px-4 py-2.5 text-[14px] font-medium transition-all border-b-2 -mb-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
         isActive()
           ? "text-primary border-primary font-bold"
           : "text-outline border-transparent hover:text-on-surface-variant hover:border-outline-variant/30"

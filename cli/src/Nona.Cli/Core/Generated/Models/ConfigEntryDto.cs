@@ -26,6 +26,14 @@ namespace Nona.Cli.Generated.Models
 #endif
         /// <summary>The createdAt property</summary>
         public DateTimeOffset? CreatedAt { get; set; }
+        /// <summary>The description property</summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
+#nullable enable
+        public string? Description { get; set; }
+#nullable restore
+#else
+        public string Description { get; set; }
+#endif
         /// <summary>The environment property</summary>
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
 #nullable enable
@@ -57,6 +65,14 @@ namespace Nona.Cli.Generated.Models
 #nullable restore
 #else
         public string Scope { get; set; }
+#endif
+        /// <summary>The unit property</summary>
+#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_1_OR_GREATER
+#nullable enable
+        public string? Unit { get; set; }
+#nullable restore
+#else
+        public string Unit { get; set; }
 #endif
         /// <summary>The updatedAt property</summary>
         public DateTimeOffset? UpdatedAt { get; set; }
@@ -96,10 +112,12 @@ namespace Nona.Cli.Generated.Models
                 { "activeVersion", n => { ActiveVersion = n.GetIntValue(); } },
                 { "contentType", n => { ContentType = n.GetStringValue(); } },
                 { "createdAt", n => { CreatedAt = n.GetDateTimeOffsetValue(); } },
+                { "description", n => { Description = n.GetStringValue(); } },
                 { "environment", n => { Environment = n.GetStringValue(); } },
                 { "key", n => { Key = n.GetStringValue(); } },
                 { "project", n => { Project = n.GetStringValue(); } },
                 { "scope", n => { Scope = n.GetStringValue(); } },
+                { "unit", n => { Unit = n.GetStringValue(); } },
                 { "updatedAt", n => { UpdatedAt = n.GetDateTimeOffsetValue(); } },
                 { "value", n => { Value = n.GetStringValue(); } },
             };
@@ -114,10 +132,12 @@ namespace Nona.Cli.Generated.Models
             writer.WriteIntValue("activeVersion", ActiveVersion);
             writer.WriteStringValue("contentType", ContentType);
             writer.WriteDateTimeOffsetValue("createdAt", CreatedAt);
+            writer.WriteStringValue("description", Description);
             writer.WriteStringValue("environment", Environment);
             writer.WriteStringValue("key", Key);
             writer.WriteStringValue("project", Project);
             writer.WriteStringValue("scope", Scope);
+            writer.WriteStringValue("unit", Unit);
             writer.WriteDateTimeOffsetValue("updatedAt", UpdatedAt);
             writer.WriteStringValue("value", Value);
             writer.WriteAdditionalData(AdditionalData);

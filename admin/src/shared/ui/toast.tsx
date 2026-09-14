@@ -1,6 +1,7 @@
 import { createTimer } from "@solid-primitives/timer";
 import { createContext, useContext, For, type ParentComponent } from "solid-js";
 import { createStore } from "solid-js/store";
+import { Tooltip, TooltipTrigger } from "./tooltip";
 
 export type ToastType = "success" | "error" | "info" | "warning";
 
@@ -95,14 +96,15 @@ const ToastItem = (props: {
       <span class="material-symbols-outlined text-[18px] shrink-0">
         {toastIcons[props.toast.type]}
       </span>
-      <span class="text-[13px] flex-1">{props.toast.message}</span>
-      <button
+      <span class="text-[14px] flex-1">{props.toast.message}</span>
+      <Tooltip content="Dismiss notification"><TooltipTrigger as="button"
         onClick={() => props.removeToast(props.toast.id)}
         aria-label="Dismiss notification"
+        data-tooltip-trigger
         class="shrink-0 text-current opacity-60 hover:opacity-100 transition-opacity bg-transparent border-0 cursor-pointer"
       >
         <span class="material-symbols-outlined text-[16px]">close</span>
-      </button>
+      </TooltipTrigger></Tooltip>
     </div>
   );
 };

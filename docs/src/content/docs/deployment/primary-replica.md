@@ -33,8 +33,10 @@ Do not choose it just because it sounds more production-like. For many teams, st
 
 | Service | API | libSQL HTTP | Replication gRPC |
 |---|---:|---:|---:|
-| `nona-primary` | `18081 -> 8080` | `19080 -> 9080` | `15001 -> 5001` |
-| `nona-replica` | `18082 -> 8080` | `19082 -> 9080` | not exposed |
+| `nona-primary` | `18081 -> 8080` | internal only | internal only |
+| `nona-replica` | `18082 -> 8080` | internal only | not exposed |
+
+The replication compose files publish only the Nona API. SQL HTTP and replication gRPC stay on the private container network; Nona authentication does not protect these database listeners.
 
 Use the primary API for admin and write workflows. Use the replica API for read-heavy clients when eventual consistency is acceptable.
 
@@ -47,10 +49,7 @@ Set these environment variables before `docker compose up`:
 | Variable | Default | Meaning |
 |---|---:|---|
 | `NONA_PRIMARY_API_PORT` | `18081` | Host port for the primary Nona API |
-| `NONA_PRIMARY_LIBSQL_PORT` | `19080` | Host port for the primary libSQL HTTP service |
-| `NONA_PRIMARY_GRPC_PORT` | `15001` | Host port for primary replication gRPC |
 | `NONA_REPLICA_API_PORT` | `18082` | Host port for the replica Nona API |
-| `NONA_REPLICA_LIBSQL_PORT` | `19082` | Host port for the replica libSQL HTTP service |
 
 Example:
 

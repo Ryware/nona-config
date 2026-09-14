@@ -29,7 +29,7 @@ public class RegisterCommandHandler(IMediator mediator, IUserRepository userRepo
         var (hash, salt) = passwordHasher.HashPassword(request.Password);
         var now = dateTime.NowUtc;
 
-        await userRepository.AddAsync(new User
+        var created = await userRepository.TryAddFirstUserAsync(new User
         {
             Email = request.Email,
             Name = request.Email,
@@ -40,6 +40,9 @@ public class RegisterCommandHandler(IMediator mediator, IUserRepository userRepo
             CreatedAt = now,
             UpdatedAt = now
         }, cancellationToken);
+
+        if (!created)
+            return new RegisterResult(false, null, "Registration is disabled", AuthErrorCodes.RegistrationDisabled);
 
         var loginResult = await mediator.Send(new LoginCommand(request.Email, request.Password), cancellationToken);
         if (!loginResult.Success || loginResult.Response is null)

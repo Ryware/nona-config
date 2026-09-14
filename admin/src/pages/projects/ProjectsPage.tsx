@@ -106,7 +106,7 @@ export default function ProjectsPage() {
             <div>
               <h2
                 data-testid="projects-heading"
-                class="text-outline font-headline flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase"
+                class="text-outline font-headline flex items-center gap-1.5 text-[11px] font-bold tracking-widest uppercase"
               >
                 <MIcon name="folder" class="text-[15px]" />
                 Projects
@@ -141,7 +141,7 @@ export default function ProjectsPage() {
                   onClick={() => setShowCreate(!showCreate())}
                   aria-label={showCreate() ? "Cancel new project" : "New Project"}
                   title={showCreate() ? "Cancel new project" : "New Project"}
-                  class="bg-primary text-on-primary inline-flex h-10 w-10 shrink-0 self-end cursor-pointer items-center justify-center gap-2 rounded-lg border-0 px-0 text-[13px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] md:h-10 md:w-auto md:px-4 md:self-auto"
+                  class="bg-primary text-on-primary inline-flex h-10 w-10 shrink-0 self-end cursor-pointer items-center justify-center gap-2 rounded-lg border-0 px-0 text-[14px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] md:h-10 md:w-auto md:px-4 md:self-auto"
                 >
                   <MIcon name={showCreate() ? "close" : "add"} class="text-[17px]" />
                   <span class="hidden md:inline">{showCreate() ? "Cancel" : "New Project"}</span>

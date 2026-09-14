@@ -9,4 +9,6 @@ public record ConfigEntryDto(
     string Scope,
     int ActiveVersion,
     DateTime CreatedAt,
-    DateTime UpdatedAt);
+    DateTime UpdatedAt,
+    string? Description = null,
+    string? Unit = null);

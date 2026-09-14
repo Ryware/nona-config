@@ -34,19 +34,22 @@ internal sealed class EntriesCommands(CliContext ctx) : ICliCommandGroup
     {
         var handler = new ListEntriesQueryHandler();
         var cmd = new Command("list", "List entries in an environment.");
+        var prefixOpt = new Option<string?>("--prefix", "Return only entries whose keys start with this prefix.");
         cmd.AddOption(baseUrlOpt);
         cmd.AddOption(tokenOpt);
         cmd.AddOption(projectOpt);
         cmd.AddOption(envOpt);
+        cmd.AddOption(prefixOpt);
         cmd.Handler = CommandHandler.Create(async (InvocationContext ic) =>
         {
             var (conn, project) = ResolveConnAndProject(ic, baseUrlOpt, tokenOpt, projectOpt);
             if (conn is null) return;
 
             var environment = CliPrompter.Required(ic.ParseResult.GetValueForOption(envOpt), "Environment");
+            var prefix = ic.ParseResult.GetValueForOption(prefixOpt);
 
             ic.ExitCode = await handler.HandleAsync(
-                new ListEntriesQuery(conn, project!, environment),
+                new ListEntriesQuery(conn, project!, environment, prefix),
                 ic.GetCancellationToken());
         });
         return cmd;
@@ -84,11 +87,19 @@ internal sealed class EntriesCommands(CliContext ctx) : ICliCommandGroup
     {
         var handler = new GetEntryQueryHandler();
         var cmd = new Command("get", "Show one config entry.");
+        var useReleasesOpt = new Option<bool>(
+            "--use-releases",
+            "Read from release parameters. Without --release-version, use the active release.");
+        var releaseVersionOpt = new Option<string?>(
+            "--release-version",
+            "Exact or wildcard release selector, for example 1.2.3 or 1.2.x. Used only with --use-releases.");
         cmd.AddOption(baseUrlOpt);
         cmd.AddOption(tokenOpt);
         cmd.AddOption(projectOpt);
         cmd.AddOption(envOpt);
         cmd.AddOption(keyOpt);
+        cmd.AddOption(useReleasesOpt);
+        cmd.AddOption(releaseVersionOpt);
         cmd.Handler = CommandHandler.Create(async (InvocationContext ic) =>
         {
             var (conn, project) = ResolveConnAndProject(ic, baseUrlOpt, tokenOpt, projectOpt);
@@ -98,7 +109,13 @@ internal sealed class EntriesCommands(CliContext ctx) : ICliCommandGroup
             var key = CliPrompter.Required(ic.ParseResult.GetValueForOption(keyOpt), "Key");
 
             ic.ExitCode = await handler.HandleAsync(
-                new GetEntryQuery(conn, project!, environment, key),
+                new GetEntryQuery(
+                    conn,
+                    project!,
+                    environment,
+                    key,
+                    ic.ParseResult.GetValueForOption(useReleasesOpt),
+                    ic.ParseResult.GetValueForOption(releaseVersionOpt)),
                 ic.GetCancellationToken());
         });
         return cmd;

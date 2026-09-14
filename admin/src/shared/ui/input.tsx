@@ -8,7 +8,7 @@ export interface InputProps extends JSX.InputHTMLAttributes<HTMLInputElement> {
 }
 
 const BASE =
-  "flex w-full h-11 pr-3.5 rounded-xl text-[13px] text-on-surface " +
+  "flex w-full h-11 pr-3.5 rounded-xl text-[14px] text-on-surface " +
   "bg-surface-container-lowest border border-outline-variant/20 " +
   "placeholder:text-outline/60 transition-all duration-200 " +
   "focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 " +

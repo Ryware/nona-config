@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Nona.Migrator.AwsParameterStore.Tests</RootNamespace>
+    <AssemblyName>Nona.Migrator.AwsParameterStore.Tests</AssemblyName>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NSubstitute" Version="5.3.0" />
+    <PackageReference Include="TUnit" Version="1.6.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\AwsParameterStoreMigrator\Migrator.AwsParameterStore.csproj" />
+    <ProjectReference Include="..\..\src\ConfigMigrator.Core\Migrator.Core.csproj" />
+  </ItemGroup>
+
+</Project>

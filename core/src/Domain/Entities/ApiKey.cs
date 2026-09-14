@@ -6,7 +6,9 @@ public class ApiKey
 {
     public long Id { get; set; }
     public required string Name { get; set; }
-    public required string Key { get; set; }
+    public required string KeyHash { get; set; }
+    public required string Fingerprint { get; set; }
+    public int HashVersion { get; set; } = 1;
     public required string Project { get; set; }
     public string? Environment { get; set; }
     public KeyScope Scope { get; set; } = KeyScope.Frontend;

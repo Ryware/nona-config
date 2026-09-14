@@ -1,0 +1,54 @@
+{
+  "name": "nona-openfeature-web-provider",
+  "version": "0.1.0",
+  "description": "OpenFeature web provider for Nona — use Nona remote config and feature flags in the browser through the OpenFeature web SDK.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ryware/nona-config.git",
+    "directory": "client/javascript-openfeature-web-provider"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "npm --prefix ../javascript run build && tsc -p tsconfig.json",
+    "prepack": "npm run build",
+    "test": "npm run build && node --test test/nona-openfeature-web-provider.test.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "keywords": [
+    "nona",
+    "openfeature",
+    "open-feature",
+    "provider",
+    "web",
+    "browser",
+    "client-side",
+    "feature-flags",
+    "feature-toggles",
+    "remote-config",
+    "configuration",
+    "config"
+  ],
+  "author": "Nona",
+  "license": "Apache-2.0",
+  "peerDependencies": {
+    "@openfeature/web-sdk": "^1.10.0",
+    "nona-client": "^0.2.1"
+  },
+  "devDependencies": {
+    "@openfeature/web-sdk": "^1.10.0",
+    "nona-client": "file:../javascript",
+    "typescript": "^5.9.3"
+  }
+}

@@ -39,10 +39,9 @@ public class GetSharedParameterQueryHandler(
         }
 
         var shareLink = resolution.ShareLink!;
-        var entry = await configEntryRepository.GetAsync(
-            shareLink.Project,
-            shareLink.Environment,
-            shareLink.Key,
+        var entry = await configEntryRepository.GetSharedAsync(
+            shareLink,
+            dateTime.NowUtc,
             cancellationToken);
 
         if (entry is null)

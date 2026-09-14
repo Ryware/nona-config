@@ -11,8 +11,21 @@ using Nona.Domain.Interfaces;
 
 namespace Nona.Application.Admin.ConfigEntries.Commands;
 
-public record UpsertConfigEntryRequest(string Value, string? ContentType, string? Scope);
-public record UpsertConfigEntryCommand(string ProjectId, string EnvironmentName, string Key, string Value, string? ContentType, string? Scope) : IRequest<UpsertConfigEntryResult>;
+public record UpsertConfigEntryRequest(
+    string Value,
+    string? ContentType,
+    string? Scope,
+    string? Description = null,
+    string? Unit = null);
+public record UpsertConfigEntryCommand(
+    string ProjectId,
+    string EnvironmentName,
+    string Key,
+    string Value,
+    string? ContentType,
+    string? Scope,
+    string? Description = null,
+    string? Unit = null) : IRequest<UpsertConfigEntryResult>;
 
 public record UpsertConfigEntryResult(
     bool Success,
@@ -55,9 +68,39 @@ public class UpsertConfigEntryCommandHandler(
             return new UpsertConfigEntryResult(false, null, "Invalid scope. Must be 'client', 'server', or 'all'");
 
         var existingEntry = await configEntryRepository.GetAsync(projectName, request.EnvironmentName, request.Key, cancellationToken);
+        if (existingEntry is null && !ConfigEntryKey.IsValidHierarchy(request.Key))
+            return new UpsertConfigEntryResult(false, null, ConfigEntryKey.HierarchyValidationError);
+
         var contentType = ConfigEntryContentTypes.Resolve(request.ContentType, existingEntry?.ContentType, request.Value, out var contentTypeError);
         if (contentTypeError is not null)
             return new UpsertConfigEntryResult(false, null, contentTypeError);
+
+        var normalizedDescription = ConfigEntryMetadata.NormalizeDescription(request.Description);
+        var normalizedUnit = ConfigEntryMetadata.NormalizeUnit(request.Unit);
+
+        if (normalizedDescription?.Length > ConfigEntryMetadata.MaxDescriptionLength)
+            return new UpsertConfigEntryResult(
+                false,
+                null,
+                $"Description must be {ConfigEntryMetadata.MaxDescriptionLength} characters or fewer.");
+
+        if (normalizedUnit?.Length > ConfigEntryMetadata.MaxUnitLength)
+            return new UpsertConfigEntryResult(
+                false,
+                null,
+                $"Unit must be {ConfigEntryMetadata.MaxUnitLength} characters or fewer.");
+
+        if (normalizedUnit is not null && contentType is not "number")
+            return new UpsertConfigEntryResult(false, null, "Unit is only supported for number parameters.");
+
+        var description = request.Description is null
+            ? existingEntry?.Description
+            : normalizedDescription;
+        var unit = contentType == "number"
+            ? request.Unit is null
+                ? existingEntry?.Unit
+                : normalizedUnit
+            : null;
 
         var now = dateTime.NowUtc;
         var action = existingEntry is null ? "Created Key" : "Updated Key";
@@ -69,6 +112,8 @@ public class UpsertConfigEntryCommandHandler(
             Key = request.Key,
             Value = request.Value,
             ContentType = contentType,
+            Description = description,
+            Unit = unit,
             Scope = scope ?? existingEntry?.Scope ?? KeyScope.All,
             CreatedAt = existingEntry?.CreatedAt ?? now,
             UpdatedAt = now
@@ -91,5 +136,4 @@ public class UpsertConfigEntryCommandHandler(
 
         return new UpsertConfigEntryResult(true, ConfigEntryMapping.ToDto(savedEntry), null);
     }
-
 }

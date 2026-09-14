@@ -36,17 +36,29 @@ public sealed class LibsqlMigrationRunner
             }
 
             var script = await File.ReadAllTextAsync(migrationFile, ct);
-            var statements = SqlScriptParser.SplitStatements(script)
+            var statements = new List<LibsqlStatement>
+            {
+                new(
+                    "INSERT INTO __MigrationsHistory (MigrationId, AppliedAt) VALUES (@MigrationId, @AppliedAt)",
+                    LibsqlParameters.Create(
+                        ("MigrationId", migrationName),
+                        ("AppliedAt", DateTime.UtcNow.ToString("O"))))
+            };
+            statements.AddRange(SqlScriptParser.SplitStatements(script)
                 .Select(sql => new LibsqlStatement(sql))
-                .ToList();
+                .ToList());
 
-            statements.Add(new LibsqlStatement(
-                "INSERT OR IGNORE INTO __MigrationsHistory (MigrationId, AppliedAt) VALUES (@MigrationId, @AppliedAt)",
-                LibsqlParameters.Create(
-                    ("MigrationId", migrationName),
-                    ("AppliedAt", DateTime.UtcNow.ToString("O")))));
-
-            await _client.ExecuteBatchAsync(statements, ct);
+            try
+            {
+                await _client.ExecuteBatchAsync(statements, ct);
+            }
+            catch (LibsqlException)
+            {
+                if (!await IsMigrationAppliedAsync(migrationName, ct))
+                {
+                    throw;
+                }
+            }
         }
     }
 

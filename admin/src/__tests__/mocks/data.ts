@@ -35,7 +35,7 @@ export const mockApiKeys: ApiKey[] = [
   {
     id: 'key-1',
     name: 'Web Client',
-    key: 'ak_test_1234567890abcdef',
+    fingerprint: '90ABCDEF',
     project: 'my-app',
     environment: 'production',
     scope: 'client',
@@ -45,7 +45,7 @@ export const mockApiKeys: ApiKey[] = [
   {
     id: 'key-2',
     name: 'Backend',
-    key: 'ak_test_abcdef1234567890',
+    fingerprint: '34567890',
     project: 'my-app',
     environment: null,
     scope: 'server',

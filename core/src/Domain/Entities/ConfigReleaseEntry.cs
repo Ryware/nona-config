@@ -10,5 +10,7 @@ public class ConfigReleaseEntry
     public required string Key { get; init; }
     public required string Value { get; init; }
     public string ContentType { get; init; } = "text";
+    public string? Description { get; init; }
+    public string? Unit { get; init; }
     public KeyScope Scope { get; init; } = KeyScope.All;
 }

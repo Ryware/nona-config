@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-Nona is under active development, with components at different maturity levels (the CLI is at v3.x; some client libraries are still pre-1.0). We support the **latest released version** of each component (server, CLI, and client libraries) with security fixes. Older versions are not patched — please upgrade to the latest release if you receive a vulnerability report.
+Nona is under active development, with components at different maturity levels (the CLI is at v4.x; some client libraries are still pre-1.0). We support the **latest released version** of each component (server, CLI, and client libraries) with security fixes. Older versions are not patched — please upgrade to the latest release if you receive a vulnerability report.
 
 | Component        | Supported          |
 | ----------------- | ------------------ |

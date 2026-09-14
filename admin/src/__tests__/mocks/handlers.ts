@@ -249,7 +249,8 @@ export const handlers = [
     return HttpResponse.json({
       id: 'key-new',
       name: body.name,
-      key: 'ak_test_new1234567890',
+      key: '0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF',
+      fingerprint: '89ABCDEF',
       project: params.projectId,
       environment: body.environment ?? null,
       scope: body.scope ?? 'client',

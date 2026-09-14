@@ -2,7 +2,7 @@
 #pragma warning disable CS0618
 using Microsoft.Kiota.Abstractions.Extensions;
 using Microsoft.Kiota.Abstractions;
-using Nona.Cli.Generated.Api.Item;
+using Nona.Cli.Generated.Api.Environments;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
@@ -15,17 +15,10 @@ namespace Nona.Cli.Generated.Api
     [global::System.CodeDom.Compiler.GeneratedCode("Kiota", "1.0.0")]
     public partial class ApiRequestBuilder : BaseRequestBuilder
     {
-        /// <summary>Gets an item from the Nona.Cli.Generated.api.item collection</summary>
-        /// <param name="position">Unique identifier of the item</param>
-        /// <returns>A <see cref="global::Nona.Cli.Generated.Api.Item.WithEnvironmentItemRequestBuilder"/></returns>
-        public global::Nona.Cli.Generated.Api.Item.WithEnvironmentItemRequestBuilder this[string position]
+        /// <summary>The environments property</summary>
+        public global::Nona.Cli.Generated.Api.Environments.EnvironmentsRequestBuilder Environments
         {
-            get
-            {
-                var urlTplParams = new Dictionary<string, object>(PathParameters);
-                urlTplParams.Add("environmentId", position);
-                return new global::Nona.Cli.Generated.Api.Item.WithEnvironmentItemRequestBuilder(urlTplParams, RequestAdapter);
-            }
+            get => new global::Nona.Cli.Generated.Api.Environments.EnvironmentsRequestBuilder(PathParameters, RequestAdapter);
         }
         /// <summary>
         /// Instantiates a new <see cref="global::Nona.Cli.Generated.Api.ApiRequestBuilder"/> and sets the default values.

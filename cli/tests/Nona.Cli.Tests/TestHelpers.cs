@@ -66,10 +66,14 @@ internal static class Fixtures
     internal const string ProjectArrayJson = $"[{ProjectJson}]";
 
     internal const string ApiKeyJson = """
-        {"id":7,"name":"Web Client","key":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","project":"my-project","environment":"production","scope":"client","createdAt":"2024-01-01T00:00:00Z","updatedAt":"2024-01-01T00:00:00Z"}
+        {"id":7,"name":"Web Client","fingerprint":"90ABCDEF","project":"my-project","environment":"production","scope":"client","createdAt":"2024-01-01T00:00:00Z","updatedAt":"2024-01-01T00:00:00Z"}
         """;
 
     internal const string ApiKeyArrayJson = $"[{ApiKeyJson}]";
+
+    internal const string CreatedApiKeyJson = """
+        {"id":7,"name":"Web Client","key":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","fingerprint":"AAAAAAAA","project":"my-project","environment":"production","scope":"client","createdAt":"2024-01-01T00:00:00Z","updatedAt":"2024-01-01T00:00:00Z"}
+        """;
 
     internal const string ConfigEntryJson = """
         {"project":"my-project","environment":"production","key":"my.key","value":"my-value","contentType":"text","scope":"all","activeVersion":1,"createdAt":"2024-01-01T00:00:00Z","updatedAt":"2024-01-01T00:00:00Z"}

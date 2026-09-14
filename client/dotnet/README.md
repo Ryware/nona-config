@@ -28,7 +28,7 @@ Console.WriteLine(value.Value);
 
 API keys are bound to one project, and the client is bound to one environment, so config reads only take a key.
 
-Reads use the environment's active release by default. To pin a client to an exact release or release line:
+Reads use working parameters by default. To use the active release, or pin the client to an exact release or release line, configure release mode when constructing it:
 
 ```csharp
 var client = new NonaClient(new NonaClientOptions
@@ -36,26 +36,29 @@ var client = new NonaClient(new NonaClientOptions
     BaseAddress = new Uri("https://nona.example.com"),
     EnvironmentId = "production",
     ApiKey = "your-api-key",
+    UseReleases = true,
     ReleaseVersion = "1.1.x"
 });
 ```
 
-To select a different release for one request, use the corresponding named release method:
+Omit `ReleaseVersion` while keeping `UseReleases = true` to follow the active release. Source and release selection are fixed for the client lifetime; construct another client to use a different source or selector. When `UseReleases` is `false` (the default), `ReleaseVersion` is retained in the client options but ignored for requests and cache identity.
+
+Fetch all client-visible values, or only keys in a case-insensitive prefix group:
 
 ```csharp
-var value = await client.GetConfigValueForReleaseAsync("Features:Checkout", "1.1.0");
+IReadOnlyDictionary<string, NonaConfigValue> all = await client.GetAllValuesAsync();
+IReadOnlyDictionary<string, NonaConfigValue> groupA = await client.GetAllValuesAsync("GroupA:");
 ```
+
+Prefixes may contain ASCII letters, digits, colons, dots, underscores, and dashes. Empty and `null` prefixes are unfiltered. Any other character causes `NonaClientException` with `StatusCode == HttpStatusCode.BadRequest`; failed responses are not cached. Bulk snapshots use independent ETags per release and normalized prefix, prime matching single-key reads, and participate in the shared memory limit.
 
 ## Available Methods
 
+- `GetAllValuesAsync(string? prefix = null, CancellationToken cancellationToken = default)`
 - `GetConfigValueAsync(string key, CancellationToken cancellationToken = default)`
-- `GetConfigValueForReleaseAsync(string key, string releaseVersion, CancellationToken cancellationToken = default)`
 - `TryGetConfigValueAsync(string key, CancellationToken cancellationToken = default)`
-- `TryGetConfigValueForReleaseAsync(string key, string releaseVersion, CancellationToken cancellationToken = default)`
 - `GetStringValueAsync(string key, CancellationToken cancellationToken = default)`
-- `GetStringValueForReleaseAsync(string key, string releaseVersion, CancellationToken cancellationToken = default)`
 - `GetJsonValueAsync<T>(string key, JsonTypeInfo<T> jsonTypeInfo, CancellationToken cancellationToken = default)`
-- `GetJsonValueForReleaseAsync<T>(string key, JsonTypeInfo<T> jsonTypeInfo, string releaseVersion, CancellationToken cancellationToken = default)`
 
 ## Options
 
@@ -64,6 +67,7 @@ Use `NonaClientOptions` to configure:
 - `BaseAddress`
 - `EnvironmentId`
 - `ApiKey`
+- `UseReleases`
 - `ReleaseVersion`
 - `CacheTtl`
 - `CacheMemoryLimitMegabytes`

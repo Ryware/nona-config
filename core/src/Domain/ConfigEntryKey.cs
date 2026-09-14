@@ -2,8 +2,13 @@ namespace Nona.Domain;
 
 public static class ConfigEntryKey
 {
+    public const int MaximumHierarchySegments = 4;
+
     public const string ValidationError =
         "Key must contain an ASCII letter or digit and may only contain ASCII letters, digits, colons, dots, underscores, and dashes.";
+
+    public const string HierarchyValidationError =
+        "Key must contain between one and four non-empty colon-separated segments.";
 
     public static bool IsValid(string? key)
     {
@@ -30,6 +35,18 @@ public static class ConfigEntryKey
         }
 
         return hasAlphaNumeric;
+    }
+
+    public static bool IsValidHierarchy(string? key)
+    {
+        if (!IsValid(key))
+        {
+            return false;
+        }
+
+        var segments = key!.Split(':');
+        return segments.Length <= MaximumHierarchySegments
+            && segments.All(segment => segment.Length > 0);
     }
 
     public static void ThrowIfInvalid(string? key, string parameterName)

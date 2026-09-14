@@ -8,7 +8,7 @@ interface UsersStatsProps {
 
 export function UsersStats(props: UsersStatsProps) {
   return (
-    <div class="flex items-center gap-1.5 text-[12.5px]">
+    <div class="flex items-center gap-1.5 text-[13.5px]">
       <span class="font-medium text-on-surface">{props.totalUsers}</span>
       <span class="text-on-surface-variant">
         {props.totalUsers === 1 ? "user" : "users"}

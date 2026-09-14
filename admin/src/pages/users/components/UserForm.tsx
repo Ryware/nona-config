@@ -87,7 +87,7 @@ export function UserForm(props: UserFormProps) {
             </div>
             <div>
               <h3 class="font-headline text-on-surface text-base font-bold">Admin</h3>
-              <p class="text-on-surface-variant mt-1 text-xs">
+              <p class="text-on-surface-variant mt-1 text-[13px]">
                 You cannot demote your own admin account.
               </p>
             </div>

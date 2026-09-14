@@ -24,6 +24,12 @@ Good habits:
 - scope keys to `client`, `server`, or `all` deliberately
 - scope keys to the specific environment they need when possible
 - keep keys in environment variables or a secrets system
+- copy a new secret immediately because Nona shows it only once
+- create and verify a replacement before deleting an old key when uninterrupted access matters
+
+Nona stores uppercase SHA-256 hashes for API-key verification. Requests are hashed before lookup, and the plaintext secret is never returned by list endpoints or retained in API-key records. Existing plaintext keys are hashed automatically during the storage migration and continue to authenticate with the same client-side secret.
+
+Key lists expose only an eight-character fingerprint for identification. To replace a credential, create a new key, update and verify its consumers, then delete the old key. Deletion permanently invalidates a key immediately, and Nona keeps no recoverable secret history.
 
 API keys protect the runtime config API. They are not replaced by SSO.
 
@@ -146,3 +152,17 @@ Share links are useful for narrow temporary collaboration, but they are not a re
 - [Users and project access](/docs/concepts/users-and-project-access)
 - [Parameter share links](/docs/parameter-share-links)
 - [Deployment](/docs/deployment)
+
+### Session and project credential revocation
+
+Changing or resetting a password invalidates all previously issued sessions, including the current session. Sign in again using the new password. JWTs issued before credential binding was introduced are also rejected after upgrading.
+
+Deleting a project removes its API keys and parameter share links. Recreating a project with the same name requires new credentials.
+
+### Resource deletion and CLI authorization
+
+Deleting an environment revokes its environment-scoped API keys and all parameter share links. Deleting an individual parameter revokes its share links, including during bulk deletion. Recreating the same names does not restore these capabilities; issue new credentials for the replacement resources. Project-wide API keys retain their project-wide scope.
+
+CLI browser login requires an explicit **Authorize CLI** confirmation showing the account and local callback destination, including after signing in. Approve it only when you initiated login from your terminal. The CLI callback protocol is unchanged.
+
+Session transitions clear cached administration data and reject responses started under the previous session. Initial administrator registration atomically allows only one successful bootstrap request.

@@ -8,7 +8,7 @@ export function Label(props: LabelProps) {
   return (
     <label
       class={cn(
-        "block text-[11px] font-medium text-on-surface-variant tracking-[0.05em] mb-1.5",
+        "block text-[12px] font-medium text-on-surface-variant tracking-[0.05em] mb-1.5",
         local.class,
       )}
       {...others}

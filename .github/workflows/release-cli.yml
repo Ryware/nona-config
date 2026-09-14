@@ -217,6 +217,15 @@ jobs:
             release-assets/*.tar.gz
             release-assets/SHA256SUMS.txt
 
+      - name: Rename attestation bundle for discovery
+        shell: bash
+        run: |
+          # OpenSSF Scorecard's Signed-Releases check only recognizes release
+          # assets ending in a known signature/provenance suffix (e.g.
+          # .sigstore.json). Renaming here lets Scorecard detect that releases
+          # carry a Sigstore attestation bundle.
+          cp "${{ steps.attest.outputs.bundle-path }}" release-assets/attestation.sigstore.json
+
       - name: Create or update GitHub release
         uses: softprops/action-gh-release@v2
         with:
@@ -230,7 +239,7 @@ jobs:
             release-assets/*.zip
             release-assets/*.tar.gz
             release-assets/SHA256SUMS.txt
-            ${{ steps.attest.outputs.bundle-path }}
+            release-assets/attestation.sigstore.json
           fail_on_unmatched_files: true
 
   publish-npm:
