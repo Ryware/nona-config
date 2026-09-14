@@ -1,17 +1,19 @@
 name: Swift CocoaPods release
 
 on:
-  workflow_dispatch:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+  workflow_call:
     inputs:
       version:
-        description: Existing release tag matching the podspec version (for example 0.1.0).
-        required: true
+        description: Stable shared release version.
+        required: false
         type: string
-      publish:
-        description: Publish to CocoaPods Trunk after all checks pass.
-        required: true
-        default: false
-        type: boolean
+      checkout_ref:
+        description: Immutable commit to validate and publish.
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -34,7 +36,8 @@ jobs:
       - name: Resolve an existing stable version tag
         id: release
         env:
-          RELEASE_VERSION: ${{ inputs.version }}
+          RELEASE_VERSION: ${{ inputs.version || github.ref_name }}
+          EXPECTED_SHA: ${{ inputs.checkout_ref }}
         shell: bash
         run: |
           set -euo pipefail
@@ -44,6 +47,10 @@ jobs:
           fi
           git fetch --no-tags origin "refs/tags/$RELEASE_VERSION"
           sha=$(git rev-parse 'FETCH_HEAD^{commit}')
+          if [ -n "$EXPECTED_SHA" ] && [ "$sha" != "$EXPECTED_SHA" ]; then
+            echo "Tag $RELEASE_VERSION does not point to the requested release commit." >&2
+            exit 1
+          fi
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
           echo "Release $RELEASE_VERSION: $sha" >> "$GITHUB_STEP_SUMMARY"
 
@@ -66,9 +73,24 @@ jobs:
         run: |
           if ! command -v pod > /dev/null; then brew install cocoapods; fi
           pod --version
+      - name: Stamp CocoaPods version
+        env:
+          RELEASE_VERSION: ${{ inputs.version || github.ref_name }}
+        run: |
+          python3 - <<'PY'
+          import os, re
+          from pathlib import Path
+          podspec = Path('NonaClient.podspec')
+          text = podspec.read_text()
+          text, count = re.subn(r"(?m)^\s*s\.version\s*=\s*['\"][^'\"]+['\"]\s*$",
+                                f"  s.version = '{os.environ['RELEASE_VERSION']}'", text)
+          if count != 1:
+              raise SystemExit('Expected exactly one CocoaPods version declaration.')
+          podspec.write_text(text)
+          PY
       - name: Verify podspec and release source
         env:
-          RELEASE_VERSION: ${{ inputs.version }}
+          RELEASE_VERSION: ${{ inputs.version || github.ref_name }}
         run: |
           pod ipc spec NonaClient.podspec > "$RUNNER_TEMP/NonaClient.json"
           python3 - <<'PY'
@@ -85,13 +107,12 @@ jobs:
           pod spec lint NonaClient.podspec --platforms=ios,osx --swift-version=6.0
       - name: Ensure the tag still points to the tested commit
         env:
-          RELEASE_VERSION: ${{ inputs.version }}
+          RELEASE_VERSION: ${{ inputs.version || github.ref_name }}
           RELEASE_SHA: ${{ needs.resolve.outputs.sha }}
         run: |
           git fetch --no-tags origin "refs/tags/$RELEASE_VERSION"
           test "$(git rev-parse 'FETCH_HEAD^{commit}')" = "$RELEASE_SHA"
       - name: Publish to CocoaPods Trunk
-        if: inputs.publish
         env:
           COCOAPODS_TRUNK_TOKEN: ${{ secrets.COCOAPODS_TRUNK_TOKEN }}
         run: |
@@ -102,11 +123,6 @@ jobs:
           pod trunk push NonaClient.podspec
       - name: Summarize result
         env:
-          RELEASE_VERSION: ${{ inputs.version }}
-          PUBLISH: ${{ inputs.publish }}
+          RELEASE_VERSION: ${{ inputs.version || github.ref_name }}
         run: |
-          if [ "$PUBLISH" = true ]; then
-            echo "Published NonaClient $RELEASE_VERSION to CocoaPods Trunk." >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "Validated NonaClient $RELEASE_VERSION. Dry run: nothing published." >> "$GITHUB_STEP_SUMMARY"
-          fi
+          echo "Published NonaClient $RELEASE_VERSION to CocoaPods Trunk." >> "$GITHUB_STEP_SUMMARY"

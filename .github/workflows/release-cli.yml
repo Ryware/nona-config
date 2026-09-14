@@ -3,18 +3,17 @@ name: CLI release
 on:
   push:
     tags:
-      - cli-v*
-  workflow_dispatch:
+      - '[0-9]+.[0-9]+.[0-9]+'
+  workflow_call:
     inputs:
-      release_tag:
-        description: Release tag to create or update, for example cli-v1.0.0
-        required: true
-        type: string
-      prerelease:
-        description: Mark the GitHub release as a prerelease
+      version:
+        description: Stable shared release version.
         required: false
-        default: false
-        type: boolean
+        type: string
+      checkout_ref:
+        description: Immutable commit to build and release.
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -30,6 +29,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.checkout_ref || github.sha }}
 
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
@@ -74,6 +75,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.checkout_ref || github.sha }}
 
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
@@ -84,25 +87,16 @@ jobs:
         id: meta
         shell: bash
         run: |
-          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
-            TAG="${{ inputs.release_tag }}"
-            MANUAL_PRERELEASE="${{ inputs.prerelease }}"
-          else
-            TAG="${GITHUB_REF_NAME}"
-            MANUAL_PRERELEASE="false"
-          fi
-
-          VERSION="${TAG#cli-v}"
-          if [[ "${MANUAL_PRERELEASE}" == "true" || "${VERSION}" == *-* ]]; then
-            PRERELEASE="true"
-          else
-            PRERELEASE="false"
+          VERSION="${{ inputs.version || github.ref_name }}"
+          if [[ ! "$VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo 'Expected a stable version such as 4.0.0, without a prefix.' >&2
+            exit 1
           fi
 
           {
-            echo "tag=${TAG}"
+            echo "tag=${VERSION}"
             echo "version=${VERSION}"
-            echo "prerelease=${PRERELEASE}"
+            echo "prerelease=false"
           } >> "$GITHUB_OUTPUT"
 
       - name: Publish standalone binary
@@ -174,25 +168,16 @@ jobs:
         id: meta
         shell: bash
         run: |
-          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
-            TAG="${{ inputs.release_tag }}"
-            MANUAL_PRERELEASE="${{ inputs.prerelease }}"
-          else
-            TAG="${GITHUB_REF_NAME}"
-            MANUAL_PRERELEASE="false"
-          fi
-
-          VERSION="${TAG#cli-v}"
-          if [[ "${MANUAL_PRERELEASE}" == "true" || "${VERSION}" == *-* ]]; then
-            PRERELEASE="true"
-          else
-            PRERELEASE="false"
+          VERSION="${{ inputs.version || github.ref_name }}"
+          if [[ ! "$VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo 'Expected a stable version such as 4.0.0, without a prefix.' >&2
+            exit 1
           fi
 
           {
-            echo "tag=${TAG}"
+            echo "tag=${VERSION}"
             echo "version=${VERSION}"
-            echo "prerelease=${PRERELEASE}"
+            echo "prerelease=false"
           } >> "$GITHUB_OUTPUT"
 
       - name: Download packaged assets
@@ -230,9 +215,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.meta.outputs.tag }}
-          target_commitish: ${{ github.sha }}
-          name: Nona CLI ${{ steps.meta.outputs.version }}
-          prerelease: ${{ steps.meta.outputs.prerelease == 'true' }}
+          target_commitish: ${{ inputs.checkout_ref || github.sha }}
+          name: Nona ${{ steps.meta.outputs.version }}
+          prerelease: false
           generate_release_notes: true
           overwrite_files: true
           files: |
@@ -253,6 +238,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.checkout_ref || github.sha }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -283,6 +270,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.checkout_ref || github.sha }}
 
       - name: Validate Chocolatey API key
         shell: pwsh

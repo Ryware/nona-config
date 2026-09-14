@@ -1,0 +1,81 @@
+name: Release
+run-name: Release ${{ inputs.version }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Stable shared release version, for example 4.0.0
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+concurrency:
+  group: shared-release
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Prepare release tag
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.tag.outputs.version }}
+      checkout_ref: ${{ steps.tag.outputs.checkout_ref }}
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create or verify release tag
+        id: tag
+        shell: bash
+        run: bash .github/scripts/prepare-release-tag.sh "${{ inputs.version }}" "${{ github.ref }}" "${{ github.sha }}"
+
+      - name: Summarize release
+        env:
+          RELEASE_VERSION: ${{ steps.tag.outputs.version }}
+          RELEASE_SHA: ${{ steps.tag.outputs.checkout_ref }}
+          TAG_RESULT: ${{ steps.tag.outputs.tag_result }}
+        run: echo "Release $RELEASE_VERSION uses $RELEASE_SHA; tag was $TAG_RESULT." >> "$GITHUB_STEP_SUMMARY"
+
+  cli:
+    name: CLI release
+    needs: prepare
+    uses: ./.github/workflows/release-cli.yml
+    with:
+      version: ${{ needs.prepare.outputs.version }}
+      checkout_ref: ${{ needs.prepare.outputs.checkout_ref }}
+    secrets: inherit
+
+  clients:
+    name: Client SDK release
+    needs: prepare
+    uses: ./.github/workflows/client-sdk-release.yml
+    with:
+      version: ${{ needs.prepare.outputs.version }}
+      checkout_ref: ${{ needs.prepare.outputs.checkout_ref }}
+    secrets: inherit
+
+  container:
+    name: Container release
+    needs: prepare
+    uses: ./.github/workflows/container-image-ci.yml
+    with:
+      version: ${{ needs.prepare.outputs.version }}
+      checkout_ref: ${{ needs.prepare.outputs.checkout_ref }}
+      publish_image: true
+    secrets: inherit
+
+  swift:
+    name: Swift CocoaPods release
+    needs: prepare
+    uses: ./.github/workflows/swift-release.yml
+    with:
+      version: ${{ needs.prepare.outputs.version }}
+      checkout_ref: ${{ needs.prepare.outputs.checkout_ref }}
+    secrets: inherit
