@@ -10,8 +10,11 @@ using Nona.Cli.Generated.Models;
 using static Nona.Cli.Tests.Fixtures;
 using static Nona.Cli.Tests.TestHelpers;
 
+#pragma warning disable TUnit0055
+
 namespace Nona.Cli.Tests.Entries;
 
+[NotInParallel]
 public sealed class EntriesHandlerTests
 {
     private static readonly NonaCliConnectionOptions TestConnection = new("http://nona.test", "test-token");
@@ -88,6 +91,86 @@ public sealed class EntriesHandlerTests
         await Assert.That(console.Out.ToString()).IsEmpty();
         await Assert.That(console.Error.ToString()).IsEqualTo(
             $"Error: {validationMessage} (400){Environment.NewLine}");
+    }
+
+    [Test]
+    public async Task ExportEntriesQueryHandler_WritesToStdout_WhenNoOutputFile()
+    {
+        var (result, output) = await CaptureOutputAsync(() =>
+            new ExportEntriesQueryHandler(MockHttp(HttpStatusCode.OK, ConfigEntryArrayJson))
+                .HandleAsync(new ExportEntriesQuery(TestConnection, "my-project", "production"), CancellationToken.None));
+
+        await Assert.That(result).IsEqualTo(CliExitCodes.Success);
+        await Assert.That(output).IsEqualTo("my.key=\"my-value\"\n");
+    }
+
+    [Test]
+    public async Task ExportEntriesQueryHandler_WritesEmptyOutput_WhenNoEntries()
+    {
+        var (result, output) = await CaptureOutputAsync(() =>
+            new ExportEntriesQueryHandler(MockHttp(HttpStatusCode.OK, "[]"))
+                .HandleAsync(new ExportEntriesQuery(TestConnection, "my-project", "production"), CancellationToken.None));
+
+        await Assert.That(result).IsEqualTo(CliExitCodes.Success);
+        await Assert.That(output).IsEqualTo(string.Empty);
+    }
+
+    [Test]
+    public async Task ExportEntriesQueryHandler_WritesUtf8FileWithoutBom_WhenOutputFileGiven()
+    {
+        using var file = new TempFile();
+
+        var (result, output) = await CaptureOutputAsync(() =>
+            new ExportEntriesQueryHandler(MockHttp(HttpStatusCode.OK, ConfigEntryArrayJson))
+                .HandleAsync(
+                    new ExportEntriesQuery(TestConnection, "my-project", "production", OutputFile: file.Path),
+                    CancellationToken.None));
+
+        await Assert.That(result).IsEqualTo(CliExitCodes.Success);
+        await Assert.That(output).IsEqualTo($"Wrote 1 entries to {file.Path}{Environment.NewLine}");
+
+        var bytes = await File.ReadAllBytesAsync(file.Path);
+        await Assert.That(bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF).IsFalse();
+        await Assert.That(await File.ReadAllTextAsync(file.Path)).IsEqualTo("my.key=\"my-value\"\n");
+    }
+
+    [Test]
+    public async Task ExportEntriesQueryHandler_ForwardsEncodedPrefix()
+    {
+        Uri? requestedUri = null;
+        var result = await new ExportEntriesQueryHandler(() => new HttpClient(
+                new RecordingHandler(request =>
+                {
+                    requestedUri = request.RequestUri;
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = new StringContent("[]", System.Text.Encoding.UTF8, "application/json")
+                    };
+                })))
+            .HandleAsync(
+                new ExportEntriesQuery(TestConnection, "my-project", "production", "GroupA:"),
+                CancellationToken.None);
+
+        await Assert.That(result).IsEqualTo(CliExitCodes.Success);
+        await Assert.That(requestedUri).IsNotNull();
+        await Assert.That(requestedUri!.Query).IsEqualTo("?prefix=GroupA%3A");
+    }
+
+    private static async Task<(int Result, string Output)> CaptureOutputAsync(Func<Task<int>> action)
+    {
+        var previousOut = Console.Out;
+        using var output = new StringWriter();
+
+        try
+        {
+            Console.SetOut(output);
+            var result = await action();
+            return (result, output.ToString());
+        }
+        finally
+        {
+            Console.SetOut(previousOut);
+        }
     }
 
     [Test]

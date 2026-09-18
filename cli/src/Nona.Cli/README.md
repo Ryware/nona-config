@@ -121,6 +121,15 @@ Without `--use-releases`, `entries get` reads the working value and ignores `--r
 
 Prefixes may contain ASCII letters, digits, colons, dots, underscores, and dashes. An invalid prefix prints the API validation error and exits with code `2`.
 
+Export entries to a plain `KEY="value"` file, for example to hand off to a teammate or edit locally:
+
+```bash
+nona entries export --project mobile-app --environment production --base-url https://nona.example.com --token <token>
+nona entries export --project mobile-app --environment production --prefix Features: --output-file .env --base-url https://nona.example.com --token <token>
+```
+
+Without `--output-file`, the formatted output is written to stdout. With `--output-file`, the CLI writes the file itself as UTF-8 without a byte-order mark, rather than relying on shell redirection (`> .env`) to get the encoding right — Windows PowerShell's `>`/`Out-File` has historically defaulted to UTF-16LE with a BOM in common configurations, which most dotenv parsers can't read correctly. Keys are written literally (e.g. `Features:Checkout="true"`), unmodified — dotenv libraries treat the key as an arbitrary string, not a shell identifier. Content type and scope are not part of the output; dotenv has no such concept.
+
 Manage immutable releases:
 
 ```bash

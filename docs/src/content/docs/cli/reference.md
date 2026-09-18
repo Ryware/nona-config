@@ -606,6 +606,7 @@ nona entries [command] [options]
 **Commands**
 
 - `list` List entries in an environment.
+- `export` Export entries in an environment to a plain KEY=VALUE file.
 - `get` Show one config entry.
 - `history` Show version history for an entry.
 - `set` Create or update an entry.
@@ -632,6 +633,30 @@ nona entries list [options]
 --environment <environment>               Nona environment name, for example production.
 --prefix <prefix>                         Return only entries whose keys start with this prefix.
 ```
+
+## `nona entries export`
+
+Export entries in an environment to a plain KEY=VALUE file.
+
+**Usage**
+
+```text
+nona entries export [options]
+```
+
+**Options**
+
+```text
+--api-url, --base-url <base-url>          Nona base URL.
+--bearer-token, --token <bearer-token>    Admin bearer token.
+--project, --project-name <project-name>  Nona project name.
+--environment <environment>               Nona environment name, for example production.
+--prefix <prefix>                         Return only entries whose keys start with this prefix.
+--format <format>                         Output format. Only dotenv is supported today. [default: dotenv]
+--output-file <output-file>               Write output to this path (UTF-8, no BOM) instead of stdout.
+```
+
+Without `--output-file`, the formatted output is written to stdout. With `--output-file`, the CLI writes the file itself as UTF-8 without a byte-order mark, rather than relying on shell redirection to get the encoding right. Keys are written literally, unmodified (for example `Features:Checkout="true"`). Content type and scope are not part of the output.
 
 ## `nona entries get`
 

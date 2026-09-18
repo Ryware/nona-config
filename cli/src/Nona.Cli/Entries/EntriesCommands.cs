@@ -19,6 +19,7 @@ internal sealed class EntriesCommands(CliContext ctx) : ICliCommandGroup
         var keyOpt = new Option<string?>("--key", "Config entry key, for example Features:Checkout.");
 
         entries.AddCommand(BuildList(baseUrlOpt, tokenOpt, projectOpt, envOpt));
+        entries.AddCommand(BuildExport(baseUrlOpt, tokenOpt, projectOpt, envOpt));
         entries.AddCommand(BuildGet(baseUrlOpt, tokenOpt, projectOpt, envOpt, keyOpt));
         entries.AddCommand(BuildHistory(baseUrlOpt, tokenOpt, projectOpt, envOpt, keyOpt));
         entries.AddCommand(BuildSet(baseUrlOpt, tokenOpt, projectOpt, envOpt, keyOpt));
@@ -50,6 +51,49 @@ internal sealed class EntriesCommands(CliContext ctx) : ICliCommandGroup
 
             ic.ExitCode = await handler.HandleAsync(
                 new ListEntriesQuery(conn, project!, environment, prefix),
+                ic.GetCancellationToken());
+        });
+        return cmd;
+    }
+
+    private Command BuildExport(
+        Option<string?> baseUrlOpt, Option<string?> tokenOpt,
+        Option<string?> projectOpt, Option<string?> envOpt)
+    {
+        var handler = new ExportEntriesQueryHandler();
+        var cmd = new Command("export", "Export entries in an environment to a plain KEY=VALUE file.");
+        var prefixOpt = new Option<string?>("--prefix", "Return only entries whose keys start with this prefix.");
+        var formatOpt = new Option<string?>("--format", () => "dotenv", "Output format. Only dotenv is supported today.");
+        var outputFileOpt = new Option<string?>(
+            "--output-file",
+            "Write output to this path (UTF-8, no BOM) instead of stdout.");
+
+        formatOpt.AddValidator(result =>
+        {
+            var v = result.GetValueOrDefault<string>();
+            if (v is not null and not "dotenv")
+                result.ErrorMessage = $"Unknown format '{v}'. Valid formats: dotenv.";
+        });
+
+        cmd.AddOption(baseUrlOpt);
+        cmd.AddOption(tokenOpt);
+        cmd.AddOption(projectOpt);
+        cmd.AddOption(envOpt);
+        cmd.AddOption(prefixOpt);
+        cmd.AddOption(formatOpt);
+        cmd.AddOption(outputFileOpt);
+        cmd.Handler = CommandHandler.Create(async (InvocationContext ic) =>
+        {
+            var (conn, project) = ResolveConnAndProject(ic, baseUrlOpt, tokenOpt, projectOpt);
+            if (conn is null) return;
+
+            var environment = CliPrompter.Required(ic.ParseResult.GetValueForOption(envOpt), "Environment");
+            var prefix = ic.ParseResult.GetValueForOption(prefixOpt);
+            var format = ic.ParseResult.GetValueForOption(formatOpt) ?? "dotenv";
+            var outputFile = ic.ParseResult.GetValueForOption(outputFileOpt);
+
+            ic.ExitCode = await handler.HandleAsync(
+                new ExportEntriesQuery(conn, project!, environment, prefix, format, outputFile),
                 ic.GetCancellationToken());
         });
         return cmd;
