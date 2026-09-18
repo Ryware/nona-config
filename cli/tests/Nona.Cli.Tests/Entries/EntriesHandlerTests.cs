@@ -20,6 +20,29 @@ public sealed class EntriesHandlerTests
     private static readonly NonaCliConnectionOptions TestConnection = new("http://nona.test", "test-token");
     private static readonly NonaCliConnectionOptions ApiKeyConnection = new("http://nona.test", new string('A', 64));
 
+    private const string EnvironmentWithActiveReleaseJson = """
+        [{"name":"production","project":"my-project","activeReleaseVersion":"1.2.0","createdAt":"2024-01-01T00:00:00Z","updatedAt":"2024-01-01T00:00:00Z"}]
+        """;
+
+    private const string EnvironmentWithoutActiveReleaseJson = """
+        [{"name":"production","project":"my-project","activeReleaseVersion":null,"createdAt":"2024-01-01T00:00:00Z","updatedAt":"2024-01-01T00:00:00Z"}]
+        """;
+
+    private const string ReleaseDetailsJson = """
+        {
+          "project": "my-project",
+          "environment": "production",
+          "version": "1.2.0",
+          "entryCount": 1,
+          "isActive": true,
+          "createdAt": "2024-01-01T00:00:00Z",
+          "actor": "alice",
+          "entries": [
+            {"key": "feature.checkout", "value": "true", "contentType": "boolean", "scope": "all"}
+          ]
+        }
+        """;
+
     [Test]
     public async Task ListEntriesQueryHandler_ReturnsZero_WithEntries()
     {
@@ -94,6 +117,83 @@ public sealed class EntriesHandlerTests
     }
 
     [Test]
+    public async Task ListEntriesQueryHandler_UseReleases_ReadsExactRelease()
+    {
+        var (result, output) = await CaptureOutputAsync(() =>
+            new ListEntriesQueryHandler(MockHttp(HttpStatusCode.OK, ReleaseDetailsJson))
+                .HandleAsync(
+                    new ListEntriesQuery(TestConnection, "my-project", "production", UseReleases: true, ReleaseVersion: "1.2.0"),
+                    CancellationToken.None));
+
+        await Assert.That(result).IsEqualTo(CliExitCodes.Success);
+        await Assert.That(output).Contains("release 1.2.0");
+        await Assert.That(output).Contains("feature.checkout");
+    }
+
+    [Test]
+    public async Task ListEntriesQueryHandler_UseReleases_ResolvesActiveRelease()
+    {
+        var requestNumber = 0;
+        var result = await new ListEntriesQueryHandler(() => new HttpClient(
+                new RecordingHandler(_ =>
+                {
+                    requestNumber++;
+                    return requestNumber switch
+                    {
+                        1 => new HttpResponseMessage(HttpStatusCode.OK)
+                        {
+                            Content = new StringContent(EnvironmentWithActiveReleaseJson, System.Text.Encoding.UTF8, "application/json")
+                        },
+                        2 => new HttpResponseMessage(HttpStatusCode.OK)
+                        {
+                            Content = new StringContent(ReleaseDetailsJson, System.Text.Encoding.UTF8, "application/json")
+                        },
+                        _ => throw new InvalidOperationException("Unexpected request")
+                    };
+                })))
+            .HandleAsync(
+                new ListEntriesQuery(TestConnection, "my-project", "production", UseReleases: true),
+                CancellationToken.None);
+
+        await Assert.That(result).IsEqualTo(CliExitCodes.Success);
+    }
+
+    [Test]
+    public async Task ListEntriesQueryHandler_UseReleases_RejectsWildcardVersion()
+    {
+        var result = await new ListEntriesQueryHandler(MockHttp(HttpStatusCode.OK, "[]"))
+            .HandleAsync(
+                new ListEntriesQuery(TestConnection, "my-project", "production", UseReleases: true, ReleaseVersion: "1.2.x"),
+                CancellationToken.None);
+
+        await Assert.That(result).IsEqualTo(CliExitCodes.ValidationError);
+    }
+
+    [Test]
+    public async Task ListEntriesQueryHandler_UseReleases_FiltersByPrefixClientSide()
+    {
+        var (result, output) = await CaptureOutputAsync(() =>
+            new ListEntriesQueryHandler(MockHttp(HttpStatusCode.OK, ReleaseDetailsJson))
+                .HandleAsync(
+                    new ListEntriesQuery(TestConnection, "my-project", "production", "no-match:", true, "1.2.0"),
+                    CancellationToken.None));
+
+        await Assert.That(result).IsEqualTo(CliExitCodes.Success);
+        await Assert.That(output).Contains("No config entries found");
+    }
+
+    [Test]
+    public async Task ListEntriesQueryHandler_UseReleases_ReturnsNotFound_WhenReleaseMissing()
+    {
+        var result = await new ListEntriesQueryHandler(MockHttp(HttpStatusCode.NotFound, string.Empty))
+            .HandleAsync(
+                new ListEntriesQuery(TestConnection, "my-project", "production", UseReleases: true, ReleaseVersion: "9.9.9"),
+                CancellationToken.None);
+
+        await Assert.That(result).IsEqualTo(CliExitCodes.NotFound);
+    }
+
+    [Test]
     public async Task ExportEntriesQueryHandler_WritesToStdout_WhenNoOutputFile()
     {
         var (result, output) = await CaptureOutputAsync(() =>
@@ -154,6 +254,41 @@ public sealed class EntriesHandlerTests
         await Assert.That(result).IsEqualTo(CliExitCodes.Success);
         await Assert.That(requestedUri).IsNotNull();
         await Assert.That(requestedUri!.Query).IsEqualTo("?prefix=GroupA%3A");
+    }
+
+    [Test]
+    public async Task ExportEntriesQueryHandler_UseReleases_WritesExactReleaseEntries()
+    {
+        var (result, output) = await CaptureOutputAsync(() =>
+            new ExportEntriesQueryHandler(MockHttp(HttpStatusCode.OK, ReleaseDetailsJson))
+                .HandleAsync(
+                    new ExportEntriesQuery(TestConnection, "my-project", "production", UseReleases: true, ReleaseVersion: "1.2.0"),
+                    CancellationToken.None));
+
+        await Assert.That(result).IsEqualTo(CliExitCodes.Success);
+        await Assert.That(output).IsEqualTo("feature.checkout=\"true\"\n");
+    }
+
+    [Test]
+    public async Task ExportEntriesQueryHandler_UseReleases_RejectsWildcardVersion()
+    {
+        var result = await new ExportEntriesQueryHandler(MockHttp(HttpStatusCode.OK, "[]"))
+            .HandleAsync(
+                new ExportEntriesQuery(TestConnection, "my-project", "production", UseReleases: true, ReleaseVersion: "1.2.x"),
+                CancellationToken.None);
+
+        await Assert.That(result).IsEqualTo(CliExitCodes.ValidationError);
+    }
+
+    [Test]
+    public async Task ExportEntriesQueryHandler_UseReleases_ReturnsNotFound_WhenReleaseMissing()
+    {
+        var result = await new ExportEntriesQueryHandler(MockHttp(HttpStatusCode.NotFound, string.Empty))
+            .HandleAsync(
+                new ExportEntriesQuery(TestConnection, "my-project", "production", UseReleases: true, ReleaseVersion: "9.9.9"),
+                CancellationToken.None);
+
+        await Assert.That(result).IsEqualTo(CliExitCodes.NotFound);
     }
 
     private static async Task<(int Result, string Output)> CaptureOutputAsync(Func<Task<int>> action)
@@ -305,10 +440,14 @@ public sealed class EntriesHandlerTests
     }
 
     [Test]
-    public async Task GetEntryQueryHandler_RejectsReleaseModeForAdminTokenWithoutRequest()
+    public async Task GetEntryQueryHandler_AdminTokenRejectsWildcardReleaseVersionWithoutRequest()
     {
         var requestCount = 0;
-        var handler = RawHandler(_ => requestCount++);
+        var handler = new GetEntryQueryHandler(() => new HttpClient(new RecordingHandler(_ =>
+        {
+            requestCount++;
+            return JsonResponse(HttpStatusCode.OK, "[]");
+        })));
 
         var result = await handler.HandleAsync(
             new GetEntryQuery(
@@ -316,11 +455,96 @@ public sealed class EntriesHandlerTests
                 "my-project",
                 "production",
                 "my.key",
-                UseReleases: true),
+                UseReleases: true,
+                ReleaseVersion: "1.2.x"),
             CancellationToken.None);
 
         await Assert.That(result).IsEqualTo(CliExitCodes.ValidationError);
         await Assert.That(requestCount).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task GetEntryQueryHandler_AdminTokenReadsExactReleaseEntry()
+    {
+        var handler = new GetEntryQueryHandler(() => new HttpClient(new RecordingHandler(_ =>
+            JsonResponse(HttpStatusCode.OK, ReleaseDetailsJson))));
+
+        var (result, output) = await CaptureOutputAsync(() => handler.HandleAsync(
+            new GetEntryQuery(
+                TestConnection,
+                "my-project",
+                "production",
+                "feature.checkout",
+                UseReleases: true,
+                ReleaseVersion: "1.2.0"),
+            CancellationToken.None));
+
+        await Assert.That(result).IsEqualTo(CliExitCodes.Success);
+        await Assert.That(output).IsEqualTo($"true{Environment.NewLine}");
+    }
+
+    [Test]
+    public async Task GetEntryQueryHandler_AdminTokenReadsActiveReleaseEntry()
+    {
+        var requestNumber = 0;
+        var handler = new GetEntryQueryHandler(() => new HttpClient(new RecordingHandler(_ =>
+        {
+            requestNumber++;
+            return requestNumber switch
+            {
+                1 => JsonResponse(HttpStatusCode.OK, EnvironmentWithActiveReleaseJson),
+                2 => JsonResponse(HttpStatusCode.OK, ReleaseDetailsJson),
+                _ => throw new InvalidOperationException("Unexpected request")
+            };
+        })));
+
+        var result = await handler.HandleAsync(
+            new GetEntryQuery(
+                TestConnection,
+                "my-project",
+                "production",
+                "feature.checkout",
+                UseReleases: true),
+            CancellationToken.None);
+
+        await Assert.That(result).IsEqualTo(CliExitCodes.Success);
+    }
+
+    [Test]
+    public async Task GetEntryQueryHandler_AdminTokenReturnsNotFound_WhenNoActiveRelease()
+    {
+        var handler = new GetEntryQueryHandler(() => new HttpClient(new RecordingHandler(_ =>
+            JsonResponse(HttpStatusCode.OK, EnvironmentWithoutActiveReleaseJson))));
+
+        var result = await handler.HandleAsync(
+            new GetEntryQuery(
+                TestConnection,
+                "my-project",
+                "production",
+                "feature.checkout",
+                UseReleases: true),
+            CancellationToken.None);
+
+        await Assert.That(result).IsEqualTo(CliExitCodes.NotFound);
+    }
+
+    [Test]
+    public async Task GetEntryQueryHandler_AdminTokenReturnsOne_WhenKeyMissingFromRelease()
+    {
+        var handler = new GetEntryQueryHandler(() => new HttpClient(new RecordingHandler(_ =>
+            JsonResponse(HttpStatusCode.OK, ReleaseDetailsJson))));
+
+        var result = await handler.HandleAsync(
+            new GetEntryQuery(
+                TestConnection,
+                "my-project",
+                "production",
+                "missing.key",
+                UseReleases: true,
+                ReleaseVersion: "1.2.0"),
+            CancellationToken.None);
+
+        await Assert.That(result).IsEqualTo(1);
     }
 
     [Test]

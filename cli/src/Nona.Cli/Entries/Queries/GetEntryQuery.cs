@@ -1,6 +1,7 @@
 using Microsoft.Kiota.Abstractions;
 using Nona.Cli.Entries;
 using Nona.Cli.Generated.Models;
+using Nona.Cli.Releases;
 using System.Net;
 using System.Text.Json;
 
@@ -31,16 +32,43 @@ internal sealed class GetEntryQueryHandler(Func<HttpClient>? httpClientFactory =
         }
 
         var usesApiKey = IsLikelyApiKey(query.Connection.BearerToken);
-        if (query.UseReleases && !usesApiKey)
-        {
-            Console.Error.WriteLine("--use-releases requires a Nona API key. Admin bearer tokens can only read working entries.");
-            return CliExitCodes.ValidationError;
-        }
 
         if (usesApiKey)
             return await GetRawEntryAsync(query, releaseVersion, ct);
 
+        if (query.UseReleases)
+            return await GetAdminReleaseEntryAsync(query, releaseVersion, ct);
+
         return await GetAdminEntryAsync(query, ct);
+    }
+
+    private async Task<int> GetAdminReleaseEntryAsync(GetEntryQuery query, string? releaseVersion, CancellationToken ct)
+    {
+        if (releaseVersion is not null && !ReleaseVersions.TryParseExact(releaseVersion, out _))
+        {
+            Console.Error.WriteLine(
+                "Admin bearer tokens require an exact --release-version (major.minor.patch), or none for the active release. " +
+                "Wildcards like 1.2.x require a Nona API key.");
+            return CliExitCodes.ValidationError;
+        }
+
+        using var api = NonaClientFactory.Create(query.Connection, httpClientFactory);
+        var result = await AdminReleaseEntryReader.ReadAsync(api, query.Project, query.Environment, releaseVersion, ct);
+        if (!result.Success)
+        {
+            Console.Error.WriteLine(result.Error);
+            return CliExitCodes.NotFound;
+        }
+
+        var entry = result.Entries!.FirstOrDefault(e => string.Equals(e.Key, query.Key, StringComparison.Ordinal));
+        if (entry is null)
+        {
+            Console.Error.WriteLine($"Entry '{query.Key}' not found in [{query.Environment}] release {result.ResolvedVersion}.");
+            return 1;
+        }
+
+        ConfigEntryValueRenderer.WriteValue(entry.Value ?? string.Empty, entry.ContentType);
+        return 0;
     }
 
     private async Task<int> GetRawEntryAsync(

@@ -36,11 +36,19 @@ internal sealed class EntriesCommands(CliContext ctx) : ICliCommandGroup
         var handler = new ListEntriesQueryHandler();
         var cmd = new Command("list", "List entries in an environment.");
         var prefixOpt = new Option<string?>("--prefix", "Return only entries whose keys start with this prefix.");
+        var useReleasesOpt = new Option<bool>(
+            "--use-releases",
+            "Read from a release. Without --release-version, use the active release.");
+        var releaseVersionOpt = new Option<string?>(
+            "--release-version",
+            "Exact release version, for example 1.2.3. Used only with --use-releases.");
         cmd.AddOption(baseUrlOpt);
         cmd.AddOption(tokenOpt);
         cmd.AddOption(projectOpt);
         cmd.AddOption(envOpt);
         cmd.AddOption(prefixOpt);
+        cmd.AddOption(useReleasesOpt);
+        cmd.AddOption(releaseVersionOpt);
         cmd.Handler = CommandHandler.Create(async (InvocationContext ic) =>
         {
             var (conn, project) = ResolveConnAndProject(ic, baseUrlOpt, tokenOpt, projectOpt);
@@ -48,9 +56,11 @@ internal sealed class EntriesCommands(CliContext ctx) : ICliCommandGroup
 
             var environment = CliPrompter.Required(ic.ParseResult.GetValueForOption(envOpt), "Environment");
             var prefix = ic.ParseResult.GetValueForOption(prefixOpt);
+            var useReleases = ic.ParseResult.GetValueForOption(useReleasesOpt);
+            var releaseVersion = ic.ParseResult.GetValueForOption(releaseVersionOpt);
 
             ic.ExitCode = await handler.HandleAsync(
-                new ListEntriesQuery(conn, project!, environment, prefix),
+                new ListEntriesQuery(conn, project!, environment, prefix, useReleases, releaseVersion),
                 ic.GetCancellationToken());
         });
         return cmd;
@@ -67,6 +77,12 @@ internal sealed class EntriesCommands(CliContext ctx) : ICliCommandGroup
         var outputFileOpt = new Option<string?>(
             "--output-file",
             "Write output to this path (UTF-8, no BOM) instead of stdout.");
+        var useReleasesOpt = new Option<bool>(
+            "--use-releases",
+            "Read from a release. Without --release-version, use the active release.");
+        var releaseVersionOpt = new Option<string?>(
+            "--release-version",
+            "Exact release version, for example 1.2.3. Used only with --use-releases.");
 
         formatOpt.AddValidator(result =>
         {
@@ -82,6 +98,8 @@ internal sealed class EntriesCommands(CliContext ctx) : ICliCommandGroup
         cmd.AddOption(prefixOpt);
         cmd.AddOption(formatOpt);
         cmd.AddOption(outputFileOpt);
+        cmd.AddOption(useReleasesOpt);
+        cmd.AddOption(releaseVersionOpt);
         cmd.Handler = CommandHandler.Create(async (InvocationContext ic) =>
         {
             var (conn, project) = ResolveConnAndProject(ic, baseUrlOpt, tokenOpt, projectOpt);
@@ -91,9 +109,11 @@ internal sealed class EntriesCommands(CliContext ctx) : ICliCommandGroup
             var prefix = ic.ParseResult.GetValueForOption(prefixOpt);
             var format = ic.ParseResult.GetValueForOption(formatOpt) ?? "dotenv";
             var outputFile = ic.ParseResult.GetValueForOption(outputFileOpt);
+            var useReleases = ic.ParseResult.GetValueForOption(useReleasesOpt);
+            var releaseVersion = ic.ParseResult.GetValueForOption(releaseVersionOpt);
 
             ic.ExitCode = await handler.HandleAsync(
-                new ExportEntriesQuery(conn, project!, environment, prefix, format, outputFile),
+                new ExportEntriesQuery(conn, project!, environment, prefix, format, outputFile, useReleases, releaseVersion),
                 ic.GetCancellationToken());
         });
         return cmd;
