@@ -103,6 +103,18 @@ nona entries history --project mobile-app --environment production --key welcome
 nona entries rollback --project mobile-app --environment production --key welcome_text --version 2 --base-url https://nona.example.com --token <token>
 ```
 
+`entries get`, `entries list`, and `entries export` can all read from a release instead of the working configuration, via `--use-releases` and `--release-version`:
+
+```bash
+# Admin bearer token — active release, or an exact version
+nona entries get --project mobile-app --environment production --key welcome_text --base-url https://nona.example.com --token <admin-token> --use-releases
+nona entries get --project mobile-app --environment production --key welcome_text --base-url https://nona.example.com --token <admin-token> --use-releases --release-version 1.2.3
+nona entries list --project mobile-app --environment production --base-url https://nona.example.com --token <admin-token> --use-releases --release-version 1.2.3
+nona entries export --project mobile-app --environment production --base-url https://nona.example.com --token <admin-token> --use-releases --release-version 1.2.3
+```
+
+Without `--use-releases`, all three commands read the working configuration and ignore `--release-version`. With an admin bearer token, `--release-version` must be an exact `major.minor.patch` version; omit it to use the active release. `entries list`/`entries export` apply `--prefix` client-side when reading from a release, since the release-read endpoint returns the whole release rather than a filtered set.
+
 Read runtime parameters with a 64-character hexadecimal API key:
 
 ```bash
@@ -117,9 +129,18 @@ nona entries get --project mobile-app --environment production --key welcome_tex
 nona entries get --project mobile-app --environment production --key welcome_text --token "$NONA_API_KEY" --use-releases --release-version 1.2.x
 ```
 
-Without `--use-releases`, `entries get` reads the working value and ignores `--release-version`. Release mode uses the active release unless `--release-version` supplies an exact or wildcard selector. Release reads require an API key; an admin bearer token continues to read the working entry through the admin API. The existing `--project` requirement applies to both credential types.
+An API key additionally supports the wildcard `major.minor.x` selector (highest patch in that release line) and resolves the active release without an extra request — an admin bearer token requires an exact version for a specific release. The existing `--project` requirement applies to both credential types.
 
 Prefixes may contain ASCII letters, digits, colons, dots, underscores, and dashes. An invalid prefix prints the API validation error and exits with code `2`.
+
+Export entries to a plain `KEY="value"` file, for example to hand off to a teammate or edit locally:
+
+```bash
+nona entries export --project mobile-app --environment production --base-url https://nona.example.com --token <token>
+nona entries export --project mobile-app --environment production --prefix Features: --output-file .env --base-url https://nona.example.com --token <token>
+```
+
+Without `--output-file`, the formatted output is written to stdout. With `--output-file`, the CLI writes the file itself as UTF-8 without a byte-order mark, rather than relying on shell redirection (`> .env`) to get the encoding right — Windows PowerShell's `>`/`Out-File` has historically defaulted to UTF-16LE with a BOM in common configurations, which most dotenv parsers can't read correctly. Keys are written literally (e.g. `Features:Checkout="true"`), unmodified — dotenv libraries treat the key as an arbitrary string, not a shell identifier. Content type and scope are not part of the output; dotenv has no such concept.
 
 Manage immutable releases:
 

@@ -606,6 +606,7 @@ nona entries [command] [options]
 **Commands**
 
 - `list` List entries in an environment.
+- `export` Export entries in an environment to a plain KEY=VALUE file.
 - `get` Show one config entry.
 - `history` Show version history for an entry.
 - `set` Create or update an entry.
@@ -631,7 +632,37 @@ nona entries list [options]
 --project, --project-name <project-name>  Nona project name.
 --environment <environment>               Nona environment name, for example production.
 --prefix <prefix>                         Return only entries whose keys start with this prefix.
+--use-releases                            Read from a release. Without --release-version, use the active release.
+--release-version <release-version>       Exact release version, for example 1.2.3. Used only with --use-releases.
 ```
+
+With `--use-releases`, `--release-version` must be an exact `major.minor.patch` version (or omitted, to use the active release) — an admin bearer token cannot resolve a wildcard `1.2.x` selector. `--prefix` is applied client-side when reading from a release.
+
+## `nona entries export`
+
+Export entries in an environment to a plain KEY=VALUE file.
+
+**Usage**
+
+```text
+nona entries export [options]
+```
+
+**Options**
+
+```text
+--api-url, --base-url <base-url>          Nona base URL.
+--bearer-token, --token <bearer-token>    Admin bearer token.
+--project, --project-name <project-name>  Nona project name.
+--environment <environment>               Nona environment name, for example production.
+--prefix <prefix>                         Return only entries whose keys start with this prefix.
+--format <format>                         Output format. Only dotenv is supported today. [default: dotenv]
+--output-file <output-file>               Write output to this path (UTF-8, no BOM) instead of stdout.
+--use-releases                            Read from a release. Without --release-version, use the active release.
+--release-version <release-version>       Exact release version, for example 1.2.3. Used only with --use-releases.
+```
+
+Without `--output-file`, the formatted output is written to stdout. With `--output-file`, the CLI writes the file itself as UTF-8 without a byte-order mark, rather than relying on shell redirection to get the encoding right. Keys are written literally, unmodified (for example `Features:Checkout="true"`). Content type and scope are not part of the output. With `--use-releases`, the same exact-version-or-active-release rule and client-side `--prefix` filtering apply as for `entries list`.
 
 ## `nona entries get`
 
@@ -654,6 +685,8 @@ nona entries get [options]
 --use-releases                            Read from release parameters. Without --release-version, use the active release.
 --release-version <release-version>       Exact or wildcard release selector, for example 1.2.3 or 1.2.x. Used only with --use-releases.
 ```
+
+An API key accepts an exact version or a wildcard `major.minor.x` selector (highest patch in that line). An admin bearer token accepts an exact version or none (active release) — wildcards require an API key.
 
 ## `nona entries history`
 
