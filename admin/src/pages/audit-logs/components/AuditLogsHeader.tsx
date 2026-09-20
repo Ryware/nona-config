@@ -1,6 +1,8 @@
 import { Content, Item, Portal, Root, Trigger } from "@kobalte/core/dropdown-menu";
 import { MIcon } from "../../../shared/ui/icons";
 import { Input } from "../../../shared/ui/input";
+import { GearSpinner } from "../../../shared/ui/Skeleton";
+import { Show } from "solid-js";
 
 interface AuditLogsHeaderProps {
   onExport: (format: "csv" | "json") => Promise<void>;
@@ -44,10 +46,9 @@ export function AuditLogsHeader(props: AuditLogsHeaderProps) {
               title="Export Logs"
               class="bg-primary text-on-primary inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg border-0 px-0 text-[14px] font-semibold transition-all hover:brightness-105 active:scale-[0.98] md:h-10 md:w-auto md:px-4"
             >
-              <MIcon
-                name={props.isExporting ? "progress_activity" : "download"}
-                class={`text-[18px] ${props.isExporting ? "animate-spin" : ""}`}
-              />
+              <Show when={props.isExporting} fallback={<MIcon name="download" class="text-[18px]" />}>
+                <GearSpinner size={18} />
+              </Show>
               <span class="hidden md:inline">{props.isExporting ? "Exporting…" : "Export Logs"}</span>
             </Trigger>
             <Portal>

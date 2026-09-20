@@ -1,4 +1,5 @@
 import { type ParentComponent } from "solid-js";
+import { GearTrio } from "../../shared/ui/Cogs";
 import { ThemeToggle } from "../../shared/ui/ThemeToggle";
 
 export const AuthLayout: ParentComponent = (props) => {
@@ -9,6 +10,12 @@ export const AuthLayout: ParentComponent = (props) => {
       {/* Ambient background glow orbs */}
       <div class="pointer-events-none absolute top-[-18%] left-[-24%] h-[46%] w-[70%] rounded-full bg-primary/10 blur-[120px] sm:top-[-20%] sm:left-[-20%] sm:h-[60%] sm:w-[60%] sm:blur-[150px]" />
       <div class="pointer-events-none absolute right-[-28%] bottom-[-14%] h-[38%] w-[70%] rounded-full bg-primary-container/5 blur-[120px] sm:right-[-20%] sm:bottom-[-20%] sm:h-[60%] sm:w-[60%] sm:blur-[150px]" />
+      <GearTrio
+        size={220}
+        duration={70}
+        class="pointer-events-none absolute -bottom-10 -left-10 select-none opacity-[0.05]"
+        style={{ color: "var(--primary)" }}
+      />
       
       <div class="relative z-10 flex min-h-screen w-full flex-col items-stretch justify-start sm:min-h-0 sm:items-center sm:justify-center">
         {props.children}
