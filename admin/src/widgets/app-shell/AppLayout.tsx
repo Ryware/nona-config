@@ -1,6 +1,7 @@
 import { useLocation } from "@solidjs/router";
 import { makePersisted } from "@solid-primitives/storage";
 import { createEffect, createSignal, on, type JSX } from "solid-js";
+import { GearTrio } from "../../shared/ui/Cogs";
 import { Header } from "./Header";
 import { Sidebar } from "./Sidebar";
 
@@ -24,7 +25,14 @@ export function AppLayout(props: { children?: JSX.Element }): JSX.Element {
   createEffect(on(() => location.pathname, () => setIsSidebarOpen(false)));
 
   return (
-    <div class="bg-background flex min-h-screen overflow-hidden">
+    <div class="bg-background relative flex min-h-screen overflow-hidden">
+      <GearTrio
+        size={260}
+        duration={80}
+        class="pointer-events-none absolute -right-16 -bottom-16 hidden select-none opacity-[0.04] lg:block"
+        style={{ color: "var(--primary)" }}
+      />
+
       <Sidebar
         isOpen={isSidebarOpen()}
         onClose={() => setIsSidebarOpen(false)}
@@ -34,7 +42,7 @@ export function AppLayout(props: { children?: JSX.Element }): JSX.Element {
 
       {/* Main Area */}
       <div
-        class={`ml-0 flex min-w-0 flex-1 flex-col ${sidebarWidth()} transition-[margin-left] duration-300`}
+        class={`relative z-10 ml-0 flex min-w-0 flex-1 flex-col ${sidebarWidth()} transition-[margin-left] duration-300`}
       >
         <Header
           isSidebarOpen={isSidebarOpen()}
