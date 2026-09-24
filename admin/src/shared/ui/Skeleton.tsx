@@ -1,4 +1,5 @@
 import { For, type JSX } from "solid-js";
+import { Gear, GearPair, GearTrio } from "./Cogs";
 
 /* ── Skeleton Primitives ─────────────────────────────────────────────────────
  *  Composable building blocks that mirror the `.skeleton` shimmer from index.css.
@@ -145,10 +146,7 @@ export function RouteLoader() {
   return (
     <div class="min-h-screen bg-background flex items-center justify-center">
       <div class="flex flex-col items-center gap-4 animate-fade-in">
-        <div class="relative w-10 h-10">
-          <div class="absolute inset-0 rounded-full border-2 border-outline-variant/20" />
-          <div class="absolute inset-0 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-        </div>
+        <GearTrio size={44} duration={20} class="text-primary" />
         <span class="sr-only">Loading…</span>
       </div>
     </div>
@@ -162,14 +160,17 @@ export function ContentLoader(props: { message?: string }) {
   return (
     <div class="flex items-center justify-center py-12">
       <div class="flex flex-col items-center gap-3 animate-fade-in">
-        <div class="relative w-8 h-8">
-          <div class="absolute inset-0 rounded-full border-2 border-outline-variant/20" />
-          <div class="absolute inset-0 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-        </div>
+        <GearPair size={28} nineDuration={16} class="text-primary" />
+        <span class="sr-only">Loading…</span>
         {props.message && (
           <p class="text-[13px] text-outline">{props.message}</p>
         )}
       </div>
     </div>
   );
+}
+
+/** Tiny single-gear spinner for icon-sized inline loading (buttons, chips). */
+export function GearSpinner(props: { size?: number; class?: string }) {
+  return <Gear size={props.size ?? 16} duration={2.4} class={props.class} />;
 }

@@ -1,6 +1,7 @@
 import { For, Show } from "solid-js";
-import { MIcon } from "../../../shared/ui/icons";
 import { AuditLogRow } from "../../../features/audit-log-table/AuditLogRow";
+import { Gear } from "../../../shared/ui/Cogs";
+import { MIcon } from "../../../shared/ui/icons";
 import { AuditLogTableSkeleton } from "./AuditLogTableSkeleton";
 import type { AuditEntry } from "../types";
 
@@ -44,7 +45,7 @@ export function AuditLogsTable(props: AuditLogsTableProps) {
               <Show when={!props.isLoading && props.totalCount === 0}>
                 <tr>
                   <td colspan="3" class="py-16 text-center">
-                    <MIcon name="search_off" class="text-[40px] text-outline/30 block mx-auto mb-3" />
+                    <Gear size={40} duration={40} class="text-outline/30 mx-auto mb-3 block" />
                     <p class="text-on-surface-variant text-[14px]">No activity recorded yet.</p>
                     <p class="text-outline text-[13px] mt-1">Try adjusting your filters.</p>
                   </td>

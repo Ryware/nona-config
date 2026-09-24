@@ -35,7 +35,7 @@ kotlin {
 }
 
 mavenPublishing {
-    publishToMavenCentral()
+    publishToMavenCentral(automaticRelease = true)
     coordinates("com.nonaconfig", "nona-client", version.toString())
 
     // Only sign when a key is configured, so local builds work without one.
