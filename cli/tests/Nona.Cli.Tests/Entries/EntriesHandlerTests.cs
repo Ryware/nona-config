@@ -201,7 +201,7 @@ public sealed class EntriesHandlerTests
                 .HandleAsync(new ExportEntriesQuery(TestConnection, "my-project", "production"), CancellationToken.None));
 
         await Assert.That(result).IsEqualTo(CliExitCodes.Success);
-        await Assert.That(output).IsEqualTo("my.key=\"my-value\"\n");
+        await Assert.That(output).IsEqualTo("my.key=my-value\n");
     }
 
     [Test]
@@ -231,7 +231,7 @@ public sealed class EntriesHandlerTests
 
         var bytes = await File.ReadAllBytesAsync(file.Path);
         await Assert.That(bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF).IsFalse();
-        await Assert.That(await File.ReadAllTextAsync(file.Path)).IsEqualTo("my.key=\"my-value\"\n");
+        await Assert.That(await File.ReadAllTextAsync(file.Path)).IsEqualTo("my.key=my-value\n");
     }
 
     [Test]
@@ -266,7 +266,7 @@ public sealed class EntriesHandlerTests
                     CancellationToken.None));
 
         await Assert.That(result).IsEqualTo(CliExitCodes.Success);
-        await Assert.That(output).IsEqualTo("feature.checkout=\"true\"\n");
+        await Assert.That(output).IsEqualTo("feature.checkout=true\n");
     }
 
     [Test]
