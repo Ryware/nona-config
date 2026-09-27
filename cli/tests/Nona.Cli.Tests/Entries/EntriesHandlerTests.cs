@@ -464,7 +464,10 @@ public sealed class EntriesHandlerTests
     }
 
     [Test]
-    public async Task GetEntryQueryHandler_AdminTokenReadsExactReleaseEntry()
+    [Arguments("feature.checkout")]
+    [Arguments("FEATURE.CHECKOUT")]
+    [Arguments("FeAtUrE.cHeCkOuT")]
+    public async Task GetEntryQueryHandler_AdminTokenReadsExactReleaseEntry(string key)
     {
         var handler = new GetEntryQueryHandler(() => new HttpClient(new RecordingHandler(_ =>
             JsonResponse(HttpStatusCode.OK, ReleaseDetailsJson))));
@@ -474,7 +477,7 @@ public sealed class EntriesHandlerTests
                 TestConnection,
                 "my-project",
                 "production",
-                "feature.checkout",
+                key,
                 UseReleases: true,
                 ReleaseVersion: "1.2.0"),
             CancellationToken.None));
@@ -484,7 +487,10 @@ public sealed class EntriesHandlerTests
     }
 
     [Test]
-    public async Task GetEntryQueryHandler_AdminTokenReadsActiveReleaseEntry()
+    [Arguments("feature.checkout")]
+    [Arguments("FEATURE.CHECKOUT")]
+    [Arguments("FeAtUrE.cHeCkOuT")]
+    public async Task GetEntryQueryHandler_AdminTokenReadsActiveReleaseEntry(string key)
     {
         var requestNumber = 0;
         var handler = new GetEntryQueryHandler(() => new HttpClient(new RecordingHandler(_ =>
@@ -498,16 +504,17 @@ public sealed class EntriesHandlerTests
             };
         })));
 
-        var result = await handler.HandleAsync(
+        var (result, output) = await CaptureOutputAsync(() => handler.HandleAsync(
             new GetEntryQuery(
                 TestConnection,
                 "my-project",
                 "production",
-                "feature.checkout",
+                key,
                 UseReleases: true),
-            CancellationToken.None);
+            CancellationToken.None));
 
         await Assert.That(result).IsEqualTo(CliExitCodes.Success);
+        await Assert.That(output).IsEqualTo($"true{Environment.NewLine}");
     }
 
     [Test]
@@ -529,22 +536,27 @@ public sealed class EntriesHandlerTests
     }
 
     [Test]
-    public async Task GetEntryQueryHandler_AdminTokenReturnsOne_WhenKeyMissingFromRelease()
+    [Arguments("missing.key")]
+    [Arguments("FEATURE")]
+    [Arguments("FEATURE.CHECKOUT.extra")]
+    [Arguments("feature:checkout")]
+    public async Task GetEntryQueryHandler_AdminTokenReturnsOne_WhenKeyMissingFromRelease(string key)
     {
         var handler = new GetEntryQueryHandler(() => new HttpClient(new RecordingHandler(_ =>
             JsonResponse(HttpStatusCode.OK, ReleaseDetailsJson))));
 
-        var result = await handler.HandleAsync(
+        var (result, output) = await CaptureOutputAsync(() => handler.HandleAsync(
             new GetEntryQuery(
                 TestConnection,
                 "my-project",
                 "production",
-                "missing.key",
+                key,
                 UseReleases: true,
                 ReleaseVersion: "1.2.0"),
-            CancellationToken.None);
+            CancellationToken.None));
 
         await Assert.That(result).IsEqualTo(1);
+        await Assert.That(output).IsEmpty();
     }
 
     [Test]

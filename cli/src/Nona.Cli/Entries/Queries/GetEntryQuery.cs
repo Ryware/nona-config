@@ -60,7 +60,7 @@ internal sealed class GetEntryQueryHandler(Func<HttpClient>? httpClientFactory =
             return CliExitCodes.NotFound;
         }
 
-        var entry = result.Entries!.FirstOrDefault(e => string.Equals(e.Key, query.Key, StringComparison.Ordinal));
+        var entry = result.Entries!.FirstOrDefault(e => string.Equals(e.Key, query.Key, StringComparison.OrdinalIgnoreCase));
         if (entry is null)
         {
             Console.Error.WriteLine($"Entry '{query.Key}' not found in [{query.Environment}] release {result.ResolvedVersion}.");
