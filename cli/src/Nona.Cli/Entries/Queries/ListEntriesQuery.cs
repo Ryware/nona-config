@@ -1,6 +1,7 @@
 using Nona.Cli.Generated.Models;
 using Nona.Cli.Entries;
 using Nona.Cli.Releases;
+using Nona.Domain;
 
 namespace Nona.Cli.Entries.Queries;
 
@@ -55,7 +56,7 @@ internal sealed class ListEntriesQueryHandler(Func<HttpClient>? httpClientFactor
         }
 
         var entries = (result.Entries ?? [])
-            .Where(entry => query.Prefix is null || (entry.Key?.StartsWith(query.Prefix, StringComparison.Ordinal) ?? false))
+            .Where(entry => query.Prefix is null || (entry.Key is not null && ConfigEntryPrefix.StartsWith(entry.Key, query.Prefix)))
             .OrderBy(entry => entry.Key, StringComparer.OrdinalIgnoreCase)
             .ToList();
 

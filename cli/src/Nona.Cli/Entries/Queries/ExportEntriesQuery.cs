@@ -1,6 +1,7 @@
 using System.Text;
 using Nona.Cli.Generated.Models;
 using Nona.Cli.Releases;
+using Nona.Domain;
 
 namespace Nona.Cli.Entries.Queries;
 
@@ -39,7 +40,7 @@ internal sealed class ExportEntriesQueryHandler(Func<HttpClient>? httpClientFact
             }
 
             entries = (result.Entries ?? [])
-                .Where(entry => query.Prefix is null || (entry.Key?.StartsWith(query.Prefix, StringComparison.Ordinal) ?? false))
+                .Where(entry => query.Prefix is null || (entry.Key is not null && ConfigEntryPrefix.StartsWith(entry.Key, query.Prefix)))
                 .Select(entry => entry.ToConfigEntryDto(query.Project, query.Environment))
                 .ToList();
         }

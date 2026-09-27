@@ -131,7 +131,7 @@ nona entries get --project mobile-app --environment production --key welcome_tex
 
 An API key additionally supports the wildcard `major.minor.x` selector (highest patch in that release line) and resolves the active release without an extra request — an admin bearer token requires an exact version for a specific release. The existing `--project` requirement applies to both credential types.
 
-Prefixes may contain ASCII letters, digits, colons, dots, underscores, and dashes. An invalid prefix prints the API validation error and exits with code `2`.
+Prefix matching ignores ASCII letter casing for both working entries and releases. Colons, dots, underscores, and dashes match literally. Prefixes may contain ASCII letters, digits, colons, dots, underscores, and dashes. An invalid prefix prints the API validation error and exits with code `2`.
 
 Export entries to a plain `KEY="value"` file, for example to hand off to a teammate or edit locally:
 

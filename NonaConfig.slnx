@@ -4,9 +4,7 @@
     <Project Path="core/src/Application/Application.csproj">
       <Build Solution="Debug|*" Project="false" />
     </Project>
-    <Project Path="core/src/Domain/Domain.csproj">
-      <Build Solution="Debug|*" Project="false" />
-    </Project>
+    <Project Path="core/src/Domain/Domain.csproj" />
     <Project Path="core/src/Infrastructure/Infrastructure.csproj">
       <Build Solution="Debug|*" Project="false" />
     </Project>

@@ -38,6 +38,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\core\src\Domain\Domain.csproj" />
     <ProjectReference Include="..\..\..\migrator\src\AwsParameterStoreMigrator\Migrator.AwsParameterStore.csproj" />
     <ProjectReference Include="..\..\..\migrator\src\ConfigMigrator.Core\Migrator.Core.csproj" />
     <ProjectReference Include="..\..\..\migrator\src\FirebaseRemoteConfigMigrator\Migrator.FirebaseRemoteConfig.csproj" />
