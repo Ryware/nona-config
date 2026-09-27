@@ -6,6 +6,74 @@ namespace Nona.Cli.Tests.Entries;
 public sealed class DotEnvEntryFormatterTests
 {
     [Test]
+    [Arguments("Group:Flag", "Group__Flag", "Group__Flag")]
+    [Arguments("Group:Flag", "group__flag", "Group__Flag")]
+    [Arguments("Group:Sub:Flag", "Group__Sub:Flag", "Group__Sub__Flag")]
+    [Arguments("Group__Flag", "group__flag", "Group__Flag")]
+    public async Task Format_RejectsConflictingKeys_EvenWhenValuesMatch(string firstKey, string secondKey, string exportedKey)
+    {
+        var error = CaptureFormatError([
+            new ConfigEntryDto { Key = firstKey, Value = "same-secret-value" },
+            new ConfigEntryDto { Key = secondKey, Value = "same-secret-value" }
+        ]);
+
+        await Assert.That(error).IsNotNull();
+        await Assert.That(error!.Message).IsEqualTo(
+            $"Cannot export dotenv: keys '{firstKey}', '{secondKey}' map to duplicate key '{exportedKey}'.");
+    }
+
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task Format_ReportsAllConflictsInStableOrder_WithoutValues(bool reverse)
+    {
+        ConfigEntryDto[] entries = [
+            new() { Key = "Z:Flag", Value = "secret-one" },
+            new() { Key = "z__flag", Value = "secret-two" },
+            new() { Key = "A__Sub__Flag", Value = "secret-three" },
+            new() { Key = "A:Sub__Flag", Value = "secret-four" },
+            new() { Key = "A:Sub:Flag", Value = "secret-five" },
+            new() { Key = "Safe", Value = "secret-six" }
+        ];
+        var error = CaptureFormatError(reverse ? entries.Reverse() : entries);
+
+        await Assert.That(error).IsNotNull();
+        await Assert.That(error!.Message).IsEqualTo(
+            "Cannot export dotenv: keys 'A:Sub:Flag', 'A:Sub__Flag', 'A__Sub__Flag' map to duplicate key 'A__Sub__Flag'; "
+            + "keys 'Z:Flag', 'z__flag' map to duplicate key 'Z__Flag'.");
+    }
+
+    [Test]
+    public async Task Format_EnumeratesEntriesOnce()
+    {
+        var enumerated = false;
+        IEnumerable<ConfigEntryDto> Entries()
+        {
+            if (enumerated)
+                throw new InvalidOperationException("Entries were enumerated twice.");
+            enumerated = true;
+            yield return new ConfigEntryDto { Key = "Group:Flag", Value = "true" };
+        }
+
+        var result = DotEnvEntryFormatter.Format(Entries());
+
+        await Assert.That(result).IsEqualTo("Group__Flag=true");
+    }
+
+    private static DotEnvKeyCollisionException? CaptureFormatError(IEnumerable<ConfigEntryDto> entries)
+    {
+        try
+        {
+            DotEnvEntryFormatter.Format(entries);
+            return null;
+        }
+        catch (DotEnvKeyCollisionException error)
+        {
+            return error;
+        }
+    }
+
+    [Test]
     public async Task Format_WritesUnquotedKeyValueLines_WhenValueNeedsNoQuoting()
     {
         var result = DotEnvEntryFormatter.Format([

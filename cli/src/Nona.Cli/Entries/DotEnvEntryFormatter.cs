@@ -6,9 +6,25 @@ internal static class DotEnvEntryFormatter
 {
     internal static string Format(IEnumerable<ConfigEntryDto> entries)
     {
-        var lines = entries
+        var mappedEntries = entries
             .OrderBy(entry => entry.Key, StringComparer.OrdinalIgnoreCase)
-            .Select(entry => $"{FormatKey(entry.Key ?? string.Empty)}={FormatValue(entry.Value ?? string.Empty)}");
+            .ThenBy(entry => entry.Key, StringComparer.Ordinal)
+            .Select(entry => new { Entry = entry, Key = FormatKey(entry.Key ?? string.Empty) })
+            .ToList();
+
+        var conflicts = mappedEntries
+            .GroupBy(entry => entry.Key, StringComparer.OrdinalIgnoreCase)
+            .Where(group => group.Count() > 1)
+            .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
+            .Select(group =>
+                $"keys {string.Join(", ", group.Select(entry => $"'{entry.Entry.Key}'"))} map to duplicate key '{group.Key}'")
+            .ToList();
+
+        if (conflicts.Count > 0)
+            throw new DotEnvKeyCollisionException($"Cannot export dotenv: {string.Join("; ", conflicts)}.");
+
+        var lines = mappedEntries
+            .Select(entry => $"{entry.Key}={FormatValue(entry.Entry.Value ?? string.Empty)}");
 
         return string.Join('\n', lines);
     }
@@ -36,3 +52,5 @@ internal static class DotEnvEntryFormatter
         || value.Contains('\n')
         || value.Contains('\r');
 }
+
+internal sealed class DotEnvKeyCollisionException(string message) : Exception(message);

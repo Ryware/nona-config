@@ -52,7 +52,16 @@ internal sealed class ExportEntriesQueryHandler(Func<HttpClient>? httpClientFact
                     cancellationToken: ct) ?? [];
         }
 
-        var content = DotEnvEntryFormatter.Format(entries);
+        string content;
+        try
+        {
+            content = DotEnvEntryFormatter.Format(entries);
+        }
+        catch (DotEnvKeyCollisionException error)
+        {
+            Console.Error.WriteLine(error.Message);
+            return CliExitCodes.ValidationError;
+        }
 
         if (string.IsNullOrWhiteSpace(query.OutputFile))
         {
