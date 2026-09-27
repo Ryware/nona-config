@@ -42,7 +42,7 @@ export function AppLayout(props: { children?: JSX.Element }): JSX.Element {
 
       {/* Main Area */}
       <div
-        class={`relative z-10 ml-0 flex min-w-0 flex-1 flex-col ${sidebarWidth()} transition-[margin-left] duration-300`}
+        class={`relative ml-0 flex min-w-0 flex-1 flex-col ${sidebarWidth()} transition-[margin-left] duration-300`}
       >
         <Header
           isSidebarOpen={isSidebarOpen()}

@@ -328,6 +328,44 @@ test('release delete confirmation matches approved screenshot', async ({ page })
   expect(browserErrors).toEqual([]);
 });
 
+for (const collapsed of [true, false]) {
+  test(`confirmation backdrop blocks ${collapsed ? 'collapsed' : 'expanded'} sidebar navigation`, async ({ page }, testInfo) => {
+    test.skip(!testInfo.project.name.includes('desktop'), 'Desktop sidebar coverage');
+    const browserErrors = collectBrowserErrors(page);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+
+    await page.goto('/projects/my-app/releases');
+    await expect(page.getByTestId('project-releases-section')).toBeVisible();
+    const sidebar = page.locator('aside');
+    if (!collapsed) {
+      await sidebar.getByTitle('Expand sidebar', { exact: true }).click();
+      await expect(sidebar.getByTitle('Collapse sidebar', { exact: true })).toBeVisible();
+    }
+
+    const projectsLink = sidebar.getByRole('link', { name: 'Projects', exact: true });
+    const point = await projectsLink.evaluate(link => {
+      const bounds = link.getBoundingClientRect();
+      return { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
+    });
+
+    await page.getByTestId('release-delete-1.1.0').click();
+    const dialog = page.getByTestId('release-delete-dialog');
+    await expect(dialog).toBeVisible();
+    await expect.poll(() => dialog.evaluate(
+      (element, position) => element.contains(document.elementFromPoint(position.x, position.y)),
+      point,
+    )).toBe(true);
+
+    await page.mouse.click(point.x, point.y);
+    await expect(dialog).toHaveCount(0);
+    await expect(page).toHaveURL('/projects/my-app/releases');
+
+    await projectsLink.click();
+    await expect(page).toHaveURL('/projects');
+    expect(browserErrors).toEqual([]);
+  });
+}
+
 function collectBrowserErrors(page: Page) {
   const errors: string[] = [];
   page.on('console', message => {
