@@ -1,6 +1,7 @@
 import { createEventListener } from "@solid-primitives/event-listener";
 import type { JSXElement } from "solid-js";
 import { Show } from "solid-js";
+import { GearSpinner } from "./Skeleton";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -85,9 +86,7 @@ export const ConfirmDialog = (props: ConfirmDialogProps) => {
               class={`flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border-0 py-2.5 text-[14px] font-semibold transition-all disabled:opacity-50 ${v().btnClass}`}
             >
               <Show when={props.isLoading}>
-                <span class="material-symbols-outlined animate-spin text-[14px]">
-                  progress_activity
-                </span>
+                <GearSpinner size={14} />
               </Show>
               {props.isLoading ? "Please wait…" : (props.confirmLabel ?? "Confirm")}
             </button>

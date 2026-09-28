@@ -103,6 +103,18 @@ nona entries history --project mobile-app --environment production --key welcome
 nona entries rollback --project mobile-app --environment production --key welcome_text --version 2 --base-url https://nona.example.com --token <token>
 ```
 
+`entries get`, `entries list`, and `entries export` can all read from a release instead of the working configuration, via `--use-releases` and `--release-version`:
+
+```bash
+# Admin bearer token — active release, or an exact version
+nona entries get --project mobile-app --environment production --key welcome_text --base-url https://nona.example.com --token <admin-token> --use-releases
+nona entries get --project mobile-app --environment production --key welcome_text --base-url https://nona.example.com --token <admin-token> --use-releases --release-version 1.2.3
+nona entries list --project mobile-app --environment production --base-url https://nona.example.com --token <admin-token> --use-releases --release-version 1.2.3
+nona entries export --project mobile-app --environment production --base-url https://nona.example.com --token <admin-token> --use-releases --release-version 1.2.3
+```
+
+Without `--use-releases`, all three commands read the working configuration and ignore `--release-version`. With an admin bearer token, `--release-version` must be an exact `major.minor.patch` version; omit it to use the active release. `entries list`/`entries export` apply `--prefix` client-side when reading from a release, since the release-read endpoint returns the whole release rather than a filtered set.
+
 Read runtime parameters with a 64-character hexadecimal API key:
 
 ```bash
@@ -117,9 +129,42 @@ nona entries get --project mobile-app --environment production --key welcome_tex
 nona entries get --project mobile-app --environment production --key welcome_text --token "$NONA_API_KEY" --use-releases --release-version 1.2.x
 ```
 
-Without `--use-releases`, `entries get` reads the working value and ignores `--release-version`. Release mode uses the active release unless `--release-version` supplies an exact or wildcard selector. Release reads require an API key; an admin bearer token continues to read the working entry through the admin API. The existing `--project` requirement applies to both credential types.
+An API key additionally supports the wildcard `major.minor.x` selector (highest patch in that release line) and resolves the active release without an extra request — an admin bearer token requires an exact version for a specific release. The existing `--project` requirement applies to both credential types.
 
-Prefixes may contain ASCII letters, digits, colons, dots, underscores, and dashes. An invalid prefix prints the API validation error and exits with code `2`.
+Prefix matching ignores ASCII letter casing for both working entries and releases. Colons, dots, underscores, and dashes match literally. Prefixes may contain ASCII letters, digits, colons, dots, underscores, and dashes. An invalid prefix prints the API validation error and exits with code `2`.
+
+Export entries to a dotenv file for Node.js `util.parseEnv` on Node 22 and 24:
+
+```bash
+nona entries export --project mobile-app --environment production --base-url https://nona.example.com --token <token>
+nona entries export --project mobile-app --environment production --prefix Features: --output-file .env --base-url https://nona.example.com --token <token>
+```
+
+`--format dotenv` is the default and only export format. Without `--output-file`, output goes to UTF-8 stdout. With `--output-file`, the CLI writes UTF-8 without a byte-order mark. Use the file option to avoid shell re-encoding, especially in older Windows PowerShell versions. Exports use LF separators and a final LF when nonempty.
+
+Colons in keys become double underscores: `Features:Checkout` exports as `Features__Checkout=true`. Dots, dashes, leading digits, and Unicode names are retained where the supported parser preserves them. Duplicate mapped keys are rejected, ignoring case. Content type and scope are omitted; null values become empty strings.
+
+A successful export preserves every selected key and value when read with `util.parseEnv`. Values are unquoted or wrapped in single quotes, backticks, or double quotes as needed. Actual multiline values stay multiline; backslashes and `${VAR}` remain literal. Values containing actual carriage returns, invalid UTF-16, or combinations that cannot be safely quoted are rejected. Keys are rejected if empty, invalid UTF-16, containing CR/LF or `=`, having leading/trailing ASCII spaces or tabs, starting with `#` or `export `, or equal to `__proto__`.
+
+Validation exits with code `2` and reports affected keys and reasons on stderr without exposing values. It produces no stdout and leaves an existing output file unchanged; no new file is created. Only entries included after prefix filtering are validated.
+
+```js
+import { readFileSync } from 'node:fs';
+import { parseEnv } from 'node:util';
+
+const config = parseEnv(readFileSync('.env', 'utf8'));
+console.log(config.Features__Checkout);
+```
+
+Compatibility is guaranteed for `util.parseEnv` on Node 22 and 24 only. Other dotenv libraries, Docker CLI, and Docker Compose are not supported export targets. Node is not required to run the Nona CLI.
+
+To run the CLI development tests, install the .NET 10 SDK and Node.js 22 or 24 with `node` on `PATH`, then run from the repository root:
+
+```bash
+dotnet test cli/tests/Nona.Cli.Tests/Nona.Cli.Tests.csproj
+```
+
+The tests use the real `util.parseEnv` parser, including a deterministic 20,000-case corpus. They fail if Node is missing or its major version is unsupported. CI runs the complete suite on both Node versions; no npm packages are required for these parser tests.
 
 Manage immutable releases:
 

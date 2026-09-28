@@ -606,6 +606,7 @@ nona entries [command] [options]
 **Commands**
 
 - `list` List entries in an environment.
+- `export` Export entries in an environment to a plain KEY=VALUE file.
 - `get` Show one config entry.
 - `history` Show version history for an entry.
 - `set` Create or update an entry.
@@ -631,7 +632,53 @@ nona entries list [options]
 --project, --project-name <project-name>  Nona project name.
 --environment <environment>               Nona environment name, for example production.
 --prefix <prefix>                         Return only entries whose keys start with this prefix.
+--use-releases                            Read from a release. Without --release-version, use the active release.
+--release-version <release-version>       Exact release version, for example 1.2.3. Used only with --use-releases.
 ```
+
+With `--use-releases`, `--release-version` must be an exact `major.minor.patch` version (or omitted, to use the active release) — an admin bearer token cannot resolve a wildcard `1.2.x` selector. `--prefix` is applied client-side when reading from a release.
+
+## `nona entries export`
+
+Export entries in an environment to a plain KEY=VALUE file.
+
+**Usage**
+
+```text
+nona entries export [options]
+```
+
+**Options**
+
+```text
+--api-url, --base-url <base-url>          Nona base URL.
+--bearer-token, --token <bearer-token>    Admin bearer token.
+--project, --project-name <project-name>  Nona project name.
+--environment <environment>               Nona environment name, for example production.
+--prefix <prefix>                         Return only entries whose keys start with this prefix.
+--format <format>                         Output format. Only dotenv is supported today. [default: dotenv]
+--output-file <output-file>               Write output to this path (UTF-8, no BOM) instead of stdout.
+--use-releases                            Read from a release. Without --release-version, use the active release.
+--release-version <release-version>       Exact release version, for example 1.2.3. Used only with --use-releases.
+```
+
+The default and only format is dotenv for Node.js `util.parseEnv` on Node 22 and 24. Without `--output-file`, output goes to UTF-8 stdout. With `--output-file`, the CLI writes UTF-8 without a byte-order mark, avoiding shell re-encoding. Exports use LF separators and a final LF when nonempty.
+
+Colons become double underscores: `Features:Checkout` exports as `Features__Checkout=true`. Dots, dashes, leading digits, and Unicode names are retained where the supported parser preserves them. Duplicate mapped keys are rejected, ignoring case. Content type and scope are omitted; null values become empty strings. With `--use-releases`, the same exact-version-or-active-release rule and client-side `--prefix` filtering apply as for `entries list`.
+
+Successful exports reproduce every selected mapped key and value exactly with `util.parseEnv`. Values may be unquoted or wrapped in single quotes, backticks, or double quotes. Multiline values use actual line feeds; backslashes and `${VAR}` remain literal. Actual carriage returns, invalid UTF-16, and values with no safe quote representation are rejected. Keys are rejected if empty, invalid UTF-16, containing CR/LF or `=`, having leading/trailing ASCII spaces or tabs, starting with `#` or `export `, or equal to `__proto__`.
+
+Validation returns exit code `2` and reports affected keys and reasons on stderr without printing values. It emits no stdout, preserves an existing output file, and does not create a new file. Only selected entries are validated.
+
+```js
+import { readFileSync } from 'node:fs';
+import { parseEnv } from 'node:util';
+
+const config = parseEnv(readFileSync('.env', 'utf8'));
+console.log(config.Features__Checkout);
+```
+
+Other dotenv libraries, Docker CLI, and Docker Compose are outside this compatibility guarantee. Node is not required to run the Nona CLI.
 
 ## `nona entries get`
 
@@ -654,6 +701,8 @@ nona entries get [options]
 --use-releases                            Read from release parameters. Without --release-version, use the active release.
 --release-version <release-version>       Exact or wildcard release selector, for example 1.2.3 or 1.2.x. Used only with --use-releases.
 ```
+
+An API key accepts an exact version or a wildcard `major.minor.x` selector (highest patch in that line). An admin bearer token accepts an exact version or none (active release) — wildcards require an API key.
 
 ## `nona entries history`
 

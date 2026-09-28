@@ -1,6 +1,7 @@
 using System.CommandLine;
 using System.CommandLine.Builder;
 using System.CommandLine.Parsing;
+using System.Text;
 
 namespace Nona.Cli;
 
@@ -8,6 +9,8 @@ internal static class Program
 {
     private static async Task<int> Main(string[] args)
     {
+        Console.OutputEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+
         if (CliVersion.IsVersionRequest(args))
         {
             Console.Out.WriteLine(CliVersion.GetDisplayVersion());

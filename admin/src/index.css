@@ -394,6 +394,15 @@ select option {
   border-radius: 0.375rem;
 }
 
+@keyframes nona-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes nona-spin-reverse {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(-360deg); }
+}
+
 /* ── Command palette ───────────────────────────────────────────────────────── */
 @keyframes backdrop-in {
   from { opacity: 0; }
@@ -408,7 +417,7 @@ select option {
 
 /* ── Sidebar transition ────────────────────────────────────────────────────── */
 .sidebar-transition {
-  transition: width 0.25s ease, transform 0.3s ease;
+  transition: width 0.25s ease, translate 0.3s ease;
 }
 
 /* ── Flatpickr Dark Theme Customization ──────────────────────────────── */

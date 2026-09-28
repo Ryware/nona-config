@@ -34,6 +34,8 @@ jobs:
           distribution: temurin
           java-version: 17
       - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
       - uses: gradle/actions/setup-gradle@v4
       - name: Unit tests, Java API, lint and release artifacts
         working-directory: client/kotlin
@@ -59,7 +61,11 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
+      # Google removed the legacy 'tools' package from the SDK repository; the action's
+      # v3 default still requests it and fails with "Failed to find package 'tools'".
       - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
       - uses: gradle/actions/setup-gradle@v4
       - name: Enable KVM
         run: |
