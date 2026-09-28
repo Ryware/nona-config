@@ -158,6 +158,14 @@ console.log(config.Features__Checkout);
 
 Compatibility is guaranteed for `util.parseEnv` on Node 22 and 24 only. Other dotenv libraries, Docker CLI, and Docker Compose are not supported export targets. Node is not required to run the Nona CLI.
 
+To run the CLI development tests, install the .NET 10 SDK and Node.js 22 or 24 with `node` on `PATH`, then run from the repository root:
+
+```bash
+dotnet test cli/tests/Nona.Cli.Tests/Nona.Cli.Tests.csproj
+```
+
+The tests use the real `util.parseEnv` parser, including a deterministic 20,000-case corpus. They fail if Node is missing or its major version is unsupported. CI runs the complete suite on both Node versions; no npm packages are required for these parser tests.
+
 Manage immutable releases:
 
 ```bash

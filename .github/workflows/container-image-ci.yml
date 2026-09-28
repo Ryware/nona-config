@@ -101,8 +101,12 @@ jobs:
         run: npm run test:run
 
   test-cli:
-    name: Test CLI
+    name: Test CLI (Node ${{ matrix.node }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
 
     steps:
       - name: Checkout
@@ -114,6 +118,11 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.300
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
 
       - name: Run CLI tests
         run: dotnet test cli/tests/Nona.Cli.Tests/Nona.Cli.Tests.csproj
