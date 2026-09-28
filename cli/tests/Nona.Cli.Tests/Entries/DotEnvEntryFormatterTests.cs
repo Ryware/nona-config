@@ -147,13 +147,150 @@ public sealed class DotEnvEntryFormatterTests
     }
 
     [Test]
-    public async Task Format_DoubleQuotesAndEscapesValue_WhenItContainsBothQuoteCharacters()
+    public async Task Format_UsesBackticks_WhenItContainsBothQuoteCharacters()
     {
         var result = DotEnvEntryFormatter.Format([
             new ConfigEntryDto { Key = "K", Value = "it's \"ok\"  " }
         ]);
 
-        await Assert.That(result).IsEqualTo("K=\"it's \\\"ok\\\"  \"");
+        await Assert.That(result).IsEqualTo("K=`it's \"ok\"  `");
+    }
+
+    [Test]
+    [Arguments("`hello`", "'`hello`'")]
+    [Arguments("it's #ok", "`it's #ok`")]
+    [Arguments("it's `ok`#", "\"it's `ok`#\"")]
+    [Arguments("it's `ok`\\r#", "\"it's `ok`\\r#\"")]
+    [Arguments("line\none", "'line\none'")]
+    [Arguments("line'\none", "`line'\none`")]
+    [Arguments("line'`\none", "\"line'`\none\"")]
+    [Arguments("\\n\\r\\\\", "\\n\\r\\\\")]
+    [Arguments("trailing'", "trailing'")]
+    [Arguments("a'\"`b", "a'\"`b")]
+    [Arguments("\u00a0hello\u00a0", "\u00a0hello\u00a0")]
+    [Arguments("\t hello\t", "'\t hello\t'")]
+    [Arguments("${VAR}", "${VAR}")]
+    [Arguments("\0😀", "\0😀")]
+    [Arguments("", "''")]
+    public async Task Format_PreservesValueWithoutBackslashEscaping(string value, string representation)
+    {
+        await Assert.That(DotEnvEntryFormatter.Format([new() { Key = "K", Value = value }]))
+            .IsEqualTo($"K={representation}");
+    }
+
+    [Test]
+    [Arguments("a\rsecret", "carriage return")]
+    [Arguments("a'\"`#secret", "quote")]
+    [Arguments("a'`\\n#secret", "quote")]
+    public async Task Format_RejectsUnrepresentableValueWithoutDisclosingIt(string value, string reason)
+    {
+        var error = CaptureValidationError([new() { Key = "Secret:Key", Value = value }]);
+        await Assert.That(error).IsNotNull();
+        await Assert.That(error!.Message).Contains("Secret:Key");
+        await Assert.That(error.Message).Contains(reason);
+        await Assert.That(error.Message.Contains("secret", StringComparison.Ordinal)).IsFalse();
+    }
+
+    [Test]
+    public async Task Format_RejectsUnpairedSurrogatesInKeysAndValues()
+    {
+        foreach (var invalid in new[] { "\ud800", "\udfff", "\ud800x", "x\udfff", "\udfff\ud800" })
+        {
+            var keyError = CaptureValidationError([new() { Key = "K" + invalid, Value = "hidden" }]);
+            var valueError = CaptureValidationError([new() { Key = "K", Value = invalid + "hidden" }]);
+            await Assert.That(keyError).IsNotNull();
+            await Assert.That(valueError).IsNotNull();
+            await Assert.That(keyError!.Message).Contains("UTF-16");
+            await Assert.That(valueError!.Message).Contains("UTF-16");
+            await Assert.That(keyError.Message.Contains("hidden", StringComparison.Ordinal)).IsFalse();
+            await Assert.That(valueError.Message.Contains("hidden", StringComparison.Ordinal)).IsFalse();
+        }
+    }
+
+    [Test]
+    [Arguments(null)]
+    [Arguments("")]
+    [Arguments("__proto__")]
+    [Arguments("A=B")]
+    [Arguments("A\nB")]
+    [Arguments("A\rB")]
+    [Arguments(" K")]
+    [Arguments("K ")]
+    [Arguments("\tK")]
+    [Arguments("K\t")]
+    [Arguments("#K")]
+    [Arguments("export K")]
+    public async Task Format_RejectsKeysThatWouldBeChangedOrDropped(string? key)
+    {
+        var error = CaptureValidationError([new() { Key = key, Value = "hidden" }]);
+        await Assert.That(error).IsNotNull();
+        await Assert.That(error!.Message.Contains("hidden", StringComparison.Ordinal)).IsFalse();
+    }
+
+    [Test]
+    [Arguments("Group.One")]
+    [Arguments("Group-One")]
+    [Arguments("123")]
+    [Arguments("Ångström")]
+    [Arguments("constructor")]
+    [Arguments("toString")]
+    [Arguments("__PROTO__")]
+    [Arguments("K#middle")]
+    public async Task Format_RetainsSupportedUnusualNames(string key)
+    {
+        await Assert.That(DotEnvEntryFormatter.Format([new() { Key = key, Value = "ok" }]))
+            .IsEqualTo($"{key}=ok");
+    }
+
+    [Test]
+    public async Task Format_ReportsAllValueFailuresInStableOrder()
+    {
+        ConfigEntryDto[] entries = [
+            new() { Key = "Z", Value = "secret\r" },
+            new() { Key = "A", Value = "secret'\"`#" }
+        ];
+        var forward = CaptureValidationError(entries);
+        var reverse = CaptureValidationError(entries.Reverse());
+        await Assert.That(forward).IsNotNull();
+        await Assert.That(reverse).IsNotNull();
+        await Assert.That(forward!.Message).IsEqualTo(reverse!.Message);
+        await Assert.That(forward.Message.IndexOf("'A'", StringComparison.Ordinal)
+                          < forward.Message.IndexOf("'Z'", StringComparison.Ordinal)).IsTrue();
+        await Assert.That(forward.Message.Contains("secret", StringComparison.Ordinal)).IsFalse();
+    }
+
+    [Test]
+    public async Task Format_ValidatesKeysBeforeCollisionsAndValues_AndEscapesControls()
+    {
+        var error = CaptureValidationError([
+            new() { Key = "Z\n\u001b", Value = "hidden\r" },
+            new() { Key = "A\r", Value = "hidden" },
+            new() { Key = "Group:K", Value = "hidden\r" },
+            new() { Key = "Group__K", Value = "hidden" }
+        ]);
+        await Assert.That(error).IsNotNull();
+        await Assert.That(error!.Message).Contains("A\\r");
+        await Assert.That(error.Message).Contains("Z\\n\\u001b");
+        await Assert.That(error.Message.Contains('\n')).IsFalse();
+        await Assert.That(error.Message.Contains('\u001b')).IsFalse();
+        await Assert.That(error.Message.Contains("duplicate", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(error.Message.Contains("hidden", StringComparison.Ordinal)).IsFalse();
+    }
+
+    [Test]
+    public async Task Format_ValidatesCollisionsBeforeValues()
+    {
+        var error = CaptureValidationError([
+            new() { Key = "Group:K", Value = "hidden\r" },
+            new() { Key = "Group__K", Value = "hidden" }
+        ]);
+        await Assert.That(error is DotEnvKeyCollisionException).IsTrue();
+    }
+
+    private static DotEnvExportValidationException? CaptureValidationError(IEnumerable<ConfigEntryDto> entries)
+    {
+        try { DotEnvEntryFormatter.Format(entries); return null; }
+        catch (DotEnvExportValidationException error) { return error; }
     }
 
     [Test]

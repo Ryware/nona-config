@@ -17,7 +17,7 @@ internal sealed record ExportEntriesQuery(
 
 internal sealed class ExportEntriesQueryHandler(Func<HttpClient>? httpClientFactory = null)
 {
-    private static readonly UTF8Encoding Utf8NoBom = new(encoderShouldEmitUTF8Identifier: false);
+    private static readonly UTF8Encoding Utf8NoBom = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
 
     public async Task<int> HandleAsync(ExportEntriesQuery query, CancellationToken ct)
     {
@@ -57,7 +57,7 @@ internal sealed class ExportEntriesQueryHandler(Func<HttpClient>? httpClientFact
         {
             content = DotEnvEntryFormatter.Format(entries);
         }
-        catch (DotEnvKeyCollisionException error)
+        catch (DotEnvExportValidationException error)
         {
             Console.Error.WriteLine(error.Message);
             return CliExitCodes.ValidationError;

@@ -123,9 +123,10 @@ public sealed class ReleasePrefixTests
                     ReleaseVersion: "1.2.0"), CancellationToken.None));
 
         await Assert.That(listResult).IsEqualTo(CliExitCodes.Success);
-        await Assert.That(exportResult).IsEqualTo(CliExitCodes.Success);
+        await Assert.That(exportResult).IsEqualTo(key is null && matches
+            ? CliExitCodes.ValidationError : CliExitCodes.Success);
         await Assert.That(listOutput.Contains("    Value:        value", StringComparison.Ordinal)).IsEqualTo(matches);
-        await Assert.That(exportOutput).IsEqualTo(matches ? $"{key}=value\n" : string.Empty);
+        await Assert.That(exportOutput).IsEqualTo(matches && key is not null ? $"{key}=value\n" : string.Empty);
     }
 
     private static Func<HttpClient> ReleaseHttp(bool activeRelease, string release)

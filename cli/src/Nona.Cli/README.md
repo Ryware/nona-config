@@ -133,14 +133,30 @@ An API key additionally supports the wildcard `major.minor.x` selector (highest 
 
 Prefix matching ignores ASCII letter casing for both working entries and releases. Colons, dots, underscores, and dashes match literally. Prefixes may contain ASCII letters, digits, colons, dots, underscores, and dashes. An invalid prefix prints the API validation error and exits with code `2`.
 
-Export entries to a plain `KEY="value"` file, for example to hand off to a teammate or edit locally:
+Export entries to a dotenv file for Node.js `util.parseEnv` on Node 22 and 24:
 
 ```bash
 nona entries export --project mobile-app --environment production --base-url https://nona.example.com --token <token>
 nona entries export --project mobile-app --environment production --prefix Features: --output-file .env --base-url https://nona.example.com --token <token>
 ```
 
-Without `--output-file`, the formatted output is written to stdout. With `--output-file`, the CLI writes the file itself as UTF-8 without a byte-order mark, rather than relying on shell redirection (`> .env`) to get the encoding right — Windows PowerShell's `>`/`Out-File` has historically defaulted to UTF-16LE with a BOM in common configurations, which most dotenv parsers can't read correctly. Keys are written literally (e.g. `Features:Checkout="true"`), unmodified — dotenv libraries treat the key as an arbitrary string, not a shell identifier. Content type and scope are not part of the output; dotenv has no such concept.
+`--format dotenv` is the default and only export format. Without `--output-file`, output goes to UTF-8 stdout. With `--output-file`, the CLI writes UTF-8 without a byte-order mark. Use the file option to avoid shell re-encoding, especially in older Windows PowerShell versions. Exports use LF separators and a final LF when nonempty.
+
+Colons in keys become double underscores: `Features:Checkout` exports as `Features__Checkout=true`. Dots, dashes, leading digits, and Unicode names are retained where the supported parser preserves them. Duplicate mapped keys are rejected, ignoring case. Content type and scope are omitted; null values become empty strings.
+
+A successful export preserves every selected key and value when read with `util.parseEnv`. Values are unquoted or wrapped in single quotes, backticks, or double quotes as needed. Actual multiline values stay multiline; backslashes and `${VAR}` remain literal. Values containing actual carriage returns, invalid UTF-16, or combinations that cannot be safely quoted are rejected. Keys are rejected if empty, invalid UTF-16, containing CR/LF or `=`, having leading/trailing ASCII spaces or tabs, starting with `#` or `export `, or equal to `__proto__`.
+
+Validation exits with code `2` and reports affected keys and reasons on stderr without exposing values. It produces no stdout and leaves an existing output file unchanged; no new file is created. Only entries included after prefix filtering are validated.
+
+```js
+import { readFileSync } from 'node:fs';
+import { parseEnv } from 'node:util';
+
+const config = parseEnv(readFileSync('.env', 'utf8'));
+console.log(config.Features__Checkout);
+```
+
+Compatibility is guaranteed for `util.parseEnv` on Node 22 and 24 only. Other dotenv libraries, Docker CLI, and Docker Compose are not supported export targets. Node is not required to run the Nona CLI.
 
 Manage immutable releases:
 

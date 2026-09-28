@@ -662,7 +662,23 @@ nona entries export [options]
 --release-version <release-version>       Exact release version, for example 1.2.3. Used only with --use-releases.
 ```
 
-Without `--output-file`, the formatted output is written to stdout. With `--output-file`, the CLI writes the file itself as UTF-8 without a byte-order mark, rather than relying on shell redirection to get the encoding right. Keys are written literally, unmodified (for example `Features:Checkout="true"`). Content type and scope are not part of the output. With `--use-releases`, the same exact-version-or-active-release rule and client-side `--prefix` filtering apply as for `entries list`.
+The default and only format is dotenv for Node.js `util.parseEnv` on Node 22 and 24. Without `--output-file`, output goes to UTF-8 stdout. With `--output-file`, the CLI writes UTF-8 without a byte-order mark, avoiding shell re-encoding. Exports use LF separators and a final LF when nonempty.
+
+Colons become double underscores: `Features:Checkout` exports as `Features__Checkout=true`. Dots, dashes, leading digits, and Unicode names are retained where the supported parser preserves them. Duplicate mapped keys are rejected, ignoring case. Content type and scope are omitted; null values become empty strings. With `--use-releases`, the same exact-version-or-active-release rule and client-side `--prefix` filtering apply as for `entries list`.
+
+Successful exports reproduce every selected mapped key and value exactly with `util.parseEnv`. Values may be unquoted or wrapped in single quotes, backticks, or double quotes. Multiline values use actual line feeds; backslashes and `${VAR}` remain literal. Actual carriage returns, invalid UTF-16, and values with no safe quote representation are rejected. Keys are rejected if empty, invalid UTF-16, containing CR/LF or `=`, having leading/trailing ASCII spaces or tabs, starting with `#` or `export `, or equal to `__proto__`.
+
+Validation returns exit code `2` and reports affected keys and reasons on stderr without printing values. It emits no stdout, preserves an existing output file, and does not create a new file. Only selected entries are validated.
+
+```js
+import { readFileSync } from 'node:fs';
+import { parseEnv } from 'node:util';
+
+const config = parseEnv(readFileSync('.env', 'utf8'));
+console.log(config.Features__Checkout);
+```
+
+Other dotenv libraries, Docker CLI, and Docker Compose are outside this compatibility guarantee. Node is not required to run the Nona CLI.
 
 ## `nona entries get`
 
