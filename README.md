@@ -420,4 +420,4 @@ Issues and pull requests are welcome. See the [issues tracker](https://github.co
 
 [Apache 2.0](LICENSE.txt) — free to use, self-host, and modify.
 
-Built by [Ryware.dev](https://ryware.dev)
+Built by [Ryware.dev](https://ryware.dev). Also from Ryware: [Decim](https://decim.dev), find out why your data pipeline broke.
