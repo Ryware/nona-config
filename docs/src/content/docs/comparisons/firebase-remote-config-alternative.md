@@ -1,9 +1,13 @@
 ---
-title: Firebase Remote Config Alternative
-description: Compare Nona and Firebase Remote Config for self-hosting, open source control, HTTP access, Docker deployment, and migration paths.
+title: Best Firebase Remote Config Alternatives (2026)
+description: "Compare the best Firebase Remote Config alternatives in 2026: open source, self-hosted Nona plus LaunchDarkly, Flagsmith, Unleash, GrowthBook and more."
 ---
 
-Nona is an open source, self-hosted Firebase Remote Config alternative. It solves a similar class of problems, but the product model is different. If your team is evaluating Firebase Remote Config alternatives, the real question is usually not just "can this store runtime values?" It is:
+Nona is an open source, self-hosted Firebase Remote Config alternative. This page compares Nona with Firebase Remote Config in detail and gives a short, neutral overview of the [other alternatives](#other-firebase-remote-config-alternatives) teams usually shortlist.
+
+Ready to switch? See [Switch from Firebase Remote Config to self-hosted Nona](https://nonaconfig.com/firebase-remote-config-alternative) for the overview, or jump straight to the [migration guide](/docs/migration/firebase-remote-config).
+
+Nona solves a similar class of problems to Firebase Remote Config, but the product model is different. If your team is evaluating Firebase Remote Config alternatives, the real question is usually not just "can this store runtime values?" It is:
 
 - can we run it ourselves?
 - can we manage feature flags as well as remote config?
@@ -41,6 +45,30 @@ Firebase Remote Config is still the more natural fit when your team wants to sta
 ## Where Nona fits best
 
 Nona is strongest when your team wants self-hosted runtime config, self-hosted feature flags, one system for boolean flags and structured runtime values, plain HTTP access, Docker-first deployment, project and environment isolation, and rollback with auditability. It works well for web apps, mobile apps, backend services, teams moving off Firebase, and teams that want simpler infrastructure than a larger hosted feature-flag platform.
+
+## Other Firebase Remote Config alternatives
+
+Nona is not the only option. These are the tools teams most often compare when moving off Firebase Remote Config. They differ mainly in hosting model, licensing, and how far they go beyond flags and config into experimentation.
+
+| Alternative | Hosting | Open source | Best known for |
+|---|---|---|---|
+| Nona | Self-hosted | Yes | Remote config and feature flags in one Docker-first service, with a Firebase migration CLI |
+| Flagsmith | Hosted or self-hosted | Yes | Feature flags and remote config with a hosted option |
+| Unleash | Hosted or self-hosted | Yes | Feature flag management and rollout strategies |
+| GrowthBook | Hosted or self-hosted | Yes | Feature flags combined with A/B testing and experiment analysis |
+| LaunchDarkly | Hosted | No | Commercial feature management platform with targeting and experimentation |
+| ConfigCat | Hosted | No | Hosted feature flag and configuration service with SDKs for many platforms |
+| AWS AppConfig | AWS-managed | No | Deploying application configuration and feature flags inside AWS |
+
+How to narrow the list:
+
+- **You want to run it yourself and keep the source open:** Nona, Flagsmith, Unleash, and GrowthBook are the options to compare.
+- **You want a fully managed service and do not need self-hosting:** LaunchDarkly and ConfigCat are hosted products; Flagsmith, Unleash, and GrowthBook also offer hosted plans.
+- **Experimentation and A/B testing are the main goal:** GrowthBook and LaunchDarkly put more emphasis there. Nona does not try to be an experimentation platform.
+- **Your infrastructure is already on AWS:** AWS AppConfig fits naturally into that environment.
+- **You mainly need remote config plus flags, plain HTTP reads, and a migration path from Firebase:** that is the case Nona is built for.
+
+Features and plans of these products change, so check each vendor's current documentation before you decide.
 
 ## How to try Nona first
 
