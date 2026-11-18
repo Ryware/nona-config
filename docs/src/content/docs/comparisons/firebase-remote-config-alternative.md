@@ -70,6 +70,23 @@ How to narrow the list:
 
 Features and plans of these products change, so check each vendor's current documentation before you decide.
 
+## Firebase Remote Config vs LaunchDarkly
+
+Firebase Remote Config and LaunchDarkly are often compared, but they are built for different jobs. Firebase Remote Config is a Google-hosted part of Firebase for changing app behaviour without a release. LaunchDarkly is a commercial feature management platform for teams running flags across many services.
+
+| Topic | Firebase Remote Config | LaunchDarkly |
+|---|---|---|
+| Hosting | Google-hosted, inside a Firebase project | Hosted by LaunchDarkly |
+| Pricing | No charge as part of Firebase | Commercial subscription |
+| SDKs | Firebase SDKs for Android, Apple platforms, web, Flutter, Unity and C++, plus Admin SDK access for servers | Server-side, client-side, mobile and edge SDKs for many languages |
+| Targeting | Conditions on app version, platform, country, user properties and Google Analytics audiences, plus percentage rollouts | Targeting rules, reusable segments and percentage rollouts on any context attribute |
+| Experiments | Through Firebase A/B Testing with Google Analytics | Built-in experimentation, depending on plan |
+| Change control | Template versions and rollback | Approvals, scheduled changes, audit log and environment workflows, depending on plan |
+
+Firebase Remote Config fits mobile and web apps that already use Firebase and Google Analytics and want remote config at no extra cost. LaunchDarkly fits organisations that need governed feature management across many teams and services, with experimentation, and have budget for a commercial platform.
+
+Nona sits apart from both: it is open source and self-hosted, for teams that want remote config and feature flags on their own infrastructure, read over plain HTTP, without a Google dependency or a commercial license. It does not offer LaunchDarkly-style experimentation or Firebase's Analytics audiences.
+
 ## How to try Nona first
 
 The fastest evaluation path is:
