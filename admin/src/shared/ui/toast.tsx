@@ -1,6 +1,6 @@
 import { createTimer } from "@solid-primitives/timer";
 import { createContext, useContext, For, type ParentComponent } from "solid-js";
-import { createStore } from "solid-js/store";
+import { createStore } from "solid-js";
 import { Tooltip, TooltipTrigger } from "./tooltip";
 
 export type ToastType = "success" | "error" | "info" | "warning";

@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/solid-query";
 import { createEffect, createMemo, createSignal, onMount, Show } from "solid-js";
-import { createStore } from "solid-js/store";
+import { createStore } from "solid-js";
 import { configEntryService } from "../../entities/project/api/config-entry.service";
 import { useUnsavedChanges, useUnsavedChangesBlocker } from "../../shared/hooks/useUnsavedChanges";
 import { Button } from "../../shared/ui/button";

@@ -1,6 +1,6 @@
 import { createEffect, type JSXElement, Show } from "solid-js";
 import { createSignal } from "solid-js";
-import { Portal } from "solid-js/web";
+import { Portal } from "@solidjs/web";
 import { Button } from "../../shared/ui/button";
 import { MIcon } from "../../shared/ui/icons";
 import { TooltipLabel } from "../../shared/ui/tooltip";
