@@ -1,5 +1,5 @@
-import { MetaProvider } from "@solidjs/meta";
-import { Route, Router } from "@solidjs/router";
+import { MetaProvider } from '../test-router';
+import { Route, Router } from '../test-router';
 import { fireEvent, render, screen, waitFor } from "@solidjs/testing-library";
 import { QueryClient, QueryClientProvider } from "@tanstack/solid-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -71,6 +71,7 @@ describe("CliLoginPage", () => {
 
     fireEvent.input(screen.getByLabelText(/email/i), { target: { value: "admin@example.com" } });
     fireEvent.input(screen.getByLabelText(/^password$/i), { target: { value: "password" } });
+    await Promise.resolve();
     fireEvent.click(screen.getByRole("button", { name: /login to console/i }));
     const authorize = await screen.findByRole("button", { name: "Authorize CLI" });
     expect(window.location.pathname).toBe("/cli-login");

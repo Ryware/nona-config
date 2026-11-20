@@ -1,4 +1,5 @@
-import { For, Show, createMemo, splitProps } from "solid-js";
+import { For, Show, createMemo } from "solid-js";
+import { splitProps } from "../../shared/lib/split-props";
 
 import type { ConfigRelease } from "../../types";
 import { MajorReleaseGroup } from "./MajorReleaseGroup";

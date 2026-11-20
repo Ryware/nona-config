@@ -1,7 +1,8 @@
 import { writeClipboard } from "@solid-primitives/clipboard";
 import { useLocation, useNavigate, useParams, useSearchParams } from "@solidjs/router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/solid-query";
-import { Show, createEffect, createMemo, createSignal, on } from "solid-js";
+import { Show, createTrackedEffect, createMemo, createSignal } from "solid-js";
+import { onSource } from "../../../shared/lib/on-source";
 
 import { configEntryService } from "../../../entities/project/api/config-entry.service";
 import { configReleaseService } from "../../../entities/project/api/config-release.service";
@@ -263,7 +264,7 @@ export default function ParametersSection() {
     );
   });
 
-  createEffect(() => {
+  createTrackedEffect(() => {
     const environmentKey = activeEnvironmentKey();
     const currentConfigEntries = configQuery.status === "success" ? (configQuery.data ?? []) : [];
     const hasAutoOpened = environmentKey
@@ -294,7 +295,7 @@ export default function ParametersSection() {
     }
   });
 
-  createEffect(on(
+  createTrackedEffect(onSource(
     () => `${project()?.urlSlug ?? ""}:${activeEnvName()}`,
     () => {
       setEditingEntry(null);
@@ -444,7 +445,7 @@ export default function ParametersSection() {
     setGeneratedShareUrl(null);
   };
 
-  createEffect(on(isDefaultParametersView, isDefaultView => {
+  createTrackedEffect(onSource(isDefaultParametersView, isDefaultView => {
     if (!isDefaultView) closeShareDialog();
   }));
 
@@ -543,7 +544,7 @@ export default function ParametersSection() {
   const restoreVersion = async (version: ConfigEntryVersion) => {
     const entry = editingEntry();
     if (!entry) return;
-    return rollbackConfigMutation.mutateAsync({
+    return rollbackConfigMutation.mutate({
       target: currentMutationTarget(),
       key: entry.key,
       version: version.version
@@ -620,7 +621,7 @@ export default function ParametersSection() {
     if (!canManageProject()) throw new Error("You do not have permission to manage parameters.");
 
     if (showConfigForm()) {
-      return createConfigMutation.mutateAsync({
+      return createConfigMutation.mutate({
         target: currentMutationTarget(),
         entry: {
           key: data.key,
@@ -635,7 +636,7 @@ export default function ParametersSection() {
 
     const selected = editingEntry();
     if (!selected) throw new Error("No parameter selected.");
-    return updateConfigMutation.mutateAsync({
+    return updateConfigMutation.mutate({
       target: currentMutationTarget(),
       entry: {
         key: selected.key,
@@ -779,7 +780,7 @@ export default function ParametersSection() {
               onUpdateValue: async (entry, value) => {
                 setUpdatingValueKey(entry.key);
                 try {
-                  await updateConfigMutation.mutateAsync({
+                  await updateConfigMutation.mutate({
                     target: currentMutationTarget(),
                     entry: {
                       key: entry.key,

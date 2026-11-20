@@ -1,7 +1,7 @@
 import { createUserTheme } from "@solid-primitives/cookies";
 import {
   createContext,
-  createEffect,
+  createTrackedEffect,
   type Accessor,
   type ParentProps,
   useContext,
@@ -37,7 +37,7 @@ export function ThemeProvider(props: ParentProps) {
     defaultValue: DEFAULT_THEME
   });
 
-  createEffect(() => {
+  createTrackedEffect(() => {
     applyTheme(theme());
   });
 
@@ -46,9 +46,9 @@ export function ThemeProvider(props: ParentProps) {
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>
+    <ThemeContext value={{ theme, setTheme, toggleTheme }}>
       {props.children}
-    </ThemeContext.Provider>
+    </ThemeContext>
   );
 }
 

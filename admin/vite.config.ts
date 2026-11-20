@@ -1,5 +1,5 @@
 import { defineConfig, loadEnv } from 'vite'
-import solid from 'vite-plugin-solid'
+import solid from '@solidjs/vite-plugin'
 import { visualizer } from 'rollup-plugin-visualizer'
 
 export default defineConfig(({ mode }) => {
@@ -20,7 +20,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [
-      solid({ hot: !process.env['VITEST'] }),
+      solid(),
       ...(isAnalyze
         ? [visualizer({ open: true, filename: 'dist/stats.html', gzipSize: true })]
         : []),

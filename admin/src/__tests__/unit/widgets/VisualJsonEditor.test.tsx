@@ -11,6 +11,7 @@ describe("VisualJsonEditor", () => {
     });
 
     fireEvent.click(await screen.findByTestId("visual-json-editor-add-item"));
+    await Promise.resolve();
 
     expect(screen.getAllByPlaceholderText("Key")).toHaveLength(2);
   });
@@ -22,6 +23,7 @@ describe("VisualJsonEditor", () => {
     });
 
     fireEvent.click(await screen.findByTestId("visual-json-editor-add-item"));
+    await Promise.resolve();
 
     const keyInputs = screen.getAllByPlaceholderText("Key") as HTMLInputElement[];
     keyInputs[1].focus();

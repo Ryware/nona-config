@@ -50,6 +50,7 @@ describe('ProjectReleasesSection', () => {
     fireEvent.input(await screen.findByTestId('release-version-input'), {
       target: { value: '1.2' },
     });
+    await Promise.resolve();
     fireEvent.click(screen.getByTestId('release-version-confirm-button'));
 
     expect(await screen.findByTestId('release-create-panel')).toBeInTheDocument();
@@ -107,12 +108,14 @@ describe('ProjectReleasesSection', () => {
     fireEvent.input(await screen.findByTestId('release-version-input'), {
       target: { value: '1.2' },
     });
+    await Promise.resolve();
     fireEvent.click(screen.getByTestId('release-version-confirm-button'));
 
     const createRelease = await screen.findByTestId('release-create-confirm-button');
     await waitFor(() => expect(createRelease).toBeEnabled());
     const input = screen.getByTestId('parameter-value-input-API_URL');
     fireEvent.input(input, { target: { value: 'https://retry.example.com' } });
+    await Promise.resolve();
     fireEvent.click(screen.getByTestId('parameter-update-API_URL'));
     await waitFor(() => expect(createRelease).toBeEnabled());
     fireEvent.click(createRelease);
@@ -161,6 +164,7 @@ describe('ProjectReleasesSection', () => {
     await waitFor(() => expect(createRelease).toBeEnabled());
     const input = screen.getByTestId('parameter-value-input-API_URL');
     fireEvent.input(input, { target: { value: 'https://draft.example.com' } });
+    await Promise.resolve();
 
     expect(screen.getByTestId('parameter-update-API_URL')).toHaveTextContent('Apply to draft');
     expect(createRelease).toBeDisabled();
@@ -198,6 +202,7 @@ describe('ProjectReleasesSection', () => {
     fireEvent.input(screen.getByTestId('parameter-value-input-FEATURE_FLAGS'), {
       target: { value: '{invalid' },
     });
+    await Promise.resolve();
 
     expect(screen.getByTestId('parameter-update-FEATURE_FLAGS')).toBeDisabled();
     expect(createRelease).toBeDisabled();
@@ -245,6 +250,7 @@ describe('ProjectReleasesSection', () => {
     fireEvent.input(screen.getByTestId('parameter-edit-description-input'), {
       target: { value: 'Draft-only parameter' },
     });
+    await Promise.resolve();
     expect(screen.getByTestId('release-create-confirm-button')).toBeDisabled();
     expect(
       screen.getByText('Save or discard parameter editor changes before creating the release.'),
@@ -474,6 +480,7 @@ describe('ProjectReleasesSection', () => {
     fireEvent.input(input, {
       target: { value: '{"enabled":' },
     });
+    await Promise.resolve();
     expect(input).toHaveValue('{"enabled":');
     expect(screen.getByRole('alert')).toHaveTextContent(/invalid json:/i);
     expect(screen.getByTestId('parameter-update-json.settings')).toBeDisabled();
@@ -535,6 +542,7 @@ describe('ProjectReleasesSection', () => {
 
     fireEvent.click(await screen.findByTestId('release-amend-1.1.0'));
     fireEvent.click(await screen.findByRole('switch', { name: 'Value for feature.x' }));
+    await Promise.resolve();
 
     const apply = screen.getByTestId('parameter-update-feature.x');
     expect(apply).toHaveTextContent('Apply to draft');
@@ -544,12 +552,15 @@ describe('ProjectReleasesSection', () => {
     expect(publishRequest).toBeUndefined();
 
     fireEvent.click(screen.getByRole('switch', { name: 'Value for feature.x' }));
+    await Promise.resolve();
     expect(screen.getByTestId('release-amend-confirm-button')).toBeEnabled();
     expect(screen.queryByText('Apply or revert inline edits before creating the release.')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('switch', { name: 'Value for feature.x' }));
+    await Promise.resolve();
     expect(screen.getByTestId('release-amend-confirm-button')).toBeDisabled();
     fireEvent.click(apply);
+    await Promise.resolve();
     expect(screen.getByTestId('release-amend-confirm-button')).toBeEnabled();
     expect(screen.queryByText('Apply or revert inline edits before creating the release.')).not.toBeInTheDocument();
     fireEvent.click(screen.getByTestId('release-amend-confirm-button'));
@@ -595,7 +606,9 @@ describe('ProjectReleasesSection', () => {
     renderProjectSections('/projects/my-app/releases');
     fireEvent.click(await screen.findByTestId('release-amend-1.1.0'));
     fireEvent.click(await screen.findByRole('switch', { name: 'Value for feature.x' }));
+    await Promise.resolve();
     fireEvent.click(screen.getByTestId('parameter-update-feature.x'));
+    await Promise.resolve();
     fireEvent.click(screen.getByTestId('release-amend-confirm-button'));
 
     expect(await screen.findByText('Temporary publish failure')).toBeInTheDocument();
@@ -619,7 +632,9 @@ describe('ProjectReleasesSection', () => {
     fireEvent.click(await screen.findByTestId('release-amend-1.1.0'));
     const input = await screen.findByTestId('parameter-value-input-API_URL');
     fireEvent.input(input, { target: { value: 'https://amended.example.com' } });
+    await Promise.resolve();
     fireEvent.click(screen.getByTestId('parameter-update-API_URL'));
+    await Promise.resolve();
     fireEvent.click(screen.getByTestId('release-amend-cancel-button'));
 
     expect(await screen.findByTestId('parameter-discard-dialog')).toBeInTheDocument();

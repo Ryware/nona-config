@@ -1,4 +1,4 @@
-import { createSignal, onMount, Show } from "solid-js";
+import { createSignal, onSettled, Show } from "solid-js";
 import { authStore } from "../../entities/auth/model/store";
 import { Button } from "../../shared/ui/button";
 import type { LoginResponse } from "../../types";
@@ -22,7 +22,7 @@ export default function CliLoginPage() {
   const parsed = parseCliLoginRequest(window.location.search);
   const [pending, setPending] = createSignal<CliLoginCallback>();
 
-  onMount(() => {
+  onSettled(() => {
     if (!parsed.request || !authStore.isAuthenticated()) return;
 
     const token = authStore.getToken();

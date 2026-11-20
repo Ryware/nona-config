@@ -1,5 +1,5 @@
-import type { JSX } from "solid-js";
-import { onMount, Show } from "solid-js";
+import type { JSX } from "@solidjs/web";
+import { onSettled, Show } from "solid-js";
 import { MIcon } from "../../shared/ui/icons";
 import { Input } from "../../shared/ui/input";
 import type { ConfigEntry } from "../../types";
@@ -35,7 +35,7 @@ export function clearLegacyParameterDensityPreference() {
 }
 
 export function ProjectParamsTab(props: ProjectParamsTabProps) {
-  onMount(clearLegacyParameterDensityPreference);
+  onSettled(clearLegacyParameterDensityPreference);
 
   return (
     <section

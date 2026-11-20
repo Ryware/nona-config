@@ -1,6 +1,6 @@
 import { useParams } from "@solidjs/router";
 import { useQuery } from "@tanstack/solid-query";
-import { createEffect, createMemo } from "solid-js";
+import { createTrackedEffect, createMemo } from "solid-js";
 
 import { canManageProjects } from "../../../entities/auth/model/permissions";
 import { environmentService } from "../../../entities/project/api/environment.service";
@@ -30,7 +30,7 @@ export function useProjectContext() {
 
   const projectId = createMemo(() => project()?.name ?? "");
 
-  createEffect(() => {
+  createTrackedEffect(() => {
     if (project()) {
       setActiveProjectSlug(project()!.urlSlug);
     }
@@ -55,7 +55,7 @@ export function useProjectContext() {
     enabled: !!project()
   }));
 
-  createEffect(() => {
+  createTrackedEffect(() => {
     const currentProject = project();
     const environments =
       environmentsQuery.status === "success" ? (environmentsQuery.data ?? []) : undefined;

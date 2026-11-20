@@ -1,7 +1,7 @@
 import { Title } from "@solidjs/meta";
 import { useLocation, useNavigate } from "@solidjs/router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/solid-query";
-import { createEffect, createMemo, createSignal, Show } from "solid-js";
+import { createTrackedEffect, createMemo, createSignal, Show } from "solid-js";
 import { canManageProjects } from "../../entities/auth/model/permissions";
 import { projectService } from "../../entities/project/api/project.service";
 import { syncActiveProject } from "../../entities/project/model/active-project";
@@ -66,13 +66,13 @@ export default function ProjectsPage() {
     );
   });
 
-  createEffect(() => {
+  createTrackedEffect(() => {
     if (projectsQuery.status === "success") {
       syncActiveProject(allProjects());
     }
   });
 
-  createEffect(() => {
+  createTrackedEffect(() => {
     const shouldAutoOpen =
       projectsQuery.status === "success" &&
       allowProjectManagement &&
@@ -89,7 +89,7 @@ export default function ProjectsPage() {
     }
   });
 
-  createEffect(() => {
+  createTrackedEffect(() => {
     if (new URLSearchParams(location.search).get("new") === "1") {
       setShowCreate(allowProjectManagement);
       navigate("/projects", { replace: true });

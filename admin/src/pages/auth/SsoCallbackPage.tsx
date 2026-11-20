@@ -1,5 +1,5 @@
 import { useNavigate, useParams, useSearchParams } from "@solidjs/router";
-import { onMount, Show } from "solid-js";
+import { onSettled, Show } from "solid-js";
 import { createSignal } from "solid-js";
 import { authService } from "../../entities/auth/api/auth.service";
 import { consumeGoogleRedirectCredential } from "../../entities/auth/api/google-sso";
@@ -19,7 +19,7 @@ export default function SsoCallbackPage() {
   const [searchParams] = useSearchParams();
   const [terminalError, setTerminalError] = createSignal("");
 
-  onMount(() => {
+  onSettled(() => {
     void finishRedirect();
   });
 

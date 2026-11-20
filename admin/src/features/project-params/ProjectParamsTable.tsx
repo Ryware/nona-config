@@ -1,5 +1,6 @@
+import { ariaBoolean } from "../../shared/lib/aria";
 import { createMediaQuery } from "@solid-primitives/media";
-import { For, Index, Show, createEffect, createMemo, createSignal, on, untrack } from "solid-js";
+import { For, Show, createEffect, createMemo, createSignal, untrack } from "solid-js";
 import type { ConfigEntry } from "../../types";
 import { cn } from "../../shared/lib/utils";
 import { MIcon } from "../../shared/ui/icons";
@@ -55,10 +56,10 @@ function ParameterRow(props: {
   const valueError = createMemo(() => getConfigEntryValueError(props.entry.contentType, currentValue()));
   const isDirty = () => currentValue() !== props.entry.value;
 
-  createEffect(on(
-    () => [props.entry.key, props.entry.value] as const,
-    ([key, value]) => {
-      if (isControlled()) return;
+  createEffect(
+    () => [props.entry.key, props.entry.value, isControlled()] as const,
+    ([key, value, controlled]) => {
+      if (controlled) return;
       if (
         submittedKey === key
         && submittedValue !== undefined
@@ -69,7 +70,7 @@ function ParameterRow(props: {
       submittedKey = undefined;
       submittedValue = undefined;
     }
-  ));
+  );
 
   const update = async () => {
     if (!props.table.onUpdateValue || !isDirty() || valueError()) return;
@@ -242,7 +243,7 @@ function TreeBranch(props: {
         <button
           data-testid={`parameter-group-${props.node.id}`}
           type="button"
-          aria-expanded={!isCollapsed()}
+          aria-expanded={ariaBoolean(!isCollapsed())}
           onClick={() => props.toggle(props.node.id)}
           class="border-outline-variant/10 bg-surface-container-lowest text-on-surface flex h-9 w-full cursor-pointer items-center gap-2 border-b px-3 text-left text-[13px] font-semibold"
           style={{ "padding-left": `${props.node.depth * 14 + 12}px` }}
@@ -261,7 +262,7 @@ function TreeBranch(props: {
               />
             )}
           </Show>
-          <Index each={props.node.children}>
+          <For each={props.node.children} keyed={false}>
             {child => (
               <TreeBranch
                 node={child()}
@@ -271,7 +272,7 @@ function TreeBranch(props: {
                 searching={props.searching}
               />
             )}
-          </Index>
+          </For>
         </Show>
       </Show>
     </>
@@ -283,10 +284,10 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
   const tree = createMemo(() => buildParameterTree(props.filteredConfig));
   const [collapsed, setCollapsed] = createSignal<Set<string>>(new Set());
 
-  createEffect(on(
+  createEffect(
     () => [props.projectId, props.activeEnvName] as const,
-    ([projectId, environmentName]) => setCollapsed(readCollapsed(projectId, environmentName))
-  ));
+    ([projectId, environmentName]) => { setCollapsed(readCollapsed(projectId, environmentName)); }
+  );
 
   const toggle = (id: string) => {
     const next = new Set(collapsed());
@@ -328,7 +329,7 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
       </Show>
 
       <Show when={!props.isLoading}>
-        <Index each={tree()}>
+        <For each={tree()} keyed={false}>
           {node => (
             <TreeBranch
               node={node()}
@@ -338,7 +339,7 @@ export function ProjectParamsTable(props: ProjectParamsTableProps) {
               searching={props.search.trim().length > 0}
             />
           )}
-        </Index>
+        </For>
       </Show>
 
       <Show when={!props.isLoading && props.search && props.filteredConfig.length === 0}>

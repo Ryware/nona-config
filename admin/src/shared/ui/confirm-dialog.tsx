@@ -1,12 +1,12 @@
 import { createEventListener } from "@solid-primitives/event-listener";
-import type { JSXElement } from "solid-js";
+import type { Element } from "solid-js";
 import { Show } from "solid-js";
 import { GearSpinner } from "./Skeleton";
 
 interface ConfirmDialogProps {
   open: boolean;
   title: string;
-  message: string | JSXElement;
+  message: string | Element;
   confirmLabel?: string;
   cancelLabel?: string;
   variant?: "danger" | "warning" | "info";

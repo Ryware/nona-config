@@ -6,7 +6,6 @@ type ActiveEnvironmentMap = Record<string, string>;
 
 function createActiveEnvironment() {
   const [activeEnvironmentByProject, setActiveEnvironmentByProject] = makePersisted(
-    // eslint-disable-next-line solid/reactivity -- persisted signal intentionally lives at module scope.
     createSignal<ActiveEnvironmentMap>({}),
     { name: "active_environment_by_project" }
   );

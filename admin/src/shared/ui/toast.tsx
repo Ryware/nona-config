@@ -1,6 +1,6 @@
 import { createTimer } from "@solid-primitives/timer";
 import { createContext, useContext, For, type ParentComponent } from "solid-js";
-import { createStore } from "solid-js/store";
+import { createStore } from "solid-js";
 import { Tooltip, TooltipTrigger } from "./tooltip";
 
 export type ToastType = "success" | "error" | "info" | "warning";
@@ -28,21 +28,18 @@ export const ToastProvider: ParentComponent = (props) => {
     duration = 3000,
   ) => {
     const id = Math.random().toString(36).substring(7);
-    setState("toasts", (toasts) => [
-      ...toasts,
-      { id, message, type, duration },
-    ]);
+    setState(draft => { draft.toasts.push({ id, message, type, duration }); });
   };
 
   const removeToast = (id: string) => {
-    setState("toasts", (toasts) => toasts.filter((t) => t.id !== id));
+    setState(draft => { draft.toasts = draft.toasts.filter(t => t.id !== id); });
   };
 
   return (
-    <ToastContext.Provider value={{ addToast, removeToast }}>
+    <ToastContext value={{ addToast, removeToast }}>
       {props.children}
       <ToastContainer toasts={state.toasts} removeToast={removeToast} />
-    </ToastContext.Provider>
+    </ToastContext>
   );
 };
 

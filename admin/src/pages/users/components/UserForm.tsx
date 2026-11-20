@@ -99,13 +99,13 @@ export function UserForm(props: UserFormProps) {
         <UserRoleSelector role={role()} onChange={setRole} />
       </Show>
 
-      <Show when={role() === "member"}>
+      <div hidden={role() !== "member"}>
         <UserProjectScope
           projects={props.projects}
           projectAccess={projectAccess()}
           onChange={setProjectRole}
         />
-      </Show>
+      </div>
 
       <div class="flex justify-end gap-3">
         <Button

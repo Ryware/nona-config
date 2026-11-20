@@ -1,4 +1,6 @@
-import { type JSX, type ParentComponent, splitProps } from "solid-js";
+import { type ParentComponent } from "solid-js";
+import { splitProps } from "../../shared/lib/split-props";
+import type { JSX } from "@solidjs/web";
 import { cn } from "../lib/utils";
 
 
