@@ -10,7 +10,9 @@ import { Sidebar } from "./Sidebar";
 export function AppLayout(props: { children?: JSX.Element }): JSX.Element {
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = createSignal(false);
-  const [collapsed, setCollapsed] = makePersisted(createSignal(false), {
+  const initialCollapsed = typeof window !== "undefined"
+    && window.localStorage.getItem("sidebar_collapsed") === "true";
+  const [collapsed, setCollapsed] = makePersisted(createSignal(initialCollapsed), {
     deserialize: value => value === "true",
     name: "sidebar_collapsed",
     serialize: value => String(value)
