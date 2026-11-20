@@ -49,6 +49,7 @@ describe('ResetPasswordPage', () => {
     fireEvent.input(screen.getByLabelText(/confirm password/i), {
       target: { value: 'DifferentPassword123!' },
     });
+    await Promise.resolve();
     fireEvent.click(screen.getByRole('button', { name: /set new password/i }));
 
     expect(await screen.findByText(/passwords do not match/i)).toBeInTheDocument();
@@ -63,6 +64,7 @@ describe('ResetPasswordPage', () => {
     fireEvent.input(screen.getByLabelText(/confirm password/i), {
       target: { value: 'short' },
     });
+    await Promise.resolve();
     fireEvent.click(screen.getByRole('button', { name: /set new password/i }));
 
     expect(await screen.findByText(/^password must be at least 8 characters long\.$/i)).toBeInTheDocument();
@@ -78,6 +80,7 @@ describe('ResetPasswordPage', () => {
     fireEvent.input(screen.getByLabelText(/confirm password/i), {
       target: { value: 'NewPassword123!' },
     });
+    await Promise.resolve();
     fireEvent.click(screen.getByRole('button', { name: /set new password/i }));
 
     await waitFor(() => {
@@ -133,5 +136,6 @@ async function submitValidPassword() {
   fireEvent.input(screen.getByLabelText(/confirm password/i), {
     target: { value: 'NewPassword123!' },
   });
+  await Promise.resolve();
   fireEvent.click(screen.getByRole('button', { name: /set new password/i }));
 }

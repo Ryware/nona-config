@@ -71,6 +71,7 @@ describe("CliLoginPage", () => {
 
     fireEvent.input(screen.getByLabelText(/email/i), { target: { value: "admin@example.com" } });
     fireEvent.input(screen.getByLabelText(/^password$/i), { target: { value: "password" } });
+    await Promise.resolve();
     fireEvent.click(screen.getByRole("button", { name: /login to console/i }));
     const authorize = await screen.findByRole("button", { name: "Authorize CLI" });
     expect(window.location.pathname).toBe("/cli-login");

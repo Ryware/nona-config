@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/solid-query";
-import { createTrackedEffect, createMemo, createSignal, onSettled, Show } from "solid-js";
+import { createEffect, createMemo, createSignal, onSettled, Show } from "solid-js";
 import { createStore } from "solid-js";
 import { configEntryService } from "../../entities/project/api/config-entry.service";
 import { useUnsavedChanges, useUnsavedChangesBlocker } from "../../shared/hooks/useUnsavedChanges";
@@ -87,6 +87,7 @@ export function ReleaseDraftPanel(props: ReleaseDraftPanelProps) {
   const [search, setSearch] = createSignal("");
   const [draftValues, setDraftValues] = createSignal<Record<string, string>>({});
   const [published, setPublished] = createSignal(false);
+  let publishedBeforeNavigation = false;
   const { requestAction } = useUnsavedChanges();
   let panelOpener: HTMLElement | undefined;
 
@@ -149,12 +150,18 @@ export function ReleaseDraftPanel(props: ReleaseDraftPanelProps) {
     });
   };
 
-  useUnsavedChangesBlocker({ id: RELEASE_DRAFT, isDirty: isReleaseDirty, discard: resetRelease });
+  useUnsavedChangesBlocker({ id: RELEASE_DRAFT, isDirty: () => !publishedBeforeNavigation && isReleaseDirty(), discard: resetRelease });
   useUnsavedChangesBlocker({ id: RELEASE_PARAMETER_DRAFT, isDirty: panelDirty, discard: closePanel });
 
-  createTrackedEffect(() => {
-    const nextIdentity = identity();
-    if (seededIdentity() === nextIdentity) return;
+  createEffect(() => ({
+    nextIdentity: identity(),
+    currentIdentity: seededIdentity(),
+    sourceReady: props.sourceReady,
+    sourceEntries: props.sourceEntries,
+    environmentName: props.environmentName
+  }), ({ nextIdentity, currentIdentity, sourceReady, sourceEntries, environmentName }) => {
+    if (currentIdentity === nextIdentity) return;
+    publishedBeforeNavigation = false;
     setRows(() => []);
     setBaselineRows(() => []);
     setBufferEnvironmentName("");
@@ -162,11 +169,11 @@ export function ReleaseDraftPanel(props: ReleaseDraftPanelProps) {
     setDraftValues({});
     setPublished(false);
     closePanel();
-    if (!props.sourceReady) return;
-    const sourceEntries = props.sourceEntries.map(entry => ({ ...entry }));
-    setBaselineRows(() => sourceEntries.map(entry => ({ ...entry })));
-    setRows(() => sourceEntries);
-    setBufferEnvironmentName(props.environmentName);
+    if (!sourceReady) return;
+    const copiedEntries = sourceEntries.map(entry => ({ ...entry }));
+    setBaselineRows(() => copiedEntries.map(entry => ({ ...entry })));
+    setRows(() => copiedEntries);
+    setBufferEnvironmentName(environmentName);
     setSeededIdentity(nextIdentity);
   });
 
@@ -278,7 +285,7 @@ export function ReleaseDraftPanel(props: ReleaseDraftPanelProps) {
             onClick={() => props.onPublish(
               bufferEnvironmentName(),
               rows.map(entry => ({ ...entry })),
-              () => setPublished(true)
+              () => { publishedBeforeNavigation = true; setPublished(true); }
             )}
           >
             <MIcon name="check" class="text-[16px]" />

@@ -128,6 +128,7 @@ describe('ProjectApiKeysSection', () => {
     fireEvent.input(await screen.findByTestId('api-key-name-input'), {
       target: { value: 'Staging Client Key' },
     });
+    await Promise.resolve();
     fireEvent.click(screen.getByTestId('api-key-create-button'));
 
     await waitFor(() => {
@@ -147,7 +148,7 @@ describe('ProjectApiKeysSection', () => {
     await waitFor(() => expect(writeClipboard).toHaveBeenCalledWith(secret));
 
     fireEvent.click(screen.getByRole('button', { name: /dismiss api key/i }));
-    expect(screen.queryByText(secret)).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByText(secret)).not.toBeInTheDocument());
     expect(JSON.stringify(queryClient.getQueryData(projectKeys.apiKeys('my-app'))) ?? '').not.toContain(secret);
     expect(JSON.stringify(queryClient.getMutationCache().getAll().map(mutation => mutation.state.data)))
       .not.toContain(secret);
@@ -183,6 +184,7 @@ describe('ProjectApiKeysSection', () => {
     fireEvent.input(await screen.findByTestId('api-key-name-input'), {
       target: { value: 'Temporary Key' },
     });
+    await Promise.resolve();
     fireEvent.click(screen.getByTestId('api-key-create-button'));
     expect(await screen.findByTestId('one-time-api-key-value')).toHaveTextContent(previousSecret);
     await waitFor(() => {
@@ -194,6 +196,7 @@ describe('ProjectApiKeysSection', () => {
     fireEvent.input(replacementNameInput, {
       target: { value: 'Another Key' },
     });
+    await Promise.resolve();
     const createButton = screen.getByTestId('api-key-create-button');
     await waitFor(() => expect(createButton).toBeEnabled());
     fireEvent.click(createButton);
@@ -260,6 +263,7 @@ describe('ProjectApiKeysSection', () => {
     fireEvent.input(await screen.findByTestId('api-key-name-input'), {
       target: { value: 'Temporary Key' },
     });
+    await Promise.resolve();
     fireEvent.click(screen.getByTestId('api-key-create-button'));
     expect(await screen.findByTestId('one-time-api-key-value')).toHaveTextContent(secret);
     expect(await screen.findByText('Temporary Key')).toBeInTheDocument();
@@ -307,6 +311,7 @@ describe('ProjectApiKeysSection', () => {
     fireEvent.input(await screen.findByTestId('api-key-name-input'), {
       target: { value: 'Temporary Key' },
     });
+    await Promise.resolve();
     fireEvent.click(screen.getByTestId('api-key-create-button'));
     await waitFor(() => expect(releaseCreateResponse).toBeTypeOf('function'));
     expect(requestedProjectId).toBe('my-app');

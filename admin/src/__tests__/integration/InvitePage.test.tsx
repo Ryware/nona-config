@@ -98,6 +98,7 @@ describe('InvitePage', () => {
     fireEvent.input(screen.getByLabelText(/confirm password/i), {
       target: { value: 'Password123!' },
     });
+    await Promise.resolve();
     fireEvent.click(screen.getByRole('button', { name: /set password and continue/i }));
 
     await waitFor(() => {
@@ -115,6 +116,7 @@ describe('InvitePage', () => {
     fireEvent.input(screen.getByLabelText(/confirm password/i), {
       target: { value: 'short' },
     });
+    await Promise.resolve();
     fireEvent.click(screen.getByRole('button', { name: /set password and continue/i }));
 
     expect(await screen.findByText(/^password must be at least 8 characters long\.$/i)).toBeInTheDocument();

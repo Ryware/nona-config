@@ -91,17 +91,14 @@ export function ProjectParamPanel(props: ProjectParamPanelProps) {
 
   const resetFromEntry = (
     entry = props.entry,
-    mode = props.mode,
-    initialDescription = props.initialDescription
+    mode = props.mode
   ) => {
     const isCreate = mode === "create";
     const nextKey = isCreate ? "" : (entry?.key ?? "");
     const nextType = isCreate ? "text" : (entry?.contentType ?? "text");
     const rawValue = isCreate ? "" : (entry?.value ?? "");
     const nextValue = nextType === "json" ? formatJson(rawValue) : rawValue;
-    const nextDescription = isCreate
-      ? ""
-      : (entry?.description ?? initialDescription ?? "");
+    const nextDescription = isCreate ? "" : (entry?.description ?? "");
     const nextScope = isCreate ? "all" : (entry?.scope ?? "all");
     const nextUnit = isCreate ? "" : (entry?.unit ?? "");
 
@@ -129,9 +126,9 @@ export function ProjectParamPanel(props: ProjectParamPanelProps) {
   };
 
   createEffect(
-    () => ({ open: props.open, mode: props.mode, entry: props.entry, initialDescription: props.initialDescription }),
-    ({ open, mode, entry, initialDescription }) => {
-      if (open) resetFromEntry(entry, mode, initialDescription);
+    () => ({ open: props.open, mode: props.mode, entry: props.entry }),
+    ({ open, mode, entry }) => {
+      if (open) resetFromEntry(entry, mode);
     }
   );
 
@@ -151,7 +148,7 @@ export function ProjectParamPanel(props: ProjectParamPanelProps) {
     && currentSnapshot() !== baseline()
   );
 
-  createEffect(isDirty, dirty => props.onDirtyChange(dirty));
+  createEffect(isDirty, dirty => { props.onDirtyChange(dirty); });
 
   const validation = createMemo(() => validateConfigEntryDraft({
     // Existing legacy keys remain editable even when they predate hierarchy validation.

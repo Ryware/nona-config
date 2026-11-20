@@ -77,6 +77,7 @@ describe('AccountPage', () => {
     fireEvent.input(screen.getByLabelText(/confirm new password/i), {
       target: { value: 'DifferentPassword123!' },
     });
+    await Promise.resolve();
     fireEvent.click(screen.getByRole('button', { name: /^change password$/i }));
     expect(await screen.findByRole('alert')).toHaveTextContent(/passwords do not match/i);
 
@@ -84,8 +85,9 @@ describe('AccountPage', () => {
     fireEvent.input(screen.getByLabelText(/confirm new password/i), {
       target: { value: 'NewPassword123!' },
     });
+    await Promise.resolve();
     fireEvent.click(screen.getByRole('button', { name: /^change password$/i }));
-    expect(await screen.findByRole('alert')).toHaveTextContent(/current password is incorrect/i);
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/current password is incorrect/i));
   });
 
   it('rejects a weak new password before changing it', async () => {
@@ -100,6 +102,7 @@ describe('AccountPage', () => {
     fireEvent.input(screen.getByLabelText(/confirm new password/i), {
       target: { value: 'short' },
     });
+    await Promise.resolve();
     fireEvent.click(screen.getByRole('button', { name: /^change password$/i }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/at least 8 characters/i);
@@ -114,6 +117,7 @@ describe('AccountPage', () => {
     fireEvent.input(current, { target: { value: 'current' } });
     fireEvent.input(next, { target: { value: 'NewPassword123!' } });
     fireEvent.input(confirm, { target: { value: 'NewPassword123!' } });
+    await Promise.resolve();
     fireEvent.click(screen.getByRole('button', { name: /^change password$/i }));
 
     await waitFor(() => expect(screen.getByText(/password changed successfully/i)).toBeInTheDocument());

@@ -38,7 +38,7 @@ const tableProps = (patch: Partial<ProjectParamsTableProps> = {}): ProjectParams
 describe("ProjectParamsTable", () => {
   beforeEach(() => localStorage.clear());
 
-  it("groups colon-delimited keys, expands initially, and persists collapse state", () => {
+  it("groups colon-delimited keys, expands initially, and persists collapse state", async () => {
     render(() => <ProjectParamsTable {...tableProps()} />);
 
     const group = screen.getByTestId("parameter-group-Checkout");
@@ -46,24 +46,28 @@ describe("ProjectParamsTable", () => {
     expect(screen.getByTestId("parameter-row-Checkout:FreeShippingThreshold")).toBeInTheDocument();
 
     fireEvent.click(group);
+    await Promise.resolve();
     expect(group).toHaveAttribute("aria-expanded", "false");
     expect(screen.queryByTestId("parameter-row-Checkout:FreeShippingThreshold")).not.toBeInTheDocument();
     expect(JSON.parse(localStorage.getItem("nona_parameter_tree:project:production") ?? "[]"))
       .toContain("Checkout");
   });
 
-  it("temporarily reveals a matching collapsed path without changing saved state", () => {
+  it("temporarily reveals a matching collapsed path without changing saved state", async () => {
     const [search, setSearch] = createSignal("");
     render(() => <ProjectParamsTable {...tableProps()} search={search()} />);
     fireEvent.click(screen.getByTestId("parameter-group-Checkout"));
+    await Promise.resolve();
     expect(screen.queryByTestId("parameter-row-Checkout:FreeShippingThreshold")).not.toBeInTheDocument();
 
     setSearch("shipping");
+    await Promise.resolve();
     expect(screen.getByTestId("parameter-row-Checkout:FreeShippingThreshold")).toBeInTheDocument();
     expect(JSON.parse(localStorage.getItem("nona_parameter_tree:project:production") ?? "[]"))
       .toContain("Checkout");
 
     setSearch("");
+    await Promise.resolve();
     expect(screen.queryByTestId("parameter-row-Checkout:FreeShippingThreshold")).not.toBeInTheDocument();
   });
 
@@ -82,6 +86,7 @@ describe("ProjectParamsTable", () => {
     const update = screen.getByTestId("parameter-update-Settings");
     expect(update).toHaveTextContent("Update");
     fireEvent.input(input, { target: { value: '{"enabled":' } });
+    await Promise.resolve();
 
     expect(input).toHaveValue('{"enabled":');
     expect(screen.getByRole("alert")).toHaveTextContent(/invalid json:/i);
@@ -89,6 +94,7 @@ describe("ProjectParamsTable", () => {
     expect(onUpdateValue).not.toHaveBeenCalled();
 
     fireEvent.input(input, { target: { value: '{"enabled":false}' } });
+    await Promise.resolve();
     expect(update).toBeEnabled();
     fireEvent.click(update);
     await waitFor(() => expect(onUpdateValue).toHaveBeenCalledWith(
@@ -119,6 +125,7 @@ describe("ProjectParamsTable", () => {
     const input = screen.getByTestId(`parameter-value-input-${entry().key}`);
     const update = screen.getByTestId(`parameter-update-${entry().key}`);
     fireEvent.input(input, { target: { value: "30" } });
+    await Promise.resolve();
     fireEvent.click(update);
     await waitFor(() => expect(onUpdateValue).toHaveBeenCalledWith(
       expect.objectContaining({ key: entry().key }),
@@ -126,6 +133,7 @@ describe("ProjectParamsTable", () => {
     ));
 
     fireEvent.input(input, { target: { value: "35" } });
+    await Promise.resolve();
     resolveUpdate?.();
 
     await waitFor(() => expect(
@@ -134,7 +142,7 @@ describe("ProjectParamsTable", () => {
     expect(screen.getByTestId(`parameter-value-input-${entry().key}`)).toHaveValue("35");
   });
 
-  it("keeps a controlled draft across row remounts and uses the supplied action label", () => {
+  it("keeps a controlled draft across row remounts and uses the supplied action label", async () => {
     const [draftValues, setDraftValues] = createSignal<Record<string, string>>({});
     const onDraftValueChange = vi.fn((current: ConfigEntry, value: string) => {
       setDraftValues(previous => ({ ...previous, [current.key]: value }));
@@ -150,6 +158,7 @@ describe("ProjectParamsTable", () => {
 
     const inputId = `parameter-value-input-${entry().key}`;
     fireEvent.input(screen.getByTestId(inputId), { target: { value: "30" } });
+    await Promise.resolve();
     expect(onDraftValueChange).toHaveBeenCalledWith(
       expect.objectContaining({ key: entry().key }),
       "30"
@@ -157,12 +166,14 @@ describe("ProjectParamsTable", () => {
     expect(screen.getByTestId(`parameter-update-${entry().key}`)).toHaveTextContent("Apply to draft");
 
     fireEvent.click(screen.getByTestId("parameter-group-Checkout"));
+    await Promise.resolve();
     expect(screen.queryByTestId(inputId)).not.toBeInTheDocument();
     fireEvent.click(screen.getByTestId("parameter-group-Checkout"));
+    await Promise.resolve();
     expect(screen.getByTestId(inputId)).toHaveValue("30");
   });
 
-  it("uses an accessible boolean switch and shows number units", () => {
+  it("uses an accessible boolean switch and shows number units", async () => {
     render(() => (
       <ProjectParamsTable
         {...tableProps({
@@ -177,6 +188,7 @@ describe("ProjectParamsTable", () => {
     const toggle = screen.getByRole("switch", { name: "Value for Features:Checkout" });
     expect(toggle).toHaveAttribute("aria-checked", "true");
     fireEvent.click(toggle);
+    await Promise.resolve();
     expect(toggle).toHaveAttribute("aria-checked", "false");
     expect(screen.getByLabelText("Unit USD")).toBeInTheDocument();
   });

@@ -123,6 +123,7 @@ describe("project navigation state", () => {
     fireEvent.input(await screen.findByTestId("parameter-value-input-API_URL"), {
       target: { value: "https://draft.example.com" }
     });
+    await Promise.resolve();
     fireEvent.click(parametersLink);
 
     expect(await screen.findByTestId("parameter-discard-dialog")).toBeInTheDocument();
@@ -130,6 +131,7 @@ describe("project navigation state", () => {
     expect(releasesLink).toHaveAttribute("aria-current", "page");
 
     fireEvent.click(screen.getByTestId("parameter-discard-cancel-button"));
+    await waitFor(() => expect(screen.queryByTestId("parameter-discard-dialog")).not.toBeInTheDocument());
     expect(window.location.search).toBe("?release=1.3.0");
 
     fireEvent.click(parametersLink);
