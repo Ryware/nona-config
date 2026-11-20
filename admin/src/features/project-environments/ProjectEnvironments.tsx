@@ -1,4 +1,4 @@
-import { For, Show, createEffect, createSignal } from "solid-js";
+import { For, Show, createTrackedEffect, createSignal } from "solid-js";
 import { Button } from "../../shared/ui/button";
 import { MIcon } from "../../shared/ui/icons";
 import type { Environment } from "../../types";
@@ -32,7 +32,7 @@ export function ProjectEnvironments(props: ProjectEnvironmentsProps) {
     if (props.createEnvError) props.onDismissCreateEnvError?.();
   };
 
-  createEffect(() => {
+  createTrackedEffect(() => {
     if (props.showEnvForm) return;
     setEnvName("");
     clearErrors();
@@ -95,7 +95,7 @@ export function ProjectEnvironments(props: ProjectEnvironmentsProps) {
       <Show when={props.canManage && props.showEnvForm}>
         <form
           onSubmit={handleSubmit}
-          noValidate
+          novalidate
           class="bg-surface-container-low border-outline-variant/15 animate-fade-in rounded-2xl border p-6 shadow-sm"
         >
           <h3 class="font-headline text-on-surface mb-6 text-[13px] font-bold tracking-wider uppercase">

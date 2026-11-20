@@ -1,5 +1,5 @@
 import { Dialog } from "@kobalte/core/dialog";
-import { createEffect, createSignal, For, on, Show } from "solid-js";
+import { createEffect, createSignal, For, Show } from "solid-js";
 import { Button } from "../../shared/ui/button";
 import { Input } from "../../shared/ui/input";
 import { MIcon } from "../../shared/ui/icons";
@@ -56,14 +56,14 @@ export function ParameterShareDialog(props: ParameterShareDialogProps) {
   const [permission, setPermission] = createSignal<"edit" | "view">("edit");
   let opener: HTMLElement | null = null;
 
-  createEffect(() => {
-    if (props.entry) {
+  createEffect(() => props.entry, entry => {
+    if (entry) {
       setExpiration("1h");
       setPermission("edit");
     }
   });
 
-  createEffect(on(
+  createEffect(
     () => !!props.entry,
     open => {
       if (open) {
@@ -74,7 +74,7 @@ export function ParameterShareDialog(props: ParameterShareDialogProps) {
         requestAnimationFrame(() => target.focus({ preventScroll: true }));
       }
     }
-  ));
+  );
 
   const handleCreate = () => {
     props.onCreate({

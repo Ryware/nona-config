@@ -1,3 +1,4 @@
+import { ariaBoolean } from "../../shared/lib/aria";
 import {
   type ParentComponent,
   createContext,
@@ -22,9 +23,9 @@ export const Tabs: ParentComponent<TabsProps> = (props) => {
   const [activeTab, setActiveTab] = createSignal(props.defaultValue);
 
   return (
-    <TabsContext.Provider value={{ activeTab, setActiveTab }}>
+    <TabsContext value={{ activeTab, setActiveTab }}>
       <div class={props.class}>{props.children}</div>
-    </TabsContext.Provider>
+    </TabsContext>
   );
 };
 
@@ -57,7 +58,7 @@ export const TabsTrigger: ParentComponent<TabsTriggerProps> = (props) => {
   return (
     <button
       role="tab"
-      aria-selected={isActive()}
+      aria-selected={ariaBoolean(isActive())}
       class={`px-4 py-2.5 text-[14px] font-medium transition-all border-b-2 -mb-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
         isActive()
           ? "text-primary border-primary font-bold"

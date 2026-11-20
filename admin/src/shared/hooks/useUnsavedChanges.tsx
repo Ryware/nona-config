@@ -3,8 +3,7 @@ import {
   createContext,
   createMemo,
   createSignal,
-  onCleanup,
-  onMount,
+  onSettled,
   useContext,
   type Accessor,
   type ParentComponent
@@ -89,7 +88,7 @@ export const UnsavedChangesProvider: ParentComponent = props => {
     requestAction(() => event.retry(true));
   });
 
-  onMount(() => {
+  onSettled(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       if (!hasDirtyChanges()) return;
 
@@ -98,11 +97,11 @@ export const UnsavedChangesProvider: ParentComponent = props => {
     };
 
     window.addEventListener("beforeunload", handleBeforeUnload);
-    onCleanup(() => window.removeEventListener("beforeunload", handleBeforeUnload));
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   });
 
   return (
-    <UnsavedChangesContext.Provider value={{ registerBlocker, requestAction, isPromptOpen }}>
+    <UnsavedChangesContext value={{ registerBlocker, requestAction, isPromptOpen }}>
       {props.children}
       <ConfirmDialog
         open={isPromptOpen()}
@@ -117,7 +116,7 @@ export const UnsavedChangesProvider: ParentComponent = props => {
         confirmTestId="parameter-discard-confirm-button"
         cancelTestId="parameter-discard-cancel-button"
       />
-    </UnsavedChangesContext.Provider>
+    </UnsavedChangesContext>
   );
 };
 
@@ -133,8 +132,8 @@ export function useUnsavedChanges() {
 export function useUnsavedChangesBlocker(blocker: UnsavedChangesBlocker) {
   const { registerBlocker } = useUnsavedChanges();
 
-  onMount(() => {
+  onSettled(() => {
     const unregister = registerBlocker(blocker);
-    onCleanup(unregister);
+    return unregister;
   });
 }

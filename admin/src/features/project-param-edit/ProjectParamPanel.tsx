@@ -1,5 +1,6 @@
+import { ariaBoolean } from "../../shared/lib/aria";
 import { Dialog } from "@kobalte/core/dialog";
-import { For, Show, createEffect, createMemo, createSignal, on } from "solid-js";
+import { For, Show, createEffect, createMemo, createSignal } from "solid-js";
 import { Button } from "../../shared/ui/button";
 import { MIcon } from "../../shared/ui/icons";
 import { Input } from "../../shared/ui/input";
@@ -88,15 +89,19 @@ export function ProjectParamPanel(props: ProjectParamPanelProps) {
   const [valueEdited, setValueEdited] = createSignal(false);
   const [status, setStatus] = createSignal("");
 
-  const resetFromEntry = (entry = props.entry) => {
-    const isCreate = props.mode === "create";
+  const resetFromEntry = (
+    entry = props.entry,
+    mode = props.mode,
+    initialDescription = props.initialDescription
+  ) => {
+    const isCreate = mode === "create";
     const nextKey = isCreate ? "" : (entry?.key ?? "");
     const nextType = isCreate ? "text" : (entry?.contentType ?? "text");
     const rawValue = isCreate ? "" : (entry?.value ?? "");
     const nextValue = nextType === "json" ? formatJson(rawValue) : rawValue;
     const nextDescription = isCreate
       ? ""
-      : (entry?.description ?? props.initialDescription ?? "");
+      : (entry?.description ?? initialDescription ?? "");
     const nextScope = isCreate ? "all" : (entry?.scope ?? "all");
     const nextUnit = isCreate ? "" : (entry?.unit ?? "");
 
@@ -123,12 +128,12 @@ export function ProjectParamPanel(props: ProjectParamPanelProps) {
     requestAnimationFrame(() => panelMain?.scrollTo({ top: 0, left: 0 }));
   };
 
-  createEffect(on(
-    () => `${props.open}:${props.mode}:${props.entry?.key ?? ""}`,
-    () => {
-      if (props.open) resetFromEntry();
+  createEffect(
+    () => ({ open: props.open, mode: props.mode, entry: props.entry, initialDescription: props.initialDescription }),
+    ({ open, mode, entry, initialDescription }) => {
+      if (open) resetFromEntry(entry, mode, initialDescription);
     }
-  ));
+  );
 
   const currentSnapshot = () => JSON.stringify({
     key: key(),
@@ -146,7 +151,7 @@ export function ProjectParamPanel(props: ProjectParamPanelProps) {
     && currentSnapshot() !== baseline()
   );
 
-  createEffect(() => props.onDirtyChange(isDirty()));
+  createEffect(isDirty, dirty => props.onDirtyChange(dirty));
 
   const validation = createMemo(() => validateConfigEntryDraft({
     // Existing legacy keys remain editable even when they predate hierarchy validation.
@@ -286,7 +291,7 @@ export function ProjectParamPanel(props: ProjectParamPanelProps) {
             <button
               type="button"
               role="tab"
-              aria-selected={tab() === "settings"}
+              aria-selected={ariaBoolean(tab() === "settings")}
               data-testid="parameter-panel-settings-tab"
               onClick={() => setTab("settings")}
               class={`cursor-pointer border-0 border-b-2 bg-transparent px-3 py-2 text-[13px] font-semibold ${tab() === "settings" ? "border-primary text-primary" : "border-transparent text-outline"}`}
@@ -297,7 +302,7 @@ export function ProjectParamPanel(props: ProjectParamPanelProps) {
               <button
                 type="button"
                 role="tab"
-                aria-selected={tab() === "history"}
+                aria-selected={ariaBoolean(tab() === "history")}
                 data-testid="parameter-panel-history-tab"
                 onClick={openHistory}
                 class={`cursor-pointer border-0 border-b-2 bg-transparent px-3 py-2 text-[13px] font-semibold ${tab() === "history" ? "border-primary text-primary" : "border-transparent text-outline"}`}
@@ -354,7 +359,7 @@ export function ProjectParamPanel(props: ProjectParamPanelProps) {
                         setKeyTouched(true);
                       }}
                       onBlur={() => setKeyTouched(true)}
-                      aria-invalid={keyTouched() && !!validation().keyError}
+                      aria-invalid={ariaBoolean(keyTouched() && !!validation().keyError)}
                       aria-describedby={keyTouched() && validation().keyError ? "parameter-panel-key-error" : undefined}
                       placeholder="Checkout:FreeShippingThreshold"
                       class="font-mono"
@@ -393,7 +398,7 @@ export function ProjectParamPanel(props: ProjectParamPanelProps) {
                     disabled={isReadOnly()}
                     onInput={event => setDescription(event.currentTarget.value)}
                     rows={4}
-                    maxLength={500}
+                    maxlength={500}
                     placeholder="Explain what this parameter controls…"
                     class="bg-surface-container-lowest border-outline-variant/20 focus:border-primary text-on-surface disabled:text-outline w-full resize-y rounded-xl border px-3 py-2.5 text-[14px] outline-none disabled:cursor-not-allowed"
                   />
@@ -446,7 +451,7 @@ export function ProjectParamPanel(props: ProjectParamPanelProps) {
                       data-testid="parameter-edit-unit-input"
                       value={unit()}
                       disabled={isReadOnly()}
-                      maxLength={32}
+                      maxlength={32}
                       onInput={event => setUnit(event.currentTarget.value)}
                       placeholder="ms, %, USD…"
                     />
@@ -497,7 +502,7 @@ export function ProjectParamPanel(props: ProjectParamPanelProps) {
                       <VisualJsonEditor
                         id="parameter-panel-json-editor"
                         aria-label="JSON value"
-                        aria-invalid={valueTouched() && !!valueError()}
+                          aria-invalid={valueTouched() && !!valueError()}
                         aria-describedby={valueTouched() && valueError() ? "parameter-panel-value-error" : undefined}
                         value={value()}
                         onChange={next => {

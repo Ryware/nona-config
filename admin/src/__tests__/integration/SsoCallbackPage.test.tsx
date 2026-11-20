@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from '@solidjs/testing-library';
-import { Route, Router } from '@solidjs/router';
+import { Route, Router } from '../test-router';
 import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ThemeProvider } from '../../shared/hooks/useTheme';

@@ -1,6 +1,6 @@
 import flatpickr from "flatpickr";
 import "flatpickr/dist/flatpickr.css";
-import { createEffect, onCleanup, onMount, Show } from "solid-js";
+import { createTrackedEffect, onCleanup, onSettled, Show } from "solid-js";
 import { MIcon } from "../../../shared/ui/icons";
 import { Input } from "../../../shared/ui/input";
 import { Select } from "../../../shared/ui/select";
@@ -29,7 +29,7 @@ export function AuditLogsFilters(props: AuditLogsFiltersProps) {
   let fpFrom: flatpickr.Instance | undefined;
   let fpTo: flatpickr.Instance | undefined;
 
-  onMount(() => {
+  onSettled(() => {
     if (fromInputRef) {
       fpFrom = flatpickr(fromInputRef, {
         dateFormat: "Y-m-d",
@@ -58,7 +58,7 @@ export function AuditLogsFilters(props: AuditLogsFiltersProps) {
   });
 
   // Keep Flatpickr instances in sync if the parent changes the dates (e.g. "Clear" click)
-  createEffect(() => {
+  createTrackedEffect(() => {
     const from = props.dateFrom;
     if (fpFrom) {
       if (fpFrom.input.value !== from) {
@@ -74,7 +74,7 @@ export function AuditLogsFilters(props: AuditLogsFiltersProps) {
     }
   });
 
-  createEffect(() => {
+  createTrackedEffect(() => {
     const to = props.dateTo;
     if (fpTo) {
       if (fpTo.input.value !== to) {

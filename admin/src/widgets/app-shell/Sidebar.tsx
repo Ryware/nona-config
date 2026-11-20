@@ -1,4 +1,4 @@
-import { A, useLocation, useNavigate } from "@solidjs/router";
+import { useLocation, useNavigate } from "@solidjs/router";
 import { useQuery } from "@tanstack/solid-query";
 import { createMediaQuery } from "@solid-primitives/media";
 import { For, Show } from "solid-js";
@@ -169,7 +169,7 @@ export const Sidebar = (props: {
           }`}
       >
         <div class={`pt-5 pb-4 flex items-start justify-between gap-2 ${collapsed() ? "px-3" : "px-4"}`}>
-          <A
+          <a
             href={selectedProjectHref()}
             onClick={() => props.onClose()}
             class="flex items-center gap-3 group"
@@ -187,7 +187,7 @@ export const Sidebar = (props: {
                 </p>
               </div>
             </Show>
-          </A>
+          </a>
 
           <button
             type="button"
@@ -235,7 +235,7 @@ export const Sidebar = (props: {
             <Show
               when={canCreateProjects}
               fallback={
-                <A
+                <a
                   href="/projects"
                   onClick={() => props.onClose()}
                   aria-label="Projects"
@@ -243,10 +243,10 @@ export const Sidebar = (props: {
                 >
                   <span class="material-symbols-outlined text-[20px] shrink-0">folder_open</span>
                   <Show when={!collapsed()}>Projects</Show>
-                </A>
+                </a>
               }
             >
-              <A
+              <a
                 href="/projects?new=1"
                 onClick={() => props.onClose()}
                 title={collapsed() ? "Create Project" : undefined}
@@ -258,7 +258,7 @@ export const Sidebar = (props: {
               >
                 <span class="material-symbols-outlined text-[18px] shrink-0">add</span>
                 <Show when={!collapsed()}>Create Project</Show>
-              </A>
+              </a>
             </Show>
           </Show>
         </div>
@@ -276,7 +276,7 @@ export const Sidebar = (props: {
             <div class="space-y-0.5">
               <For each={footerNavItems}>
                 {item => (
-                  <A
+                  <a
                     href={item.href()}
                     onClick={() => props.onClose()}
                     title={collapsed() ? item.label : undefined}
@@ -294,7 +294,7 @@ export const Sidebar = (props: {
                       {item.icon}
                     </span>
                     <Show when={!collapsed()}>{item.label}</Show>
-                  </A>
+                  </a>
                 )}
               </For>
             </div>
@@ -319,7 +319,7 @@ export const Sidebar = (props: {
 
           <Show when={authService.isAuthenticated() && !collapsed()}>
             <div class="rounded-xl border border-outline-variant/20 bg-surface-container-low flex items-center gap-3 p-3 hover:border-outline-variant/35 transition-all">
-              <A
+              <a
                 href="/account"
                 data-testid="sidebar-account-link"
                 aria-label="Account settings"
@@ -338,7 +338,7 @@ export const Sidebar = (props: {
                     {user.role || "member"}
                   </p>
                 </div>
-              </A>
+              </a>
               <button
                 onClick={() => authService.logout()}
                 title="Sign out"
@@ -354,7 +354,7 @@ export const Sidebar = (props: {
 
           <Show when={authService.isAuthenticated() && collapsed()}>
             <div class="flex flex-col items-center gap-1.5">
-              <A
+              <a
                 href="/account"
                 aria-label="Account settings"
                 title="Account settings"
@@ -363,7 +363,7 @@ export const Sidebar = (props: {
                 <span class="text-[12px] font-headline font-bold text-primary">
                   {initials}
                 </span>
-              </A>
+              </a>
               <button
                 onClick={() => authService.logout()}
                 title="Sign out"

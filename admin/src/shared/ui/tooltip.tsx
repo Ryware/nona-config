@@ -1,5 +1,7 @@
 import * as TooltipPrimitive from "@kobalte/core/tooltip";
-import { splitProps, type JSX, type ParentProps } from "solid-js";
+import { type ParentProps } from "solid-js";
+import { splitProps } from "../../shared/lib/split-props";
+import type { JSX } from "@solidjs/web";
 import { cn } from "../lib/utils";
 
 interface TooltipProps extends ParentProps {

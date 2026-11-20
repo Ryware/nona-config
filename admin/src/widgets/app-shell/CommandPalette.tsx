@@ -1,15 +1,8 @@
 import { useNavigate } from "@solidjs/router";
 import { useQuery } from "@tanstack/solid-query";
 import {
-  type JSX,
-  createMemo,
-  createSignal,
-  For,
-  on,
-  createEffect,
-  onMount,
-  Show,
-} from "solid-js";
+  createMemo, createSignal, For, createEffect, onSettled, Show } from "solid-js";
+import type { JSX } from "@solidjs/web";
 import { canManageUsers } from "../../entities/auth/model/permissions";
 import { projectService } from "../../entities/project/api/project.service";
 import { projectKeys } from "../../entities/project/queries/keys";
@@ -148,10 +141,10 @@ export const CommandPalette = (props: CommandPaletteProps) => {
     return results;
   });
 
-  // Reset active index on query change (on() tracks only the listed signals)
-  createEffect(on(query, () => { setActiveIdx(0); }));
+  // Reset active index when the search query changes.
+  createEffect(query, () => { setActiveIdx(0); });
 
-  onMount(() => {
+  onSettled(() => {
     inputRef?.focus();
   });
 

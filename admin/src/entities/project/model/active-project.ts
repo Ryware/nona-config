@@ -4,7 +4,6 @@ import type { Project } from "./types";
 
 function createActiveProjectSlug() {
   const [activeProjectSlug, setActiveProjectSlug] = makePersisted(
-    // eslint-disable-next-line solid/reactivity -- persisted signal intentionally lives at module scope.
     createSignal(""),
     { name: "active_project_slug" }
   );

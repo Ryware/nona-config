@@ -1,6 +1,8 @@
 import { useLocation } from "@solidjs/router";
 import { makePersisted } from "@solid-primitives/storage";
-import { createEffect, createSignal, on, type JSX } from "solid-js";
+import { createTrackedEffect, createSignal } from "solid-js";
+import { onSource } from "../../shared/lib/on-source";
+import type { JSX } from "@solidjs/web";
 import { GearTrio } from "../../shared/ui/Cogs";
 import { Header } from "./Header";
 import { Sidebar } from "./Sidebar";
@@ -8,7 +10,6 @@ import { Sidebar } from "./Sidebar";
 export function AppLayout(props: { children?: JSX.Element }): JSX.Element {
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = createSignal(false);
-  // eslint-disable-next-line solid/reactivity -- makePersisted intentionally wraps the signal.
   const [collapsed, setCollapsed] = makePersisted(createSignal(false), {
     deserialize: value => value === "true",
     name: "sidebar_collapsed",
@@ -22,7 +23,7 @@ export function AppLayout(props: { children?: JSX.Element }): JSX.Element {
   };
 
   // Close mobile sidebar on navigation
-  createEffect(on(() => location.pathname, () => setIsSidebarOpen(false)));
+  createTrackedEffect(onSource(() => location.pathname, () => setIsSidebarOpen(false)));
 
   return (
     <div class="bg-background relative flex min-h-screen overflow-hidden">

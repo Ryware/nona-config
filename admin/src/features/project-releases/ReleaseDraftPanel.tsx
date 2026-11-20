@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/solid-query";
-import { createEffect, createMemo, createSignal, onMount, Show } from "solid-js";
+import { createTrackedEffect, createMemo, createSignal, onSettled, Show } from "solid-js";
 import { createStore } from "solid-js";
 import { configEntryService } from "../../entities/project/api/config-entry.service";
 import { useUnsavedChanges, useUnsavedChangesBlocker } from "../../shared/hooks/useUnsavedChanges";
@@ -90,7 +90,7 @@ export function ReleaseDraftPanel(props: ReleaseDraftPanelProps) {
   const { requestAction } = useUnsavedChanges();
   let panelOpener: HTMLElement | undefined;
 
-  onMount(clearLegacyParameterDensityPreference);
+  onSettled(clearLegacyParameterDensityPreference);
 
   const identity = () => JSON.stringify([
     props.mode,
@@ -135,7 +135,7 @@ export function ReleaseDraftPanel(props: ReleaseDraftPanelProps) {
   };
 
   const resetRelease = () => {
-    setRows(baselineRows.map(entry => ({ ...entry })));
+    setRows(() => baselineRows.map(entry => ({ ...entry })));
     setDraftValues({});
     closePanel();
   };
@@ -152,11 +152,11 @@ export function ReleaseDraftPanel(props: ReleaseDraftPanelProps) {
   useUnsavedChangesBlocker({ id: RELEASE_DRAFT, isDirty: isReleaseDirty, discard: resetRelease });
   useUnsavedChangesBlocker({ id: RELEASE_PARAMETER_DRAFT, isDirty: panelDirty, discard: closePanel });
 
-  createEffect(() => {
+  createTrackedEffect(() => {
     const nextIdentity = identity();
     if (seededIdentity() === nextIdentity) return;
-    setRows([]);
-    setBaselineRows([]);
+    setRows(() => []);
+    setBaselineRows(() => []);
     setBufferEnvironmentName("");
     setSearch("");
     setDraftValues({});
@@ -164,8 +164,8 @@ export function ReleaseDraftPanel(props: ReleaseDraftPanelProps) {
     closePanel();
     if (!props.sourceReady) return;
     const sourceEntries = props.sourceEntries.map(entry => ({ ...entry }));
-    setBaselineRows(sourceEntries.map(entry => ({ ...entry })));
-    setRows(sourceEntries);
+    setBaselineRows(() => sourceEntries.map(entry => ({ ...entry })));
+    setRows(() => sourceEntries);
     setBufferEnvironmentName(props.environmentName);
     setSeededIdentity(nextIdentity);
   });
@@ -220,7 +220,7 @@ export function ReleaseDraftPanel(props: ReleaseDraftPanelProps) {
     const selected = selectedEntry();
     const index = selected ? rows.findIndex(row => row.key === selected.key) : -1;
     if (index < 0) throw new Error("The draft parameter could not be found.");
-    setRows(index, releaseEntry);
+    setRows(draft => { draft[index] = releaseEntry; });
     clearDraftValue(releaseEntry.key);
     const updated = normalizeEntry(props.projectId, bufferEnvironmentName(), releaseEntry);
     setSelectedEntry(updated);
@@ -240,7 +240,7 @@ export function ReleaseDraftPanel(props: ReleaseDraftPanelProps) {
       description: version.description,
       unit: version.unit
     };
-    setRows(index, releaseEntry);
+    setRows(draft => { draft[index] = releaseEntry; });
     clearDraftValue(releaseEntry.key);
     const updated = normalizeEntry(props.projectId, bufferEnvironmentName(), releaseEntry);
     setSelectedEntry(updated);
@@ -341,7 +341,7 @@ export function ReleaseDraftPanel(props: ReleaseDraftPanelProps) {
             onUpdateValue={(entry, nextValue) => {
               const index = rows.findIndex(row => row.key === entry.key);
               if (index >= 0) {
-                setRows(index, "value", nextValue);
+                setRows(draft => { draft[index].value = nextValue; });
                 clearDraftValue(entry.key);
               }
             }}
@@ -380,7 +380,7 @@ export function ReleaseDraftPanel(props: ReleaseDraftPanelProps) {
         onConfirm={() => {
           const key = deleteKey();
           if (key) {
-            setRows(rows.filter(row => row.key !== key));
+            setRows(() => rows.filter(row => row.key !== key));
             clearDraftValue(key);
           }
           setDeleteKey(null);

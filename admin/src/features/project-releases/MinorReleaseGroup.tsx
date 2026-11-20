@@ -1,4 +1,5 @@
-import { For, Show, splitProps } from "solid-js";
+import { For, Show } from "solid-js";
+import { splitProps } from "../../shared/lib/split-props";
 
 import { MIcon } from "../../shared/ui/icons";
 import { ReleaseRow, type ReleaseRowActions } from "./ReleaseRow";

@@ -1,14 +1,14 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@solidjs/testing-library';
-import { Router, Route } from '@solidjs/router';
+import { Router, Route } from '../test-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/solid-query';
-import { MetaProvider } from '@solidjs/meta';
+import { MetaProvider } from '../test-router';
 import { http, HttpResponse } from 'msw';
 import { server } from '../mocks/server';
 import { ToastProvider } from '../../shared/ui/toast';
 import ProjectsPage from '../../pages/projects/ProjectsPage';
 import { mockProjects, mockToken } from '../mocks/data';
-import type { JSX } from 'solid-js';
+import type { JSX } from "@solidjs/web";
 
 function renderWithProviders(ui: () => JSX.Element) {
   const queryClient = new QueryClient({

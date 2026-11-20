@@ -1,4 +1,4 @@
-import { A, useLocation } from "@solidjs/router";
+import { useLocation } from "@solidjs/router";
 import { For, Show } from "solid-js";
 import { getProjectPageSection } from "../../shared/lib/project-navigation";
 
@@ -75,12 +75,12 @@ export function Breadcrumbs() {
                   </span>
                 }
               >
-                <A
+                <a
                   href={crumb.path!}
                   class="text-on-surface-variant hover:text-primary transition-colors truncate"
                 >
                   {crumb.label}
-                </A>
+                </a>
               </Show>
             </>
           )}

@@ -289,7 +289,7 @@ export function UsersTable(props: UsersTableProps) {
               }
             >
               <tr>
-                <td colSpan={4} class="py-16 text-center">
+                <td colspan={4} class="py-16 text-center">
                   <div class="bg-primary/5 mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl">
                     <MIcon name="group_add" class="text-primary/60 text-3xl" />
                   </div>
@@ -315,7 +315,7 @@ export function UsersTable(props: UsersTableProps) {
               when={!props.isLoading && props.filteredUsers.length === 0 && props.totalUsersCount > 0}
             >
               <tr>
-                <td colSpan={4} class="text-on-surface-variant py-10 text-center text-[15px]">
+                <td colspan={4} class="text-on-surface-variant py-10 text-center text-[15px]">
                   No members match your search
                 </td>
               </tr>

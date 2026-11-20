@@ -1,6 +1,7 @@
+import { ariaBoolean } from "../../shared/lib/aria";
 import { useLocation, useNavigate } from "@solidjs/router";
 import { useQuery } from "@tanstack/solid-query";
-import { createEffect, createMemo } from "solid-js";
+import { createTrackedEffect, createMemo } from "solid-js";
 import { canManageProjects } from "../../entities/auth/model/permissions";
 import { environmentService } from "../../entities/project/api/environment.service";
 import { projectService } from "../../entities/project/api/project.service";
@@ -76,13 +77,13 @@ export function Header(props: HeaderProps) {
   const environments = () =>
     environmentsQuery.status === "success" ? (environmentsQuery.data ?? []) : [];
 
-  createEffect(() => {
+  createTrackedEffect(() => {
     if (projectsQuery.status === "success") {
       syncActiveProject(projects());
     }
   });
 
-  createEffect(() => {
+  createTrackedEffect(() => {
     const project = activeProject();
     if (!project || environmentsQuery.status !== "success") {
       return;
@@ -151,7 +152,7 @@ export function Header(props: HeaderProps) {
           onClick={() => props.onMenuToggle()}
           class="lg:hidden -ml-1 flex items-center justify-center rounded-lg border-0 bg-transparent p-2 text-on-surface-variant cursor-pointer hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           aria-label="Open navigation menu"
-          aria-expanded={props.isSidebarOpen}
+          aria-expanded={ariaBoolean(props.isSidebarOpen)}
           data-tooltip-trigger
         >
           <span class="material-symbols-outlined text-2xl">menu</span>

@@ -25,33 +25,37 @@ function renderDialog({ existingVersions = [] }: RenderDialogOptions = {}) {
   return onConfirm;
 }
 
-function submitVersion(value: string) {
+async function submitVersion(value: string) {
   fireEvent.input(screen.getByTestId("release-version-input"), { target: { value } });
+  await Promise.resolve();
   fireEvent.click(screen.getByTestId("release-version-confirm-button"));
 }
 
 describe("ReleaseVersionDialog", () => {
-  it.each(["1.2.0", "1.-2", "2147483648.0"])("rejects invalid version %s", value => {
+  it.each(["1.2.0", "1.-2", "2147483648.0"])("rejects invalid version %s", async value => {
     const onConfirm = renderDialog();
 
-    submitVersion(value);
+    await submitVersion(value);
+    await Promise.resolve();
 
     expect(screen.getByText("Use major.minor.")).toBeInTheDocument();
     expect(onConfirm).not.toHaveBeenCalled();
   });
 
-  it("submits the canonical exact version", () => {
+  it("submits the canonical exact version", async () => {
     const onConfirm = renderDialog();
 
-    submitVersion(" 01.002 ");
+    await submitVersion(" 01.002 ");
+    await Promise.resolve();
 
     expect(onConfirm).toHaveBeenCalledWith("1.2.0");
   });
 
-  it("rejects a canonically equivalent existing version", () => {
+  it("rejects a canonically equivalent existing version", async () => {
     const onConfirm = renderDialog({ existingVersions: ["1.2.0"] });
 
-    submitVersion("01.002");
+    await submitVersion("01.002");
+    await Promise.resolve();
 
     expect(screen.getByText("That version already exists.")).toBeInTheDocument();
     expect(onConfirm).not.toHaveBeenCalled();

@@ -1,6 +1,6 @@
 import { Title } from "@solidjs/meta";
 import { useQuery } from "@tanstack/solid-query";
-import { createEffect, createMemo, createSignal, onCleanup, Show } from "solid-js";
+import { createTrackedEffect, createMemo, createSignal, Show } from "solid-js";
 import { auditLogService } from "../../entities/audit-log/api/audit-log.service";
 import type { AuditLogExportFormat } from "../../entities/audit-log/api/audit-log.service";
 import { auditLogKeys } from "../../entities/audit-log/queries/keys";
@@ -92,10 +92,10 @@ export default function AuditLogsPage() {
   const [isExporting, setIsExporting] = createSignal(false);
   const { addToast } = useToast();
 
-  createEffect(() => {
+  createTrackedEffect(() => {
     const value = search().trim();
     const timeout = window.setTimeout(() => setDebouncedSearch(value), SEARCH_DEBOUNCE_MS);
-    onCleanup(() => window.clearTimeout(timeout));
+    return () => window.clearTimeout(timeout);
   });
 
   const auditParameters = () => ({
@@ -109,10 +109,10 @@ export default function AuditLogsPage() {
   });
 
   const auditQuery = useQuery(() => {
-    const parameters = auditParameters();
+    const initialParameters = auditParameters();
     return {
-      queryKey: auditLogKeys.list(parameters),
-      queryFn: () => auditLogService.getPage(parameters),
+      queryKey: auditLogKeys.list(initialParameters),
+      queryFn: () => auditLogService.getPage(initialParameters),
       refetchOnMount: "always",
       placeholderData: previous => previous
     };

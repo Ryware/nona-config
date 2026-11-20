@@ -1,4 +1,4 @@
-import { createEffect, type JSXElement, Show } from "solid-js";
+import { createTrackedEffect, type Element, Show } from "solid-js";
 import { createSignal } from "solid-js";
 import { Portal } from "@solidjs/web";
 import { Button } from "../../shared/ui/button";
@@ -11,7 +11,7 @@ import { parseReleaseVersion, type ReleaseVersionFormat } from "./release-versio
 interface ReleaseVersionDialogProps {
   open: boolean;
   title: string;
-  description?: JSXElement;
+  description?: Element;
   initialVersion: string;
   /** Existing release versions, used to prevent collisions. */
   existingVersions: string[];
@@ -29,7 +29,7 @@ export function ReleaseVersionDialog(props: ReleaseVersionDialogProps) {
   const [error, setError] = createSignal("");
 
   // Reset the field whenever the dialog opens or its seed version changes.
-  createEffect(() => {
+  createTrackedEffect(() => {
     if (props.open) {
       setVersion(props.initialVersion);
       setError("");

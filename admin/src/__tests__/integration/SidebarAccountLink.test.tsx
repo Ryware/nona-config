@@ -1,4 +1,4 @@
-import { Route, Router } from '@solidjs/router';
+import { Route, Router } from '../test-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/solid-query';
 import { render, screen } from '@solidjs/testing-library';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

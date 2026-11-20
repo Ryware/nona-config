@@ -1,4 +1,4 @@
-import { createEffect, createSignal, onCleanup, onMount, Show } from "solid-js";
+import { createEffect, createSignal, onSettled, Show } from "solid-js";
 import type { SsoConfig } from "../../types";
 import { renderGoogleSsoButton } from "../../entities/auth/api/google-sso";
 import { signInWithMicrosoftRedirect } from "../../entities/auth/api/microsoft-sso";
@@ -26,7 +26,7 @@ export function SsoSection(props: SsoSectionProps) {
   const hasSsoOptions = () => !!(props.ssoConfig?.google.enabled || props.ssoConfig?.microsoft.enabled);
   const isCurrentlyBusy = () => props.isBusy || activeSsoProvider() !== null;
 
-  onMount(() => {
+  onSettled(() => {
     const result = consumeSsoRedirectResult();
     if (!result) {
       return;
@@ -49,13 +49,10 @@ export function SsoSection(props: SsoSectionProps) {
       });
   });
 
-	createEffect(() => {
-	  const googleConfig = props.ssoConfig?.google;
-	  const onSsoError = props.onSsoError;
-	  const onRedirectStart = props.onRedirectStart;
-	  if (!googleConfig?.enabled || !googleConfig.clientId || !googleButtonHost) {
-	    return;
-	  }
+  createEffect(
+    () => [props.ssoConfig?.google, props.onSsoError, props.onRedirectStart] as const,
+    ([googleConfig, onSsoError, onRedirectStart]) => {
+      if (!googleConfig?.enabled || !googleConfig.clientId || !googleButtonHost) return;
 
     let disposed = false;
     let cleanup: (() => void) | undefined;
@@ -80,7 +77,7 @@ export function SsoSection(props: SsoSectionProps) {
         }
       },
       (message) => {
-	        onSsoError(message);
+        onSsoError(message);
         setActiveSsoProvider(null);
       },
     )
@@ -92,14 +89,15 @@ export function SsoSection(props: SsoSectionProps) {
         cleanup = nextCleanup;
       })
       .catch(() => {
-	        onSsoError("Google sign-in is unavailable right now. Please try again.");
+        onSsoError("Google sign-in is unavailable right now. Please try again.");
       });
 
-    onCleanup(() => {
+    return () => {
       disposed = true;
       cleanup?.();
-    });
-  });
+    };
+    },
+  );
 
   const handleMicrosoftLogin = async () => {
     const microsoftConfig = props.ssoConfig?.microsoft;

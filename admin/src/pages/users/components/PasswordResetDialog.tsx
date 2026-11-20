@@ -55,7 +55,7 @@ export function PasswordResetDialog(props: PasswordResetDialogProps) {
               <Input
                 data-testid="password-reset-link-input"
                 type="text"
-                readOnly
+                readonly
                 value={props.resetUrl}
                 class="flex-1 font-mono"
                 leftIcon="link"

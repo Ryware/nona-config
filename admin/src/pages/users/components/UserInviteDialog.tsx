@@ -51,7 +51,7 @@ export function UserInviteDialog(props: UserInviteDialogProps) {
               <Input
                 data-testid="invite-link-input"
                 type="text"
-                readOnly
+                readonly
                 value={props.invitationUrl}
                 class="flex-1 font-mono"
                 leftIcon="link"

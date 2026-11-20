@@ -1,3 +1,4 @@
+import { ariaBoolean } from "../../shared/lib/aria";
 import {
   Content,
   Icon,
@@ -11,7 +12,7 @@ import {
   Value,
 } from "@kobalte/core/select";
 import type { ComponentProps } from "solid-js";
-import type { JSX } from "solid-js";
+import type { JSX } from "@solidjs/web";
 import { cn } from "../lib/utils";
 
 
@@ -91,7 +92,7 @@ export function Select(props: SelectProps) {
       <Trigger
         id={props.id}
         aria-label={props["aria-label"]}
-        aria-invalid={props["aria-invalid"]}
+        aria-invalid={ariaBoolean(props["aria-invalid"])}
         aria-describedby={props["aria-describedby"]}
         onBlur={props.onBlur}
         class={cn(

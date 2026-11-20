@@ -1,7 +1,7 @@
 import { Meta, Title } from "@solidjs/meta";
 import { useParams } from "@solidjs/router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/solid-query";
-import { createEffect, createMemo, createSignal, Show } from "solid-js";
+import { createTrackedEffect, createMemo, createSignal, Show } from "solid-js";
 import { sharedParameterService } from "../../entities/project/api/config-entry.service";
 import { ApiRequestError } from "../../shared/api/client";
 import { Button } from "../../shared/ui/button";
@@ -74,7 +74,7 @@ export default function SharedParameterPage() {
     retry: false
   }));
 
-  createEffect(() => {
+  createTrackedEffect(() => {
     if (query.status === "success" && query.data) {
       setEditValue(query.data.value);
       setSaveError(null);
@@ -179,7 +179,7 @@ export default function SharedParameterPage() {
                             <div class="flex items-center gap-2">
                               <Input
                                 value={current().value}
-                                readOnly
+                          readonly
                                 data-testid="shared-parameter-value"
                                 class="font-mono"
                               />

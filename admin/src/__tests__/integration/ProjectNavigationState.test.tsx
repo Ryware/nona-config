@@ -1,5 +1,5 @@
-import { MetaProvider } from "@solidjs/meta";
-import { Route, Router } from "@solidjs/router";
+import { MetaProvider } from '../test-router';
+import { Route, Router } from '../test-router';
 import { fireEvent, render, screen, waitFor, within } from "@solidjs/testing-library";
 import { QueryClient, QueryClientProvider } from "@tanstack/solid-query";
 import { beforeEach, describe, expect, it } from "vitest";
