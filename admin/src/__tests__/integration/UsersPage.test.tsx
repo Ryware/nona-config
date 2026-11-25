@@ -1,14 +1,14 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@solidjs/testing-library';
-import { Router, Route } from '@solidjs/router';
+import { Router, Route } from '../test-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/solid-query';
-import { MetaProvider } from '@solidjs/meta';
+import { MetaProvider } from '../test-router';
 import { http, HttpResponse } from 'msw';
 import { server } from '../mocks/server';
 import { ToastProvider } from '../../shared/ui/toast';
 import UsersPage from '../../pages/users/UsersPage';
 import { mockProjects, mockUsers, mockToken } from '../mocks/data';
-import type { JSX } from 'solid-js';
+import type { JSX } from "@solidjs/web";
 
 function renderWithProviders(ui: () => JSX.Element) {
   const queryClient = new QueryClient({
@@ -197,13 +197,15 @@ describe('UsersPage', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: /invite user/i }));
     fireEvent.click(await screen.findByTestId('invite-role-admin'));
-    expect(screen.queryByRole('heading', { name: 'Project Scope' })).not.toBeInTheDocument();
+    await Promise.resolve();
+    await waitFor(() => expect(screen.queryByRole('heading', { name: 'Project Scope' })).not.toBeInTheDocument());
     fireEvent.input(await screen.findByPlaceholderText(/john smith/i), {
       target: { value: 'New Admin' },
     });
     fireEvent.input(await screen.findByPlaceholderText(/alex@company\.com/i), {
       target: { value: 'new-admin@example.com' },
     });
+    await Promise.resolve();
     fireEvent.click(screen.getByRole('button', { name: /generate invitation link/i }));
 
     await waitFor(() => expect(requestedRole).toBe('admin'));
@@ -288,12 +290,13 @@ describe('UsersPage', () => {
     fireEvent.input(await screen.findByTestId('invite-name-input'), {
       target: { value: 'Updated Member' },
     });
+    await Promise.resolve();
     fireEvent.click(screen.getByTestId('user-edit-submit-button'));
     await waitFor(() => expect(screen.queryByTestId('user-edit-form')).not.toBeInTheDocument());
 
     fireEvent.click(screen.getByTestId(`team-row-${savedUser.id}`));
 
-    expect(await screen.findByTestId('invite-name-input')).toHaveValue('Updated Member');
+    await waitFor(() => expect(screen.getByTestId('invite-name-input')).toHaveValue('Updated Member'));
     await waitFor(() => expect(detailRequests).toBe(2));
     expect(screen.getByTestId('invite-name-input')).toHaveValue('Updated Member');
   });

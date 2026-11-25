@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@solidjs/testing-library';
-import { Router, Route } from '@solidjs/router';
+import { Router, Route } from '../test-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/solid-query';
-import { MetaProvider } from '@solidjs/meta';
+import { MetaProvider } from '../test-router';
 import { http, HttpResponse } from 'msw';
 import { server } from '../mocks/server';
 import { ToastProvider } from '../../shared/ui/toast';

@@ -1,5 +1,5 @@
 import { Show } from "solid-js";
-import { Portal } from "solid-js/web";
+import { Portal } from "@solidjs/web";
 import { Button } from "../../../shared/ui/button";
 import { MIcon } from "../../../shared/ui/icons";
 import { Input } from "../../../shared/ui/input";
@@ -55,7 +55,7 @@ export function PasswordResetDialog(props: PasswordResetDialogProps) {
               <Input
                 data-testid="password-reset-link-input"
                 type="text"
-                readOnly
+                readonly
                 value={props.resetUrl}
                 class="flex-1 font-mono"
                 leftIcon="link"

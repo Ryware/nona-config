@@ -1,4 +1,5 @@
-import { createEffect, createMemo, createSignal, Index, Show, on } from "solid-js";
+import { ariaBoolean } from "../../shared/lib/aria";
+import { createEffect, createMemo, createSignal, For, Show } from "solid-js";
 import { Input } from "./input";
 
 export interface JsonGridItem {
@@ -146,7 +147,7 @@ export function VisualJsonEditor(props: VisualJsonEditorProps) {
 
   // Sync value from props to internal state.
   // This must react only to external value changes, not local item edits.
-  createEffect(on(() => props.value, rawVal => {
+  createEffect(() => props.value, rawVal => {
     if (pendingVisualSyncValue !== null) {
       if (rawVal === pendingVisualSyncValue) {
         pendingVisualSyncValue = null;
@@ -187,7 +188,7 @@ export function VisualJsonEditor(props: VisualJsonEditorProps) {
       setIsNested(true);
       setIsVisual(false); // Force raw mode if nested
     }
-  }));
+  });
 
   // Compile items to JSON string and trigger onChange
   const updateFromItems = (newItems: JsonGridItem[]) => {
@@ -272,7 +273,7 @@ export function VisualJsonEditor(props: VisualJsonEditorProps) {
       id={props.id}
       role="group"
       aria-label={props["aria-label"]}
-      aria-invalid={props["aria-invalid"]}
+      aria-invalid={ariaBoolean(props["aria-invalid"])}
       aria-describedby={props["aria-describedby"]}
       class="space-y-3"
     >
@@ -365,7 +366,7 @@ export function VisualJsonEditor(props: VisualJsonEditorProps) {
                 </div>
               }
             >
-              <Index each={items()}>
+              <For each={items()} keyed={false}>
                 {(item, index) => (
                   <VisualJsonRow
                     item={item()}
@@ -375,7 +376,7 @@ export function VisualJsonEditor(props: VisualJsonEditorProps) {
                     onRemove={handleRemoveField}
                   />
                 )}
-              </Index>
+              </For>
             </Show>
           </div>
 

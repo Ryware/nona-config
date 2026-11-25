@@ -1,5 +1,6 @@
 import { Title } from "@solidjs/meta";
-import { Show, type JSX } from "solid-js";
+import { Show } from "solid-js";
+import type { JSX } from "@solidjs/web";
 
 import type { ProjectPageSection } from "../../../shared/lib/project-navigation";
 import type { Project } from "../../../types";

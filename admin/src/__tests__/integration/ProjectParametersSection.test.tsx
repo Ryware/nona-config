@@ -180,6 +180,7 @@ describe('ProjectParametersSection', () => {
     fireEvent.input(await screen.findByTestId('parameter-edit-description-input'), {
       target: { value: 'Unsaved description' },
     });
+    await Promise.resolve();
 
     fireEvent.click(screen.getByTestId('parameter-panel-close-button'));
     expect(await screen.findByTestId('parameter-discard-dialog')).toBeInTheDocument();
@@ -377,6 +378,7 @@ describe('ProjectParametersSection', () => {
     const numberOption = await screen.findByRole('option', { name: 'number' });
     fireEvent.pointerDown(numberOption, { pointerId: 1, pointerType: 'mouse' });
     fireEvent.pointerUp(numberOption, { pointerId: 1, pointerType: 'mouse' });
+    await waitFor(() => expect(datatypeSelect).toHaveTextContent('number'));
 
     const saveButton = screen.getByTestId('parameter-edit-save-button');
     expect(saveButton).toBeDisabled();
@@ -384,6 +386,7 @@ describe('ProjectParametersSection', () => {
     fireEvent.input(screen.getByTestId('parameter-edit-value-input'), {
       target: { value: '42' },
     });
+    await Promise.resolve();
     fireEvent.click(saveButton);
 
     await waitFor(() => {
@@ -443,6 +446,7 @@ describe('ProjectParametersSection', () => {
     const unitInput = await screen.findByTestId('parameter-edit-unit-input');
     expect(unitInput).toHaveValue('ms');
     fireEvent.input(unitInput, { target: { value: '' } });
+    await Promise.resolve();
     fireEvent.click(screen.getByTestId('parameter-edit-save-button'));
 
     await waitFor(() => expect(updateRequest?.unit).toBe(''));
@@ -491,6 +495,7 @@ describe('ProjectParametersSection', () => {
     fireEvent.input(await screen.findByTestId('parameter-edit-description-input'), {
       target: { value: 'Updated runtime settings' },
     });
+    await Promise.resolve();
     fireEvent.click(screen.getByTestId('parameter-edit-save-button'));
 
     await waitFor(() => expect(updateRequest).toBeDefined());
@@ -591,6 +596,7 @@ describe('ProjectParametersSection', () => {
     fireEvent.input(screen.getByTestId('parameter-edit-description-input'), {
       target: { value: 'Checkout timeout' },
     });
+    await Promise.resolve();
     fireEvent.click(screen.getByTestId('parameter-create-submit-button'));
 
     await waitFor(() => {
@@ -659,6 +665,7 @@ describe('ProjectParametersSection', () => {
     fireEvent.input(screen.getByTestId('parameter-value-input'), {
       target: { value: '30s' },
     });
+    await Promise.resolve();
     fireEvent.click(screen.getByTestId('parameter-create-submit-button'));
 
     await waitFor(() => expect(requestEnvironment).toBe('production'));
@@ -792,7 +799,7 @@ describe('ProjectParametersSection', () => {
     fireEvent.click(await screen.findByTestId('release-create-cancel-button'));
 
     expect(await screen.findByTestId('project-releases-heading')).toBeInTheDocument();
-    expect(screen.queryByTestId('parameter-discard-dialog')).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByTestId('parameter-discard-dialog')).not.toBeInTheDocument());
   });
 
   it('asks once before discarding a dirty release creation draft', async () => {
@@ -800,12 +807,13 @@ describe('ProjectParametersSection', () => {
 
     const input = await screen.findByTestId('parameter-value-input-API_URL');
     fireEvent.input(input, { target: { value: 'https://draft.example.com' } });
+    await Promise.resolve();
     fireEvent.click(screen.getByTestId('release-create-cancel-button'));
 
     expect(await screen.findByTestId('parameter-discard-dialog')).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('parameter-discard-cancel-button'));
 
-    expect(screen.queryByTestId('parameter-discard-dialog')).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByTestId('parameter-discard-dialog')).not.toBeInTheDocument());
     expect(screen.getByTestId('release-create-confirm-button')).toBeInTheDocument();
     expect(input).toHaveValue('https://draft.example.com');
 
@@ -880,6 +888,7 @@ describe('ProjectParametersSection', () => {
     fireEvent.input(screen.getByTestId('parameter-value-input'), {
       target: { value: 'production-draft-value' },
     });
+    await Promise.resolve();
     fireEvent.click(screen.getByTestId('parameter-create-submit-button'));
     expect(
       screen.getByText('Parameter key already exists. Keys are case-insensitive.', {

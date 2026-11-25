@@ -1,4 +1,5 @@
-import { type JSX, type ParentComponent } from "solid-js";
+import { type ParentComponent } from "solid-js";
+import type { JSX } from "@solidjs/web";
 import { cn } from "../lib/utils";
 
 export const Card: ParentComponent<JSX.HTMLAttributes<HTMLDivElement>> = (

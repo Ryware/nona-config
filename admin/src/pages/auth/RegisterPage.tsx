@@ -1,4 +1,4 @@
-import { A, useNavigate } from "@solidjs/router";
+import { useNavigate } from "@solidjs/router";
 import { useMutation } from "@tanstack/solid-query";
 import { createSignal } from "solid-js";
 import { authService } from "../../entities/auth/api/auth.service";
@@ -116,12 +116,12 @@ export default function RegisterPage() {
 
         <div class="text-on-surface-variant mt-5 text-center text-[13px]">
           Already have an account?{" "}
-          <A
+          <a
             href="/login"
             class="text-primary hover:text-primary/80 font-bold transition-colors hover:underline"
           >
             Log in
-          </A>
+          </a>
         </div>
 
         {/* Security Info footer */}

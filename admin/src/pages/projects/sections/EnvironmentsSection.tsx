@@ -1,6 +1,6 @@
 import { useParams } from "@solidjs/router";
 import { useMutation, useQueryClient } from "@tanstack/solid-query";
-import { createEffect, createSignal } from "solid-js";
+import { createTrackedEffect, createSignal } from "solid-js";
 
 import { environmentService } from "../../../entities/project/api/environment.service";
 import { projectKeys } from "../../../entities/project/queries/keys";
@@ -35,7 +35,7 @@ export default function EnvironmentsSection() {
     canManageProject
   } = useProjectContext();
 
-  createEffect(() => {
+  createTrackedEffect(() => {
     const shouldAutoOpen =
       environmentsQuery.status === "success" &&
       canManageProject() &&

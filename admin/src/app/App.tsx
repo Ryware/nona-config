@@ -1,8 +1,9 @@
 import { createEventListener } from "@solid-primitives/event-listener";
-import { MetaProvider, Title } from "@solidjs/meta";
-import { Navigate, Route, Router, useLocation } from "@solidjs/router";
+import { Title } from "@solidjs/meta";
+import { createRouter, useLocation, useNavigate } from "@solidjs/router";
 import { QueryClientProvider } from "@tanstack/solid-query";
-import { type JSX, lazy, onMount, Show, Suspense } from "solid-js";
+import { lazy, Loading, onSettled, Show } from "solid-js";
+import type { JSX } from "@solidjs/web";
 import { authService } from "../entities/auth/api/auth.service";
 import { canManageUsers } from "../entities/auth/model/permissions";
 import { authStore } from "../entities/auth/model/store";
@@ -15,103 +16,29 @@ import { ToastProvider } from "../shared/ui/toast";
 import { queryClient } from "./query-client";
 
 export default function App(): JSX.Element {
-  onMount(() => {
-    if (window) {
-      // Listen for unauthorized events dispatched by the API client.
-      // Using a custom event keeps shared/api/client.ts free of entity-layer imports.
-      createEventListener(window, "auth:unauthorized", () => authStore.handleUnauthorized());
-      createEventListener(window, "storage", event => authStore.handleStorageChange(event));
-    }
-  });
+  if (typeof window !== "undefined") {
+    // Keep shared/api/client.ts free of entity-layer imports.
+    createEventListener(window, "auth:unauthorized", () => authStore.handleUnauthorized());
+    createEventListener(window, "storage", event => authStore.handleStorageChange(event));
+  }
 
   return (
-    <MetaProvider>
-      <ThemeProvider>
+    <ThemeProvider>
         <Title>Nona Config Admin</Title>
         <QueryClientProvider client={queryClient}>
           <ToastProvider>
-            <Suspense
+            <Loading
               fallback={
                 <>
                   <RouteLoader />
                 </>
               }
             >
-              <Router>
-                <Route path="/" component={HomeRoute} />
-
-                <Route component={PublicRoute}>
-                  <Route path="/login" component={lazy(() => import("../pages/auth/LoginPage"))} />
-                  <Route
-                    path="/register"
-                    component={lazy(() => import("../pages/auth/RegisterPage"))}
-                  />
-                </Route>
-
-                <Route
-                  path="/cli-login"
-                  component={lazy(() => import("../pages/auth/CliLoginPage"))}
-                />
-
-                <Route
-                  path="/sso/callback/:provider"
-                  component={lazy(() => import("../pages/auth/SsoCallbackPage"))}
-                />
-
-                <Route component={InvitationRoute}>
-                  <Route
-                    path="/invite/:token"
-                    component={lazy(() => import("../pages/auth/InvitePage"))}
-                  />
-                </Route>
-
-                <Route component={InvitationRoute}>
-                  <Route
-                    path="/reset-password/:token"
-                    component={lazy(() => import("../pages/auth/ResetPasswordPage"))}
-                  />
-                </Route>
-
-                <Route
-                  path="/share/:token"
-                  component={lazy(() => import("../pages/shared/SharedParameterPage"))}
-                />
-
-                <Route component={ProtectedRoute}>
-                  <Route
-                    path="/dashboard"
-                    component={() => <Navigate href={getActiveProjectHref()} />}
-                  />
-                  <Route
-                    path="/projects"
-                    component={lazy(() => import("../pages/projects/ProjectsPage"))}
-                  />
-                  <Route path="/projects/:slug/environments" component={EnvironmentsSection} />
-                  <Route path="/projects/:slug/shared-links" component={SharedLinksSection} />
-                  <Route path="/projects/:slug/api-keys" component={ApiKeysSection} />
-                  <Route path="/projects/:slug/releases" component={ReleasesSection} />
-                  <Route path="/projects/:slug" component={ParametersSection} />
-                  <Route
-                    path="/account"
-                    component={lazy(() => import("../pages/account/AccountPage"))}
-                  />
-                  <Route component={AdminRoute}>
-                    <Route
-                      path="/users"
-                      component={lazy(() => import("../pages/users/UsersPage"))}
-                    />
-                    <Route
-                      path="/audit-logs"
-                      component={lazy(() => import("../pages/audit-logs/AuditLogsPage"))}
-                    />
-                  </Route>
-                </Route>
-              </Router>
-            </Suspense>
+              <Router>{props => props.children}</Router>
+            </Loading>
           </ToastProvider>
         </QueryClientProvider>
-      </ThemeProvider>
-    </MetaProvider>
+    </ThemeProvider>
   );
 }
 
@@ -132,7 +59,7 @@ function ProtectedRoute(props: { children?: JSX.Element }) {
   return (
     <Show
       when={authService.isAuthenticated()}
-      fallback={<Navigate href={`/login?redirect=${encodeURIComponent(location.pathname)}`} />}
+      fallback={<Redirect href={`/login?redirect=${encodeURIComponent(location.pathname)}`} />}
     >
       <UnsavedChangesProvider>
         <AppLayout>{props.children}</AppLayout>
@@ -158,7 +85,7 @@ function PublicRoute(props: { children?: JSX.Element }) {
   return (
     <Show
       when={!authService.isAuthenticated()}
-      fallback={<Navigate href={getActiveProjectHref()} />}
+      fallback={<Redirect href={getActiveProjectHref()} />}
     >
       <AuthLayout>{props.children}</AuthLayout>
     </Show>
@@ -170,5 +97,50 @@ function InvitationRoute(props: { children?: JSX.Element }) {
 }
 
 function HomeRoute() {
-  return <Navigate href={authService.isAuthenticated() ? getActiveProjectHref() : "/projects"} />;
+  return <Redirect href={authService.isAuthenticated() ? getActiveProjectHref() : "/projects"} />;
 }
+
+function Redirect(props: { href: string }) {
+  const navigate = useNavigate();
+  onSettled(() => navigate(props.href, { replace: true }));
+  return null;
+}
+
+const Router = createRouter({
+  routes: [
+    { path: "/", component: HomeRoute },
+    {
+      component: PublicRoute,
+      children: [
+        { path: "/login", component: lazy(() => import("../pages/auth/LoginPage")) },
+        { path: "/register", component: lazy(() => import("../pages/auth/RegisterPage")) },
+      ],
+    },
+    { path: "/cli-login", component: lazy(() => import("../pages/auth/CliLoginPage")) },
+    { path: "/sso/callback/:provider", component: lazy(() => import("../pages/auth/SsoCallbackPage")) },
+    { path: "/invite/:token", component: InvitationRoute, children: [
+      { path: "/", component: lazy(() => import("../pages/auth/InvitePage")) },
+    ] },
+    { path: "/reset-password/:token", component: InvitationRoute, children: [
+      { path: "/", component: lazy(() => import("../pages/auth/ResetPasswordPage")) },
+    ] },
+    { path: "/share/:token", component: lazy(() => import("../pages/shared/SharedParameterPage")) },
+    {
+      component: ProtectedRoute,
+      children: [
+        { path: "/dashboard", component: () => <Redirect href={getActiveProjectHref()} /> },
+        { path: "/projects", component: lazy(() => import("../pages/projects/ProjectsPage")) },
+        { path: "/projects/:slug/environments", component: EnvironmentsSection },
+        { path: "/projects/:slug/shared-links", component: SharedLinksSection },
+        { path: "/projects/:slug/api-keys", component: ApiKeysSection },
+        { path: "/projects/:slug/releases", component: ReleasesSection },
+        { path: "/projects/:slug", component: ParametersSection },
+        { path: "/account", component: lazy(() => import("../pages/account/AccountPage")) },
+        { component: AdminRoute, children: [
+          { path: "/users", component: lazy(() => import("../pages/users/UsersPage")) },
+          { path: "/audit-logs", component: lazy(() => import("../pages/audit-logs/AuditLogsPage")) },
+        ] },
+      ],
+    },
+  ],
+});

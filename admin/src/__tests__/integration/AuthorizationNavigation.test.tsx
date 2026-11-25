@@ -1,5 +1,5 @@
-import { MetaProvider } from '@solidjs/meta';
-import { Route, Router } from '@solidjs/router';
+import { MetaProvider } from '../test-router';
+import { Route, Router } from '../test-router';
 import { render, screen } from '@solidjs/testing-library';
 import { QueryClient, QueryClientProvider } from '@tanstack/solid-query';
 import { http, HttpResponse } from 'msw';

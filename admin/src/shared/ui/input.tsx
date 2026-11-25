@@ -1,4 +1,6 @@
-import { type JSX, Show, splitProps } from "solid-js";
+import { Show } from "solid-js";
+import { splitProps } from "../../shared/lib/split-props";
+import type { JSX } from "@solidjs/web";
 import { cn } from "../lib/utils";
 
 

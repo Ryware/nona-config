@@ -57,7 +57,7 @@ export function DataTable<TData>(props: DataTableProps<TData>) {
               <TableRow>
                 <For each={headerGroup.headers}>
                   {(header) => (
-                    <TableHead colSpan={header.colSpan}>
+                    <TableHead colspan={header.colSpan}>
                       <Show when={!header.isPlaceholder}>
                         <div
                           class={
@@ -94,7 +94,7 @@ export function DataTable<TData>(props: DataTableProps<TData>) {
             fallback={
               <TableRow>
                 <TableCell
-                  colSpan={props.columns.length}
+                  colspan={props.columns.length}
                   class="text-center py-12"
                 >
                   No data available

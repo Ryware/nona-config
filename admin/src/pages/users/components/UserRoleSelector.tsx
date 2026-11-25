@@ -1,3 +1,4 @@
+import { ariaBoolean } from "../../../shared/lib/aria";
 import { For, Show } from "solid-js";
 import { cn } from "../../../shared/lib/utils";
 import { tooltipCopy } from "../../../shared/lib/tooltip-copy";
@@ -43,7 +44,7 @@ export function UserRoleSelector(props: UserRoleSelectorProps) {
               <div
                 data-testid={`invite-role-${card.value}`}
                 role="radio"
-                aria-checked={isSelected()}
+                aria-checked={ariaBoolean(isSelected())}
                 tabindex="0"
                 onClick={() => props.onChange(card.value)}
                 onKeyDown={e => {

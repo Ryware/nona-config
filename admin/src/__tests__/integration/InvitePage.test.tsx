@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@solidjs/testing-library';
-import { Router, Route } from '@solidjs/router';
+import { Router, Route } from '../test-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/solid-query';
-import { MetaProvider } from '@solidjs/meta';
+import { MetaProvider } from '../test-router';
 import { ToastProvider } from '../../shared/ui/toast';
 import { http, HttpResponse } from 'msw';
 import { server } from '../mocks/server';
-import type { JSX } from 'solid-js';
+import type { JSX } from "@solidjs/web";
 
 const microsoftRedirectMock = vi.fn();
 const googleRenderMock = vi.fn(async (
@@ -98,6 +98,7 @@ describe('InvitePage', () => {
     fireEvent.input(screen.getByLabelText(/confirm password/i), {
       target: { value: 'Password123!' },
     });
+    await Promise.resolve();
     fireEvent.click(screen.getByRole('button', { name: /set password and continue/i }));
 
     await waitFor(() => {
@@ -115,6 +116,7 @@ describe('InvitePage', () => {
     fireEvent.input(screen.getByLabelText(/confirm password/i), {
       target: { value: 'short' },
     });
+    await Promise.resolve();
     fireEvent.click(screen.getByRole('button', { name: /set password and continue/i }));
 
     expect(await screen.findByText(/^password must be at least 8 characters long\.$/i)).toBeInTheDocument();

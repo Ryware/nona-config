@@ -1,3 +1,4 @@
+import { ariaBoolean } from "../../shared/lib/aria";
 import { Show } from "solid-js";
 import { cn } from "../../shared/lib/utils";
 import type { ConfigEntry } from "../../types";
@@ -47,7 +48,7 @@ export function ParameterValueEditor(props: ParameterValueEditorProps) {
               value={props.value}
               onInput={event => props.onChange?.(event.currentTarget.value)}
               aria-label={`Value for ${props.entry.key}`}
-              aria-invalid={props.invalid}
+              aria-invalid={ariaBoolean(props.invalid)}
               aria-describedby={props.describedBy}
               class={inputClass()}
             />
@@ -63,7 +64,7 @@ export function ParameterValueEditor(props: ParameterValueEditorProps) {
           data-testid={props.testId ?? `parameter-value-input-${props.entry.key}`}
           type="button"
           role="switch"
-          aria-checked={props.value === "true"}
+          aria-checked={ariaBoolean(props.value === "true")}
           aria-label={`Value for ${props.entry.key}`}
           aria-describedby={props.describedBy}
           onClick={() => props.onChange?.(props.value === "true" ? "false" : "true")}

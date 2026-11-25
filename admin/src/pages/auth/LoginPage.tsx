@@ -1,6 +1,6 @@
 import { type RouteSectionProps, useNavigate, useSearchParams } from "@solidjs/router";
 import { useMutation, useQuery } from "@tanstack/solid-query";
-import { createEffect, createSignal, Show } from "solid-js";
+import { createTrackedEffect, createSignal, Show } from "solid-js";
 import { authService } from "../../entities/auth/api/auth.service";
 import { authStore } from "../../entities/auth/model/store";
 import { ApiRequestError } from "../../shared/api/client";
@@ -59,7 +59,7 @@ export default function LoginPage(props: LoginPageProps = {}) {
     retry: false
   }));
 
-  createEffect(() => {
+  createTrackedEffect(() => {
     if (firstTimeQuery.isSuccess && firstTimeQuery.data === true) {
       navigate("/register");
     }
@@ -169,7 +169,7 @@ export default function LoginPage(props: LoginPageProps = {}) {
         </form>
 
         <SsoSection
-          ssoConfig={ssoConfigQuery.data}
+          ssoConfig={ssoConfigQuery.isSuccess ? ssoConfigQuery.data : undefined}
           isBusy={isBusy()}
           onSsoSuccess={handleSsoSuccess}
           onSsoError={msg => setError(msg)}

@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@solidjs/testing-library';
-import { Router, Route } from '@solidjs/router';
+import { Router, Route } from '../test-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/solid-query';
-import { MetaProvider } from '@solidjs/meta';
+import { MetaProvider } from '../test-router';
 import { http, HttpResponse } from 'msw';
 import { server } from '../mocks/server';
 import { ToastProvider } from '../../shared/ui/toast';
@@ -60,6 +60,7 @@ describe('RegisterPage', () => {
     const [pwField, confirmField] = screen.getAllByPlaceholderText(/•{4,}/);
     fireEvent.input(pwField, { target: { value: 'password123' } });
     fireEvent.input(confirmField, { target: { value: 'different456' } });
+    await Promise.resolve();
 
     fireEvent.submit(screen.getByRole('button', { name: /create account/i }).closest('form')!);
 
@@ -77,6 +78,7 @@ describe('RegisterPage', () => {
     const [pwField, confirmField] = screen.getAllByPlaceholderText(/•{4,}/);
     fireEvent.input(pwField, { target: { value: 'short' } });
     fireEvent.input(confirmField, { target: { value: 'short' } });
+    await Promise.resolve();
 
     fireEvent.submit(screen.getByRole('button', { name: /create account/i }).closest('form')!);
 
@@ -93,6 +95,7 @@ describe('RegisterPage', () => {
     const [pwField, confirmField] = screen.getAllByPlaceholderText(/•{4,}/);
     fireEvent.input(pwField, { target: { value: 'Password123!' } });
     fireEvent.input(confirmField, { target: { value: 'Password123!' } });
+    await Promise.resolve();
 
     fireEvent.submit(screen.getByRole('button', { name: /create account/i }).closest('form')!);
 
@@ -115,6 +118,7 @@ describe('RegisterPage', () => {
     const [pwField, confirmField] = screen.getAllByPlaceholderText(/•{4,}/);
     fireEvent.input(pwField, { target: { value: 'Password123!' } });
     fireEvent.input(confirmField, { target: { value: 'Password123!' } });
+    await Promise.resolve();
 
     fireEvent.submit(screen.getByRole('button', { name: /create account/i }).closest('form')!);
 
@@ -143,6 +147,7 @@ describe('RegisterPage', () => {
     const [pwField, confirmField] = screen.getAllByPlaceholderText(/•{4,}/);
     fireEvent.input(pwField, { target: { value: 'Password123!' } });
     fireEvent.input(confirmField, { target: { value: 'Password123!' } });
+    await Promise.resolve();
 
     fireEvent.submit(screen.getByRole('button', { name: /create account/i }).closest('form')!);
 

@@ -1,6 +1,7 @@
 import { useParams } from "@solidjs/router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/solid-query";
-import { Show, createEffect, createSignal, on, onCleanup } from "solid-js";
+import { Show, createTrackedEffect, createSignal, onCleanup } from "solid-js";
+import { onSource } from "../../../shared/lib/on-source";
 
 import { projectService } from "../../../entities/project/api/project.service";
 import { projectKeys } from "../../../entities/project/queries/keys";
@@ -45,7 +46,7 @@ export default function ApiKeysSection() {
     enabled: !!project() && canManageProject()
   }));
 
-  createEffect(() => {
+  createTrackedEffect(() => {
     const shouldAutoOpen =
       apiKeysQuery.status === "success" &&
       canManageProject() &&
@@ -112,7 +113,7 @@ export default function ApiKeysSection() {
     createApiKeyMutation.reset();
   };
 
-  createEffect(on(() => params.slug, clearOneTimeApiKey, { defer: true }));
+  createTrackedEffect(onSource(() => params.slug, clearOneTimeApiKey, { defer: true }));
   onCleanup(clearOneTimeApiKey);
 
   return (

@@ -1,5 +1,6 @@
+import { ariaBoolean } from "../../shared/lib/aria";
 import { type Component, createSignal, Show } from "solid-js";
-import type { JSX } from "solid-js/h/jsx-runtime";
+import type { JSX } from "@solidjs/web";
 import { Input } from "../../shared/ui/input";
 import { Tooltip, TooltipTrigger } from "../../shared/ui/tooltip";
 
@@ -56,12 +57,12 @@ export const FormField: Component<FormFieldProps> = props => {
           onInput={props.onInput}
           required={props.required}
           autofocus={props.autofocus}
-          onkeydown={props.onKeyDown}
+          onKeyDown={props.onKeyDown}
           onBlur={props.onBlur}
-          aria-invalid={props["aria-invalid"]}
+          aria-invalid={ariaBoolean(props["aria-invalid"])}
           aria-describedby={props["aria-describedby"]}
           autocomplete={props.autocomplete}
-          maxLength={props.maxLength}
+          maxlength={props.maxLength}
           data-testid={props.testId}
           leftIcon={props.leftIcon}
           class={`py-3.5${props.type === "password" ? "pr-11" : ""}`}

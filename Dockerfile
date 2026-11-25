@@ -1,9 +1,9 @@
-FROM node:22-alpine AS frontend-build
+FROM node:22-bookworm-slim AS frontend-build
 WORKDIR /frontend
 ARG FRONTEND_DIR=admin
 
 COPY ${FRONTEND_DIR}/package.json ${FRONTEND_DIR}/package-lock.json ./
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 
 COPY ${FRONTEND_DIR}/ ./
 ARG FRONTEND_API_URL=

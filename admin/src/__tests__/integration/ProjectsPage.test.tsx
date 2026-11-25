@@ -1,14 +1,14 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@solidjs/testing-library';
-import { Router, Route } from '@solidjs/router';
+import { Router, Route } from '../test-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/solid-query';
-import { MetaProvider } from '@solidjs/meta';
+import { MetaProvider } from '../test-router';
 import { http, HttpResponse } from 'msw';
 import { server } from '../mocks/server';
 import { ToastProvider } from '../../shared/ui/toast';
 import ProjectsPage from '../../pages/projects/ProjectsPage';
 import { mockProjects, mockToken } from '../mocks/data';
-import type { JSX } from 'solid-js';
+import type { JSX } from "@solidjs/web";
 
 function renderWithProviders(ui: () => JSX.Element) {
   const queryClient = new QueryClient({
@@ -60,7 +60,7 @@ describe('ProjectsPage', () => {
       // "No projects yet" appears in both sidebar and page content — check at least one exists
       expect(screen.getAllByText(/no projects yet/i).length).toBeGreaterThanOrEqual(1);
     });
-    expect(screen.getByLabelText(/project name/i)).toBeInTheDocument();
+    expect(await screen.findByLabelText(/project name/i)).toBeInTheDocument();
   });
 
   it('shows projectless Members guidance without project creation', async () => {
@@ -84,7 +84,7 @@ describe('ProjectsPage', () => {
     const newProjectButtons = await screen.findAllByRole('button', { name: /new project/i });
     fireEvent.click(newProjectButtons[0]);
 
-    expect(screen.getByLabelText(/project name/i)).toBeInTheDocument();
+    expect(await screen.findByLabelText(/project name/i)).toBeInTheDocument();
   });
 
   it('shows validation error for empty project name', async () => {
@@ -94,7 +94,7 @@ describe('ProjectsPage', () => {
     fireEvent.click(newProjectButtons[0]);
 
     // Submit form with empty name
-    const form = screen.getByLabelText(/project name/i).closest('form')!;
+    const form = (await screen.findByLabelText(/project name/i)).closest('form')!;
     fireEvent.submit(form);
 
     await waitFor(() => {
@@ -108,9 +108,10 @@ describe('ProjectsPage', () => {
     const newProjectButtons = await screen.findAllByRole('button', { name: /new project/i });
     fireEvent.click(newProjectButtons[0]);
 
-    fireEvent.input(screen.getByLabelText(/project name/i), {
+    fireEvent.input(await screen.findByLabelText(/project name/i), {
       target: { value: 'invalid name!' },
     });
+    await Promise.resolve();
 
     const form = screen.getByLabelText(/project name/i).closest('form')!;
     fireEvent.submit(form);
@@ -126,9 +127,10 @@ describe('ProjectsPage', () => {
     const newProjectButtons = await screen.findAllByRole('button', { name: /new project/i });
     fireEvent.click(newProjectButtons[0]);
 
-    fireEvent.input(screen.getByLabelText(/project name/i), {
+    fireEvent.input(await screen.findByLabelText(/project name/i), {
       target: { value: 'new-project' },
     });
+    await Promise.resolve();
 
     const form = screen.getByLabelText(/project name/i).closest('form')!;
     fireEvent.submit(form);

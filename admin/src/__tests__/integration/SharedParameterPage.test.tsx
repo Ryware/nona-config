@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@solidjs/testing-library';
-import { Router, Route } from '@solidjs/router';
+import { Router, Route } from '../test-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/solid-query';
-import { MetaProvider } from '@solidjs/meta';
+import { MetaProvider } from '../test-router';
 import { ThemeProvider } from '../../shared/hooks/useTheme';
 import { ToastProvider } from '../../shared/ui/toast';
 import SharedParameterPage from '../../pages/shared/SharedParameterPage';
